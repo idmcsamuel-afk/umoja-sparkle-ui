@@ -1490,6 +1490,7 @@ export type Database = {
         Returns: undefined
       }
       is_admin: { Args: { _uid: string }; Returns: boolean }
+      join_spark_trade: { Args: { _id: string }; Returns: undefined }
     }
     Enums: {
       [_ in never]: never

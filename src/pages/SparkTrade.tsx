@@ -86,10 +86,7 @@ const SparkTrade = () => {
     if (!user) return toast.error("Sign in to join");
     setJoining(p.id);
     const next = Number(p.joined_count ?? 0) + 1;
-    const { error } = await supabase
-      .from("spark_trade_shortlist")
-      .update({ joined_count: next })
-      .eq("id", p.id);
+    const { error } = await supabase.rpc("join_spark_trade", { _id: p.id });
     setJoining(null);
     if (error) return toast.error(error.message);
     toast.success(`You're in on ${p.product_name ?? p.asin}`);
