@@ -2,6 +2,7 @@ import { Link } from "react-router-dom";
 import { Bell, ArrowUpRight, Users, Sparkles, Car, TrendingUp, Plus, ChevronRight, Flame } from "lucide-react";
 import { Logo } from "@/components/umoja/Logo";
 import { BottomNav } from "@/components/umoja/BottomNav";
+import { useAuth } from "@/hooks/useAuth";
 
 const quickActions = [
   { to: "/circle", icon: Users, label: "Circle", desc: "3 active" , tint: "from-primary/30 to-primary/5"},
@@ -18,6 +19,8 @@ const activity = [
 ];
 
 const Dashboard = () => {
+  const { member } = useAuth();
+  const firstName = member?.full_name?.split(" ")[0] ?? "friend";
   return (
     <main className="relative min-h-screen pb-32">
       {/* Top bar */}
@@ -34,7 +37,7 @@ const Dashboard = () => {
       {/* Greeting */}
       <section className="px-5 pt-6">
         <div className="mx-auto max-w-md animate-fade-in">
-          <p className="text-[11px] uppercase tracking-[0.22em] text-accent">Sawubona, Amara</p>
+          <p className="text-[11px] uppercase tracking-[0.22em] text-accent">Sawubona, {firstName}</p>
           <h1 className="mt-2 font-display text-[34px] leading-tight tracking-tight">
             Your wealth is<br/>
             <span className="text-gradient-gold italic font-[450]">growing in trust.</span>
