@@ -187,7 +187,7 @@ const Dashboard = () => {
           <Link to="/predictor" className="group block relative overflow-hidden rounded-3xl border border-border p-6 bg-gradient-card hover:border-accent/50 transition-smooth">
             <div className="absolute -right-16 -top-16 h-48 w-48 rounded-full bg-accent/20 blur-3xl" />
             <p className="text-[11px] uppercase tracking-[0.22em] text-accent">Today's predictor</p>
-            <h3 className="mt-2 font-display text-2xl leading-tight">Will cocoa close above <span className="text-gradient-gold">$8,400</span> Friday?</h3>
+            <h3 className="mt-2 font-display text-2xl leading-tight">Will USD/ZAR close above <span className="text-gradient-gold">R18.40</span> Friday?</h3>
             <div className="mt-5 flex items-center justify-between">
               <div className="flex items-center gap-2">
                 <span className="rounded-full bg-primary/15 text-primary text-xs px-3 py-1">Yes 64%</span>
