@@ -2,6 +2,7 @@ import { Link } from "react-router-dom";
 import { Bell, ArrowUpRight, Users, Sparkles, Car, TrendingUp, Plus, ChevronRight, Flame } from "lucide-react";
 import { Logo } from "@/components/umoja/Logo";
 import { BottomNav } from "@/components/umoja/BottomNav";
+import { useAuth } from "@/hooks/useAuth";
 
 const quickActions = [
   { to: "/circle", icon: Users, label: "Circle", desc: "3 active" , tint: "from-primary/30 to-primary/5"},
