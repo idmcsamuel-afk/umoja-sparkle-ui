@@ -2,95 +2,76 @@
 @tailwind components;
 @tailwind utilities;
 
-/* Definition of the design system. All colors, gradients, fonts, etc should be defined here. 
-All colors MUST be HSL.
-*/
+/* UMOJA — Africa's community wealth platform
+ * Design system: deep forest green + gold on warm dark.
+ * All colors are HSL.
+ */
 
 @layer base {
   :root {
-    --background: 0 0% 100%;
-    --foreground: 222.2 84% 4.9%;
+    /* Warm dark canvas */
+    --background: 150 18% 6%;
+    --foreground: 40 30% 96%;
 
-    --card: 0 0% 100%;
-    --card-foreground: 222.2 84% 4.9%;
+    --card: 150 16% 9%;
+    --card-foreground: 40 30% 96%;
 
-    --popover: 0 0% 100%;
-    --popover-foreground: 222.2 84% 4.9%;
+    --popover: 150 18% 7%;
+    --popover-foreground: 40 30% 96%;
 
-    --primary: 222.2 47.4% 11.2%;
-    --primary-foreground: 210 40% 98%;
+    /* Forest green #1D9E75 */
+    --primary: 158 70% 37%;
+    --primary-foreground: 150 30% 6%;
+    --primary-glow: 158 75% 50%;
 
-    --secondary: 210 40% 96.1%;
-    --secondary-foreground: 222.2 47.4% 11.2%;
+    /* Gold #C9A84C */
+    --accent: 44 55% 54%;
+    --accent-foreground: 150 30% 6%;
+    --accent-soft: 44 60% 70%;
 
-    --muted: 210 40% 96.1%;
-    --muted-foreground: 215.4 16.3% 46.9%;
+    --secondary: 150 14% 14%;
+    --secondary-foreground: 40 30% 96%;
 
-    --accent: 210 40% 96.1%;
-    --accent-foreground: 222.2 47.4% 11.2%;
+    --muted: 150 12% 14%;
+    --muted-foreground: 40 12% 70%;
 
-    --destructive: 0 84.2% 60.2%;
-    --destructive-foreground: 210 40% 98%;
+    --destructive: 8 80% 56%;
+    --destructive-foreground: 40 30% 96%;
 
-    --border: 214.3 31.8% 91.4%;
-    --input: 214.3 31.8% 91.4%;
-    --ring: 222.2 84% 4.9%;
+    --border: 150 14% 16%;
+    --input: 150 14% 16%;
+    --ring: 158 70% 45%;
 
-    --radius: 0.5rem;
+    --radius: 1.25rem;
 
-    --sidebar-background: 0 0% 98%;
+    /* Signature gradients */
+    --gradient-primary: linear-gradient(135deg, hsl(158 70% 30%), hsl(158 75% 45%));
+    --gradient-gold: linear-gradient(135deg, hsl(44 60% 48%), hsl(38 80% 62%));
+    --gradient-hero: radial-gradient(ellipse at top, hsl(158 60% 18% / 0.9), hsl(150 18% 6%) 60%);
+    --gradient-aurora: linear-gradient(135deg, hsl(158 70% 25% / 0.6), hsl(44 55% 40% / 0.35) 60%, hsl(150 18% 6% / 0) 100%);
+    --gradient-card: linear-gradient(160deg, hsl(150 16% 11%) 0%, hsl(150 18% 7%) 100%);
 
-    --sidebar-foreground: 240 5.3% 26.1%;
+    /* Shadows / glows */
+    --shadow-glow: 0 20px 60px -20px hsl(158 75% 45% / 0.45);
+    --shadow-gold: 0 18px 50px -18px hsl(44 60% 50% / 0.5);
+    --shadow-soft: 0 10px 40px -15px hsl(150 30% 0% / 0.6);
 
-    --sidebar-primary: 240 5.9% 10%;
+    --transition-smooth: cubic-bezier(0.22, 1, 0.36, 1);
 
-    --sidebar-primary-foreground: 0 0% 98%;
-
-    --sidebar-accent: 240 4.8% 95.9%;
-
-    --sidebar-accent-foreground: 240 5.9% 10%;
-
-    --sidebar-border: 220 13% 91%;
-
-    --sidebar-ring: 217.2 91.2% 59.8%;
+    --sidebar-background: 150 18% 7%;
+    --sidebar-foreground: 40 30% 96%;
+    --sidebar-primary: 158 70% 37%;
+    --sidebar-primary-foreground: 150 30% 6%;
+    --sidebar-accent: 150 14% 14%;
+    --sidebar-accent-foreground: 40 30% 96%;
+    --sidebar-border: 150 14% 16%;
+    --sidebar-ring: 158 70% 45%;
   }
 
+  /* Force dark-first; .dark mirrors :root for safety */
   .dark {
-    --background: 222.2 84% 4.9%;
-    --foreground: 210 40% 98%;
-
-    --card: 222.2 84% 4.9%;
-    --card-foreground: 210 40% 98%;
-
-    --popover: 222.2 84% 4.9%;
-    --popover-foreground: 210 40% 98%;
-
-    --primary: 210 40% 98%;
-    --primary-foreground: 222.2 47.4% 11.2%;
-
-    --secondary: 217.2 32.6% 17.5%;
-    --secondary-foreground: 210 40% 98%;
-
-    --muted: 217.2 32.6% 17.5%;
-    --muted-foreground: 215 20.2% 65.1%;
-
-    --accent: 217.2 32.6% 17.5%;
-    --accent-foreground: 210 40% 98%;
-
-    --destructive: 0 62.8% 30.6%;
-    --destructive-foreground: 210 40% 98%;
-
-    --border: 217.2 32.6% 17.5%;
-    --input: 217.2 32.6% 17.5%;
-    --ring: 212.7 26.8% 83.9%;
-    --sidebar-background: 240 5.9% 10%;
-    --sidebar-foreground: 240 4.8% 95.9%;
-    --sidebar-primary: 224.3 76.3% 48%;
-    --sidebar-primary-foreground: 0 0% 100%;
-    --sidebar-accent: 240 3.7% 15.9%;
-    --sidebar-accent-foreground: 240 4.8% 95.9%;
-    --sidebar-border: 240 3.7% 15.9%;
-    --sidebar-ring: 217.2 91.2% 59.8%;
+    --background: 150 18% 6%;
+    --foreground: 40 30% 96%;
   }
 }
 
@@ -98,8 +79,62 @@ All colors MUST be HSL.
   * {
     @apply border-border;
   }
-
+  html {
+    -webkit-font-smoothing: antialiased;
+    text-rendering: optimizeLegibility;
+  }
   body {
     @apply bg-background text-foreground;
+    font-feature-settings: "ss01", "cv11";
+    background-image:
+      radial-gradient(1200px 600px at 80% -10%, hsl(158 70% 20% / 0.35), transparent 60%),
+      radial-gradient(900px 500px at -10% 10%, hsl(44 55% 35% / 0.18), transparent 60%);
+    background-attachment: fixed;
   }
+  ::selection {
+    background: hsl(var(--primary) / 0.35);
+    color: hsl(var(--foreground));
+  }
+}
+
+@layer components {
+  .glass {
+    background: linear-gradient(160deg, hsl(150 16% 12% / 0.85), hsl(150 18% 7% / 0.7));
+    backdrop-filter: blur(18px);
+    -webkit-backdrop-filter: blur(18px);
+    border: 1px solid hsl(40 30% 96% / 0.06);
+  }
+  .text-gradient-gold {
+    background: var(--gradient-gold);
+    -webkit-background-clip: text;
+    background-clip: text;
+    color: transparent;
+  }
+  .text-gradient-primary {
+    background: linear-gradient(135deg, hsl(158 75% 65%), hsl(158 70% 40%));
+    -webkit-background-clip: text;
+    background-clip: text;
+    color: transparent;
+  }
+  .ring-glow {
+    box-shadow: var(--shadow-glow);
+  }
+  .grain::before {
+    content: "";
+    position: absolute; inset: 0;
+    background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='160' height='160'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2' seed='3'/><feColorMatrix values='0 0 0 0 0.85  0 0 0 0 0.78  0 0 0 0 0.4  0 0 0 0.05 0'/></filter><rect width='100%' height='100%' filter='url(%23n)'/></svg>");
+    opacity: 0.5;
+    mix-blend-mode: overlay;
+    pointer-events: none;
+  }
+}
+
+@layer utilities {
+  .transition-smooth { transition: all 400ms var(--transition-smooth); }
+  .animate-marquee { animation: marquee 30s linear infinite; }
+}
+
+@keyframes marquee {
+  from { transform: translateX(0); }
+  to { transform: translateX(-50%); }
 }
