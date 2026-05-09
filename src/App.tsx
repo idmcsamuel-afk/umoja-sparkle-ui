@@ -10,6 +10,7 @@ import Dashboard from "./pages/Dashboard.tsx";
 import Login from "./pages/Login.tsx";
 import Signup from "./pages/Signup.tsx";
 import Circle from "./pages/Circle.tsx";
+import SparkTrade from "./pages/SparkTrade.tsx";
 import NotFound from "./pages/NotFound.tsx";
 
 const queryClient = new QueryClient();
@@ -38,6 +39,14 @@ const App = () => (
               element={
                 <ProtectedRoute>
                   <Circle />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/spark"
+              element={
+                <ProtectedRoute>
+                  <SparkTrade />
                 </ProtectedRoute>
               }
             />
