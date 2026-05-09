@@ -52,6 +52,22 @@ const App = () => (
                 </ProtectedRoute>
               }
             />
+            <Route
+              path="/drive"
+              element={
+                <ProtectedRoute>
+                  <Drive />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/predictor"
+              element={
+                <ProtectedRoute>
+                  <Predictor />
+                </ProtectedRoute>
+              }
+            />
             <Route path="*" element={<NotFound />} />
           </Routes>
         </AuthProvider>
