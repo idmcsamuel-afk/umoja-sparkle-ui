@@ -110,11 +110,11 @@ const Landing = () => {
                 <div className="flex items-center justify-between">
                   <div>
                     <p className="text-[11px] uppercase tracking-[0.18em] text-accent-soft">Live circle</p>
-                    <p className="font-display text-lg">Lagos Traders #214</p>
+                    <p className="font-display text-lg">UMOJA Circle #214</p>
                   </div>
                   <div className="text-right">
                     <p className="text-[11px] uppercase tracking-[0.18em] text-muted-foreground">Pool</p>
-                    <p className="font-display text-lg text-gradient-gold">₦4.2M</p>
+                    <p className="font-display text-lg text-gradient-gold">R4.2M</p>
                   </div>
                 </div>
                 <div className="mt-3 h-1.5 w-full rounded-full bg-secondary overflow-hidden">
@@ -125,7 +125,7 @@ const Landing = () => {
 
             <div className="absolute -bottom-6 -right-2 glass rounded-2xl px-4 py-3 shadow-gold animate-float">
               <p className="text-[10px] uppercase tracking-[0.18em] text-muted-foreground">This week</p>
-              <p className="font-display text-base">+₦182,400 earned</p>
+              <p className="font-display text-base">+R182,400 earned</p>
             </div>
           </div>
 

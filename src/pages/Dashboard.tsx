@@ -11,10 +11,10 @@ const quickActions = [
 ];
 
 const activity = [
-  { title: "Circle payout received", meta: "Lagos Traders #214 · 2h ago", amount: "+₦125,000", positive: true, icon: Users },
-  { title: "Spark signal: Cocoa", meta: "Accra basin · today", amount: "Hot", positive: true, icon: Flame },
-  { title: "Predictor reward", meta: "USD/NGN call · yesterday", amount: "+248 SP", positive: true, icon: TrendingUp },
-  { title: "Drive contribution", meta: "Vehicle #DR-08", amount: "−₦18,000", positive: false, icon: Car },
+  { title: "Circle payout received", meta: "UMOJA Circle #214 · 2h ago", amount: "+R125,000", positive: true, icon: Users },
+  { title: "Spark signal: Air Fryers", meta: "South Africa · today", amount: "Hot", positive: true, icon: Flame },
+  { title: "Predictor reward", meta: "USD/ZAR call · yesterday", amount: "+248 SP", positive: true, icon: TrendingUp },
+  { title: "Drive contribution", meta: "Vehicle #DR-08", amount: "−R18,000", positive: false, icon: Car },
 ];
 
 const Dashboard = () => {
@@ -34,7 +34,7 @@ const Dashboard = () => {
       {/* Greeting */}
       <section className="px-5 pt-6">
         <div className="mx-auto max-w-md animate-fade-in">
-          <p className="text-[11px] uppercase tracking-[0.22em] text-accent">Habari, Amara</p>
+          <p className="text-[11px] uppercase tracking-[0.22em] text-accent">Sawubona, Amara</p>
           <h1 className="mt-2 font-display text-[34px] leading-tight tracking-tight">
             Your wealth is<br/>
             <span className="text-gradient-gold italic font-[450]">growing in trust.</span>
@@ -51,7 +51,7 @@ const Dashboard = () => {
             <div className="relative">
               <p className="text-[11px] uppercase tracking-[0.22em] text-primary-foreground/80">Total wealth</p>
               <div className="mt-2 flex items-baseline gap-2">
-                <p className="font-display text-[44px] leading-none text-primary-foreground tracking-tight">₦2,184,500</p>
+                <p className="font-display text-[44px] leading-none text-primary-foreground tracking-tight">R2,184,500</p>
               </div>
               <div className="mt-3 inline-flex items-center gap-1.5 rounded-full bg-background/15 px-3 py-1 text-xs text-primary-foreground">
                 <ArrowUpRight className="h-3.5 w-3.5" /> +12.4% this month
@@ -59,9 +59,9 @@ const Dashboard = () => {
 
               <div className="mt-6 grid grid-cols-3 gap-3">
                 {[
-                  { k: "Circle", v: "₦1.2M" },
-                  { k: "Spark", v: "₦612K" },
-                  { k: "Drive", v: "₦372K" },
+                  { k: "Circle", v: "R1.2M" },
+                  { k: "Spark", v: "R612K" },
+                  { k: "Drive", v: "R372K" },
                 ].map((s) => (
                   <div key={s.k} className="rounded-2xl bg-background/15 backdrop-blur p-3">
                     <p className="text-[10px] uppercase tracking-wider text-primary-foreground/75">{s.k}</p>
@@ -120,7 +120,7 @@ const Dashboard = () => {
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-[10px] uppercase tracking-[0.18em] text-accent">Round 7 of 12</p>
-                <p className="mt-1 font-display text-xl">Lagos Traders #214</p>
+                <p className="mt-1 font-display text-xl">UMOJA Circle #214</p>
               </div>
               <div className="flex -space-x-2">
                 {[1,2,3,4].map((i) => (
@@ -135,7 +135,7 @@ const Dashboard = () => {
             <div className="mt-5">
               <div className="flex items-baseline justify-between text-sm">
                 <span className="text-muted-foreground">Pool collected</span>
-                <span className="font-display text-base text-gradient-gold">₦4.2M / ₦5.8M</span>
+                <span className="font-display text-base text-gradient-gold">R4.2M / R5.8M</span>
               </div>
               <div className="mt-2 h-2 w-full rounded-full bg-secondary overflow-hidden">
                 <div className="h-full w-[72%] rounded-full bg-gradient-gold" />
