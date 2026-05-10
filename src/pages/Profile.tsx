@@ -21,7 +21,7 @@ export default function Profile() {
     (async () => {
       const [s, b, w] = await Promise.all([
         supabase.from("spark_transactions").select("id, tx_type, amount, created_at").or(`from_member.eq.${user.id},to_member.eq.${user.id}`).order("created_at", { ascending: false }).limit(50),
-        supabase.from("circle_bids").select("id, tier, fiat_amount, status, created_at").eq("member_id", user.id).order("created_at", { ascending: false }).limit(50),
+        supabase.from("circle_bids").select("id, tier, fiat_amount, net_amount, payout_amount, status, created_at, vault_start, vault_end").eq("member_id", user.id).order("created_at", { ascending: false }).limit(50),
         supabase.from("spark_wallets").select("balance").eq("member_id", user.id).maybeSingle(),
       ]);
       setSparkTxns((s.data ?? []) as typeof sparkTxns);
