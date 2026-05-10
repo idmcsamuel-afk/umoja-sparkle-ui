@@ -352,4 +352,3 @@ function NextSession({ sessionsPerDay }: { sessionsPerDay: number }) {
 }
 
 export default Circle;
-export default Circle;
