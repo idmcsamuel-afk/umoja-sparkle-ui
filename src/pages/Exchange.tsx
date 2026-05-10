@@ -189,73 +189,92 @@ export default function Exchange() {
 
       <section className="px-5 pt-8">
         <div className="mx-auto max-w-md">
-          <Tabs defaultValue="market" className="w-full">
+          <Tabs value={tab} onValueChange={(v) => setTab(v as "market" | "history")} className="w-full">
             <TabsList className="grid w-full grid-cols-2 rounded-2xl bg-secondary/60 p-1 h-12">
-              <TabsTrigger value="market" className="rounded-xl data-[state=active]:bg-gradient-primary data-[state=active]:text-primary-foreground data-[state=active]:shadow-glow text-xs">
-                Open offers
+              <TabsTrigger value="market" className="rounded-xl gap-1.5 data-[state=active]:bg-gradient-primary data-[state=active]:text-primary-foreground data-[state=active]:shadow-glow text-xs font-medium">
+                <Sparkles className="h-3.5 w-3.5" /> Offers
+                {!loading && offers.length > 0 && (
+                  <span className={`ml-1 rounded-full px-1.5 py-0.5 text-[10px] font-semibold ${tab === "market" ? "bg-background/25 text-primary-foreground" : "bg-secondary text-foreground"}`}>{offers.length}</span>
+                )}
               </TabsTrigger>
-              <TabsTrigger value="history" className="rounded-xl data-[state=active]:bg-gradient-primary data-[state=active]:text-primary-foreground text-xs">
-                History
+              <TabsTrigger value="history" className="rounded-xl gap-1.5 data-[state=active]:bg-gradient-primary data-[state=active]:text-primary-foreground data-[state=active]:shadow-glow text-xs font-medium">
+                <History className="h-3.5 w-3.5" /> History
+                {!loading && txns.length > 0 && (
+                  <span className={`ml-1 rounded-full px-1.5 py-0.5 text-[10px] font-semibold ${tab === "history" ? "bg-background/25 text-primary-foreground" : "bg-secondary text-foreground"}`}>{txns.length}</span>
+                )}
               </TabsTrigger>
             </TabsList>
 
-            {loading ? (
-              <div className="mt-6 grid place-items-center rounded-3xl glass p-10">
-                <Loader2 className="h-5 w-5 animate-spin text-primary" />
-              </div>
-            ) : (
-              <>
-                <TabsContent value="market" className="mt-5 space-y-3">
-                  {offers.length === 0 ? (
-                    <div className="rounded-3xl glass p-8 text-center">
-                      <Sparkles className="mx-auto h-7 w-7 text-accent" />
-                      <p className="mt-3 text-sm text-muted-foreground">No open offers. Be the first to post.</p>
-                      <Button
-                        onClick={() => setSellOpen(true)}
-                        className="mt-4 rounded-2xl bg-gradient-primary text-primary-foreground shadow-glow"
-                      >
-                        <Plus className="h-4 w-4 mr-1" /> Sell Sparks
-                      </Button>
+            <TabsContent value="market" className="mt-5 space-y-3 animate-fade-in">
+              {loading ? (
+                <div className="space-y-3">
+                  {[0,1,2].map((i) => (
+                    <div key={i} className="rounded-3xl glass p-5 animate-pulse" style={{ animationDelay: `${i * 70}ms` }}>
+                      <div className="flex justify-between">
+                        <div className="space-y-2">
+                          <div className="h-3 w-16 rounded bg-secondary/80" />
+                          <div className="h-6 w-24 rounded bg-secondary/80" />
+                          <div className="h-3 w-20 rounded bg-secondary/60" />
+                        </div>
+                        <div className="h-5 w-16 rounded bg-secondary/80" />
+                      </div>
+                      <div className="mt-4 h-10 w-full rounded-2xl bg-secondary/80" />
                     </div>
-                  ) : (
-                    offers.map((o, i) => {
-                      const mine = o.seller_id === user?.id;
-                      return (
-                        <article
-                          key={o.id}
-                          style={{ animationDelay: `${i * 40}ms` }}
-                          className="rounded-3xl glass p-5 animate-slide-up"
-                        >
-                          <div className="flex items-start justify-between">
-                            <div>
-                              <p className="text-[10px] uppercase tracking-[0.18em] text-accent">
-                                {mine ? "Your offer" : "Selling"}
-                              </p>
-                              <p className="mt-1 font-display text-xl">
-                                <span className="text-gradient-gold">{fmtSP(Number(o.spark_amount))}</span>
-                              </p>
-                              <p className="text-xs text-muted-foreground">
-                                @ R{Number(o.price_per_spark).toFixed(2)} per SP
-                              </p>
-                            </div>
-                            <div className="text-right">
-                              <p className="font-display text-lg">{fmtR(Number(o.total_price))}</p>
-                              <p className="text-[11px] text-muted-foreground">{o.created_at ? new Date(o.created_at).toLocaleDateString() : ""}</p>
-                            </div>
-                          </div>
-                          <Button
-                            size="sm"
-                            disabled={mine}
-                            onClick={() => reserve(o)}
-                            className="mt-4 w-full rounded-2xl bg-gradient-primary text-primary-foreground shadow-glow disabled:opacity-50"
-                          >
-                            {mine ? "Awaiting buyer" : (<><ArrowDownLeft className="h-4 w-4 mr-1.5" /> Buy now</>)}
-                          </Button>
-                        </article>
-                      );
-                    })
-                  )}
-                </TabsContent>
+                  ))}
+                </div>
+              ) : offers.length === 0 ? (
+                <div className="rounded-3xl glass p-10 text-center animate-scale-in">
+                  <div className="mx-auto grid h-14 w-14 place-items-center rounded-2xl bg-gradient-primary/10 border border-primary/20">
+                    <Sparkles className="h-6 w-6 text-accent" />
+                  </div>
+                  <h3 className="mt-4 font-display text-xl">No open offers</h3>
+                  <p className="mt-1.5 text-sm text-muted-foreground leading-relaxed">Be the first to set a fair rate for the village.</p>
+                  <Button
+                    onClick={() => setSellOpen(true)}
+                    className="mt-5 h-11 rounded-2xl bg-gradient-primary text-primary-foreground shadow-glow hover-scale"
+                  >
+                    <Plus className="h-4 w-4 mr-1.5" /> Sell Sparks
+                  </Button>
+                </div>
+              ) : (
+                offers.map((o, i) => {
+                  const mine = o.seller_id === user?.id;
+                  return (
+                    <article
+                      key={o.id}
+                      style={{ animationDelay: `${Math.min(i, 8) * 50}ms` }}
+                      className="rounded-3xl glass p-5 animate-slide-up transition-transform active:scale-[0.99]"
+                    >
+                      <div className="flex items-start justify-between gap-3">
+                        <div className="min-w-0">
+                          <p className="text-[10px] uppercase tracking-[0.18em] text-accent">
+                            {mine ? "Your offer" : "Selling"}
+                          </p>
+                          <p className="mt-1 font-display text-xl">
+                            <span className="text-gradient-gold">{fmtSP(Number(o.spark_amount))}</span>
+                          </p>
+                          <p className="text-xs text-muted-foreground">
+                            @ R{Number(o.price_per_spark).toFixed(2)} per SP
+                          </p>
+                        </div>
+                        <div className="text-right shrink-0">
+                          <p className="font-display text-lg">{fmtR(Number(o.total_price))}</p>
+                          <p className="text-[11px] text-muted-foreground">{o.created_at ? new Date(o.created_at).toLocaleDateString() : ""}</p>
+                        </div>
+                      </div>
+                      <Button
+                        size="sm"
+                        disabled={mine}
+                        onClick={() => onBuyClick(o)}
+                        className="mt-4 w-full h-11 rounded-2xl bg-gradient-primary text-primary-foreground shadow-glow disabled:opacity-50 hover-scale"
+                      >
+                        {mine ? "Awaiting buyer" : (<><ArrowDownLeft className="h-4 w-4 mr-1.5" /> Buy now</>)}
+                      </Button>
+                    </article>
+                  );
+                })
+              )}
+            </TabsContent>
 
                 <TabsContent value="history" className="mt-5">
                   {txns.length === 0 ? (
