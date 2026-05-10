@@ -780,6 +780,39 @@ export type Database = {
           },
         ]
       }
+      notifications: {
+        Row: {
+          body: string | null
+          created_at: string | null
+          id: string
+          kind: string | null
+          link: string | null
+          member_id: string
+          read_at: string | null
+          title: string
+        }
+        Insert: {
+          body?: string | null
+          created_at?: string | null
+          id?: string
+          kind?: string | null
+          link?: string | null
+          member_id: string
+          read_at?: string | null
+          title: string
+        }
+        Update: {
+          body?: string | null
+          created_at?: string | null
+          id?: string
+          kind?: string | null
+          link?: string | null
+          member_id?: string
+          read_at?: string | null
+          title?: string
+        }
+        Relationships: []
+      }
       predictor_entries: {
         Row: {
           created_at: string | null

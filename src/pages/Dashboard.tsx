@@ -1,10 +1,12 @@
 import { useEffect, useMemo, useState } from "react";
 import { Link } from "react-router-dom";
 import {
-  Bell, ArrowUpRight, Users, Sparkles, Car, TrendingUp, ChevronRight, Loader2,
+  ArrowUpRight, Users, Sparkles, Car, TrendingUp, ChevronRight, Loader2, User as UserIcon,
 } from "lucide-react";
 import { Logo } from "@/components/umoja/Logo";
 import { BottomNav } from "@/components/umoja/BottomNav";
+import { ThemeToggle } from "@/components/umoja/ThemeToggle";
+import { NotificationBell } from "@/components/umoja/NotificationBell";
 import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
 
@@ -68,7 +70,7 @@ const Dashboard = () => {
       setLoading(true);
       const [
         bidsRes, ordersRes, driveRes, walletRes, predRes, memberRes,
-        liveQRes,
+        liveQRes, ledgerRes,
       ] = await Promise.all([
         supabase.from("circle_bids")
           .select("id, fiat_amount, net_amount, status, tier, created_at")
@@ -91,6 +93,11 @@ const Dashboard = () => {
           .order("closes_at", { ascending: true })
           .limit(1)
           .maybeSingle(),
+        supabase.from("core_ledger")
+          .select("id, event_type, amount, note, created_at")
+          .eq("member_id", uid)
+          .order("created_at", { ascending: false })
+          .limit(20),
       ]);
 
       if (cancelled) return;
@@ -158,9 +165,22 @@ const Dashboard = () => {
           positive: p.is_correct === true,
           at: p.created_at ? new Date(p.created_at).getTime() : 0,
         })),
+        ...((ledgerRes.data ?? []) as Array<{ id: string; event_type: string; amount: number; note: string | null; created_at: string | null }>).map((l) => {
+          const amt = Number(l.amount ?? 0);
+          const positive = amt >= 0;
+          return {
+            id: `l-${l.id}`,
+            kind: "spark" as const,
+            title: l.event_type.replace(/_/g, " "),
+            meta: l.note ?? "ledger",
+            amount: `${positive ? "+" : "−"}${fmtR(Math.abs(amt))}`,
+            positive,
+            at: l.created_at ? new Date(l.created_at).getTime() : 0,
+          };
+        }),
       ]
         .sort((a, b) => b.at - a.at)
-        .slice(0, 10);
+        .slice(0, 12);
       setActivity(feed);
 
       // Predictor teaser with vote distribution
@@ -205,12 +225,15 @@ const Dashboard = () => {
     <main className="relative min-h-screen pb-32">
       {/* Top bar */}
       <header className="px-5 pt-6">
-        <div className="mx-auto flex max-w-md items-center justify-between">
+        <div className="mx-auto flex max-w-md items-center justify-between gap-2">
           <Logo />
-          <button className="relative grid h-10 w-10 place-items-center rounded-2xl glass">
-            <Bell className="h-4 w-4" />
-            <span className="absolute right-2 top-2 h-2 w-2 rounded-full bg-accent" />
-          </button>
+          <div className="flex items-center gap-2">
+            <ThemeToggle />
+            <NotificationBell />
+            <Link to="/profile" aria-label="Profile" className="grid h-10 w-10 place-items-center rounded-2xl glass">
+              <UserIcon className="h-4 w-4" />
+            </Link>
+          </div>
         </div>
       </header>
 
