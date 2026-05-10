@@ -37,11 +37,15 @@ const fmtR = (n: number | null | undefined) =>
   "R" + Math.round(Number(n ?? 0)).toLocaleString("en-ZA");
 
 const bucket = (p: Shortlist): "now" | "soon" | "wave" => {
+  const status = (p.status ?? "open").toLowerCase();
+  if (status === "closed" || status === "completed") return "wave";
+  if (status === "coming" || status === "upcoming") return "soon";
   const target = Number(p.target_slots ?? 0) || 1;
   const ratio = Number(p.joined_count ?? 0) / target;
   if (ratio >= 0.6) return "now";
   if (ratio >= 0.2) return "soon";
-  return "wave";
+  // Default: open & approved items surface in "Buy Now"
+  return "now";
 };
 
 const SparkTrade = () => {
@@ -54,7 +58,11 @@ const SparkTrade = () => {
   const load = async () => {
     setLoading(true);
     const [sRes, oRes] = await Promise.all([
-      supabase.from("spark_trade_shortlist").select("*").order("added_at", { ascending: false }),
+      supabase
+        .from("spark_trade_shortlist")
+        .select("*")
+        .or("status.eq.open,status.eq.approved,status.is.null")
+        .order("added_at", { ascending: false }),
       user
         ? supabase
             .from("st_orders")
