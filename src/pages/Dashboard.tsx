@@ -1,10 +1,12 @@
 import { useEffect, useMemo, useState } from "react";
 import { Link } from "react-router-dom";
 import {
-  Bell, ArrowUpRight, Users, Sparkles, Car, TrendingUp, ChevronRight, Loader2,
+  ArrowUpRight, Users, Sparkles, Car, TrendingUp, ChevronRight, Loader2, User as UserIcon,
 } from "lucide-react";
 import { Logo } from "@/components/umoja/Logo";
 import { BottomNav } from "@/components/umoja/BottomNav";
+import { ThemeToggle } from "@/components/umoja/ThemeToggle";
+import { NotificationBell } from "@/components/umoja/NotificationBell";
 import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
 
