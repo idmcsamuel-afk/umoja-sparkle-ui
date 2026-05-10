@@ -69,9 +69,27 @@ const Drive = () => {
   const [joining, setJoining] = useState<string | null>(null);
   const [confirm, setConfirm] = useState<DriveCircle | null>(null);
   const [justReserved, setJustReserved] = useState<string | null>(null);
+  const [prefs, setPrefs] = useState<Record<string, NotifPref>>({});
+  const [prefsOpen, setPrefsOpen] = useState<string | null>(null);
+
+  const getPref = (circleId: string) => prefs[circleId] ?? { circle_id: circleId, ...DEFAULT_PREF };
+
+  const setPref = async (circleId: string, patch: Partial<Omit<NotifPref, "circle_id">>) => {
+    if (!user) return;
+    const next = { ...getPref(circleId), ...patch } as NotifPref;
+    setPrefs((p) => ({ ...p, [circleId]: next }));
+    const { error } = await supabase
+      .from("drive_notification_prefs")
+      .upsert(
+        { member_id: user.id, circle_id: circleId, in_app: next.in_app, email: next.email, push: next.push },
+        { onConflict: "member_id,circle_id" },
+      );
+    if (error) toast.error("Couldn't save preference");
+  };
+
   const load = async () => {
     setLoading(true);
-    const [tRes, cRes, mRes, rRes] = await Promise.all([
+    const [tRes, cRes, mRes, rRes, pRes] = await Promise.all([
       supabase.from("drive_tiers").select("*").eq("status", "active"),
       supabase.from("drive_circles").select("*").neq("status", "completed").order("created_at", { ascending: false }),
       user
@@ -83,6 +101,9 @@ const Drive = () => {
             .select("*")
             .eq("member_id", user.id)
             .order("week_number", { ascending: true })
+        : Promise.resolve({ data: [], error: null } as const),
+      user
+        ? supabase.from("drive_notification_prefs").select("circle_id, in_app, email, push").eq("member_id", user.id)
         : Promise.resolve({ data: [], error: null } as const),
     ]);
     if (tRes.error) console.error(tRes.error);
