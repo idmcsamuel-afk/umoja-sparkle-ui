@@ -132,14 +132,25 @@ export default function FlameMarketing() {
       <main className="px-5 space-y-5">
         <Card className="p-4 space-y-4 border-orange-500/20">
           <div>
-            <label className="text-xs font-semibold text-muted-foreground">Describe your business</label>
+            <div className="flex items-center justify-between">
+              <label className="text-xs font-semibold text-muted-foreground">Describe your business</label>
+              <span className={`text-[10px] tabular-nums ${
+                bizLen > BIZ_MAX ? "text-destructive" : bizLen < BIZ_MIN ? "text-muted-foreground" : "text-emerald-400"
+              }`}>
+                {bizLen}/{BIZ_MAX}
+              </span>
+            </div>
             <Textarea
               value={biz}
-              onChange={(e) => setBiz(e.target.value)}
+              onChange={(e) => setBiz(e.target.value.slice(0, BIZ_MAX + 50))}
               rows={4}
+              maxLength={BIZ_MAX + 50}
               placeholder="e.g. I sell homemade vetkoek and koeksisters from home in Soweto. Available daily. Delivery in Soweto only."
               className="mt-1.5"
             />
+            {bizLen > 0 && bizLen < BIZ_MIN && (
+              <p className="mt-1 text-[11px] text-muted-foreground">Add {BIZ_MIN - bizLen} more characters so Flame has enough to work with.</p>
+            )}
           </div>
 
           <div>
