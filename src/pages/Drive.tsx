@@ -455,7 +455,10 @@ const Drive = () => {
                             <ul className="mt-3 space-y-1.5 text-xs text-muted-foreground border-t border-accent/20 pt-3">
                               <li className="inline-flex items-start gap-1.5">
                                 <Bell className="mt-0.5 h-3 w-3 text-accent shrink-0" />
-                                <span>You'll get a notification the moment we go live.</span>
+                                <span>
+                                  In-app alert{member?.email ? " + email" : ""}
+                                  {pushPerm === "granted" ? " + browser push" : ""} the moment seats fill.
+                                </span>
                               </li>
                               <li className="inline-flex items-start gap-1.5">
                                 <Wallet className="mt-0.5 h-3 w-3 text-accent shrink-0" />
@@ -464,6 +467,16 @@ const Drive = () => {
                                 </span>
                               </li>
                             </ul>
+
+                            {pushPerm !== "granted" && pushPerm !== "unsupported" && (
+                              <button
+                                type="button"
+                                onClick={enablePush}
+                                className="mt-3 w-full h-9 rounded-xl border border-accent/40 bg-background/40 text-[11px] font-medium text-accent inline-flex items-center justify-center gap-1.5 hover:bg-accent/10 transition-colors"
+                              >
+                                <Bell className="h-3.5 w-3.5" /> Turn on browser alerts
+                              </button>
+                            )}
                           </div>
                         );
                       })()}
