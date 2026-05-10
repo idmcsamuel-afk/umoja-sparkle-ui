@@ -70,7 +70,7 @@ const Dashboard = () => {
       setLoading(true);
       const [
         bidsRes, ordersRes, driveRes, walletRes, predRes, memberRes,
-        liveQRes,
+        liveQRes, ledgerRes,
       ] = await Promise.all([
         supabase.from("circle_bids")
           .select("id, fiat_amount, net_amount, status, tier, created_at")
@@ -93,6 +93,11 @@ const Dashboard = () => {
           .order("closes_at", { ascending: true })
           .limit(1)
           .maybeSingle(),
+        supabase.from("core_ledger")
+          .select("id, event_type, amount, note, created_at")
+          .eq("member_id", uid)
+          .order("created_at", { ascending: false })
+          .limit(20),
       ]);
 
       if (cancelled) return;
