@@ -8,6 +8,7 @@ import {
   TooltipTrigger,
 } from "@/components/ui/tooltip";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { useTimezone, formatTime, tzAbbrev } from "@/hooks/useTimezone";
 
 const TIERS = ["seed", "growth", "harvest"] as const;
 const LABELS: Record<string, string> = { seed: "Seed", growth: "Growth", harvest: "Harvest" };
