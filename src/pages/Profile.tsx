@@ -165,6 +165,7 @@ export default function Profile() {
                         <p>{fmtDate(b.vault_end)}</p>
                       </div>
                     </div>
+                    </button>
                   </li>
                 );
               })}
