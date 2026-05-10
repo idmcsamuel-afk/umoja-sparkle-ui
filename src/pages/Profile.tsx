@@ -117,7 +117,12 @@ export default function Profile() {
                 const fmtDate = (d: string | null) =>
                   d ? new Date(d).toLocaleDateString("en-ZA", { day: "2-digit", month: "short", year: "numeric" }) : "—";
                 return (
-                  <li key={b.id} className="rounded-3xl border border-border bg-gradient-card p-4 animate-fade-in">
+                  <li key={b.id}>
+                    <button
+                      type="button"
+                      onClick={() => setOpenBid(b)}
+                      className="w-full text-left rounded-3xl border border-border bg-gradient-card p-4 animate-fade-in transition-smooth hover:border-primary/40 hover:-translate-y-0.5"
+                    >
                     <div className="flex items-start justify-between gap-3">
                       <div className="min-w-0">
                         <p className="font-display text-base capitalize">{b.tier} Circle</p>
