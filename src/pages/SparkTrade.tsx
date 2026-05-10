@@ -189,7 +189,7 @@ const SparkTrade = () => {
         </div>
       </section>
 
-      <section className="px-5 pt-8">
+      <section id="signals" className="px-5 pt-8 scroll-mt-24">
         <div className="mx-auto max-w-md">
           <Tabs defaultValue="now" className="w-full">
             <TabsList className="grid w-full grid-cols-3 rounded-2xl bg-secondary/60 p-1 h-12">
