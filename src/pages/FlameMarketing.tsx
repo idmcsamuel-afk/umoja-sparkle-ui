@@ -238,11 +238,11 @@ export default function FlameMarketing() {
             disabled={loading || bizLen < BIZ_MIN || bizLen > BIZ_MAX}
             className="w-full h-12 text-base font-semibold bg-gradient-to-r from-orange-500 via-amber-500 to-yellow-500 text-black hover:opacity-95 border-0 disabled:opacity-50"
           >
-            {loading ? <Loader2 className="h-5 w-5 animate-spin" /> : <>Generate with Flame 🔥</>}
+            {loading ? <><Loader2 className="h-5 w-5 animate-spin" /> Crafting 3 versions…</> : <>Generate 3 versions with Flame 🔥</>}
           </Button>
         </Card>
 
-        {output && (
+        {variants.length > 0 && (
           <Card className="p-4 border-orange-500/30 bg-gradient-to-br from-card to-orange-950/20 animate-fade-in">
             <div className="flex items-center justify-between mb-3">
               <div className="flex items-center gap-2">
@@ -253,16 +253,35 @@ export default function FlameMarketing() {
                   {outLen}/{recipe.max}
                 </span>
               </div>
-              <div className="flex gap-2">
-                <Button size="sm" variant="outline" onClick={copy}>
-                  <Copy className="h-3.5 w-3.5" /> Copy
-                </Button>
-                <Button size="sm" variant="outline" onClick={generate} disabled={loading}>
-                  <RefreshCw className={`h-3.5 w-3.5 ${loading ? "animate-spin" : ""}`} /> Regen
-                </Button>
-              </div>
+              <Button size="sm" variant="outline" onClick={generate} disabled={loading}>
+                <RefreshCw className={`h-3.5 w-3.5 ${loading ? "animate-spin" : ""}`} /> Regen
+              </Button>
             </div>
-            <pre className="whitespace-pre-wrap text-sm leading-relaxed font-sans text-foreground/95">{output}</pre>
+
+            {/* Variant tabs */}
+            <div className="grid grid-cols-3 gap-1.5 mb-3">
+              {VARIANT_STYLES.map((v, i) => (
+                <button
+                  key={v.label}
+                  onClick={() => setPicked(i)}
+                  className={`rounded-xl border px-2 py-2 text-left transition ${
+                    picked === i
+                      ? "border-orange-500 bg-orange-500/15 shadow-[0_0_20px_-8px_hsl(20_90%_50%/0.6)]"
+                      : "border-border bg-card/60 hover:border-orange-500/40"
+                  }`}
+                >
+                  <div className="text-[10px] font-bold text-orange-300">V{i + 1}</div>
+                  <div className="text-[11px] font-semibold leading-tight text-foreground">{v.label}</div>
+                  <div className="text-[10px] text-muted-foreground leading-tight">{v.note}</div>
+                </button>
+              ))}
+            </div>
+
+            <pre className="whitespace-pre-wrap text-sm leading-relaxed font-sans text-foreground/95 rounded-xl bg-black/30 border border-orange-500/15 p-3">{output}</pre>
+
+            <Button onClick={copy} className="w-full mt-3 bg-gradient-to-r from-orange-500 to-amber-500 text-black border-0 font-semibold">
+              <Copy className="h-4 w-4" /> Copy {VARIANT_STYLES[picked].label}
+            </Button>
 
             <div className="mt-4 rounded-xl border border-amber-500/30 bg-gradient-to-r from-amber-500/10 to-orange-500/10 p-3 flex items-start gap-3">
               <Sparkles className="h-5 w-5 text-amber-400 shrink-0 mt-0.5" />
