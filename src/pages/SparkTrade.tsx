@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
-import { Link } from "react-router-dom";
+import { Link, useLocation } from "react-router-dom";
 import { ArrowLeft, Sparkles, Loader2, TrendingUp, Users, Package, Flame, Clock } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
@@ -75,6 +75,18 @@ const SparkTrade = () => {
     load();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [user?.id]);
+
+  const location = useLocation();
+  useEffect(() => {
+    if (loading) return;
+    const id = location.hash.replace("#", "");
+    if (!id) return;
+    // Wait a tick for layout, then smooth scroll
+    const t = window.setTimeout(() => {
+      document.getElementById(id)?.scrollIntoView({ behavior: "smooth", block: "start" });
+    }, 80);
+    return () => window.clearTimeout(t);
+  }, [location.hash, loading]);
 
   const buckets = useMemo(
     () => ({ now: items, soon: items, wave: items }),
@@ -189,7 +201,7 @@ const SparkTrade = () => {
         </div>
       </section>
 
-      <section className="px-5 pt-8">
+      <section id="signals" className="px-5 pt-8 scroll-mt-24">
         <div className="mx-auto max-w-md">
           <Tabs defaultValue="now" className="w-full">
             <TabsList className="grid w-full grid-cols-3 rounded-2xl bg-secondary/60 p-1 h-12">
