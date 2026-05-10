@@ -71,12 +71,27 @@ const Drive = () => {
   const [justReserved, setJustReserved] = useState<string | null>(null);
   const [prefs, setPrefs] = useState<Record<string, NotifPref>>({});
   const [prefsOpen, setPrefsOpen] = useState<string | null>(null);
+  const [savingPref, setSavingPref] = useState<string | null>(null); // `${circleId}:${channel}`
 
   const getPref = (circleId: string) => prefs[circleId] ?? { circle_id: circleId, ...DEFAULT_PREF };
 
-  const setPref = async (circleId: string, patch: Partial<Omit<NotifPref, "circle_id">>) => {
+  const channelLabel: Record<keyof Omit<NotifPref, "circle_id">, string> = {
+    in_app: "In-app",
+    email: "Email",
+    push: "Browser push",
+  };
+
+  const setPref = async (
+    circleId: string,
+    patch: Partial<Omit<NotifPref, "circle_id">>,
+  ) => {
     if (!user) return;
-    const next = { ...getPref(circleId), ...patch } as NotifPref;
+    const channel = Object.keys(patch)[0] as keyof Omit<NotifPref, "circle_id"> | undefined;
+    if (!channel) return;
+    const prev = getPref(circleId);
+    const next = { ...prev, ...patch } as NotifPref;
+    const key = `${circleId}:${channel}`;
+    setSavingPref(key);
     setPrefs((p) => ({ ...p, [circleId]: next }));
     const { error } = await supabase
       .from("drive_notification_prefs")
@@ -84,7 +99,19 @@ const Drive = () => {
         { member_id: user.id, circle_id: circleId, in_app: next.in_app, email: next.email, push: next.push },
         { onConflict: "member_id,circle_id" },
       );
-    if (error) toast.error("Couldn't save preference");
+    setSavingPref((cur) => (cur === key ? null : cur));
+    if (error) {
+      // rollback optimistic update
+      setPrefs((p) => ({ ...p, [circleId]: prev }));
+      toast.error(`Couldn't save ${channelLabel[channel].toLowerCase()} setting`, {
+        description: error.message,
+      });
+      return;
+    }
+    toast.success(
+      `${channelLabel[channel]} ${next[channel] ? "on" : "off"}`,
+      { description: "Preference saved for this circle." },
+    );
   };
 
   const load = async () => {
