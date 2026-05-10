@@ -57,7 +57,7 @@ const Circle = () => {
   const load = async () => {
     setLoading(true);
     const [tiersRes, bidsRes, allBidsRes] = await Promise.all([
-      supabase.from("circle_tiers").select("*").eq("is_active", true).order("min_entry"),
+      supabase.from("circle_tiers").select("*").order("min_entry"),
       user
         ? supabase
             .from("circle_bids")
