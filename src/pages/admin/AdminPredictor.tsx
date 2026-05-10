@@ -22,6 +22,7 @@ export default function AdminPredictor() {
   const [loading, setLoading] = useState(true);
   const [pending, setPending] = useState<Record<string, string>>({});
   const [saving, setSaving] = useState<Record<string, boolean>>({});
+  const [generating, setGenerating] = useState(false);
   const [q, setQ] = useState({ question: "", options: "", category: "general", closes_at: "" });
 
   const load = async () => {
@@ -31,6 +32,15 @@ export default function AdminPredictor() {
     setLoading(false);
   };
   useEffect(() => { load(); }, []);
+
+  const generate = async () => {
+    setGenerating(true);
+    const { data, error } = await supabase.functions.invoke("predictor-generate", { body: {} });
+    setGenerating(false);
+    if (error) return toast.error(error.message);
+    toast.success(`${data?.inserted ?? 5} new questions added!`);
+    load();
+  };
 
   const create = async () => {
     if (!q.question || !q.options) return toast.error("Fill question and options");
@@ -70,7 +80,12 @@ export default function AdminPredictor() {
 
   return (
     <div>
-      <h1 className="font-display text-3xl">Predictor</h1>
+      <div className="flex items-center justify-between flex-wrap gap-3">
+        <h1 className="font-display text-3xl">Predictor</h1>
+        <Button onClick={generate} disabled={generating} className="bg-gradient-to-r from-amber-500 to-yellow-400 text-amber-950 border-0">
+          {generating ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : "✨"} Generate Fresh Questions
+        </Button>
+      </div>
 
       <div className="mt-6 rounded-3xl border border-border bg-gradient-card p-5 space-y-3">
         <p className="font-medium">Create question</p>

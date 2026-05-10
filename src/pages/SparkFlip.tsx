@@ -7,9 +7,10 @@ import { Button } from "@/components/ui/button";
 import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "@/hooks/use-toast";
+import { playWin, playLose } from "@/lib/sounds";
+import { MuteButton } from "@/components/umoja/MuteButton";
 
-const COST = 20;
-const PAYOUT = 40;
+const STAKES = [20, 50, 100, 200, 500] as const;
 const DAILY_LIMIT = 10;
 
 interface FlipRow { id: string; choice: string; result: string; payout: number; bet_sparks: number; created_at: string }
@@ -20,6 +21,7 @@ export default function SparkFlip() {
   const [history, setHistory] = useState<FlipRow[]>([]);
   const [todayCount, setTodayCount] = useState(0);
   const [pick, setPick] = useState<"heads" | "tails">("heads");
+  const [stake, setStake] = useState<number>(20);
   const [spinning, setSpinning] = useState(false);
   const [face, setFace] = useState<"heads" | "tails">("heads");
 
@@ -36,25 +38,30 @@ export default function SparkFlip() {
   };
   useEffect(() => { refresh(); /* eslint-disable-next-line */ }, [user]);
 
+  const insufficient = balance < stake;
+  const limitHit = todayCount >= DAILY_LIMIT;
+  const canFlip = !!user && !spinning && !insufficient && !limitHit;
+
   const flip = async () => {
-    if (!user) return;
-    if (todayCount >= DAILY_LIMIT) { toast({ title: "Daily limit hit (10/day)", variant: "destructive" }); return; }
-    if (balance < COST) { toast({ title: "Not enough Sparks", description: `Need ${COST} ⚡`, variant: "destructive" }); return; }
+    if (!canFlip) return;
     setSpinning(true);
     const result: "heads" | "tails" = Math.random() < 0.5 ? "heads" : "tails";
-    // animate ~2s
     let i = 0;
     const iv = setInterval(() => { setFace((f) => (f === "heads" ? "tails" : "heads")); i++; if (i > 14) clearInterval(iv); }, 130);
     await new Promise((r) => setTimeout(r, 2100));
     setFace(result);
     const won = result === pick;
-    const payout = won ? PAYOUT : 0;
+    const payout = won ? stake * 2 : 0;
     const { error } = await supabase.from("spark_flip_games").insert({
-      member_id: user.id, choice: pick, result, payout, bet_sparks: COST,
+      member_id: user!.id, choice: pick, result, payout, bet_sparks: stake,
     });
     setSpinning(false);
     if (error) { toast({ title: "Flip failed", description: error.message, variant: "destructive" }); return; }
-    toast({ title: won ? `🎉 ${result.toUpperCase()} — you win!` : `💔 ${result.toUpperCase()} — try again`, description: won ? `+${PAYOUT} ⚡` : `-${COST} ⚡` });
+    if (won) playWin(); else playLose();
+    toast({
+      title: won ? `🎉 ${result.toUpperCase()} — you win!` : `💔 ${result.toUpperCase()} — try again`,
+      description: won ? `+${payout} ⚡` : `-${stake} ⚡`,
+    });
     refresh();
   };
 
@@ -65,7 +72,10 @@ export default function SparkFlip() {
           <ArrowLeft className="h-4 w-4" />
         </Link>
         <h1 className="text-2xl font-bold bg-gradient-to-r from-amber-300 to-yellow-200 bg-clip-text text-transparent">🪙 Spark Flip</h1>
-        <div className="ml-auto text-xs text-amber-200">{balance} ⚡</div>
+        <div className="ml-auto flex items-center gap-2">
+          <div className="text-xs text-amber-200">{balance} ⚡</div>
+          <MuteButton />
+        </div>
       </header>
 
       <main className="px-5 space-y-4">
@@ -90,7 +100,21 @@ export default function SparkFlip() {
           </div>
           <style>{`@keyframes coinFlip { 0% { transform: rotateY(0deg); } 100% { transform: rotateY(360deg); } }`}</style>
 
-          <div className="mt-4 grid grid-cols-2 gap-2">
+          <div className="mt-4">
+            <div className="text-[11px] uppercase tracking-wider text-amber-300/80 mb-2">Stake</div>
+            <div className="grid grid-cols-5 gap-2">
+              {STAKES.map((v) => (
+                <button key={v} onClick={() => setStake(v)} disabled={spinning}
+                  className={`rounded-xl py-2 text-xs font-bold transition ${
+                    stake === v ? "bg-gradient-to-r from-amber-400 to-yellow-300 text-amber-950 shadow-[0_8px_24px_-8px_hsl(44_80%_55%/0.6)]" : "bg-black/40 border border-amber-500/30 text-amber-200"
+                  }`}>
+                  {v}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          <div className="mt-3 grid grid-cols-2 gap-2">
             {(["heads","tails"] as const).map((p) => (
               <button key={p} onClick={() => setPick(p)} disabled={spinning}
                 className={`rounded-xl py-3 text-sm font-bold capitalize transition ${
@@ -101,11 +125,15 @@ export default function SparkFlip() {
             ))}
           </div>
 
-          <Button onClick={flip} disabled={spinning || !user || todayCount >= DAILY_LIMIT}
+          <Button onClick={flip} disabled={!canFlip}
             className="w-full mt-4 h-12 font-bold bg-gradient-to-r from-amber-500 to-yellow-400 text-amber-950 border-0">
-            {spinning ? <Loader2 className="h-5 w-5 animate-spin" /> : `Flip — ${COST} ⚡`}
+            {spinning ? <Loader2 className="h-5 w-5 animate-spin" /> : `Flip — ${stake} ⚡ · win ${stake * 2}`}
           </Button>
-          <p className="text-center text-[11px] text-muted-foreground mt-2">{DAILY_LIMIT - todayCount} flips left today</p>
+          <div className="text-center text-[11px] mt-2">
+            {insufficient ? <span className="text-destructive">Insufficient Sparks</span>
+              : limitHit ? <span className="text-destructive">Daily limit reached</span>
+              : <span className="text-muted-foreground">{DAILY_LIMIT - todayCount} flips left today</span>}
+          </div>
         </Card>
 
         <Card className="p-4 border-amber-500/20">

@@ -74,6 +74,7 @@ export type Database = {
           net_amount: number
           payment_ref: string | null
           payout_amount: number | null
+          payout_date: string | null
           platform_fee: number
           priority_slot: boolean | null
           spark_amount: number
@@ -94,6 +95,7 @@ export type Database = {
           net_amount: number
           payment_ref?: string | null
           payout_amount?: number | null
+          payout_date?: string | null
           platform_fee: number
           priority_slot?: boolean | null
           spark_amount: number
@@ -114,6 +116,7 @@ export type Database = {
           net_amount?: number
           payment_ref?: string | null
           payout_amount?: number | null
+          payout_date?: string | null
           platform_fee?: number
           priority_slot?: boolean | null
           spark_amount?: number
@@ -755,6 +758,7 @@ export type Database = {
           rank: string | null
           referred_by: string | null
           spark_link_code: string | null
+          status: string
           streak_count: number | null
           total_cycles: number | null
         }
@@ -776,6 +780,7 @@ export type Database = {
           rank?: string | null
           referred_by?: string | null
           spark_link_code?: string | null
+          status?: string
           streak_count?: number | null
           total_cycles?: number | null
         }
@@ -797,6 +802,7 @@ export type Database = {
           rank?: string | null
           referred_by?: string | null
           spark_link_code?: string | null
+          status?: string
           streak_count?: number | null
           total_cycles?: number | null
         }

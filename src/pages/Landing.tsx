@@ -15,20 +15,20 @@ const pillars = [
   {
     icon: Sparkles,
     name: "Spark Trade",
-    tag: "Buyers club intelligence",
-    desc: "Product signals and group buying power for traders across the continent.",
+    tag: "Start your import business",
+    desc: "START YOUR IMPORT BUSINESS TODAY. No capital? No problem. Pool orders with other traders, buy in bulk from China at 40–60% margin, and split the profit. Real traders are making R50K–R200K monthly — join the buying club.",
   },
   {
     icon: Car,
     name: "UMOJA Drive",
-    tag: "Own the road, together",
-    desc: "Community car ownership — share the asset, share the upside.",
+    tag: "Own a car in 12 months",
+    desc: "OWN YOUR FIRST CAR IN 12 MONTHS. You thought a car was out of reach? Not anymore. 200 members pool R1,500/month = R300K in 90 days. We buy the car, award it to one member via fair bidding. Everyone gets their turn. This is how community wins.",
   },
   {
     icon: TrendingUp,
     name: "Predictor",
     tag: "The market, gamified",
-    desc: "Predict markets, earn Sparks, climb the leaderboard.",
+    desc: "Predict markets, earn Sparks, climb the leaderboard. Win Sparks. Trade them for cash on the Exchange.",
   },
 ];
 
