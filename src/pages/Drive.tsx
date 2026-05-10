@@ -71,12 +71,27 @@ const Drive = () => {
   const [justReserved, setJustReserved] = useState<string | null>(null);
   const [prefs, setPrefs] = useState<Record<string, NotifPref>>({});
   const [prefsOpen, setPrefsOpen] = useState<string | null>(null);
+  const [savingPref, setSavingPref] = useState<string | null>(null); // `${circleId}:${channel}`
 
   const getPref = (circleId: string) => prefs[circleId] ?? { circle_id: circleId, ...DEFAULT_PREF };
 
-  const setPref = async (circleId: string, patch: Partial<Omit<NotifPref, "circle_id">>) => {
+  const channelLabel: Record<keyof Omit<NotifPref, "circle_id">, string> = {
+    in_app: "In-app",
+    email: "Email",
+    push: "Browser push",
+  };
+
+  const setPref = async (
+    circleId: string,
+    patch: Partial<Omit<NotifPref, "circle_id">>,
+  ) => {
     if (!user) return;
-    const next = { ...getPref(circleId), ...patch } as NotifPref;
+    const channel = Object.keys(patch)[0] as keyof Omit<NotifPref, "circle_id"> | undefined;
+    if (!channel) return;
+    const prev = getPref(circleId);
+    const next = { ...prev, ...patch } as NotifPref;
+    const key = `${circleId}:${channel}`;
+    setSavingPref(key);
     setPrefs((p) => ({ ...p, [circleId]: next }));
     const { error } = await supabase
       .from("drive_notification_prefs")
@@ -84,7 +99,19 @@ const Drive = () => {
         { member_id: user.id, circle_id: circleId, in_app: next.in_app, email: next.email, push: next.push },
         { onConflict: "member_id,circle_id" },
       );
-    if (error) toast.error("Couldn't save preference");
+    setSavingPref((cur) => (cur === key ? null : cur));
+    if (error) {
+      // rollback optimistic update
+      setPrefs((p) => ({ ...p, [circleId]: prev }));
+      toast.error(`Couldn't save ${channelLabel[channel].toLowerCase()} setting`, {
+        description: error.message,
+      });
+      return;
+    }
+    toast.success(
+      `${channelLabel[channel]} ${next[channel] ? "on" : "off"}`,
+      { description: "Preference saved for this circle." },
+    );
   };
 
   const load = async () => {
@@ -517,6 +544,7 @@ const Drive = () => {
                                         label="In-app alert"
                                         hint="Toast + notification bell"
                                         checked={pref.in_app}
+                                        loading={savingPref === `${c.id}:in_app`}
                                         onChange={(v) => setPref(c.id, { in_app: v })}
                                       />
                                       <PrefRow
@@ -525,6 +553,7 @@ const Drive = () => {
                                         hint={member?.email ? `Sent to ${member.email}` : "Add an email to your profile"}
                                         checked={pref.email}
                                         disabled={!member?.email}
+                                        loading={savingPref === `${c.id}:email`}
                                         onChange={(v) => setPref(c.id, { email: v })}
                                       />
                                       <PrefRow
@@ -541,6 +570,7 @@ const Drive = () => {
                                         }
                                         checked={pref.push && pushPerm === "granted"}
                                         disabled={pushPerm === "unsupported" || pushPerm === "denied"}
+                                        loading={savingPref === `${c.id}:push`}
                                         onChange={async (v) => {
                                           if (v && pushPerm !== "granted") await enablePush();
                                           setPref(c.id, { push: v });
@@ -706,20 +736,24 @@ interface PrefRowProps {
   hint?: string;
   checked: boolean;
   disabled?: boolean;
+  loading?: boolean;
   onChange: (v: boolean) => void;
 }
-const PrefRow = ({ icon, label, hint, checked, disabled, onChange }: PrefRowProps) => (
+const PrefRow = ({ icon, label, hint, checked, disabled, loading, onChange }: PrefRowProps) => (
   <div className={`flex items-center justify-between gap-3 ${disabled ? "opacity-60" : ""}`}>
     <div className="flex items-start gap-2 min-w-0">
       <span className="mt-0.5 grid h-6 w-6 place-items-center rounded-md bg-accent/15 text-accent shrink-0">
         {icon}
       </span>
       <div className="min-w-0">
-        <p className="text-xs font-medium text-foreground">{label}</p>
+        <p className="text-xs font-medium text-foreground inline-flex items-center gap-1.5">
+          {label}
+          {loading && <Loader2 className="h-3 w-3 animate-spin text-accent" aria-label="Saving" />}
+        </p>
         {hint && <p className="text-[10px] text-muted-foreground truncate">{hint}</p>}
       </div>
     </div>
-    <Switch checked={checked} disabled={disabled} onCheckedChange={onChange} />
+    <Switch checked={checked} disabled={disabled || loading} onCheckedChange={onChange} />
   </div>
 );
 
