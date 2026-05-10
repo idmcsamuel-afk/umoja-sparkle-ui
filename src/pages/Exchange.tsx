@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { Link } from "react-router-dom";
-import { ArrowLeft, Loader2, Sparkles, ArrowDownLeft, ArrowUpRight, Plus, Wallet, History } from "lucide-react";
+import { ArrowLeft, Loader2, Sparkles, ArrowDownLeft, ArrowUpRight, Plus, Wallet, History, ShieldCheck } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { Logo } from "@/components/umoja/Logo";
@@ -52,6 +52,9 @@ export default function Exchange() {
   const [busy, setBusy] = useState(false);
   const [sellAmt, setSellAmt] = useState("");
   const [sellPrice, setSellPrice] = useState(String(SPARK_RATE));
+  const [confirmBuy, setConfirmBuy] = useState<Offer | null>(null);
+  const [buyBusy, setBuyBusy] = useState(false);
+  const [tab, setTab] = useState<"market" | "history">("market");
 
   const load = async () => {
     setLoading(true);
@@ -119,10 +122,21 @@ export default function Exchange() {
     load();
   };
 
-  const reserve = async (o: Offer) => {
+  const confirmReserve = async () => {
+    if (!confirmBuy || !user) return;
+    setBuyBusy(true);
+    await new Promise((r) => setTimeout(r, 600));
+    setBuyBusy(false);
+    toast.success("Reserved — admin will settle the trade shortly.", {
+      description: `${fmtSP(confirmBuy.spark_amount)} for ${fmtR(confirmBuy.total_price)}`,
+    });
+    setConfirmBuy(null);
+  };
+
+  const onBuyClick = (o: Offer) => {
     if (!user) return toast.error("Sign in first");
     if (o.seller_id === user.id) return toast.error("That's your own offer");
-    toast.success("Reserved — admin will settle the trade shortly.", { description: `${fmtSP(o.spark_amount)} for ${fmtR(o.total_price)}` });
+    setConfirmBuy(o);
   };
 
   return (
@@ -175,106 +189,139 @@ export default function Exchange() {
 
       <section className="px-5 pt-8">
         <div className="mx-auto max-w-md">
-          <Tabs defaultValue="market" className="w-full">
+          <Tabs value={tab} onValueChange={(v) => setTab(v as "market" | "history")} className="w-full">
             <TabsList className="grid w-full grid-cols-2 rounded-2xl bg-secondary/60 p-1 h-12">
-              <TabsTrigger value="market" className="rounded-xl data-[state=active]:bg-gradient-primary data-[state=active]:text-primary-foreground data-[state=active]:shadow-glow text-xs">
-                Open offers
+              <TabsTrigger value="market" className="rounded-xl gap-1.5 data-[state=active]:bg-gradient-primary data-[state=active]:text-primary-foreground data-[state=active]:shadow-glow text-xs font-medium">
+                <Sparkles className="h-3.5 w-3.5" /> Offers
+                {!loading && offers.length > 0 && (
+                  <span className={`ml-1 rounded-full px-1.5 py-0.5 text-[10px] font-semibold ${tab === "market" ? "bg-background/25 text-primary-foreground" : "bg-secondary text-foreground"}`}>{offers.length}</span>
+                )}
               </TabsTrigger>
-              <TabsTrigger value="history" className="rounded-xl data-[state=active]:bg-gradient-primary data-[state=active]:text-primary-foreground text-xs">
-                History
+              <TabsTrigger value="history" className="rounded-xl gap-1.5 data-[state=active]:bg-gradient-primary data-[state=active]:text-primary-foreground data-[state=active]:shadow-glow text-xs font-medium">
+                <History className="h-3.5 w-3.5" /> History
+                {!loading && txns.length > 0 && (
+                  <span className={`ml-1 rounded-full px-1.5 py-0.5 text-[10px] font-semibold ${tab === "history" ? "bg-background/25 text-primary-foreground" : "bg-secondary text-foreground"}`}>{txns.length}</span>
+                )}
               </TabsTrigger>
             </TabsList>
 
-            {loading ? (
-              <div className="mt-6 grid place-items-center rounded-3xl glass p-10">
-                <Loader2 className="h-5 w-5 animate-spin text-primary" />
-              </div>
-            ) : (
-              <>
-                <TabsContent value="market" className="mt-5 space-y-3">
-                  {offers.length === 0 ? (
-                    <div className="rounded-3xl glass p-8 text-center">
-                      <Sparkles className="mx-auto h-7 w-7 text-accent" />
-                      <p className="mt-3 text-sm text-muted-foreground">No open offers. Be the first to post.</p>
+            <TabsContent value="market" className="mt-5 space-y-3 animate-fade-in">
+              {loading ? (
+                <div className="space-y-3">
+                  {[0,1,2].map((i) => (
+                    <div key={i} className="rounded-3xl glass p-5 animate-pulse" style={{ animationDelay: `${i * 70}ms` }}>
+                      <div className="flex justify-between">
+                        <div className="space-y-2">
+                          <div className="h-3 w-16 rounded bg-secondary/80" />
+                          <div className="h-6 w-24 rounded bg-secondary/80" />
+                          <div className="h-3 w-20 rounded bg-secondary/60" />
+                        </div>
+                        <div className="h-5 w-16 rounded bg-secondary/80" />
+                      </div>
+                      <div className="mt-4 h-10 w-full rounded-2xl bg-secondary/80" />
+                    </div>
+                  ))}
+                </div>
+              ) : offers.length === 0 ? (
+                <div className="rounded-3xl glass p-10 text-center animate-scale-in">
+                  <div className="mx-auto grid h-14 w-14 place-items-center rounded-2xl bg-gradient-primary/10 border border-primary/20">
+                    <Sparkles className="h-6 w-6 text-accent" />
+                  </div>
+                  <h3 className="mt-4 font-display text-xl">No open offers</h3>
+                  <p className="mt-1.5 text-sm text-muted-foreground leading-relaxed">Be the first to set a fair rate for the village.</p>
+                  <Button
+                    onClick={() => setSellOpen(true)}
+                    className="mt-5 h-11 rounded-2xl bg-gradient-primary text-primary-foreground shadow-glow hover-scale"
+                  >
+                    <Plus className="h-4 w-4 mr-1.5" /> Sell Sparks
+                  </Button>
+                </div>
+              ) : (
+                offers.map((o, i) => {
+                  const mine = o.seller_id === user?.id;
+                  return (
+                    <article
+                      key={o.id}
+                      style={{ animationDelay: `${Math.min(i, 8) * 50}ms` }}
+                      className="rounded-3xl glass p-5 animate-slide-up transition-transform active:scale-[0.99]"
+                    >
+                      <div className="flex items-start justify-between gap-3">
+                        <div className="min-w-0">
+                          <p className="text-[10px] uppercase tracking-[0.18em] text-accent">
+                            {mine ? "Your offer" : "Selling"}
+                          </p>
+                          <p className="mt-1 font-display text-xl">
+                            <span className="text-gradient-gold">{fmtSP(Number(o.spark_amount))}</span>
+                          </p>
+                          <p className="text-xs text-muted-foreground">
+                            @ R{Number(o.price_per_spark).toFixed(2)} per SP
+                          </p>
+                        </div>
+                        <div className="text-right shrink-0">
+                          <p className="font-display text-lg">{fmtR(Number(o.total_price))}</p>
+                          <p className="text-[11px] text-muted-foreground">{o.created_at ? new Date(o.created_at).toLocaleDateString() : ""}</p>
+                        </div>
+                      </div>
                       <Button
-                        onClick={() => setSellOpen(true)}
-                        className="mt-4 rounded-2xl bg-gradient-primary text-primary-foreground shadow-glow"
+                        size="sm"
+                        disabled={mine}
+                        onClick={() => onBuyClick(o)}
+                        className="mt-4 w-full h-11 rounded-2xl bg-gradient-primary text-primary-foreground shadow-glow disabled:opacity-50 hover-scale"
                       >
-                        <Plus className="h-4 w-4 mr-1" /> Sell Sparks
+                        {mine ? "Awaiting buyer" : (<><ArrowDownLeft className="h-4 w-4 mr-1.5" /> Buy now</>)}
                       </Button>
-                    </div>
-                  ) : (
-                    offers.map((o, i) => {
-                      const mine = o.seller_id === user?.id;
-                      return (
-                        <article
-                          key={o.id}
-                          style={{ animationDelay: `${i * 40}ms` }}
-                          className="rounded-3xl glass p-5 animate-slide-up"
-                        >
-                          <div className="flex items-start justify-between">
-                            <div>
-                              <p className="text-[10px] uppercase tracking-[0.18em] text-accent">
-                                {mine ? "Your offer" : "Selling"}
-                              </p>
-                              <p className="mt-1 font-display text-xl">
-                                <span className="text-gradient-gold">{fmtSP(Number(o.spark_amount))}</span>
-                              </p>
-                              <p className="text-xs text-muted-foreground">
-                                @ R{Number(o.price_per_spark).toFixed(2)} per SP
-                              </p>
-                            </div>
-                            <div className="text-right">
-                              <p className="font-display text-lg">{fmtR(Number(o.total_price))}</p>
-                              <p className="text-[11px] text-muted-foreground">{o.created_at ? new Date(o.created_at).toLocaleDateString() : ""}</p>
-                            </div>
-                          </div>
-                          <Button
-                            size="sm"
-                            disabled={mine}
-                            onClick={() => reserve(o)}
-                            className="mt-4 w-full rounded-2xl bg-gradient-primary text-primary-foreground shadow-glow disabled:opacity-50"
-                          >
-                            {mine ? "Awaiting buyer" : (<><ArrowDownLeft className="h-4 w-4 mr-1.5" /> Buy now</>)}
-                          </Button>
-                        </article>
-                      );
-                    })
-                  )}
-                </TabsContent>
+                    </article>
+                  );
+                })
+              )}
+            </TabsContent>
 
-                <TabsContent value="history" className="mt-5">
-                  {txns.length === 0 ? (
-                    <div className="rounded-3xl glass p-8 text-center">
-                      <History className="mx-auto h-7 w-7 text-muted-foreground" />
-                      <p className="mt-3 text-sm text-muted-foreground">No transactions yet.</p>
+            <TabsContent value="history" className="mt-5 animate-fade-in">
+              {loading ? (
+                <div className="rounded-3xl glass divide-y divide-border overflow-hidden">
+                  {[0,1,2,3].map((i) => (
+                    <div key={i} className="flex items-center gap-4 p-4 animate-pulse">
+                      <div className="h-10 w-10 rounded-2xl bg-secondary/80" />
+                      <div className="flex-1 space-y-2">
+                        <div className="h-3 w-24 rounded bg-secondary/80" />
+                        <div className="h-2.5 w-32 rounded bg-secondary/60" />
+                      </div>
+                      <div className="h-3 w-16 rounded bg-secondary/80" />
                     </div>
-                  ) : (
-                    <ul className="divide-y divide-border rounded-3xl border border-border bg-gradient-card overflow-hidden">
-                      {txns.map((t) => {
-                        const incoming = t.to_member === user?.id;
-                        return (
-                          <li key={t.id} className="flex items-center gap-4 p-4">
-                            <div className={`grid h-10 w-10 shrink-0 place-items-center rounded-2xl ${incoming ? "bg-primary/15 text-primary" : "bg-secondary text-muted-foreground"}`}>
-                              {incoming ? <ArrowDownLeft className="h-4 w-4" /> : <ArrowUpRight className="h-4 w-4" />}
-                            </div>
-                            <div className="min-w-0 flex-1">
-                              <p className="truncate text-sm font-medium capitalize">{t.tx_type.replace(/_/g, " ")}</p>
-                              <p className="truncate text-xs text-muted-foreground">
-                                {t.status} · {t.created_at ? new Date(t.created_at).toLocaleDateString() : ""}
-                              </p>
-                            </div>
-                            <span className={`text-sm font-display ${incoming ? "text-gradient-gold" : "text-muted-foreground"}`}>
-                              {incoming ? "+" : "−"}{fmtSP(Number(t.amount))}
-                            </span>
-                          </li>
-                        );
-                      })}
-                    </ul>
-                  )}
-                </TabsContent>
-              </>
-            )}
+                  ))}
+                </div>
+              ) : txns.length === 0 ? (
+                <div className="rounded-3xl glass p-10 text-center animate-scale-in">
+                  <div className="mx-auto grid h-14 w-14 place-items-center rounded-2xl bg-secondary/80 border border-border">
+                    <History className="h-6 w-6 text-muted-foreground" />
+                  </div>
+                  <h3 className="mt-4 font-display text-xl">No transactions yet</h3>
+                  <p className="mt-1.5 text-sm text-muted-foreground leading-relaxed">Your trades and transfers will appear here.</p>
+                </div>
+              ) : (
+                <ul className="divide-y divide-border rounded-3xl border border-border bg-gradient-card overflow-hidden">
+                  {txns.map((t, i) => {
+                    const incoming = t.to_member === user?.id;
+                    return (
+                      <li key={t.id} style={{ animationDelay: `${Math.min(i, 8) * 35}ms` }} className="flex items-center gap-4 p-4 animate-fade-in">
+                        <div className={`grid h-10 w-10 shrink-0 place-items-center rounded-2xl ${incoming ? "bg-primary/15 text-primary" : "bg-secondary text-muted-foreground"}`}>
+                          {incoming ? <ArrowDownLeft className="h-4 w-4" /> : <ArrowUpRight className="h-4 w-4" />}
+                        </div>
+                        <div className="min-w-0 flex-1">
+                          <p className="truncate text-sm font-medium capitalize">{t.tx_type.replace(/_/g, " ")}</p>
+                          <p className="truncate text-xs text-muted-foreground">
+                            {t.status} · {t.created_at ? new Date(t.created_at).toLocaleDateString() : ""}
+                          </p>
+                        </div>
+                        <span className={`text-sm font-display ${incoming ? "text-gradient-gold" : "text-muted-foreground"}`}>
+                          {incoming ? "+" : "−"}{fmtSP(Number(t.amount))}
+                        </span>
+                      </li>
+                    );
+                  })}
+                </ul>
+              )}
+            </TabsContent>
           </Tabs>
         </div>
       </section>
@@ -321,6 +368,45 @@ export default function Exchange() {
             <Button variant="ghost" onClick={() => setSellOpen(false)}>Cancel</Button>
             <Button onClick={postSell} disabled={busy} className="rounded-2xl bg-gradient-primary text-primary-foreground shadow-glow">
               {busy ? <Loader2 className="h-4 w-4 animate-spin" /> : "Post offer"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Confirm buy dialog */}
+      <Dialog open={!!confirmBuy} onOpenChange={(v) => !v && !buyBusy && setConfirmBuy(null)}>
+        <DialogContent className="rounded-3xl border border-border bg-gradient-card max-w-md">
+          <DialogHeader>
+            <DialogTitle className="font-display text-2xl">Confirm purchase</DialogTitle>
+            <DialogDescription>Review the trade before reserving. Admin will settle once payment clears.</DialogDescription>
+          </DialogHeader>
+          {confirmBuy && (
+            <div className="space-y-3">
+              <div className="rounded-2xl bg-gradient-primary/10 border border-primary/20 p-5 text-center">
+                <p className="text-[10px] uppercase tracking-[0.2em] text-accent">You receive</p>
+                <p className="mt-1 font-display text-3xl text-gradient-gold">{fmtSP(Number(confirmBuy.spark_amount))}</p>
+                <p className="text-xs text-muted-foreground mt-0.5">@ R{Number(confirmBuy.price_per_spark).toFixed(2)} per SP</p>
+              </div>
+              <div className="rounded-2xl border border-border bg-secondary/30 p-4 space-y-1.5 text-sm">
+                <div className="flex justify-between"><span className="text-muted-foreground">Subtotal</span><span>{fmtR(Number(confirmBuy.total_price))}</span></div>
+                <div className="flex justify-between"><span className="text-muted-foreground">Platform fee</span><span className="text-muted-foreground">included</span></div>
+                <div className="my-1 h-px bg-border" />
+                <div className="flex justify-between font-medium"><span>You pay</span><span className="text-gradient-gold font-display">{fmtR(Number(confirmBuy.total_price))}</span></div>
+              </div>
+              <div className="flex items-start gap-2 rounded-2xl border border-border bg-secondary/20 p-3 text-xs text-muted-foreground">
+                <ShieldCheck className="h-4 w-4 mt-0.5 text-primary shrink-0" />
+                <p>Sparks are held in escrow until admin confirms your payment to the seller.</p>
+              </div>
+            </div>
+          )}
+          <DialogFooter className="gap-2 sm:gap-2">
+            <Button variant="ghost" disabled={buyBusy} onClick={() => setConfirmBuy(null)}>Cancel</Button>
+            <Button
+              onClick={confirmReserve}
+              disabled={buyBusy}
+              className="rounded-2xl bg-gradient-primary text-primary-foreground shadow-glow hover-scale min-w-[140px]"
+            >
+              {buyBusy ? <Loader2 className="h-4 w-4 animate-spin" /> : (<><ArrowDownLeft className="h-4 w-4 mr-1.5" /> Reserve trade</>)}
             </Button>
           </DialogFooter>
         </DialogContent>
