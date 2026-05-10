@@ -221,7 +221,7 @@ const Circle = () => {
                 const locked = !t.is_active;
                 const myBids = bids.filter((b) => b.tier === t.tier);
                 const myTotal = myBids.reduce((sum, b) => sum + Number(b.fiat_amount ?? 0), 0);
-                const sessionsPerDay = Math.max(1, Number(t.sessions_per_day ?? 1));
+                
                 const niceName = `${t.tier.charAt(0).toUpperCase() + t.tier.slice(1)} Circle`;
                 return (
                   <article
