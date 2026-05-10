@@ -153,8 +153,10 @@ const Drive = () => {
         (payload) => {
           const n: any = payload.new;
           if (n?.kind === "drive_activated") {
-            toast.success(n.title ?? "Your circle is live", { description: n.body ?? undefined });
-            if (typeof window !== "undefined" && "Notification" in window && Notification.permission === "granted") {
+            const cid = typeof n.link === "string" && n.link.includes("c=") ? n.link.split("c=")[1] : "";
+            const pref = cid ? (prefs[cid] ?? { ...DEFAULT_PREF, circle_id: cid }) : DEFAULT_PREF;
+            if (pref.in_app) toast.success(n.title ?? "Your circle is live", { description: n.body ?? undefined });
+            if (pref.push && typeof window !== "undefined" && "Notification" in window && Notification.permission === "granted") {
               try { new Notification(n.title ?? "Drive circle live", { body: n.body ?? "", tag: `drive-${n.id}` }); } catch {}
             }
           }
