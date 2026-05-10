@@ -208,11 +208,14 @@ export default function FlameMarketing() {
               ))}
             </div>
           </div>
+            <p className="mt-2 text-[11px] text-muted-foreground">
+              <span className="text-orange-300">{platform} target:</span> ~{recipe.target} chars · max {recipe.max}
+            </p>
 
           <Button
             onClick={generate}
-            disabled={loading}
-            className="w-full h-12 text-base font-semibold bg-gradient-to-r from-orange-500 via-amber-500 to-yellow-500 text-black hover:opacity-95 border-0"
+            disabled={loading || bizLen < BIZ_MIN || bizLen > BIZ_MAX}
+            className="w-full h-12 text-base font-semibold bg-gradient-to-r from-orange-500 via-amber-500 to-yellow-500 text-black hover:opacity-95 border-0 disabled:opacity-50"
           >
             {loading ? <Loader2 className="h-5 w-5 animate-spin" /> : <>Generate with Flame 🔥</>}
           </Button>
@@ -221,7 +224,14 @@ export default function FlameMarketing() {
         {output && (
           <Card className="p-4 border-orange-500/30 bg-gradient-to-br from-card to-orange-950/20 animate-fade-in">
             <div className="flex items-center justify-between mb-3">
-              <div className="text-xs font-semibold text-orange-300 uppercase tracking-wider">🔥 Flame says</div>
+              <div className="flex items-center gap-2">
+                <span className="text-xs font-semibold text-orange-300 uppercase tracking-wider">🔥 {platform}</span>
+                <span className={`text-[10px] tabular-nums px-1.5 py-0.5 rounded ${
+                  overLimit ? "bg-destructive/20 text-destructive" : "bg-emerald-500/15 text-emerald-300"
+                }`}>
+                  {outLen}/{recipe.max}
+                </span>
+              </div>
               <div className="flex gap-2">
                 <Button size="sm" variant="outline" onClick={copy}>
                   <Copy className="h-3.5 w-3.5" /> Copy
