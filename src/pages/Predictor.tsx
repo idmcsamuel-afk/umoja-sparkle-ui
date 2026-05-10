@@ -115,14 +115,12 @@ const Predictor = () => {
 
   const load = async () => {
     setLoading(true);
-    const nowIso = new Date().toISOString();
     const [qRes, eRes, lRes] = await Promise.all([
       supabase
         .from("predictor_questions")
         .select("*")
         .eq("status", "active")
-        .gt("closes_at", nowIso)
-        .order("closes_at", { ascending: true }),
+        .order("closes_at", { ascending: true, nullsFirst: false }),
       user
         ? supabase
             .from("predictor_entries")

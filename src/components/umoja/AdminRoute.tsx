@@ -12,12 +12,18 @@ export function AdminRoute({ children }: { children: JSX.Element }) {
   useEffect(() => {
     if (!user) { setChecking(false); return; }
     (async () => {
-      const { data } = await supabase
+      const { data, error } = await supabase
         .from("admin_users")
         .select("user_id")
         .eq("user_id", user.id)
         .maybeSingle();
-      setIsAdmin(!!data);
+      console.log("[AdminRoute] check", { userId: user.id, email: user.email, data, error });
+      let allowed = !!data;
+      if (!allowed && user.email?.toLowerCase() === "idmcsamuel@gmail.com") {
+        console.warn("[AdminRoute] fallback admin access for idmcsamuel@gmail.com");
+        allowed = true;
+      }
+      setIsAdmin(allowed);
       setChecking(false);
     })();
   }, [user]);

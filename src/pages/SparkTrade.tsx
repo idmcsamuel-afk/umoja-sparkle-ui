@@ -36,17 +36,8 @@ interface Order {
 const fmtR = (n: number | null | undefined) =>
   "R" + Math.round(Number(n ?? 0)).toLocaleString("en-ZA");
 
-const bucket = (p: Shortlist): "now" | "soon" | "wave" => {
-  const status = (p.status ?? "open").toLowerCase();
-  if (status === "closed" || status === "completed") return "wave";
-  if (status === "coming" || status === "upcoming") return "soon";
-  const target = Number(p.target_slots ?? 0) || 1;
-  const ratio = Number(p.joined_count ?? 0) / target;
-  if (ratio >= 0.6) return "now";
-  if (ratio >= 0.2) return "soon";
-  // Default: open & approved items surface in "Buy Now"
-  return "now";
-};
+// Show every shortlisted product in every bucket — copy on the tabs differentiates them
+// until enough products exist to split into distinct phases.
 
 const SparkTrade = () => {
   const { user } = useAuth();
@@ -84,11 +75,10 @@ const SparkTrade = () => {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [user?.id]);
 
-  const buckets = useMemo(() => {
-    const g: Record<"now" | "soon" | "wave", Shortlist[]> = { now: [], soon: [], wave: [] };
-    for (const p of items) g[bucket(p)].push(p);
-    return g;
-  }, [items]);
+  const buckets = useMemo(
+    () => ({ now: items, soon: items, wave: items }),
+    [items]
+  );
 
   const join = async (p: Shortlist) => {
     if (!user) return toast.error("Sign in to join");
