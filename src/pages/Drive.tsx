@@ -700,4 +700,27 @@ const Drive = () => {
   );
 };
 
+interface PrefRowProps {
+  icon: React.ReactNode;
+  label: string;
+  hint?: string;
+  checked: boolean;
+  disabled?: boolean;
+  onChange: (v: boolean) => void;
+}
+const PrefRow = ({ icon, label, hint, checked, disabled, onChange }: PrefRowProps) => (
+  <div className={`flex items-center justify-between gap-3 ${disabled ? "opacity-60" : ""}`}>
+    <div className="flex items-start gap-2 min-w-0">
+      <span className="mt-0.5 grid h-6 w-6 place-items-center rounded-md bg-accent/15 text-accent shrink-0">
+        {icon}
+      </span>
+      <div className="min-w-0">
+        <p className="text-xs font-medium text-foreground">{label}</p>
+        {hint && <p className="text-[10px] text-muted-foreground truncate">{hint}</p>}
+      </div>
+    </div>
+    <Switch checked={checked} disabled={disabled} onCheckedChange={onChange} />
+  </div>
+);
+
 export default Drive;
