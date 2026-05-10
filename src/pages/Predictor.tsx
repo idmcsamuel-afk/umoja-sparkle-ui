@@ -406,4 +406,13 @@ const Predictor = () => {
   );
 };
 
+function Stat({ label, value, accent, gold }: { label: string; value: string; accent?: boolean; gold?: boolean }) {
+  return (
+    <div className="rounded-2xl border border-border bg-secondary/40 p-2.5 text-center">
+      <p className="text-[9px] uppercase tracking-wider text-muted-foreground">{label}</p>
+      <p className={`mt-1 font-display text-base ${gold ? "text-gradient-gold" : accent ? "text-accent" : ""}`}>{value}</p>
+    </div>
+  );
+}
+
 export default Predictor;
