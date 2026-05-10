@@ -76,6 +76,18 @@ const SparkTrade = () => {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [user?.id]);
 
+  const location = useLocation();
+  useEffect(() => {
+    if (loading) return;
+    const id = location.hash.replace("#", "");
+    if (!id) return;
+    // Wait a tick for layout, then smooth scroll
+    const t = window.setTimeout(() => {
+      document.getElementById(id)?.scrollIntoView({ behavior: "smooth", block: "start" });
+    }, 80);
+    return () => window.clearTimeout(t);
+  }, [location.hash, loading]);
+
   const buckets = useMemo(
     () => ({ now: items, soon: items, wave: items }),
     [items]
