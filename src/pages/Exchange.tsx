@@ -373,6 +373,45 @@ export default function Exchange() {
         </DialogContent>
       </Dialog>
 
+      {/* Confirm buy dialog */}
+      <Dialog open={!!confirmBuy} onOpenChange={(v) => !v && !buyBusy && setConfirmBuy(null)}>
+        <DialogContent className="rounded-3xl border border-border bg-gradient-card max-w-md">
+          <DialogHeader>
+            <DialogTitle className="font-display text-2xl">Confirm purchase</DialogTitle>
+            <DialogDescription>Review the trade before reserving. Admin will settle once payment clears.</DialogDescription>
+          </DialogHeader>
+          {confirmBuy && (
+            <div className="space-y-3">
+              <div className="rounded-2xl bg-gradient-primary/10 border border-primary/20 p-5 text-center">
+                <p className="text-[10px] uppercase tracking-[0.2em] text-accent">You receive</p>
+                <p className="mt-1 font-display text-3xl text-gradient-gold">{fmtSP(Number(confirmBuy.spark_amount))}</p>
+                <p className="text-xs text-muted-foreground mt-0.5">@ R{Number(confirmBuy.price_per_spark).toFixed(2)} per SP</p>
+              </div>
+              <div className="rounded-2xl border border-border bg-secondary/30 p-4 space-y-1.5 text-sm">
+                <div className="flex justify-between"><span className="text-muted-foreground">Subtotal</span><span>{fmtR(Number(confirmBuy.total_price))}</span></div>
+                <div className="flex justify-between"><span className="text-muted-foreground">Platform fee</span><span className="text-muted-foreground">included</span></div>
+                <div className="my-1 h-px bg-border" />
+                <div className="flex justify-between font-medium"><span>You pay</span><span className="text-gradient-gold font-display">{fmtR(Number(confirmBuy.total_price))}</span></div>
+              </div>
+              <div className="flex items-start gap-2 rounded-2xl border border-border bg-secondary/20 p-3 text-xs text-muted-foreground">
+                <ShieldCheck className="h-4 w-4 mt-0.5 text-primary shrink-0" />
+                <p>Sparks are held in escrow until admin confirms your payment to the seller.</p>
+              </div>
+            </div>
+          )}
+          <DialogFooter className="gap-2 sm:gap-2">
+            <Button variant="ghost" disabled={buyBusy} onClick={() => setConfirmBuy(null)}>Cancel</Button>
+            <Button
+              onClick={confirmReserve}
+              disabled={buyBusy}
+              className="rounded-2xl bg-gradient-primary text-primary-foreground shadow-glow hover-scale min-w-[140px]"
+            >
+              {buyBusy ? <Loader2 className="h-4 w-4 animate-spin" /> : (<><ArrowDownLeft className="h-4 w-4 mr-1.5" /> Reserve trade</>)}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
       <BottomNav />
     </main>
   );
