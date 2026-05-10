@@ -52,6 +52,9 @@ export default function Exchange() {
   const [busy, setBusy] = useState(false);
   const [sellAmt, setSellAmt] = useState("");
   const [sellPrice, setSellPrice] = useState(String(SPARK_RATE));
+  const [confirmBuy, setConfirmBuy] = useState<Offer | null>(null);
+  const [buyBusy, setBuyBusy] = useState(false);
+  const [tab, setTab] = useState<"market" | "history">("market");
 
   const load = async () => {
     setLoading(true);
