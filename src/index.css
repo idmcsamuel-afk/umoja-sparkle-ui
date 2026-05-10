@@ -2,6 +2,9 @@
 @tailwind components;
 @tailwind utilities;
 
+html { scroll-behavior: smooth; }
+section[id] { scroll-margin-top: 80px; }
+
 /* UMOJA — Africa's community wealth platform
  * Design system: deep forest green + gold on warm dark.
  * All colors are HSL.

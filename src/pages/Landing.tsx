@@ -1,5 +1,5 @@
 import { Link } from "react-router-dom";
-import { ArrowRight, Users, Sparkles, Car, TrendingUp, ShieldCheck, Globe2, Crown, Coins, Dice5, Gamepad2 } from "lucide-react";
+import { ArrowRight, Users, Sparkles, Car, TrendingUp, ShieldCheck, Globe2, Crown, Coins, Dice5, Gamepad2, Star, Lock, BadgeCheck, PlayCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Logo } from "@/components/umoja/Logo";
 import hero from "@/assets/hero.jpg";
@@ -64,11 +64,15 @@ const Landing = () => {
       </header>
 
       {/* Hero */}
-      <section className="relative px-5 pt-10">
+      <section id="top" className="relative px-5 pt-10">
         <div className="mx-auto max-w-md">
           <div className="inline-flex items-center gap-2 rounded-full glass px-3 py-1.5 text-xs text-muted-foreground animate-fade-in">
             <span className="h-1.5 w-1.5 rounded-full bg-primary animate-pulse" />
             Africa's community wealth platform
+            <span className="mx-1 h-3 w-px bg-border" />
+            <span className="inline-flex items-center gap-1 text-accent-soft">
+              <Star className="h-3 w-3 fill-current" /> 4.9
+            </span>
           </div>
 
           <h1 className="mt-5 font-display text-[44px] leading-[1.02] font-semibold tracking-tight animate-slide-up">
@@ -80,19 +84,43 @@ const Landing = () => {
           </h1>
 
           <p className="mt-5 text-base text-muted-foreground leading-relaxed animate-slide-up [animation-delay:120ms]">
-            UMOJA unites the continent through circles of trust — saving, trading,
-            driving and predicting the future, together.
+            Join a Circle in 60 seconds. Save together, get paid out faster, and unlock cars, capital and cash games — all backed by your community.
           </p>
 
-          <div className="mt-7 flex items-center gap-3 animate-slide-up [animation-delay:200ms]">
-            <Button asChild size="lg" className="h-12 rounded-2xl bg-gradient-primary text-primary-foreground shadow-glow hover:opacity-95 px-5">
-              <Link to="/dashboard">
-                Enter UMOJA <ArrowRight className="ml-1 h-4 w-4" />
+          {/* Primary + secondary CTAs */}
+          <div className="mt-7 flex flex-col gap-2.5 animate-slide-up [animation-delay:200ms]">
+            <Button asChild size="lg" className="h-14 rounded-2xl bg-gradient-primary text-primary-foreground shadow-glow hover:opacity-95 px-5 text-base font-semibold">
+              <Link to="/signup">
+                Start free — Join a Circle <ArrowRight className="ml-1.5 h-4 w-4" />
               </Link>
             </Button>
-            <Button asChild variant="ghost" size="lg" className="h-12 rounded-2xl text-foreground hover:bg-secondary">
-              <a href="#pillars">How it works</a>
-            </Button>
+            <div className="flex items-center gap-2">
+              <Button asChild variant="outline" className="flex-1 h-11 rounded-2xl border-border bg-secondary/40 hover:bg-secondary">
+                <Link to="/login">I already have an account</Link>
+              </Button>
+              <Button asChild variant="ghost" className="h-11 rounded-2xl text-foreground hover:bg-secondary px-3">
+                <a href="#pillars" aria-label="See how it works">
+                  <PlayCircle className="mr-1.5 h-4 w-4" /> How it works
+                </a>
+              </Button>
+            </div>
+            <p className="text-[11px] text-muted-foreground text-center">
+              No setup fees · Cancel anytime · First payout in days, not months
+            </p>
+          </div>
+
+          {/* Trust signals row */}
+          <div className="mt-6 grid grid-cols-3 gap-2 animate-fade-in [animation-delay:260ms]">
+            {[
+              { icon: ShieldCheck, label: "KYC verified" },
+              { icon: Lock, label: "Bank-grade security" },
+              { icon: BadgeCheck, label: "Member-governed" },
+            ].map(({ icon: Icon, label }) => (
+              <div key={label} className="rounded-2xl glass p-3 text-center flex flex-col items-center gap-1">
+                <Icon className="h-4 w-4 text-accent" />
+                <p className="text-[10px] uppercase tracking-wider text-muted-foreground leading-tight">{label}</p>
+              </div>
+            ))}
           </div>
 
           {/* Hero image */}
@@ -129,8 +157,21 @@ const Landing = () => {
             </div>
           </div>
 
+          {/* Social proof */}
+          <div className="mt-12 rounded-3xl glass p-4 flex items-center gap-3 animate-fade-in">
+            <div className="flex -space-x-2 shrink-0">
+              {["A","T","N","K"].map((c, i) => (
+                <div key={i} className={`grid h-8 w-8 place-items-center rounded-full border-2 border-background text-[11px] font-semibold ${["bg-primary/30 text-primary","bg-accent/30 text-accent","bg-secondary text-foreground","bg-primary/20 text-primary"][i]}`}>{c}</div>
+              ))}
+            </div>
+            <div className="min-w-0">
+              <p className="text-xs text-foreground/90 leading-snug">"Got my payout in 9 days. The Circle just works."</p>
+              <p className="text-[10px] text-muted-foreground mt-0.5">Thandi · Gold member · Johannesburg</p>
+            </div>
+          </div>
+
           {/* Stats */}
-          <div className="mt-14 grid grid-cols-3 gap-2 animate-fade-in">
+          <div className="mt-6 grid grid-cols-3 gap-2 animate-fade-in">
             {stats.map((s) => (
               <div key={s.v} className="rounded-2xl glass p-4 text-center">
                 <p className="font-display text-2xl tracking-tight">{s.k}</p>
@@ -138,6 +179,21 @@ const Landing = () => {
               </div>
             ))}
           </div>
+
+          {/* Quick anchor jumps */}
+          <nav className="mt-8 flex flex-wrap gap-2 animate-fade-in" aria-label="Jump to section">
+            {[
+              { href: "#founding", label: "Founding" },
+              { href: "#pillars", label: "Pillars" },
+              { href: "#sparkpit", label: "Spark Pit" },
+              { href: "#trust", label: "Trust" },
+            ].map((a) => (
+              <a key={a.href} href={a.href}
+                className="rounded-full border border-border bg-secondary/40 px-3 py-1.5 text-xs text-muted-foreground hover:text-foreground hover:border-accent/40 transition-smooth">
+                {a.label}
+              </a>
+            ))}
+          </nav>
         </div>
       </section>
 
@@ -281,7 +337,7 @@ const Landing = () => {
       </section>
 
       {/* Spark Pit games */}
-      <section className="relative px-5 pt-20">
+      <section id="sparkpit" className="relative px-5 pt-20">
         <div className="mx-auto max-w-md">
           <p className="text-[11px] uppercase tracking-[0.22em] text-accent inline-flex items-center gap-2">
             <Gamepad2 className="h-3.5 w-3.5" /> Spark Pit
@@ -323,7 +379,7 @@ const Landing = () => {
       </section>
 
       {/* Trust */}
-      <section className="relative px-5 pt-20">
+      <section id="trust" className="relative px-5 pt-20">
         <div className="mx-auto max-w-md grid gap-3">
           <div className="rounded-3xl glass p-6 flex items-start gap-4">
             <ShieldCheck className="h-6 w-6 text-primary mt-0.5" />
