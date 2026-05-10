@@ -28,8 +28,9 @@ export default function Profile() {
   const { member, user, signOut } = useAuth();
   const [loading, setLoading] = useState(true);
   const [sparkTxns, setSparkTxns] = useState<Array<{ id: string; tx_type: string; amount: number; created_at: string | null }>>([]);
-  const [bids, setBids] = useState<Array<{ id: string; tier: string; fiat_amount: number; net_amount: number | null; payout_amount: number | null; status: string | null; created_at: string | null; vault_start: string | null; vault_end: string | null }>>([]);
+  const [bids, setBids] = useState<Bid[]>([]);
   const [balance, setBalance] = useState(0);
+  const [openBid, setOpenBid] = useState<Bid | null>(null);
 
   useEffect(() => {
     if (!user) return;
