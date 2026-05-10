@@ -111,10 +111,17 @@ const Drive = () => {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [user?.id]);
 
-  const join = async (c: DriveCircle) => {
+  const requestJoin = (c: DriveCircle) => {
     if (!user) return toast.error("Sign in first");
+    setConfirm(c);
+  };
+
+  const confirmJoin = async () => {
+    const c = confirm;
+    if (!c || !user) return;
     setJoining(c.id);
     let circleId = c.id;
+    const wasForming = c.id.startsWith("synthetic-") || c.status === "forming";
     // Materialize the synthetic forming circle into a real drive_circles row
     if (c.id.startsWith("synthetic-") && c.tier_id) {
       const { data: created, error: cErr } = await supabase
@@ -131,12 +138,14 @@ const Drive = () => {
         .single();
       if (cErr || !created) {
         setJoining(null);
+        setConfirm(null);
         return toast.error(cErr?.message ?? "Could not start circle");
       }
       circleId = created.id;
     }
     if (memberships.some((m) => m.circle_id === circleId)) {
       setJoining(null);
+      setConfirm(null);
       return toast.message("You're already in this circle");
     }
     const { error } = await supabase.from("drive_members").insert({
@@ -146,9 +155,15 @@ const Drive = () => {
       status: "active",
     });
     setJoining(null);
+    setConfirm(null);
     if (error) return toast.error(error.message);
-    toast.success(`Joined ${c.name ?? "circle"}`);
-    load();
+    setJustReserved(circleId);
+    toast.success(wasForming ? "Seat reserved ✨" : `Joined ${c.name ?? "circle"}`, {
+      description: wasForming
+        ? "We'll notify you the moment this circle activates."
+        : undefined,
+    });
+    await load();
   };
 
   const tierFor = (id: string | null) => tiers.find((t) => t.id === id);
