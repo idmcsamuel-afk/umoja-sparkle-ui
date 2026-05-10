@@ -1,0 +1,2 @@
+REVOKE SELECT (correct_answer) ON public.predictor_questions FROM anon, authenticated;
+GRANT SELECT (id, question, category, options, closes_at, sparks_cost, sparks_reward, status, created_at) ON public.predictor_questions TO anon, authenticated;
