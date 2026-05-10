@@ -112,16 +112,45 @@ const Drive = () => {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [user?.id]);
 
-  // Live updates: refresh whenever circles or members change
+  // Live updates: refresh whenever circles or members change, and surface
+  // an OS-level push notification the moment a circle the user joined goes live.
   useEffect(() => {
     const channel = supabase
       .channel("drive-live")
       .on("postgres_changes", { event: "*", schema: "public", table: "drive_circles" }, () => load())
       .on("postgres_changes", { event: "*", schema: "public", table: "drive_members" }, () => load())
+      .on(
+        "postgres_changes",
+        { event: "INSERT", schema: "public", table: "notifications", filter: user?.id ? `member_id=eq.${user.id}` : undefined },
+        (payload) => {
+          const n: any = payload.new;
+          if (n?.kind === "drive_activated") {
+            toast.success(n.title ?? "Your circle is live", { description: n.body ?? undefined });
+            if (typeof window !== "undefined" && "Notification" in window && Notification.permission === "granted") {
+              try { new Notification(n.title ?? "Drive circle live", { body: n.body ?? "", tag: `drive-${n.id}` }); } catch {}
+            }
+          }
+        },
+      )
       .subscribe();
     return () => { supabase.removeChannel(channel); };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [user?.id]);
+
+  // Browser push opt-in
+  const [pushPerm, setPushPerm] = useState<NotificationPermission | "unsupported">(() => {
+    if (typeof window === "undefined" || !("Notification" in window)) return "unsupported";
+    return Notification.permission;
+  });
+  const enablePush = async () => {
+    if (pushPerm === "unsupported") return toast.error("This browser doesn't support push alerts");
+    if (pushPerm === "granted") return;
+    try {
+      const p = await Notification.requestPermission();
+      setPushPerm(p);
+      if (p === "granted") toast.success("Browser alerts on", { description: "We'll ping you when your circle activates." });
+    } catch { /* noop */ }
+  };
 
   // Tick every 30s so countdowns stay fresh even without DB changes
   const [tick, setTick] = useState(0);
