@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { Link } from "react-router-dom";
-import { ArrowLeft, Search, Plus, Loader2, Tag, Star, ShieldCheck, ShoppingBag, MessageCircle, Sparkles } from "lucide-react";
+import { ArrowLeft, Search, Plus, Loader2, Tag, Star, ShieldCheck, ShoppingBag, MessageCircle, Sparkles, X } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { Logo } from "@/components/umoja/Logo";
