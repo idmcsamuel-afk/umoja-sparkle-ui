@@ -128,6 +128,23 @@ export default function Exchange() {
     toast.success("Reserved — admin will settle the trade shortly.", { description: `${fmtSP(o.spark_amount)} for ${fmtR(o.total_price)}` });
   };
 
+  const confirmReserve = async () => {
+    if (!confirmBuy || !user) return;
+    setBuyBusy(true);
+    await new Promise((r) => setTimeout(r, 600));
+    setBuyBusy(false);
+    toast.success("Reserved — admin will settle the trade shortly.", {
+      description: `${fmtSP(confirmBuy.spark_amount)} for ${fmtR(confirmBuy.total_price)}`,
+    });
+    setConfirmBuy(null);
+  };
+
+  const onBuyClick = (o: Offer) => {
+    if (!user) return toast.error("Sign in first");
+    if (o.seller_id === user.id) return toast.error("That's your own offer");
+    setConfirmBuy(o);
+  };
+
   return (
     <main className="relative min-h-screen pb-32">
       <header className="px-5 pt-6">
