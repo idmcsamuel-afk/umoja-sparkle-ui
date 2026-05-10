@@ -1,6 +1,7 @@
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Route, Routes } from "react-router-dom";
 import { Toaster as Sonner } from "@/components/ui/sonner";
+import { FlameChat } from "@/components/umoja/FlameChat";
 import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { AuthProvider } from "@/hooks/useAuth";
@@ -19,6 +20,7 @@ import Profile from "./pages/Profile.tsx";
 import Calculator from "./pages/Calculator.tsx";
 import Market from "./pages/Market.tsx";
 import Exchange from "./pages/Exchange.tsx";
+import Property from "./pages/Property.tsx";
 import NotFound from "./pages/NotFound.tsx";
 import AdminLayout from "./components/umoja/AdminLayout";
 import AdminDashboard from "./pages/admin/AdminDashboard";
@@ -52,6 +54,7 @@ const App = () => (
               <Route path="/calculator" element={<ProtectedRoute><Calculator /></ProtectedRoute>} />
               <Route path="/market" element={<ProtectedRoute><Market /></ProtectedRoute>} />
               <Route path="/exchange" element={<ProtectedRoute><Exchange /></ProtectedRoute>} />
+              <Route path="/property" element={<ProtectedRoute><Property /></ProtectedRoute>} />
 
               <Route path="/admin" element={<AdminRoute><AdminLayout /></AdminRoute>}>
                 <Route index element={<AdminDashboard />} />
@@ -65,6 +68,7 @@ const App = () => (
 
               <Route path="*" element={<NotFound />} />
             </Routes>
+            <FlameChat />
           </AuthProvider>
         </BrowserRouter>
       </TooltipProvider>

@@ -2,7 +2,7 @@ import { useEffect, useMemo, useState } from "react";
 import { Link } from "react-router-dom";
 import {
   ArrowUpRight, Users, Sparkles, Car, TrendingUp, ChevronRight, Loader2, User as UserIcon, Shield,
-  Calculator as CalcIcon, ShoppingBag, Repeat,
+  Calculator as CalcIcon, ShoppingBag, Repeat, Building2,
 } from "lucide-react";
 import { Logo } from "@/components/umoja/Logo";
 import { BottomNav } from "@/components/umoja/BottomNav";
@@ -344,11 +344,12 @@ const Dashboard = () => {
           </div>
 
           {/* Secondary tools */}
-          <div className="mt-3 grid grid-cols-3 gap-2">
+          <div className="mt-3 grid grid-cols-4 gap-2">
             {[
               { to: "/calculator", icon: CalcIcon, label: "Calculator" },
               { to: "/market", icon: ShoppingBag, label: "Market" },
               { to: "/exchange", icon: Repeat, label: "Exchange" },
+              { to: "/property", icon: Building2, label: "Property" },
             ].map(({ to, icon: Icon, label }) => (
               <Link
                 key={to}
