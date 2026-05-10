@@ -324,7 +324,7 @@ const Drive = () => {
                         </div>
                       </div>
 
-                      {isForming && (
+                      {isForming && !joined && (
                         <div className="mt-4 rounded-2xl bg-secondary/60 p-3">
                           <p className="inline-flex items-center gap-1.5 text-[10px] uppercase tracking-[0.18em] text-accent">
                             <Clock className="h-3 w-3" /> Forming now
@@ -335,8 +335,35 @@ const Drive = () => {
                           </p>
                         </div>
                       )}
+
+                      {isForming && joined && (
+                        <div className="mt-4 rounded-2xl border border-accent/40 bg-accent/10 p-3 animate-fade-in">
+                          <p className="inline-flex items-center gap-1.5 text-[10px] uppercase tracking-[0.18em] text-accent">
+                            <CheckCircle2 className="h-3 w-3" /> Seat reserved
+                          </p>
+                          <ul className="mt-2 space-y-1.5 text-xs text-muted-foreground">
+                            <li className="inline-flex items-start gap-1.5">
+                              <Users className="mt-0.5 h-3 w-3 text-accent shrink-0" />
+                              <span>
+                                {Math.max(0, (t?.circle_size ?? 0) - (c.members_count ?? 0))} more seats needed to activate.
+                              </span>
+                            </li>
+                            <li className="inline-flex items-start gap-1.5">
+                              <Bell className="mt-0.5 h-3 w-3 text-accent shrink-0" />
+                              <span>You'll get a notification the moment we go live.</span>
+                            </li>
+                            <li className="inline-flex items-start gap-1.5">
+                              <Wallet className="mt-0.5 h-3 w-3 text-accent shrink-0" />
+                              <span>
+                                First weekly contribution of {fmtR(t?.weekly_contribution)} starts on activation day.
+                              </span>
+                            </li>
+                          </ul>
+                        </div>
+                      )}
+
                       <button
-                        onClick={() => join(c)}
+                        onClick={() => requestJoin(c)}
                         disabled={joined || joining === c.id}
                         className="mt-5 w-full h-11 rounded-2xl bg-gradient-primary text-primary-foreground text-sm font-medium shadow-glow inline-flex items-center justify-center gap-1.5 disabled:opacity-60"
                       >
@@ -344,7 +371,8 @@ const Drive = () => {
                           <Loader2 className="h-4 w-4 animate-spin" />
                         ) : joined ? (
                           <>
-                            <CheckCircle2 className="h-4 w-4" /> Joined
+                            <CheckCircle2 className="h-4 w-4" />
+                            {isForming ? (justReserved === c.id ? "Reserved ✓" : "Seat reserved") : "Joined"}
                           </>
                         ) : (
                           <>
