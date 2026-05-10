@@ -108,15 +108,34 @@ const Drive = () => {
 
   const join = async (c: DriveCircle) => {
     if (!user) return toast.error("Sign in first");
-    if (c.id.startsWith("synthetic-")) {
-      return toast.message("This circle is forming — join opens when admin activates it.");
+    setJoining(c.id);
+    let circleId = c.id;
+    // Materialize the synthetic forming circle into a real drive_circles row
+    if (c.id.startsWith("synthetic-") && c.tier_id) {
+      const { data: created, error: cErr } = await supabase
+        .from("drive_circles")
+        .insert({
+          tier_id: c.tier_id,
+          name: c.name,
+          target_pool: c.target_pool,
+          current_pool: 0,
+          members_count: 0,
+          status: "forming",
+        })
+        .select("id")
+        .single();
+      if (cErr || !created) {
+        setJoining(null);
+        return toast.error(cErr?.message ?? "Could not start circle");
+      }
+      circleId = created.id;
     }
-    if (memberships.some((m) => m.circle_id === c.id)) {
+    if (memberships.some((m) => m.circle_id === circleId)) {
+      setJoining(null);
       return toast.message("You're already in this circle");
     }
-    setJoining(c.id);
     const { error } = await supabase.from("drive_members").insert({
-      circle_id: c.id,
+      circle_id: circleId,
       member_id: user.id,
       total_contributed: 0,
       status: "active",
