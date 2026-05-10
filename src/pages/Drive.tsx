@@ -1,6 +1,6 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, type ReactNode } from "react";
 import { Link } from "react-router-dom";
-import { ArrowLeft, Car, Loader2, Users, Calendar, CheckCircle2, Clock, Sparkles, Bell, Wallet } from "lucide-react";
+import { ArrowLeft, Car, Loader2, Users, Calendar, CheckCircle2, Clock, Sparkles, Bell, Wallet, Settings2, Smartphone, Mail, MessageSquare } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { Logo } from "@/components/umoja/Logo";
@@ -9,7 +9,11 @@ import {
   AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
   AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
+import { Switch } from "@/components/ui/switch";
 import { toast } from "sonner";
+
+interface NotifPref { circle_id: string; in_app: boolean; email: boolean; push: boolean; }
+const DEFAULT_PREF = { in_app: true, email: true, push: true };
 
 interface Tier {
   id: string;
@@ -65,9 +69,27 @@ const Drive = () => {
   const [joining, setJoining] = useState<string | null>(null);
   const [confirm, setConfirm] = useState<DriveCircle | null>(null);
   const [justReserved, setJustReserved] = useState<string | null>(null);
+  const [prefs, setPrefs] = useState<Record<string, NotifPref>>({});
+  const [prefsOpen, setPrefsOpen] = useState<string | null>(null);
+
+  const getPref = (circleId: string) => prefs[circleId] ?? { circle_id: circleId, ...DEFAULT_PREF };
+
+  const setPref = async (circleId: string, patch: Partial<Omit<NotifPref, "circle_id">>) => {
+    if (!user) return;
+    const next = { ...getPref(circleId), ...patch } as NotifPref;
+    setPrefs((p) => ({ ...p, [circleId]: next }));
+    const { error } = await supabase
+      .from("drive_notification_prefs")
+      .upsert(
+        { member_id: user.id, circle_id: circleId, in_app: next.in_app, email: next.email, push: next.push },
+        { onConflict: "member_id,circle_id" },
+      );
+    if (error) toast.error("Couldn't save preference");
+  };
+
   const load = async () => {
     setLoading(true);
-    const [tRes, cRes, mRes, rRes] = await Promise.all([
+    const [tRes, cRes, mRes, rRes, pRes] = await Promise.all([
       supabase.from("drive_tiers").select("*").eq("status", "active"),
       supabase.from("drive_circles").select("*").neq("status", "completed").order("created_at", { ascending: false }),
       user
@@ -79,6 +101,9 @@ const Drive = () => {
             .select("*")
             .eq("member_id", user.id)
             .order("week_number", { ascending: true })
+        : Promise.resolve({ data: [], error: null } as const),
+      user
+        ? supabase.from("drive_notification_prefs").select("circle_id, in_app, email, push").eq("member_id", user.id)
         : Promise.resolve({ data: [], error: null } as const),
     ]);
     if (tRes.error) console.error(tRes.error);
@@ -104,6 +129,9 @@ const Drive = () => {
     setCircles([...realCircles, ...synthetic]);
     setMemberships((mRes.data ?? []) as Membership[]);
     setRepayments((rRes.data ?? []) as Repayment[]);
+    const prefMap: Record<string, NotifPref> = {};
+    for (const row of (pRes.data ?? []) as NotifPref[]) prefMap[row.circle_id] = { ...DEFAULT_PREF, ...row };
+    setPrefs(prefMap);
     setLoading(false);
   };
 
@@ -125,8 +153,10 @@ const Drive = () => {
         (payload) => {
           const n: any = payload.new;
           if (n?.kind === "drive_activated") {
-            toast.success(n.title ?? "Your circle is live", { description: n.body ?? undefined });
-            if (typeof window !== "undefined" && "Notification" in window && Notification.permission === "granted") {
+            const cid = typeof n.link === "string" && n.link.includes("c=") ? n.link.split("c=")[1] : "";
+            const pref = cid ? (prefs[cid] ?? { ...DEFAULT_PREF, circle_id: cid }) : DEFAULT_PREF;
+            if (pref.in_app) toast.success(n.title ?? "Your circle is live", { description: n.body ?? undefined });
+            if (pref.push && typeof window !== "undefined" && "Notification" in window && Notification.permission === "granted") {
               try { new Notification(n.title ?? "Drive circle live", { body: n.body ?? "", tag: `drive-${n.id}` }); } catch {}
             }
           }
@@ -452,31 +482,82 @@ const Drive = () => {
                               </div>
                             </div>
 
-                            <ul className="mt-3 space-y-1.5 text-xs text-muted-foreground border-t border-accent/20 pt-3">
-                              <li className="inline-flex items-start gap-1.5">
-                                <Bell className="mt-0.5 h-3 w-3 text-accent shrink-0" />
-                                <span>
-                                  In-app alert{member?.email ? " + email" : ""}
-                                  {pushPerm === "granted" ? " + browser push" : ""} the moment seats fill.
-                                </span>
-                              </li>
-                              <li className="inline-flex items-start gap-1.5">
-                                <Wallet className="mt-0.5 h-3 w-3 text-accent shrink-0" />
-                                <span>
-                                  First weekly contribution of {fmtR(t?.weekly_contribution)} starts on activation day.
-                                </span>
-                              </li>
-                            </ul>
+                            {(() => {
+                              const pref = getPref(c.id);
+                              const channels = [
+                                pref.in_app && "in-app",
+                                pref.email && "email",
+                                pref.push && pushPerm === "granted" && "browser push",
+                              ].filter(Boolean) as string[];
+                              const summary = channels.length
+                                ? channels.join(" + ") + " when seats fill."
+                                : "All alerts off — you'll only see this card update.";
+                              const isOpen = prefsOpen === c.id;
+                              return (
+                                <div className="mt-3 border-t border-accent/20 pt-3">
+                                  <div className="flex items-start justify-between gap-3">
+                                    <p className="text-xs text-muted-foreground inline-flex items-start gap-1.5">
+                                      <Bell className="mt-0.5 h-3 w-3 text-accent shrink-0" />
+                                      <span>{summary}</span>
+                                    </p>
+                                    <button
+                                      type="button"
+                                      onClick={() => setPrefsOpen(isOpen ? null : c.id)}
+                                      className="shrink-0 inline-flex items-center gap-1 rounded-full border border-accent/30 bg-background/40 px-2 py-1 text-[10px] font-medium text-accent uppercase tracking-wider hover:bg-accent/10"
+                                      aria-expanded={isOpen}
+                                    >
+                                      <Settings2 className="h-3 w-3" /> {isOpen ? "Done" : "Edit"}
+                                    </button>
+                                  </div>
 
-                            {pushPerm !== "granted" && pushPerm !== "unsupported" && (
-                              <button
-                                type="button"
-                                onClick={enablePush}
-                                className="mt-3 w-full h-9 rounded-xl border border-accent/40 bg-background/40 text-[11px] font-medium text-accent inline-flex items-center justify-center gap-1.5 hover:bg-accent/10 transition-colors"
-                              >
-                                <Bell className="h-3.5 w-3.5" /> Turn on browser alerts
-                              </button>
-                            )}
+                                  {isOpen && (
+                                    <div className="mt-3 space-y-2.5 rounded-xl bg-background/40 p-3 animate-fade-in">
+                                      <PrefRow
+                                        icon={<MessageSquare className="h-3.5 w-3.5" />}
+                                        label="In-app alert"
+                                        hint="Toast + notification bell"
+                                        checked={pref.in_app}
+                                        onChange={(v) => setPref(c.id, { in_app: v })}
+                                      />
+                                      <PrefRow
+                                        icon={<Mail className="h-3.5 w-3.5" />}
+                                        label="Email"
+                                        hint={member?.email ? `Sent to ${member.email}` : "Add an email to your profile"}
+                                        checked={pref.email}
+                                        disabled={!member?.email}
+                                        onChange={(v) => setPref(c.id, { email: v })}
+                                      />
+                                      <PrefRow
+                                        icon={<Smartphone className="h-3.5 w-3.5" />}
+                                        label="Browser push"
+                                        hint={
+                                          pushPerm === "unsupported"
+                                            ? "Not supported on this browser"
+                                            : pushPerm === "denied"
+                                            ? "Blocked — enable in browser settings"
+                                            : pushPerm === "granted"
+                                            ? "OS-level alert"
+                                            : "Tap to allow browser alerts"
+                                        }
+                                        checked={pref.push && pushPerm === "granted"}
+                                        disabled={pushPerm === "unsupported" || pushPerm === "denied"}
+                                        onChange={async (v) => {
+                                          if (v && pushPerm !== "granted") await enablePush();
+                                          setPref(c.id, { push: v });
+                                        }}
+                                      />
+                                    </div>
+                                  )}
+
+                                  <p className="mt-3 inline-flex items-start gap-1.5 text-xs text-muted-foreground">
+                                    <Wallet className="mt-0.5 h-3 w-3 text-accent shrink-0" />
+                                    <span>
+                                      First weekly contribution of {fmtR(t?.weekly_contribution)} starts on activation day.
+                                    </span>
+                                  </p>
+                                </div>
+                              );
+                            })()}
                           </div>
                         );
                       })()}
@@ -618,5 +699,28 @@ const Drive = () => {
     </main>
   );
 };
+
+interface PrefRowProps {
+  icon: ReactNode;
+  label: string;
+  hint?: string;
+  checked: boolean;
+  disabled?: boolean;
+  onChange: (v: boolean) => void;
+}
+const PrefRow = ({ icon, label, hint, checked, disabled, onChange }: PrefRowProps) => (
+  <div className={`flex items-center justify-between gap-3 ${disabled ? "opacity-60" : ""}`}>
+    <div className="flex items-start gap-2 min-w-0">
+      <span className="mt-0.5 grid h-6 w-6 place-items-center rounded-md bg-accent/15 text-accent shrink-0">
+        {icon}
+      </span>
+      <div className="min-w-0">
+        <p className="text-xs font-medium text-foreground">{label}</p>
+        {hint && <p className="text-[10px] text-muted-foreground truncate">{hint}</p>}
+      </div>
+    </div>
+    <Switch checked={checked} disabled={disabled} onCheckedChange={onChange} />
+  </div>
+);
 
 export default Drive;
