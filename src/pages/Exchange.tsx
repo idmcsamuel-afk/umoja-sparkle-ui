@@ -122,12 +122,6 @@ export default function Exchange() {
     load();
   };
 
-  const reserve = async (o: Offer) => {
-    if (!user) return toast.error("Sign in first");
-    if (o.seller_id === user.id) return toast.error("That's your own offer");
-    toast.success("Reserved — admin will settle the trade shortly.", { description: `${fmtSP(o.spark_amount)} for ${fmtR(o.total_price)}` });
-  };
-
   const confirmReserve = async () => {
     if (!confirmBuy || !user) return;
     setBuyBusy(true);
