@@ -416,6 +416,85 @@ const Drive = () => {
         </section>
       )}
 
+      <AlertDialog open={!!confirm} onOpenChange={(o) => !o && !joining && setConfirm(null)}>
+        <AlertDialogContent className="rounded-3xl">
+          {(() => {
+            const c = confirm;
+            if (!c) return null;
+            const t = tierFor(c.tier_id);
+            const forming = c.id.startsWith("synthetic-") || c.status === "forming";
+            const seatsLeft = Math.max(0, (t?.circle_size ?? 0) - (c.members_count ?? 0));
+            return (
+              <>
+                <AlertDialogHeader>
+                  <AlertDialogTitle className="font-display text-xl">
+                    {forming ? "Reserve your seat?" : "Join this circle?"}
+                  </AlertDialogTitle>
+                  <AlertDialogDescription>
+                    {forming
+                      ? "You're locking in a spot in a circle that's still forming. Here's what happens next:"
+                      : "You're about to join an active circle. Weekly contributions begin immediately."}
+                  </AlertDialogDescription>
+                </AlertDialogHeader>
+
+                <div className="space-y-2.5 rounded-2xl bg-secondary/60 p-4 text-sm">
+                  <div className="flex items-start gap-2.5">
+                    <Sparkles className="mt-0.5 h-4 w-4 text-accent shrink-0" />
+                    <div>
+                      <p className="font-medium">{c.name ?? "Drive Circle"}</p>
+                      {t && (
+                        <p className="text-xs text-muted-foreground">
+                          {t.car_year} {t.car_make} {t.car_model}
+                        </p>
+                      )}
+                    </div>
+                  </div>
+                  <div className="flex items-start gap-2.5">
+                    <Wallet className="mt-0.5 h-4 w-4 text-accent shrink-0" />
+                    <p className="text-xs text-muted-foreground">
+                      {fmtR(t?.weekly_contribution)}/week — first payment {forming ? "starts on activation" : "due this week"}.
+                    </p>
+                  </div>
+                  <div className="flex items-start gap-2.5">
+                    <Users className="mt-0.5 h-4 w-4 text-accent shrink-0" />
+                    <p className="text-xs text-muted-foreground">
+                      {forming
+                        ? `${seatsLeft} of ${t?.circle_size ?? "—"} seats still need to fill before this circle activates.`
+                        : `${c.members_count ?? 0} / ${t?.circle_size ?? "—"} members already in.`}
+                    </p>
+                  </div>
+                  {forming && (
+                    <div className="flex items-start gap-2.5">
+                      <Bell className="mt-0.5 h-4 w-4 text-accent shrink-0" />
+                      <p className="text-xs text-muted-foreground">
+                        We'll notify you the moment the circle goes live — no charge until then.
+                      </p>
+                    </div>
+                  )}
+                </div>
+
+                <AlertDialogFooter>
+                  <AlertDialogCancel disabled={!!joining} className="rounded-2xl">Not yet</AlertDialogCancel>
+                  <AlertDialogAction
+                    disabled={!!joining}
+                    onClick={(e) => { e.preventDefault(); confirmJoin(); }}
+                    className="rounded-2xl bg-gradient-primary text-primary-foreground"
+                  >
+                    {joining ? (
+                      <Loader2 className="h-4 w-4 animate-spin" />
+                    ) : forming ? (
+                      "Reserve my seat"
+                    ) : (
+                      "Confirm join"
+                    )}
+                  </AlertDialogAction>
+                </AlertDialogFooter>
+              </>
+            );
+          })()}
+        </AlertDialogContent>
+      </AlertDialog>
+
       <BottomNav />
     </main>
   );
