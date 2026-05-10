@@ -116,7 +116,7 @@ export function CircleSessionTimer({ tier }: { tier: string }) {
   if (state.status === "open") {
     const remaining = state.target - now;
     return (
-      <div className="rounded-3xl border border-primary/40 bg-primary/10 p-5 text-center animate-pulse-soft">
+      <div className="rounded-3xl border border-primary/50 bg-primary/15 p-5 text-center animate-pulse">
         <p className="text-[10px] uppercase tracking-[0.22em] text-primary">🟢 Session open now</p>
         <p className="mt-2 font-mono font-display text-3xl text-primary">closes in {fmt(remaining, false)}</p>
       </div>
