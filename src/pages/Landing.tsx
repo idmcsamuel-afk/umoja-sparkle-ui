@@ -1,5 +1,5 @@
 import { Link } from "react-router-dom";
-import { ArrowRight, Users, Sparkles, Car, TrendingUp, ShieldCheck, Globe2, Crown, Coins, Dice5, Gamepad2, Star, Lock, BadgeCheck, PlayCircle } from "lucide-react";
+import { ArrowRight, Users, Sparkles, Car, TrendingUp, ShieldCheck, Globe2, Crown, Coins, Dice5, Gamepad2, Star, Lock, BadgeCheck, PlayCircle, Check, LineChart, Package, Activity } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Logo } from "@/components/umoja/Logo";
 import hero from "@/assets/hero.jpg";
