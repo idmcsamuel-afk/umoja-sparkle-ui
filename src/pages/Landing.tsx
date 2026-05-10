@@ -390,7 +390,7 @@ const Landing = () => {
             </div>
 
             <Button asChild size="lg" className="mt-6 w-full bg-gradient-primary shadow-glow">
-              <Link to="/spark-trade">
+              <Link to="/spark">
                 See Live Signals <ArrowRight className="ml-1.5 h-4 w-4" />
               </Link>
             </Button>
