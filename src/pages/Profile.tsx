@@ -87,16 +87,52 @@ export default function Profile() {
           {loading ? null : bids.length === 0 ? (
             <p className="mt-4 text-sm text-muted-foreground">No circle bids yet.</p>
           ) : (
-            <ul className="mt-4 divide-y divide-border rounded-3xl border border-border bg-gradient-card overflow-hidden">
-              {bids.slice(0, 10).map((b) => (
-                <li key={b.id} className="flex items-center justify-between p-4 text-sm">
-                  <div>
-                    <p className="font-medium capitalize">{b.tier}</p>
-                    <p className="text-xs text-muted-foreground">{b.status} · {b.created_at ? new Date(b.created_at).toLocaleDateString() : ""}</p>
-                  </div>
-                  <span className="font-display text-gradient-gold">{fmtR(Number(b.fiat_amount))}</span>
-                </li>
-              ))}
+            <ul className="mt-4 space-y-3">
+              {bids.map((b) => {
+                const status = (b.status ?? "pending").toLowerCase();
+                const tone =
+                  status === "paid" || status === "matched"
+                    ? "bg-primary/15 text-primary"
+                    : status === "active"
+                    ? "bg-accent/15 text-accent-soft"
+                    : status === "cancelled" || status === "failed"
+                    ? "bg-destructive/15 text-destructive"
+                    : "bg-secondary text-muted-foreground";
+                const fmtDate = (d: string | null) =>
+                  d ? new Date(d).toLocaleDateString("en-ZA", { day: "2-digit", month: "short", year: "numeric" }) : "—";
+                return (
+                  <li key={b.id} className="rounded-3xl border border-border bg-gradient-card p-4 animate-fade-in">
+                    <div className="flex items-start justify-between gap-3">
+                      <div className="min-w-0">
+                        <p className="font-display text-base capitalize">{b.tier} Circle</p>
+                        <span className={`mt-1 inline-block text-[10px] uppercase tracking-wider rounded-full px-2 py-0.5 ${tone}`}>
+                          {status}
+                        </span>
+                      </div>
+                      <div className="text-right shrink-0">
+                        <p className="font-display text-lg text-gradient-gold">{fmtR(Number(b.fiat_amount))}</p>
+                        {b.payout_amount != null && (
+                          <p className="text-[11px] text-accent-soft">Payout {fmtR(Number(b.payout_amount))}</p>
+                        )}
+                      </div>
+                    </div>
+                    <div className="mt-3 grid grid-cols-3 gap-2 text-[11px]">
+                      <div>
+                        <p className="text-muted-foreground uppercase tracking-wider text-[9px]">Started</p>
+                        <p>{fmtDate(b.created_at)}</p>
+                      </div>
+                      <div>
+                        <p className="text-muted-foreground uppercase tracking-wider text-[9px]">Vault opens</p>
+                        <p>{fmtDate(b.vault_start)}</p>
+                      </div>
+                      <div>
+                        <p className="text-muted-foreground uppercase tracking-wider text-[9px]">Vault ends</p>
+                        <p>{fmtDate(b.vault_end)}</p>
+                      </div>
+                    </div>
+                  </li>
+                );
+              })}
             </ul>
           )}
         </div>
