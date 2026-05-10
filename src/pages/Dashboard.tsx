@@ -60,6 +60,24 @@ const Dashboard = () => {
   const [activity, setActivity] = useState<ActivityRow[]>([]);
   const [memberSince, setMemberSince] = useState<string | null>(null);
   const [teaser, setTeaser] = useState<PredictorTeaser | null>(null);
+  const [isAdmin, setIsAdmin] = useState(false);
+
+  useEffect(() => {
+    if (!user) { setIsAdmin(false); return; }
+    (async () => {
+      const { data, error } = await supabase
+        .from("admin_users")
+        .select("user_id")
+        .eq("user_id", user.id)
+        .maybeSingle();
+      if (error) {
+        console.error("[Dashboard] admin check failed:", error);
+        if (user.email?.toLowerCase() === "idmcsamuel@gmail.com") setIsAdmin(true);
+      } else {
+        setIsAdmin(!!data);
+      }
+    })();
+  }, [user]);
 
   useEffect(() => {
     if (!user) return;
