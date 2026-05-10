@@ -248,6 +248,11 @@ const Dashboard = () => {
           <div className="flex items-center gap-2">
             <ThemeToggle />
             <NotificationBell />
+            {isAdmin && (
+              <Link to="/admin" aria-label="Admin" title="Admin Console" className="grid h-10 w-10 place-items-center rounded-2xl bg-gradient-primary text-primary-foreground shadow-glow">
+                <Shield className="h-4 w-4" />
+              </Link>
+            )}
             <Link to="/profile" aria-label="Profile" className="grid h-10 w-10 place-items-center rounded-2xl glass">
               <UserIcon className="h-4 w-4" />
             </Link>
