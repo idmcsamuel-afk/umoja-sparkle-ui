@@ -52,6 +52,13 @@ export default function AdminPredictor() {
     load();
   };
 
+  const updateAnswer = async (id: string, answer: string) => {
+    const { error } = await supabase.from("predictor_questions").update({ correct_answer: answer }).eq("id", id);
+    if (error) return toast.error(error.message);
+    toast.success("Correct answer updated.");
+    load();
+  };
+
   return (
     <div>
       <h1 className="font-display text-3xl">Predictor</h1>
@@ -96,17 +103,36 @@ export default function AdminPredictor() {
             ) : (
               rows
                 .filter((r) => r.correct_answer)
-                .map((r) => (
-                  <li key={r.id} className="flex items-start justify-between gap-4 py-3">
-                    <div className="min-w-0">
-                      <p className="truncate text-sm font-medium">{r.question}</p>
-                      <p className="text-xs text-muted-foreground">{r.category} · {r.status}</p>
-                    </div>
-                    <span className="shrink-0 rounded-full bg-accent/15 px-3 py-1 text-xs font-medium text-accent">
-                      ✓ {r.correct_answer}
-                    </span>
-                  </li>
-                ))
+                .map((r) => {
+                  const opts = Array.isArray(r.options) ? (r.options as string[]) : [];
+                  return (
+                    <li key={r.id} className="py-3">
+                      <div className="flex items-start justify-between gap-4">
+                        <div className="min-w-0">
+                          <p className="truncate text-sm font-medium">{r.question}</p>
+                          <p className="text-xs text-muted-foreground">{r.category} · {r.status}</p>
+                        </div>
+                        <span className="shrink-0 rounded-full bg-accent/15 px-3 py-1 text-xs font-medium text-accent">
+                          ✓ {r.correct_answer}
+                        </span>
+                      </div>
+                      <div className="mt-2 flex flex-wrap items-center gap-2">
+                        <span className="text-[10px] uppercase tracking-wider text-muted-foreground">Edit:</span>
+                        {opts.map((o) => (
+                          <Button
+                            key={o}
+                            size="sm"
+                            variant={r.correct_answer === o ? "default" : "outline"}
+                            onClick={() => updateAnswer(r.id, o)}
+                            disabled={r.correct_answer === o}
+                          >
+                            {o}
+                          </Button>
+                        ))}
+                      </div>
+                    </li>
+                  );
+                })
             )}
           </ul>
         )}
