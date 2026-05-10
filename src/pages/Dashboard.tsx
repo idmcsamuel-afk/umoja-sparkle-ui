@@ -165,9 +165,22 @@ const Dashboard = () => {
           positive: p.is_correct === true,
           at: p.created_at ? new Date(p.created_at).getTime() : 0,
         })),
+        ...((ledgerRes.data ?? []) as Array<{ id: string; event_type: string; amount: number; note: string | null; created_at: string | null }>).map((l) => {
+          const amt = Number(l.amount ?? 0);
+          const positive = amt >= 0;
+          return {
+            id: `l-${l.id}`,
+            kind: "spark" as const,
+            title: l.event_type.replace(/_/g, " "),
+            meta: l.note ?? "ledger",
+            amount: `${positive ? "+" : "−"}${fmtR(Math.abs(amt))}`,
+            positive,
+            at: l.created_at ? new Date(l.created_at).getTime() : 0,
+          };
+        }),
       ]
         .sort((a, b) => b.at - a.at)
-        .slice(0, 10);
+        .slice(0, 12);
       setActivity(feed);
 
       // Predictor teaser with vote distribution
