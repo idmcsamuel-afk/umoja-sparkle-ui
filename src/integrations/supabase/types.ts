@@ -340,6 +340,39 @@ export type Database = {
           },
         ]
       }
+      drive_notification_prefs: {
+        Row: {
+          circle_id: string
+          created_at: string
+          email: boolean
+          id: string
+          in_app: boolean
+          member_id: string
+          push: boolean
+          updated_at: string
+        }
+        Insert: {
+          circle_id: string
+          created_at?: string
+          email?: boolean
+          id?: string
+          in_app?: boolean
+          member_id: string
+          push?: boolean
+          updated_at?: string
+        }
+        Update: {
+          circle_id?: string
+          created_at?: string
+          email?: boolean
+          id?: string
+          in_app?: boolean
+          member_id?: string
+          push?: boolean
+          updated_at?: string
+        }
+        Relationships: []
+      }
       drive_repayments: {
         Row: {
           amount: number
