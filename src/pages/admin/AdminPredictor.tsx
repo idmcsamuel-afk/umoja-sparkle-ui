@@ -5,6 +5,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Loader2 } from "lucide-react";
 import { toast } from "sonner";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 
 interface Q {
   id: string;
@@ -19,6 +20,8 @@ interface Q {
 export default function AdminPredictor() {
   const [rows, setRows] = useState<Q[]>([]);
   const [loading, setLoading] = useState(true);
+  const [pending, setPending] = useState<Record<string, string>>({});
+  const [saving, setSaving] = useState<Record<string, boolean>>({});
   const [q, setQ] = useState({ question: "", options: "", category: "general", closes_at: "" });
 
   const load = async () => {
@@ -53,9 +56,15 @@ export default function AdminPredictor() {
   };
 
   const updateAnswer = async (id: string, answer: string) => {
+    setSaving((s) => ({ ...s, [id]: true }));
     const { error } = await supabase.from("predictor_questions").update({ correct_answer: answer }).eq("id", id);
+    setSaving((s) => ({ ...s, [id]: false }));
     if (error) return toast.error(error.message);
     toast.success("Correct answer updated.");
+    setPending((p) => {
+      const { [id]: _, ...rest } = p;
+      return rest;
+    });
     load();
   };
 
@@ -118,17 +127,32 @@ export default function AdminPredictor() {
                       </div>
                       <div className="mt-2 flex flex-wrap items-center gap-2">
                         <span className="text-[10px] uppercase tracking-wider text-muted-foreground">Edit:</span>
-                        {opts.map((o) => (
-                          <Button
-                            key={o}
-                            size="sm"
-                            variant={r.correct_answer === o ? "default" : "outline"}
-                            onClick={() => updateAnswer(r.id, o)}
-                            disabled={r.correct_answer === o}
-                          >
-                            {o}
-                          </Button>
-                        ))}
+                        <Select
+                          value={pending[r.id] ?? r.correct_answer ?? ""}
+                          onValueChange={(v) => setPending((p) => ({ ...p, [r.id]: v }))}
+                        >
+                          <SelectTrigger className="h-9 w-[180px]">
+                            <SelectValue placeholder="Select answer" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {opts.map((o) => (
+                              <SelectItem key={o} value={o}>{o}</SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                        {(() => {
+                          const selected = pending[r.id] ?? r.correct_answer ?? "";
+                          const disabled = !selected || selected === r.correct_answer || saving[r.id];
+                          return (
+                            <Button
+                              size="sm"
+                              onClick={() => updateAnswer(r.id, selected)}
+                              disabled={disabled}
+                            >
+                              {saving[r.id] ? <Loader2 className="h-4 w-4 animate-spin" /> : "Save correct answer"}
+                            </Button>
+                          );
+                        })()}
                       </div>
                     </li>
                   );
