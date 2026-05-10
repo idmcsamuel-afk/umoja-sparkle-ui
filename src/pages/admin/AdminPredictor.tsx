@@ -79,6 +79,39 @@ export default function AdminPredictor() {
         <Button onClick={create} className="bg-gradient-primary text-primary-foreground">Create</Button>
       </div>
 
+      <section className="mt-10 rounded-3xl border border-accent/40 bg-gradient-card p-5">
+        <div className="flex items-baseline justify-between">
+          <h2 className="font-display text-2xl">Correct answers · admin review</h2>
+          <span className="text-[10px] uppercase tracking-[0.18em] text-accent">Restricted</span>
+        </div>
+        <p className="mt-1 text-xs text-muted-foreground">
+          Visible only to admins. Members can never read the <code>correct_answer</code> column.
+        </p>
+        {loading ? (
+          <div className="mt-4"><Loader2 className="h-5 w-5 animate-spin text-primary" /></div>
+        ) : (
+          <ul className="mt-4 divide-y divide-border">
+            {rows.filter((r) => r.correct_answer).length === 0 ? (
+              <li className="py-4 text-sm text-muted-foreground">No answers set yet.</li>
+            ) : (
+              rows
+                .filter((r) => r.correct_answer)
+                .map((r) => (
+                  <li key={r.id} className="flex items-start justify-between gap-4 py-3">
+                    <div className="min-w-0">
+                      <p className="truncate text-sm font-medium">{r.question}</p>
+                      <p className="text-xs text-muted-foreground">{r.category} · {r.status}</p>
+                    </div>
+                    <span className="shrink-0 rounded-full bg-accent/15 px-3 py-1 text-xs font-medium text-accent">
+                      ✓ {r.correct_answer}
+                    </span>
+                  </li>
+                ))
+            )}
+          </ul>
+        )}
+      </section>
+
       <h2 className="mt-10 font-display text-2xl">Recent questions</h2>
       {loading ? <div className="mt-6"><Loader2 className="h-5 w-5 animate-spin text-primary" /></div> : (
         <ul className="mt-4 space-y-3">
