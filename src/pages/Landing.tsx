@@ -280,6 +280,48 @@ const Landing = () => {
         </div>
       </section>
 
+      {/* Spark Pit games */}
+      <section className="relative px-5 pt-20">
+        <div className="mx-auto max-w-md">
+          <p className="text-[11px] uppercase tracking-[0.22em] text-accent inline-flex items-center gap-2">
+            <Gamepad2 className="h-3.5 w-3.5" /> Spark Pit
+          </p>
+          <h2 className="mt-3 font-display text-3xl leading-tight tracking-tight">
+            Win while you <span className="text-gradient-gold italic font-[450]">save</span> 🎮
+          </h2>
+          <p className="mt-3 text-sm text-muted-foreground leading-relaxed">
+            Play Dream Draw, Spark Flip and predict the market — all with Sparks earned from your Circle.
+          </p>
+
+          <div className="mt-6 grid gap-3">
+            {[
+              { icon: Dice5, name: "Dream Draw", tag: "Weekly lottery", desc: "50 Sparks per entry. One winner takes the pot.", grad: "from-accent/30 to-primary/10" },
+              { icon: Coins, name: "Spark Flip", tag: "Coin flip", desc: "20 Sparks per flip. Double or nothing — 10 plays a day.", grad: "from-primary/30 to-accent/10" },
+              { icon: TrendingUp, name: "Predictor", tag: "Market game", desc: "Predict tomorrow's market. Climb the leaderboard.", grad: "from-emerald-700/30 to-accent/10" },
+            ].map((g, i) => (
+              <article
+                key={g.name}
+                style={{ animationDelay: `${i * 80}ms` }}
+                className={`group relative overflow-hidden rounded-3xl border border-border bg-gradient-to-br ${g.grad} p-5 animate-slide-up hover:shadow-glow transition-smooth`}
+              >
+                <div className="flex items-start gap-4">
+                  <div className="grid h-12 w-12 shrink-0 place-items-center rounded-2xl bg-background/40 backdrop-blur text-accent group-hover:scale-110 transition-transform">
+                    <g.icon className="h-5 w-5" />
+                  </div>
+                  <div className="flex-1">
+                    <div className="flex items-baseline justify-between">
+                      <h3 className="font-display text-xl">{g.name}</h3>
+                      <span className="text-[10px] uppercase tracking-[0.18em] text-accent">{g.tag}</span>
+                    </div>
+                    <p className="mt-2 text-sm text-muted-foreground leading-relaxed">{g.desc}</p>
+                  </div>
+                </div>
+              </article>
+            ))}
+          </div>
+        </div>
+      </section>
+
       {/* Trust */}
       <section className="relative px-5 pt-20">
         <div className="mx-auto max-w-md grid gap-3">
