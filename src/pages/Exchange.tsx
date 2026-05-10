@@ -276,38 +276,52 @@ export default function Exchange() {
               )}
             </TabsContent>
 
-                <TabsContent value="history" className="mt-5">
-                  {txns.length === 0 ? (
-                    <div className="rounded-3xl glass p-8 text-center">
-                      <History className="mx-auto h-7 w-7 text-muted-foreground" />
-                      <p className="mt-3 text-sm text-muted-foreground">No transactions yet.</p>
+            <TabsContent value="history" className="mt-5 animate-fade-in">
+              {loading ? (
+                <div className="rounded-3xl glass divide-y divide-border overflow-hidden">
+                  {[0,1,2,3].map((i) => (
+                    <div key={i} className="flex items-center gap-4 p-4 animate-pulse">
+                      <div className="h-10 w-10 rounded-2xl bg-secondary/80" />
+                      <div className="flex-1 space-y-2">
+                        <div className="h-3 w-24 rounded bg-secondary/80" />
+                        <div className="h-2.5 w-32 rounded bg-secondary/60" />
+                      </div>
+                      <div className="h-3 w-16 rounded bg-secondary/80" />
                     </div>
-                  ) : (
-                    <ul className="divide-y divide-border rounded-3xl border border-border bg-gradient-card overflow-hidden">
-                      {txns.map((t) => {
-                        const incoming = t.to_member === user?.id;
-                        return (
-                          <li key={t.id} className="flex items-center gap-4 p-4">
-                            <div className={`grid h-10 w-10 shrink-0 place-items-center rounded-2xl ${incoming ? "bg-primary/15 text-primary" : "bg-secondary text-muted-foreground"}`}>
-                              {incoming ? <ArrowDownLeft className="h-4 w-4" /> : <ArrowUpRight className="h-4 w-4" />}
-                            </div>
-                            <div className="min-w-0 flex-1">
-                              <p className="truncate text-sm font-medium capitalize">{t.tx_type.replace(/_/g, " ")}</p>
-                              <p className="truncate text-xs text-muted-foreground">
-                                {t.status} · {t.created_at ? new Date(t.created_at).toLocaleDateString() : ""}
-                              </p>
-                            </div>
-                            <span className={`text-sm font-display ${incoming ? "text-gradient-gold" : "text-muted-foreground"}`}>
-                              {incoming ? "+" : "−"}{fmtSP(Number(t.amount))}
-                            </span>
-                          </li>
-                        );
-                      })}
-                    </ul>
-                  )}
-                </TabsContent>
-              </>
-            )}
+                  ))}
+                </div>
+              ) : txns.length === 0 ? (
+                <div className="rounded-3xl glass p-10 text-center animate-scale-in">
+                  <div className="mx-auto grid h-14 w-14 place-items-center rounded-2xl bg-secondary/80 border border-border">
+                    <History className="h-6 w-6 text-muted-foreground" />
+                  </div>
+                  <h3 className="mt-4 font-display text-xl">No transactions yet</h3>
+                  <p className="mt-1.5 text-sm text-muted-foreground leading-relaxed">Your trades and transfers will appear here.</p>
+                </div>
+              ) : (
+                <ul className="divide-y divide-border rounded-3xl border border-border bg-gradient-card overflow-hidden">
+                  {txns.map((t, i) => {
+                    const incoming = t.to_member === user?.id;
+                    return (
+                      <li key={t.id} style={{ animationDelay: `${Math.min(i, 8) * 35}ms` }} className="flex items-center gap-4 p-4 animate-fade-in">
+                        <div className={`grid h-10 w-10 shrink-0 place-items-center rounded-2xl ${incoming ? "bg-primary/15 text-primary" : "bg-secondary text-muted-foreground"}`}>
+                          {incoming ? <ArrowDownLeft className="h-4 w-4" /> : <ArrowUpRight className="h-4 w-4" />}
+                        </div>
+                        <div className="min-w-0 flex-1">
+                          <p className="truncate text-sm font-medium capitalize">{t.tx_type.replace(/_/g, " ")}</p>
+                          <p className="truncate text-xs text-muted-foreground">
+                            {t.status} · {t.created_at ? new Date(t.created_at).toLocaleDateString() : ""}
+                          </p>
+                        </div>
+                        <span className={`text-sm font-display ${incoming ? "text-gradient-gold" : "text-muted-foreground"}`}>
+                          {incoming ? "+" : "−"}{fmtSP(Number(t.amount))}
+                        </span>
+                      </li>
+                    );
+                  })}
+                </ul>
+              )}
+            </TabsContent>
           </Tabs>
         </div>
       </section>
