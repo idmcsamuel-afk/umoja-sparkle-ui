@@ -134,27 +134,36 @@ export default function Market() {
       </section>
 
       <section className="px-5 pt-6">
-        <div className="mx-auto max-w-md">
-          <div className="relative">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+        <div className="mx-auto max-w-md animate-fade-in" style={{ animationDelay: "80ms" }}>
+          <div className="relative group">
+            <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground transition-colors group-focus-within:text-primary" />
             <Input
               value={q}
               onChange={(e) => setQ(e.target.value)}
               placeholder="Search market…"
-              className="pl-9 h-12 rounded-2xl bg-secondary/60 border-border"
+              className="pl-10 pr-10 h-12 rounded-2xl bg-secondary/60 border-border focus-visible:ring-primary/40 transition-all"
             />
+            {q && (
+              <button
+                onClick={() => setQ("")}
+                aria-label="Clear search"
+                className="absolute right-2 top-1/2 -translate-y-1/2 grid h-7 w-7 place-items-center rounded-full bg-secondary text-muted-foreground hover:text-foreground animate-scale-in"
+              >
+                <X className="h-3.5 w-3.5" />
+              </button>
+            )}
           </div>
-          <div className="mt-3 flex gap-2 overflow-x-auto -mx-5 px-5 pb-1">
+          <div className="mt-3 flex gap-2 overflow-x-auto -mx-5 px-5 pb-1 scrollbar-none">
             {CATEGORIES.map((c) => {
               const active = c === cat;
               return (
                 <button
                   key={c}
                   onClick={() => setCat(c)}
-                  className={`shrink-0 px-4 h-9 rounded-full border text-xs transition-smooth ${
+                  className={`shrink-0 px-4 h-9 rounded-full border text-xs font-medium transition-smooth active:scale-95 ${
                     active
                       ? "bg-gradient-primary text-primary-foreground border-transparent shadow-glow"
-                      : "bg-secondary/60 border-border text-muted-foreground hover:text-foreground"
+                      : "bg-secondary/60 border-border text-muted-foreground hover:text-foreground hover:border-primary/40"
                   }`}
                 >
                   {c}
@@ -167,28 +176,66 @@ export default function Market() {
 
       <section className="px-5 pt-6">
         <div className="mx-auto max-w-md">
+          {!loading && filtered.length > 0 && (
+            <div className="mb-3 flex items-center justify-between text-[11px] uppercase tracking-[0.2em] text-muted-foreground animate-fade-in">
+              <span>{filtered.length} {filtered.length === 1 ? "listing" : "listings"}</span>
+              {(q || cat !== "All") && (
+                <button
+                  onClick={() => { setQ(""); setCat("All"); }}
+                  className="text-accent hover:text-foreground transition-colors normal-case tracking-normal"
+                >
+                  Reset filters
+                </button>
+              )}
+            </div>
+          )}
           {loading ? (
-            <div className="grid place-items-center rounded-3xl glass p-12">
-              <Loader2 className="h-5 w-5 animate-spin text-primary" />
+            <div className="space-y-3">
+              {[0,1,2].map((i) => (
+                <div key={i} className="rounded-3xl glass p-5 animate-pulse" style={{ animationDelay: `${i * 80}ms` }}>
+                  <div className="h-3 w-16 rounded bg-secondary/80" />
+                  <div className="mt-3 h-5 w-3/4 rounded bg-secondary/80" />
+                  <div className="mt-2 h-3 w-full rounded bg-secondary/60" />
+                  <div className="mt-4 flex justify-between">
+                    <div className="h-6 w-20 rounded bg-secondary/80" />
+                    <div className="h-9 w-16 rounded-2xl bg-secondary/80" />
+                  </div>
+                </div>
+              ))}
             </div>
           ) : filtered.length === 0 ? (
-            <div className="rounded-3xl glass p-8 text-center">
-              <ShoppingBag className="mx-auto h-8 w-8 text-muted-foreground" />
-              <p className="mt-3 text-sm text-muted-foreground">No listings match. Be the first to sell.</p>
-              <Button onClick={() => setSellOpen(true)} className="mt-4 rounded-2xl bg-gradient-primary text-primary-foreground">
-                <Plus className="h-4 w-4 mr-1" /> Post a listing
-              </Button>
+            <div className="rounded-3xl glass p-10 text-center animate-scale-in">
+              <div className="mx-auto grid h-14 w-14 place-items-center rounded-2xl bg-gradient-primary/10 border border-primary/20">
+                <ShoppingBag className="h-6 w-6 text-primary" />
+              </div>
+              <h3 className="mt-4 font-display text-xl">
+                {listings.length === 0 ? "The village is quiet" : "No matches found"}
+              </h3>
+              <p className="mt-1.5 text-sm text-muted-foreground leading-relaxed">
+                {listings.length === 0
+                  ? "Be the first to list goods or services for the community."
+                  : "Try a different search term or category."}
+              </p>
+              {listings.length === 0 ? (
+                <Button onClick={() => setSellOpen(true)} className="mt-5 h-11 rounded-2xl bg-gradient-primary text-primary-foreground shadow-glow hover-scale">
+                  <Plus className="h-4 w-4 mr-1.5" /> Post first listing
+                </Button>
+              ) : (
+                <Button variant="ghost" onClick={() => { setQ(""); setCat("All"); }} className="mt-5 h-11 rounded-2xl">
+                  Clear filters
+                </Button>
+              )}
             </div>
           ) : (
             <ul className="space-y-3">
               {filtered.map((l, i) => (
                 <li
                   key={l.id}
-                  style={{ animationDelay: `${i * 40}ms` }}
-                  className="relative overflow-hidden rounded-3xl glass p-5 animate-slide-up"
+                  style={{ animationDelay: `${Math.min(i, 8) * 50}ms` }}
+                  className="relative overflow-hidden rounded-3xl glass p-5 animate-slide-up transition-transform active:scale-[0.99]"
                 >
                   {l.is_featured && (
-                    <span className="absolute right-4 top-4 inline-flex items-center gap-1 rounded-full bg-gradient-gold px-2 py-1 text-[10px] uppercase tracking-wider text-background">
+                    <span className="absolute right-4 top-4 inline-flex items-center gap-1 rounded-full bg-gradient-gold px-2 py-1 text-[10px] uppercase tracking-wider text-background shadow-glow">
                       <Sparkles className="h-3 w-3" /> Featured
                     </span>
                   )}
@@ -197,10 +244,10 @@ export default function Market() {
                       <p className="text-[10px] uppercase tracking-[0.18em] text-accent">{l.category}</p>
                       <h3 className="mt-1 font-display text-lg leading-snug truncate">{l.title}</h3>
                       {l.description && (
-                        <p className="mt-1 text-xs text-muted-foreground line-clamp-2">{l.description}</p>
+                        <p className="mt-1 text-xs text-muted-foreground line-clamp-2 leading-relaxed">{l.description}</p>
                       )}
-                      <div className="mt-3 flex items-center gap-3 text-xs text-muted-foreground">
-                        <span className="inline-flex items-center gap-1">
+                      <div className="mt-3 flex flex-wrap items-center gap-x-3 gap-y-1.5 text-xs text-muted-foreground">
+                        <span className="inline-flex items-center gap-1.5">
                           <span className="grid h-5 w-5 place-items-center rounded-full bg-secondary text-[9px] font-medium text-foreground">
                             {(l.seller_name ?? "M").slice(0, 1).toUpperCase()}
                           </span>
@@ -223,10 +270,10 @@ export default function Market() {
                   <div className="mt-4 flex items-end justify-between gap-3">
                     <div>
                       {l.price_fiat != null && (
-                        <p className="font-display text-xl text-gradient-gold">{fmtR(Number(l.price_fiat))}</p>
+                        <p className="font-display text-xl text-gradient-gold leading-none">{fmtR(Number(l.price_fiat))}</p>
                       )}
                       {l.price_sparks != null && (
-                        <p className="inline-flex items-center gap-1 text-xs text-accent-soft">
+                        <p className="mt-1.5 inline-flex items-center gap-1 text-xs text-accent-soft">
                           <Sparkles className="h-3 w-3" /> {Math.round(Number(l.price_sparks))} SP
                         </p>
                       )}
@@ -234,7 +281,7 @@ export default function Market() {
                     <Button
                       size="sm"
                       onClick={() => setContactOpen(l)}
-                      className="rounded-2xl bg-gradient-primary text-primary-foreground shadow-glow"
+                      className="h-10 rounded-2xl bg-gradient-primary text-primary-foreground shadow-glow hover-scale"
                     >
                       <Tag className="h-3.5 w-3.5 mr-1" /> Buy
                     </Button>
