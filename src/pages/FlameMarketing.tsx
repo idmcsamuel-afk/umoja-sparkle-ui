@@ -60,13 +60,21 @@ export default function FlameMarketing() {
   const [type, setType] = useState<ContentType>("social");
   const [tone, setTone] = useState<Tone>("Friendly");
   const [platform, setPlatform] = useState<Platform>("Instagram");
-  const [output, setOutput] = useState("");
+  const [variants, setVariants] = useState<string[]>([]);
+  const [picked, setPicked] = useState(0);
   const [loading, setLoading] = useState(false);
 
   const bizLen = biz.trim().length;
   const recipe = PLATFORM_RECIPE[platform];
+  const output = variants[picked] ?? "";
   const outLen = output.length;
   const overLimit = outLen > recipe.max;
+
+  const VARIANT_STYLES = [
+    { label: "Bold hook", note: "Stops the scroll" },
+    { label: "Storytelling", note: "Warm & personal" },
+    { label: "Urgent CTA", note: "Drives action now" },
+  ];
 
   const generate = async () => {
     const trimmed = biz.trim();
@@ -79,25 +87,37 @@ export default function FlameMarketing() {
       return;
     }
     setLoading(true);
+    setVariants([]);
+    setPicked(0);
+    const typeLabel = TYPES.find((t) => t.id === type)?.title ?? "Social Post";
+    const baseSystem = [
+      `You are Flame, UMOJA's AI marketing assistant for South African micro-businesses.`,
+      `Write punchy, culturally relevant ${tone.toLowerCase()} marketing copy.`,
+      `Use SA English, Rand pricing, and local references where natural.`,
+      `${TYPE_RECIPE[type]}`,
+      `Platform = ${platform}. ${recipe.guide}`,
+      `STRICT: total output must be at most ${recipe.max} characters and ideally close to ${recipe.target}. Never exceed ${recipe.max}. Output only the copy — no preamble, no markdown headers, no quotes, no labels like "Variation 1".`,
+    ].join(" ");
+    const user = `Business: ${trimmed}\n\nFormat: ${typeLabel}\nPlatform: ${platform}\nTone: ${tone}\n\nWrite the ${typeLabel.toLowerCase()} now.`;
+
     try {
-      const typeLabel = TYPES.find((t) => t.id === type)?.title ?? "Social Post";
-      const system = [
-        `You are Flame, UMOJA's AI marketing assistant for South African micro-businesses.`,
-        `Write punchy, culturally relevant ${tone.toLowerCase()} marketing copy.`,
-        `Use SA English, Rand pricing, and local references where natural.`,
-        `${TYPE_RECIPE[type]}`,
-        `Platform = ${platform}. ${recipe.guide}`,
-        `STRICT: total output must be at most ${recipe.max} characters and ideally close to ${recipe.target}. Never exceed ${recipe.max}. Output only the copy — no preamble, no markdown headers, no quotes.`,
-      ].join(" ");
-      const user = `Business: ${trimmed}\n\nFormat: ${typeLabel}\nPlatform: ${platform}\nTone: ${tone}\n\nWrite the ${typeLabel.toLowerCase()} now.`;
-      const { data, error } = await supabase.functions.invoke("flame-ai", {
-        body: { system, temperature: 0.85, messages: [{ role: "user", content: user }] },
-      });
-      if (error) throw error;
-      let reply: string = (data as any)?.reply ?? "Flame is thinking… try again.";
-      // Hard client-side trim safety net
-      if (reply.length > recipe.max) reply = reply.slice(0, recipe.max).replace(/\s\S*$/, "") + "…";
-      setOutput(reply);
+      const results = await Promise.all(
+        VARIANT_STYLES.map(async (v, i) => {
+          const system = `${baseSystem} STYLE: ${v.label} — ${v.note}.`;
+          const { data, error } = await supabase.functions.invoke("flame-ai", {
+            body: {
+              system,
+              temperature: 0.7 + i * 0.15,
+              messages: [{ role: "user", content: user }],
+            },
+          });
+          if (error) throw error;
+          let reply: string = (data as any)?.reply ?? "";
+          if (reply.length > recipe.max) reply = reply.slice(0, recipe.max).replace(/\s\S*$/, "") + "…";
+          return reply || "Flame went quiet — try again.";
+        })
+      );
+      setVariants(results);
     } catch (e: any) {
       toast({ title: "Flame couldn't generate", description: String(e?.message ?? e), variant: "destructive" });
     } finally {
@@ -106,8 +126,9 @@ export default function FlameMarketing() {
   };
 
   const copy = async () => {
+    if (!output) return;
     await navigator.clipboard.writeText(output);
-    toast({ title: "Copied 🔥", description: "Paste it anywhere." });
+    toast({ title: "Copied 🔥", description: `${VARIANT_STYLES[picked].label} version on your clipboard.` });
   };
 
   return (
