@@ -65,7 +65,7 @@ const Signup = () => {
       return;
     }
 
-    await supabase.from("spark_wallets").insert({ member_id: uid, balance: 100 });
+    await supabase.rpc("claim_signup_bonus");
 
     setBusy(false);
     toast.success("You've earned 100 welcome Sparks! ✨", { duration: 5000 });
