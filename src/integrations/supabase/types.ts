@@ -750,7 +750,6 @@ export type Database = {
           id: string
           id_number: string | null
           is_active: boolean | null
-          is_admin: boolean | null
           kyc_status: string | null
           phone: string
           rank: string | null
@@ -772,7 +771,6 @@ export type Database = {
           id?: string
           id_number?: string | null
           is_active?: boolean | null
-          is_admin?: boolean | null
           kyc_status?: string | null
           phone: string
           rank?: string | null
@@ -794,7 +792,6 @@ export type Database = {
           id?: string
           id_number?: string | null
           is_active?: boolean | null
-          is_admin?: boolean | null
           kyc_status?: string | null
           phone?: string
           rank?: string | null
@@ -1551,6 +1548,31 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      adjust_spark_balance: {
+        Args: { _delta: number; _member: string; _note?: string }
+        Returns: number
+      }
+      admin_list_predictor_questions: {
+        Args: never
+        Returns: {
+          category: string | null
+          closes_at: string | null
+          correct_answer: string | null
+          created_at: string | null
+          id: string
+          options: Json | null
+          question: string
+          sparks_cost: number | null
+          sparks_reward: number | null
+          status: string | null
+        }[]
+        SetofOptions: {
+          from: "*"
+          to: "predictor_questions"
+          isOneToOne: false
+          isSetofReturn: true
+        }
+      }
       increment_ubuntu_fund: {
         Args: { contribution: number }
         Returns: undefined
