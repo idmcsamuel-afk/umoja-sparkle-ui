@@ -6,6 +6,21 @@ import { useAuth } from "@/hooks/useAuth";
 import { Logo } from "@/components/umoja/Logo";
 import { BottomNav } from "@/components/umoja/BottomNav";
 import { Button } from "@/components/ui/button";
+import {
+  Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription,
+} from "@/components/ui/dialog";
+
+type Bid = {
+  id: string;
+  tier: string;
+  fiat_amount: number;
+  net_amount: number | null;
+  payout_amount: number | null;
+  status: string | null;
+  created_at: string | null;
+  vault_start: string | null;
+  vault_end: string | null;
+};
 
 const fmtR = (n: number) => "R" + Math.round(n).toLocaleString("en-ZA");
 
