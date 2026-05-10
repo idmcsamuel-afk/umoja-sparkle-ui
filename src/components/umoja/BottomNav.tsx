@@ -1,10 +1,12 @@
 import { Link, useLocation } from "react-router-dom";
-import { Home, Users, Sparkles, Car, TrendingUp } from "lucide-react";
+import { Home, Users, Sparkles, Car, TrendingUp, Store, ArrowLeftRight } from "lucide-react";
 
 const items = [
   { to: "/dashboard", label: "Home", icon: Home },
   { to: "/circle", label: "Circle", icon: Users },
   { to: "/spark", label: "Spark", icon: Sparkles },
+  { to: "/market", label: "Market", icon: Store },
+  { to: "/exchange", label: "Swap", icon: ArrowLeftRight },
   { to: "/drive", label: "Drive", icon: Car },
   { to: "/predictor", label: "Predict", icon: TrendingUp },
 ];
