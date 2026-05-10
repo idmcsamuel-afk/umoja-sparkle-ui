@@ -118,7 +118,7 @@ const Predictor = () => {
     const [qRes, eRes, lRes] = await Promise.all([
       supabase
         .from("predictor_questions")
-        .select("*")
+        .select("id, question, category, options, closes_at, sparks_cost, sparks_reward, status")
         .eq("status", "active")
         .order("closes_at", { ascending: true, nullsFirst: false }),
       user
@@ -128,11 +128,7 @@ const Predictor = () => {
             .eq("member_id", user.id)
             .order("created_at", { ascending: false })
         : Promise.resolve({ data: [], error: null } as const),
-      supabase
-        .from("predictor_entries")
-        .select("member_id, is_correct, sparks_won")
-        .eq("is_correct", true)
-        .limit(1000),
+      supabase.rpc("predictor_leaderboard", { _limit: 10 }),
     ]);
     if (qRes.error) console.error(qRes.error);
 
@@ -145,29 +141,14 @@ const Predictor = () => {
     );
     setEntries((eRes.data ?? []) as Entry[]);
 
-    // Aggregate leaderboard
-    const agg: Record<string, { correct: number; sparks_won: number }> = {};
-    for (const r of (lRes.data ?? []) as { member_id: string; sparks_won: number | null }[]) {
-      if (!r.member_id) continue;
-      agg[r.member_id] = agg[r.member_id] ?? { correct: 0, sparks_won: 0 };
-      agg[r.member_id].correct += 1;
-      agg[r.member_id].sparks_won += Number(r.sparks_won ?? 0);
-    }
-    const ids = Object.keys(agg);
-    let names: Record<string, string> = {};
-    if (ids.length) {
-      const { data: ms } = await supabase.from("members").select("id, full_name").in("id", ids);
-      names = Object.fromEntries((ms ?? []).map((m) => [m.id, m.full_name]));
-    }
-    const board = ids
-      .map((id) => ({
-        member_id: id,
-        full_name: names[id] ?? "Member",
-        correct: agg[id].correct,
-        sparks_won: agg[id].sparks_won,
-      }))
-      .sort((a, b) => b.correct - a.correct || b.sparks_won - a.sparks_won)
-      .slice(0, 10);
+    const board = ((lRes.data ?? []) as Array<{ member_id: string; full_name: string | null; correct: number; sparks_won: number }>).map(
+      (r) => ({
+        member_id: r.member_id,
+        full_name: r.full_name ?? "Member",
+        correct: Number(r.correct ?? 0),
+        sparks_won: Number(r.sparks_won ?? 0),
+      })
+    );
     setLeaders(board);
     setLoading(false);
   };

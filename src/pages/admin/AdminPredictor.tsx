@@ -23,7 +23,7 @@ export default function AdminPredictor() {
 
   const load = async () => {
     setLoading(true);
-    const { data } = await supabase.from("predictor_questions").select("*").order("created_at", { ascending: false }).limit(100);
+    const { data } = await supabase.rpc("admin_list_predictor_questions");
     setRows((data ?? []) as Q[]);
     setLoading(false);
   };

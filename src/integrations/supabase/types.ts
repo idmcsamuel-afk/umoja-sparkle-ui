@@ -1573,12 +1573,22 @@ export type Database = {
           isSetofReturn: true
         }
       }
+      claim_signup_bonus: { Args: never; Returns: number }
       increment_ubuntu_fund: {
         Args: { contribution: number }
         Returns: undefined
       }
       is_admin: { Args: { _uid: string }; Returns: boolean }
       join_spark_trade: { Args: { _id: string }; Returns: undefined }
+      predictor_leaderboard: {
+        Args: { _limit?: number }
+        Returns: {
+          correct: number
+          full_name: string
+          member_id: string
+          sparks_won: number
+        }[]
+      }
     }
     Enums: {
       [_ in never]: never

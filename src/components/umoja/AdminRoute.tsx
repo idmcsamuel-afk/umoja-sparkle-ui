@@ -17,13 +17,8 @@ export function AdminRoute({ children }: { children: JSX.Element }) {
         .select("user_id")
         .eq("user_id", user.id)
         .maybeSingle();
-      console.log("[AdminRoute] check", { userId: user.id, email: user.email, data, error });
-      let allowed = !!data;
-      if (!allowed && user.email?.toLowerCase() === "idmcsamuel@gmail.com") {
-        console.warn("[AdminRoute] fallback admin access for idmcsamuel@gmail.com");
-        allowed = true;
-      }
-      setIsAdmin(allowed);
+      if (error) console.error("[AdminRoute] check failed", error);
+      setIsAdmin(!!data);
       setChecking(false);
     })();
   }, [user]);
