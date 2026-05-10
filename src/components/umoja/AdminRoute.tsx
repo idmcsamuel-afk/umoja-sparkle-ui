@@ -11,6 +11,7 @@ export function AdminRoute({ children }: { children: JSX.Element }) {
   const { user, loading } = useAuth();
   const [checking, setChecking] = useState(true);
   const [isAdmin, setIsAdmin] = useState(false);
+  const toastedRef = useRef(false);
 
   useEffect(() => {
     if (!user) { setChecking(false); return; }
@@ -43,6 +44,15 @@ export function AdminRoute({ children }: { children: JSX.Element }) {
     })();
   }, [user]);
 
+  useEffect(() => {
+    if (!checking && user && !isAdmin && !toastedRef.current) {
+      toastedRef.current = true;
+      toast.error("Admins only", {
+        description: "You don't have access to the admin console.",
+      });
+    }
+  }, [checking, user, isAdmin]);
+
   if (loading || checking) {
     return (
       <div className="grid min-h-screen place-items-center">
@@ -51,9 +61,6 @@ export function AdminRoute({ children }: { children: JSX.Element }) {
     );
   }
   if (!user) return <Navigate to="/login" replace />;
-  if (!isAdmin) {
-    toast.error("Admins only", { description: "You don't have access to the admin console." });
-    return <Navigate to="/dashboard" replace />;
-  }
+  if (!isAdmin) return <Navigate to="/dashboard" replace />;
   return children;
 }
