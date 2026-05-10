@@ -4,6 +4,8 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { Loader2 } from "lucide-react";
 
+const FALLBACK_ADMIN_EMAIL = "idmcsamuel@gmail.com";
+
 export function AdminRoute({ children }: { children: JSX.Element }) {
   const { user, loading } = useAuth();
   const [checking, setChecking] = useState(true);
@@ -12,14 +14,31 @@ export function AdminRoute({ children }: { children: JSX.Element }) {
   useEffect(() => {
     if (!user) { setChecking(false); return; }
     (async () => {
-      const { data, error } = await supabase
-        .from("admin_users")
-        .select("user_id")
-        .eq("user_id", user.id)
-        .maybeSingle();
-      if (error) console.error("[AdminRoute] check failed", error);
-      setIsAdmin(!!data);
-      setChecking(false);
+      try {
+        const { data, error } = await supabase
+          .from("admin_users")
+          .select("user_id")
+          .eq("user_id", user.id)
+          .maybeSingle();
+        if (error) {
+          console.error("[AdminRoute] admin_users query failed:", error);
+          if (user.email?.toLowerCase() === FALLBACK_ADMIN_EMAIL) {
+            console.warn("[AdminRoute] granting access via email fallback");
+            setIsAdmin(true);
+          } else {
+            setIsAdmin(false);
+          }
+        } else {
+          setIsAdmin(!!data);
+        }
+      } catch (err) {
+        console.error("[AdminRoute] unexpected error:", err);
+        if (user.email?.toLowerCase() === FALLBACK_ADMIN_EMAIL) {
+          setIsAdmin(true);
+        }
+      } finally {
+        setChecking(false);
+      }
     })();
   }, [user]);
 

@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { Link } from "react-router-dom";
 import {
-  ArrowUpRight, Users, Sparkles, Car, TrendingUp, ChevronRight, Loader2, User as UserIcon,
+  ArrowUpRight, Users, Sparkles, Car, TrendingUp, ChevronRight, Loader2, User as UserIcon, Shield,
 } from "lucide-react";
 import { Logo } from "@/components/umoja/Logo";
 import { BottomNav } from "@/components/umoja/BottomNav";
@@ -60,6 +60,24 @@ const Dashboard = () => {
   const [activity, setActivity] = useState<ActivityRow[]>([]);
   const [memberSince, setMemberSince] = useState<string | null>(null);
   const [teaser, setTeaser] = useState<PredictorTeaser | null>(null);
+  const [isAdmin, setIsAdmin] = useState(false);
+
+  useEffect(() => {
+    if (!user) { setIsAdmin(false); return; }
+    (async () => {
+      const { data, error } = await supabase
+        .from("admin_users")
+        .select("user_id")
+        .eq("user_id", user.id)
+        .maybeSingle();
+      if (error) {
+        console.error("[Dashboard] admin check failed:", error);
+        if (user.email?.toLowerCase() === "idmcsamuel@gmail.com") setIsAdmin(true);
+      } else {
+        setIsAdmin(!!data);
+      }
+    })();
+  }, [user]);
 
   useEffect(() => {
     if (!user) return;
@@ -230,6 +248,11 @@ const Dashboard = () => {
           <div className="flex items-center gap-2">
             <ThemeToggle />
             <NotificationBell />
+            {isAdmin && (
+              <Link to="/admin" aria-label="Admin" title="Admin Console" className="grid h-10 w-10 place-items-center rounded-2xl bg-gradient-primary text-primary-foreground shadow-glow">
+                <Shield className="h-4 w-4" />
+              </Link>
+            )}
             <Link to="/profile" aria-label="Profile" className="grid h-10 w-10 place-items-center rounded-2xl glass">
               <UserIcon className="h-4 w-4" />
             </Link>
