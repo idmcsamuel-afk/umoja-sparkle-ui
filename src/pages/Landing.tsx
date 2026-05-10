@@ -337,7 +337,7 @@ const Landing = () => {
       </section>
 
       {/* Spark Pit games */}
-      <section className="relative px-5 pt-20">
+      <section id="sparkpit" className="relative px-5 pt-20">
         <div className="mx-auto max-w-md">
           <p className="text-[11px] uppercase tracking-[0.22em] text-accent inline-flex items-center gap-2">
             <Gamepad2 className="h-3.5 w-3.5" /> Spark Pit
@@ -379,7 +379,7 @@ const Landing = () => {
       </section>
 
       {/* Trust */}
-      <section className="relative px-5 pt-20">
+      <section id="trust" className="relative px-5 pt-20">
         <div className="mx-auto max-w-md grid gap-3">
           <div className="rounded-3xl glass p-6 flex items-start gap-4">
             <ShieldCheck className="h-6 w-6 text-primary mt-0.5" />
