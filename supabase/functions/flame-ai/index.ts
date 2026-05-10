@@ -18,6 +18,8 @@ Deno.serve(async (req) => {
 
     const body = await req.json().catch(() => ({}));
     const messages = (body?.messages ?? []) as ChatMessage[];
+    const systemOverride = typeof body?.system === "string" ? body.system : null;
+    const temperature = typeof body?.temperature === "number" ? body.temperature : 0.6;
     if (!Array.isArray(messages) || messages.length === 0) {
       return new Response(JSON.stringify({ error: "messages array required" }), {
         status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" },
@@ -37,9 +39,9 @@ Deno.serve(async (req) => {
       },
       body: JSON.stringify({
         model: "gpt-4o",
-        temperature: 0.6,
-        max_tokens: 600,
-        messages: [{ role: "system", content: SYSTEM_PROMPT }, ...trimmed],
+        temperature,
+        max_tokens: 800,
+        messages: [{ role: "system", content: systemOverride || SYSTEM_PROMPT }, ...trimmed],
       }),
     });
 

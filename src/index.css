@@ -196,6 +196,8 @@
 @layer utilities {
   .transition-smooth { transition: all 400ms var(--transition-smooth); }
   .animate-marquee { animation: marquee 30s linear infinite; }
+  .no-scrollbar::-webkit-scrollbar { display: none; }
+  .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
 }
 
 @keyframes marquee {
