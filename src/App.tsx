@@ -21,6 +21,10 @@ import Calculator from "./pages/Calculator.tsx";
 import Market from "./pages/Market.tsx";
 import Exchange from "./pages/Exchange.tsx";
 import Property from "./pages/Property.tsx";
+import FlameMarketing from "./pages/FlameMarketing.tsx";
+import SparkPit from "./pages/SparkPit.tsx";
+import DreamDraw from "./pages/DreamDraw.tsx";
+import SparkFlip from "./pages/SparkFlip.tsx";
 import NotFound from "./pages/NotFound.tsx";
 import AdminLayout from "./components/umoja/AdminLayout";
 import AdminDashboard from "./pages/admin/AdminDashboard";
@@ -55,6 +59,10 @@ const App = () => (
               <Route path="/market" element={<ProtectedRoute><Market /></ProtectedRoute>} />
               <Route path="/exchange" element={<ProtectedRoute><Exchange /></ProtectedRoute>} />
               <Route path="/property" element={<ProtectedRoute><Property /></ProtectedRoute>} />
+              <Route path="/flame-marketing" element={<ProtectedRoute><FlameMarketing /></ProtectedRoute>} />
+              <Route path="/spark-pit" element={<ProtectedRoute><SparkPit /></ProtectedRoute>} />
+              <Route path="/spark-pit/dream-draw" element={<ProtectedRoute><DreamDraw /></ProtectedRoute>} />
+              <Route path="/spark-pit/spark-flip" element={<ProtectedRoute><SparkFlip /></ProtectedRoute>} />
 
               <Route path="/admin" element={<AdminRoute><AdminLayout /></AdminRoute>}>
                 <Route index element={<AdminDashboard />} />
