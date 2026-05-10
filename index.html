@@ -25,6 +25,14 @@
   <meta name="twitter:image" content="https://pub-bb2e103a32db4e198524a2e9ed8f35b4.r2.dev/29da5d90-63f0-46ca-9853-e5c39895d472/id-preview-286a9721--2e4e186b-8c70-4e92-9722-3cf079b22e6f.lovable.app-1778365051924.png">
 </head>
   <body>
+    <script>
+      (function () {
+        try {
+          var t = localStorage.getItem('umoja-theme') || 'dark';
+          document.documentElement.classList.add(t);
+        } catch (e) { document.documentElement.classList.add('dark'); }
+      })();
+    </script>
     <div id="root"></div>
     <script type="module" src="/src/main.tsx"></script>
   </body>
