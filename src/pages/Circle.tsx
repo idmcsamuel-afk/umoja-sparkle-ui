@@ -16,6 +16,7 @@ import { CircleAcceptanceModal, hasAcceptedCircle } from "@/components/umoja/Cir
 import { CircleSessionTimer } from "@/components/umoja/CircleSessionTimer";
 import { SparksDisclaimer } from "@/components/umoja/SparksDisclaimer";
 import { CircleStatusBanner } from "@/components/umoja/CircleStatusBanner";
+import { TimezoneSelector } from "@/components/umoja/TimezoneSelector";
 
 interface Tier {
   tier: string;
@@ -153,7 +154,10 @@ const Circle = () => {
       </header>
 
       <div className="sticky top-2 z-30 px-5 pt-4">
-        <div className="mx-auto max-w-md">
+        <div className="mx-auto max-w-md space-y-3">
+          <div className="flex justify-end">
+            <TimezoneSelector compact />
+          </div>
           <CircleStatusBanner />
         </div>
       </div>

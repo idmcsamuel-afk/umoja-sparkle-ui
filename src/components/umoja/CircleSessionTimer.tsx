@@ -1,4 +1,12 @@
 import { useEffect, useState } from "react";
+import { useTimezone, formatTime, tzAbbrev } from "@/hooks/useTimezone";
+
+const SAST_TZ = "Africa/Johannesburg";
+function timeStamp(ts: number, tz: string) {
+  const showBoth = tz !== SAST_TZ;
+  const local = `${formatTime(ts, tz)} ${tzAbbrev(ts, tz)}`;
+  return showBoth ? `${local} · ${formatTime(ts, SAST_TZ)} SAST` : `${local}`;
+}
 
 // SAST = UTC+2 (no DST)
 const SAST_OFFSET_MS = 2 * 60 * 60 * 1000;
@@ -104,6 +112,7 @@ export function CircleSessionTimer({ tier }: { tier: string }) {
   const key = (tier?.toLowerCase() as TierKey) || "seed";
   const isKnown = key === "seed" || key === "growth" || key === "harvest";
   const [now, setNow] = useState(() => Date.now());
+  const [tz] = useTimezone();
   useEffect(() => {
     const t = setInterval(() => setNow(Date.now()), 1000);
     return () => clearInterval(t);
@@ -119,15 +128,14 @@ export function CircleSessionTimer({ tier }: { tier: string }) {
       <div className="rounded-3xl border border-primary/50 bg-primary/15 p-5 text-center animate-pulse">
         <p className="text-[10px] uppercase tracking-[0.22em] text-primary">🟢 Session open now</p>
         <p className="mt-2 font-mono font-display text-3xl text-primary">closes in {fmt(remaining, false)}</p>
+        <p className="mt-2 text-[10px] text-muted-foreground">closes {timeStamp(state.target, tz)}</p>
       </div>
     );
   }
 
   // closed
   if (key === "seed") {
-    // two upcoming
     const [a, b] = state.upcoming;
-    const dowA = sastDayOfWeek((a ?? now) + 60_000);
     const isMorningA = a ? new Date(a + SAST_OFFSET_MS).getUTCHours() === 8 : true;
     const labelA = isMorningA ? "Morning" : "Evening";
     const labelB = labelA === "Morning" ? "Evening" : "Morning";
@@ -138,11 +146,13 @@ export function CircleSessionTimer({ tier }: { tier: string }) {
           <div>
             <p className="text-[10px] uppercase tracking-wider text-muted-foreground">{labelA} session opens in</p>
             <p className="mt-1 font-mono font-display text-2xl text-gradient-gold">{fmt(a - now)}</p>
+            {a && <p className="mt-1 text-[10px] text-muted-foreground">{timeStamp(a, tz)}</p>}
           </div>
           {b && (
             <div>
               <p className="text-[10px] uppercase tracking-wider text-muted-foreground">{labelB} session opens in</p>
               <p className="mt-1 font-mono font-display text-2xl text-gradient-gold">{fmt(b - now)}</p>
+              <p className="mt-1 text-[10px] text-muted-foreground">{timeStamp(b, tz)}</p>
             </div>
           )}
         </div>
@@ -157,7 +167,8 @@ export function CircleSessionTimer({ tier }: { tier: string }) {
         <p className="text-[10px] uppercase tracking-[0.22em] text-accent">🔴 Session closed</p>
         <p className="mt-2 text-[11px] uppercase tracking-wider text-muted-foreground">Next session opens in</p>
         <p className="mt-1 font-mono font-display text-4xl text-gradient-gold">{fmt(state.target - now)}</p>
-        <p className="mt-2 text-[10px] text-muted-foreground">Daily 10:00 SAST · 1h window</p>
+        <p className="mt-2 text-[10px] text-muted-foreground">{timeStamp(state.target, tz)}</p>
+        <p className="mt-1 text-[10px] text-muted-foreground">Daily 10:00 SAST · 1h window</p>
       </div>
     );
   }
@@ -170,7 +181,8 @@ export function CircleSessionTimer({ tier }: { tier: string }) {
         Next session: <span className="text-foreground font-medium">{state.nextDayLabel}</span> opens in
       </p>
       <p className="mt-1 font-mono font-display text-4xl text-gradient-gold">{fmt(state.target - now)}</p>
-      <p className="mt-2 text-[10px] text-muted-foreground">Mon · Wed · Fri 09:00 SAST · 1h window</p>
+      <p className="mt-2 text-[10px] text-muted-foreground">{timeStamp(state.target, tz)}</p>
+      <p className="mt-1 text-[10px] text-muted-foreground">Mon · Wed · Fri 09:00 SAST · 1h window</p>
     </div>
   );
 }

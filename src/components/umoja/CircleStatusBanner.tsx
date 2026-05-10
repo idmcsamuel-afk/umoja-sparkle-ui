@@ -8,6 +8,7 @@ import {
   TooltipTrigger,
 } from "@/components/ui/tooltip";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { useTimezone, formatTime, tzAbbrev } from "@/hooks/useTimezone";
 
 const TIERS = ["seed", "growth", "harvest"] as const;
 const LABELS: Record<string, string> = { seed: "Seed", growth: "Growth", harvest: "Harvest" };
@@ -85,6 +86,7 @@ function HelpDot() {
 
 export function CircleStatusBanner() {
   const [now, setNow] = useState(() => Date.now());
+  const [tz] = useTimezone();
   useEffect(() => {
     const t = setInterval(() => setNow(Date.now()), 1000);
     return () => clearInterval(t);
@@ -92,6 +94,8 @@ export function CircleStatusBanner() {
 
   const states = TIERS.map((t) => ({ tier: t, ...getSessionState(t, now) }));
   const open = states.find((s) => s.status === "open");
+  const SAST = "Africa/Johannesburg";
+  const showBoth = tz !== SAST;
 
   if (open) {
     const remaining = open.target - now;
@@ -105,6 +109,10 @@ export function CircleStatusBanner() {
         </div>
         <p className="mt-1 font-mono font-display text-2xl text-primary">
           closes in {fmt(remaining, false)}
+        </p>
+        <p className="mt-1 text-[10px] text-muted-foreground">
+          closes {formatTime(open.target, tz)} {tzAbbrev(open.target, tz)}
+          {showBoth && <> · {formatTime(open.target, SAST)} SAST</>}
         </p>
       </div>
     );
@@ -122,6 +130,10 @@ export function CircleStatusBanner() {
       </p>
       <p className="mt-1 font-mono font-display text-2xl text-foreground">
         {fmt(soonest.target - now, true)}
+      </p>
+      <p className="mt-1 text-[10px] text-muted-foreground">
+        opens {formatTime(soonest.target, tz)} {tzAbbrev(soonest.target, tz)}
+        {showBoth && <> · {formatTime(soonest.target, SAST)} SAST</>}
       </p>
     </div>
   );
