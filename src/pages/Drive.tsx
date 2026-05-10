@@ -544,6 +544,7 @@ const Drive = () => {
                                         label="In-app alert"
                                         hint="Toast + notification bell"
                                         checked={pref.in_app}
+                                        loading={savingPref === `${c.id}:in_app`}
                                         onChange={(v) => setPref(c.id, { in_app: v })}
                                       />
                                       <PrefRow
@@ -552,6 +553,7 @@ const Drive = () => {
                                         hint={member?.email ? `Sent to ${member.email}` : "Add an email to your profile"}
                                         checked={pref.email}
                                         disabled={!member?.email}
+                                        loading={savingPref === `${c.id}:email`}
                                         onChange={(v) => setPref(c.id, { email: v })}
                                       />
                                       <PrefRow
@@ -568,6 +570,7 @@ const Drive = () => {
                                         }
                                         checked={pref.push && pushPerm === "granted"}
                                         disabled={pushPerm === "unsupported" || pushPerm === "denied"}
+                                        loading={savingPref === `${c.id}:push`}
                                         onChange={async (v) => {
                                           if (v && pushPerm !== "granted") await enablePush();
                                           setPref(c.id, { push: v });
