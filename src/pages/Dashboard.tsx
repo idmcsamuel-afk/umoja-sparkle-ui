@@ -207,12 +207,15 @@ const Dashboard = () => {
     <main className="relative min-h-screen pb-32">
       {/* Top bar */}
       <header className="px-5 pt-6">
-        <div className="mx-auto flex max-w-md items-center justify-between">
+        <div className="mx-auto flex max-w-md items-center justify-between gap-2">
           <Logo />
-          <button className="relative grid h-10 w-10 place-items-center rounded-2xl glass">
-            <Bell className="h-4 w-4" />
-            <span className="absolute right-2 top-2 h-2 w-2 rounded-full bg-accent" />
-          </button>
+          <div className="flex items-center gap-2">
+            <ThemeToggle />
+            <NotificationBell />
+            <Link to="/profile" aria-label="Profile" className="grid h-10 w-10 place-items-center rounded-2xl glass">
+              <UserIcon className="h-4 w-4" />
+            </Link>
+          </div>
         </div>
       </header>
 
