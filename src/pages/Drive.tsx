@@ -482,32 +482,82 @@ const Drive = () => {
                               </div>
                             </div>
 
-                            <ul className="mt-3 space-y-1.5 text-xs text-muted-foreground border-t border-accent/20 pt-3">
-                              <li className="inline-flex items-start gap-1.5">
-                                <Bell className="mt-0.5 h-3 w-3 text-accent shrink-0" />
-                                <span>
-                                  In-app alert{member?.email ? " + email" : ""}
-                                  {pushPerm === "granted" ? " + browser push" : ""} the moment seats fill.
-                                </span>
-                              </li>
-                              <li className="inline-flex items-start gap-1.5">
-                                <Wallet className="mt-0.5 h-3 w-3 text-accent shrink-0" />
-                                <span>
-                                  First weekly contribution of {fmtR(t?.weekly_contribution)} starts on activation day.
-                                </span>
-                              </li>
-                            </ul>
+                            {(() => {
+                              const pref = getPref(c.id);
+                              const channels = [
+                                pref.in_app && "in-app",
+                                pref.email && "email",
+                                pref.push && pushPerm === "granted" && "browser push",
+                              ].filter(Boolean) as string[];
+                              const summary = channels.length
+                                ? channels.join(" + ") + " when seats fill."
+                                : "All alerts off — you'll only see this card update.";
+                              const isOpen = prefsOpen === c.id;
+                              return (
+                                <div className="mt-3 border-t border-accent/20 pt-3">
+                                  <div className="flex items-start justify-between gap-3">
+                                    <p className="text-xs text-muted-foreground inline-flex items-start gap-1.5">
+                                      <Bell className="mt-0.5 h-3 w-3 text-accent shrink-0" />
+                                      <span>{summary}</span>
+                                    </p>
+                                    <button
+                                      type="button"
+                                      onClick={() => setPrefsOpen(isOpen ? null : c.id)}
+                                      className="shrink-0 inline-flex items-center gap-1 rounded-full border border-accent/30 bg-background/40 px-2 py-1 text-[10px] font-medium text-accent uppercase tracking-wider hover:bg-accent/10"
+                                      aria-expanded={isOpen}
+                                    >
+                                      <Settings2 className="h-3 w-3" /> {isOpen ? "Done" : "Edit"}
+                                    </button>
+                                  </div>
 
-                            {pushPerm !== "granted" && pushPerm !== "unsupported" && (
-                              <button
-                                type="button"
-                                onClick={enablePush}
-                                className="mt-3 w-full h-9 rounded-xl border border-accent/40 bg-background/40 text-[11px] font-medium text-accent inline-flex items-center justify-center gap-1.5 hover:bg-accent/10 transition-colors"
-                              >
-                                <Bell className="h-3.5 w-3.5" /> Turn on browser alerts
-                              </button>
-                            )}
-                          </div>
+                                  {isOpen && (
+                                    <div className="mt-3 space-y-2.5 rounded-xl bg-background/40 p-3 animate-fade-in">
+                                      <PrefRow
+                                        icon={<MessageSquare className="h-3.5 w-3.5" />}
+                                        label="In-app alert"
+                                        hint="Toast + notification bell"
+                                        checked={pref.in_app}
+                                        onChange={(v) => setPref(c.id, { in_app: v })}
+                                      />
+                                      <PrefRow
+                                        icon={<Mail className="h-3.5 w-3.5" />}
+                                        label="Email"
+                                        hint={member?.email ? `Sent to ${member.email}` : "Add an email to your profile"}
+                                        checked={pref.email}
+                                        disabled={!member?.email}
+                                        onChange={(v) => setPref(c.id, { email: v })}
+                                      />
+                                      <PrefRow
+                                        icon={<Smartphone className="h-3.5 w-3.5" />}
+                                        label="Browser push"
+                                        hint={
+                                          pushPerm === "unsupported"
+                                            ? "Not supported on this browser"
+                                            : pushPerm === "denied"
+                                            ? "Blocked — enable in browser settings"
+                                            : pushPerm === "granted"
+                                            ? "OS-level alert"
+                                            : "Tap to allow browser alerts"
+                                        }
+                                        checked={pref.push && pushPerm === "granted"}
+                                        disabled={pushPerm === "unsupported" || pushPerm === "denied"}
+                                        onChange={async (v) => {
+                                          if (v && pushPerm !== "granted") await enablePush();
+                                          setPref(c.id, { push: v });
+                                        }}
+                                      />
+                                    </div>
+                                  )}
+
+                                  <p className="mt-3 inline-flex items-start gap-1.5 text-xs text-muted-foreground">
+                                    <Wallet className="mt-0.5 h-3 w-3 text-accent shrink-0" />
+                                    <span>
+                                      First weekly contribution of {fmtR(t?.weekly_contribution)} starts on activation day.
+                                    </span>
+                                  </p>
+                                </div>
+                              );
+                            })()}
                         );
                       })()}
 
