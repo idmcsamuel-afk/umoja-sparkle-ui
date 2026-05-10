@@ -20,6 +20,7 @@ interface Tier {
   growth_rate: number;
   vault_days: number;
   daily_velocity_cap: number;
+  sessions_per_day: number | null;
   is_active: boolean | null;
 }
 
