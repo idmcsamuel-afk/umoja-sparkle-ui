@@ -15,6 +15,7 @@ import { toast } from "sonner";
 import { CircleAcceptanceModal, hasAcceptedCircle } from "@/components/umoja/CircleAcceptanceModal";
 import { CircleSessionTimer } from "@/components/umoja/CircleSessionTimer";
 import { SparksDisclaimer } from "@/components/umoja/SparksDisclaimer";
+import { CircleStatusBanner } from "@/components/umoja/CircleStatusBanner";
 
 interface Tier {
   tier: string;
@@ -150,6 +151,12 @@ const Circle = () => {
           <div className="w-10" />
         </div>
       </header>
+
+      <div className="sticky top-2 z-30 px-5 pt-4">
+        <div className="mx-auto max-w-md">
+          <CircleStatusBanner />
+        </div>
+      </div>
 
       <section className="px-5 pt-6">
         <div className="mx-auto max-w-md animate-fade-in">
