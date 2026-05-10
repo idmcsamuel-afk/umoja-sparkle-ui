@@ -25,6 +25,36 @@ const PLATFORMS: { id: Platform; icon: any }[] = [
   { id: "TikTok", icon: Music2 },
 ];
 
+const BIZ_MIN = 20;
+const BIZ_MAX = 600;
+
+// Platform-specific recipe: target length + extra system guidance
+const PLATFORM_RECIPE: Record<Platform, { target: number; max: number; guide: string }> = {
+  Instagram: {
+    target: 220, max: 2200,
+    guide: "Hook in line 1 (≤80 chars). Then 2-3 short lines with emojis. End with a CTA and 8-12 niche hashtags (mix SA-specific like #SowetoEats #ProudlySA).",
+  },
+  Facebook: {
+    target: 400, max: 1500,
+    guide: "Friendly, story-style opener. 2-3 short paragraphs. End with a clear CTA (call/WhatsApp/visit). 3-5 hashtags max — Facebook downranks hashtag spam.",
+  },
+  WhatsApp: {
+    target: 280, max: 700,
+    guide: "Direct, scannable broadcast for community groups. Use *bold* sparingly, 1-2 emojis, bullet points OK. End with phone number placeholder and area served. NO hashtags.",
+  },
+  TikTok: {
+    target: 150, max: 300,
+    guide: "Punchy caption ≤150 chars. Front-load the hook. End with 4-6 trending SA hashtags (#fyp #southafricatiktok plus niche). No long paragraphs.",
+  },
+};
+
+const TYPE_RECIPE: Record<ContentType, string> = {
+  social: "Format: ready-to-paste caption.",
+  flyer: "Format: HEADLINE on line 1 (≤8 words, all caps), then 2-3 lines of body copy, then a strong CTA line. No hashtags.",
+  whatsapp: "Format: WhatsApp broadcast message. Open with a greeting, list offer in 3-5 bullets, close with contact CTA.",
+  video: "Format: 30-second video script. Label sections HOOK (0-3s), VALUE (3-20s), CTA (20-30s). Include on-screen text suggestions in [brackets].",
+};
+
 export default function FlameMarketing() {
   const [biz, setBiz] = useState("");
   const [type, setType] = useState<ContentType>("social");
@@ -33,21 +63,41 @@ export default function FlameMarketing() {
   const [output, setOutput] = useState("");
   const [loading, setLoading] = useState(false);
 
+  const bizLen = biz.trim().length;
+  const recipe = PLATFORM_RECIPE[platform];
+  const outLen = output.length;
+  const overLimit = outLen > recipe.max;
+
   const generate = async () => {
-    if (!biz.trim()) {
-      toast({ title: "Tell Flame about your business first", variant: "destructive" });
+    const trimmed = biz.trim();
+    if (trimmed.length < BIZ_MIN) {
+      toast({ title: "Add a bit more detail", description: `At least ${BIZ_MIN} characters — what you sell, where, price.`, variant: "destructive" });
+      return;
+    }
+    if (trimmed.length > BIZ_MAX) {
+      toast({ title: "Description too long", description: `Keep it under ${BIZ_MAX} characters.`, variant: "destructive" });
       return;
     }
     setLoading(true);
     try {
       const typeLabel = TYPES.find((t) => t.id === type)?.title ?? "Social Post";
-      const system = `You are Flame, UMOJA's AI marketing assistant for South African micro-businesses. Write punchy, culturally relevant ${tone.toLowerCase()} marketing copy. Use SA English, Rand pricing, and local references where natural. Keep it ready-to-post. Add 5-8 relevant hashtags at the end for social posts.`;
-      const user = `Business: ${biz}\n\nFormat: ${typeLabel}\nPlatform: ${platform}\nTone: ${tone}\n\nWrite the ${typeLabel.toLowerCase()} now.`;
+      const system = [
+        `You are Flame, UMOJA's AI marketing assistant for South African micro-businesses.`,
+        `Write punchy, culturally relevant ${tone.toLowerCase()} marketing copy.`,
+        `Use SA English, Rand pricing, and local references where natural.`,
+        `${TYPE_RECIPE[type]}`,
+        `Platform = ${platform}. ${recipe.guide}`,
+        `STRICT: total output must be at most ${recipe.max} characters and ideally close to ${recipe.target}. Never exceed ${recipe.max}. Output only the copy — no preamble, no markdown headers, no quotes.`,
+      ].join(" ");
+      const user = `Business: ${trimmed}\n\nFormat: ${typeLabel}\nPlatform: ${platform}\nTone: ${tone}\n\nWrite the ${typeLabel.toLowerCase()} now.`;
       const { data, error } = await supabase.functions.invoke("flame-ai", {
         body: { system, temperature: 0.85, messages: [{ role: "user", content: user }] },
       });
       if (error) throw error;
-      setOutput((data as any)?.reply ?? "Flame is thinking… try again.");
+      let reply: string = (data as any)?.reply ?? "Flame is thinking… try again.";
+      // Hard client-side trim safety net
+      if (reply.length > recipe.max) reply = reply.slice(0, recipe.max).replace(/\s\S*$/, "") + "…";
+      setOutput(reply);
     } catch (e: any) {
       toast({ title: "Flame couldn't generate", description: String(e?.message ?? e), variant: "destructive" });
     } finally {
