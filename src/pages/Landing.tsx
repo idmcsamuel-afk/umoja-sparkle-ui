@@ -15,8 +15,8 @@ const pillars = [
   {
     icon: Sparkles,
     name: "Spark Trade",
-    tag: "Start your import business",
-    desc: "START YOUR IMPORT BUSINESS TODAY. No capital? No problem. Pool orders with other traders, buy in bulk from China at 40–60% margin, and split the profit. Real traders are making R50K–R200K monthly — join the buying club.",
+    tag: "Trade smart, not blind",
+    desc: "Stop guessing what to import. Our AI tracks 300,000+ products across Amazon, Takealot and Alibaba — showing you EXACTLY what's selling fast with 40–60% margins. Then pool orders to hit MOQ and unlock bulk pricing.",
   },
   {
     icon: Car,
