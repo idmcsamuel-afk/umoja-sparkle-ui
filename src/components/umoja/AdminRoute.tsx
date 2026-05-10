@@ -51,6 +51,9 @@ export function AdminRoute({ children }: { children: JSX.Element }) {
     );
   }
   if (!user) return <Navigate to="/login" replace />;
-  if (!isAdmin) return <Navigate to="/dashboard" replace />;
+  if (!isAdmin) {
+    toast.error("Admins only", { description: "You don't have access to the admin console." });
+    return <Navigate to="/dashboard" replace />;
+  }
   return children;
 }
