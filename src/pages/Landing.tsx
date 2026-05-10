@@ -336,6 +336,68 @@ const Landing = () => {
         </div>
       </section>
 
+      {/* Spark Trade deep-dive */}
+      <section id="sparktrade" className="relative px-5 pt-20">
+        <div className="mx-auto max-w-md">
+          <p className="text-[11px] uppercase tracking-[0.22em] text-accent inline-flex items-center gap-2">
+            <Sparkles className="h-3.5 w-3.5" /> Spark Trade
+          </p>
+          <h2 className="mt-3 font-display text-3xl leading-tight tracking-tight">
+            TRADE SMART,<br />NOT BLIND.
+          </h2>
+
+          <div className="mt-6 rounded-3xl border border-primary/30 bg-gradient-card p-6 shadow-glow">
+            <p className="text-sm text-muted-foreground leading-relaxed">
+              Stop guessing what to import. Our AI tracks{" "}
+              <span className="text-foreground font-semibold">300,000+ products</span> across
+              Amazon, Takealot, and Alibaba — showing you EXACTLY what's selling fast with{" "}
+              <span className="text-gradient-gold font-display">40–60% margins</span>.
+            </p>
+
+            <p className="mt-5 text-xs uppercase tracking-[0.18em] text-accent">
+              See the data BEFORE you buy
+            </p>
+            <ul className="mt-3 space-y-2.5">
+              {[
+                { icon: Activity, text: "Sales velocity (units sold per day)" },
+                { icon: LineChart, text: "Profit margins (buy price vs sell price)" },
+                { icon: TrendingUp, text: "Market signals (trending up or cooling down)" },
+                { icon: Package, text: "Minimum order quantities" },
+              ].map(({ icon: Icon, text }) => (
+                <li key={text} className="flex items-start gap-3 text-sm">
+                  <span className="mt-0.5 grid h-5 w-5 shrink-0 place-items-center rounded-full bg-accent/15 text-accent">
+                    <Check className="h-3.5 w-3.5" strokeWidth={3} />
+                  </span>
+                  <span className="flex-1 text-foreground/90">
+                    <Icon className="mr-1.5 inline h-3.5 w-3.5 text-accent/80" />
+                    {text}
+                  </span>
+                </li>
+              ))}
+            </ul>
+
+            <p className="mt-5 text-sm text-muted-foreground leading-relaxed">
+              Then pool your order with other traders to hit MOQ and unlock bulk pricing. You get{" "}
+              <span className="text-foreground font-semibold">market intelligence + group buying power</span>.
+            </p>
+
+            <div className="mt-5 rounded-2xl border border-accent/30 bg-accent/5 p-4">
+              <p className="text-sm leading-relaxed">
+                Real traders are making{" "}
+                <span className="text-gradient-gold font-display text-lg">R50K–R200K</span> monthly
+                because they <span className="font-semibold">BUY WHAT'S PROVEN TO SELL.</span>
+              </p>
+            </div>
+
+            <Button asChild size="lg" className="mt-6 w-full bg-gradient-primary shadow-glow">
+              <Link to="/spark-trade">
+                See Live Signals <ArrowRight className="ml-1.5 h-4 w-4" />
+              </Link>
+            </Button>
+          </div>
+        </div>
+      </section>
+
       {/* Spark Pit games */}
       <section id="sparkpit" className="relative px-5 pt-20">
         <div className="mx-auto max-w-md">
