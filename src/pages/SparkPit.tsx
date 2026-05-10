@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import { Sparkles, Trophy, Coins, Dice5, Eye } from "lucide-react";
 import { BottomNav } from "@/components/umoja/BottomNav";
+import { SparksDisclaimer } from "@/components/umoja/SparksDisclaimer";
 import { Card } from "@/components/ui/card";
 import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
@@ -84,6 +85,7 @@ export default function SparkPit() {
         />
       </main>
 
+      <section className="px-5 pt-6"><div className="mx-auto max-w-md"><SparksDisclaimer /></div></section>
       <BottomNav />
     </div>
   );
