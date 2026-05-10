@@ -62,7 +62,8 @@ const Drive = () => {
   const [repayments, setRepayments] = useState<Repayment[]>([]);
   const [loading, setLoading] = useState(true);
   const [joining, setJoining] = useState<string | null>(null);
-
+  const [confirm, setConfirm] = useState<DriveCircle | null>(null);
+  const [justReserved, setJustReserved] = useState<string | null>(null);
   const load = async () => {
     setLoading(true);
     const [tRes, cRes, mRes, rRes] = await Promise.all([
