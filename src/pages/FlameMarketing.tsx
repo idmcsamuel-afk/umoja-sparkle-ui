@@ -25,6 +25,36 @@ const PLATFORMS: { id: Platform; icon: any }[] = [
   { id: "TikTok", icon: Music2 },
 ];
 
+const BIZ_MIN = 20;
+const BIZ_MAX = 600;
+
+// Platform-specific recipe: target length + extra system guidance
+const PLATFORM_RECIPE: Record<Platform, { target: number; max: number; guide: string }> = {
+  Instagram: {
+    target: 220, max: 2200,
+    guide: "Hook in line 1 (≤80 chars). Then 2-3 short lines with emojis. End with a CTA and 8-12 niche hashtags (mix SA-specific like #SowetoEats #ProudlySA).",
+  },
+  Facebook: {
+    target: 400, max: 1500,
+    guide: "Friendly, story-style opener. 2-3 short paragraphs. End with a clear CTA (call/WhatsApp/visit). 3-5 hashtags max — Facebook downranks hashtag spam.",
+  },
+  WhatsApp: {
+    target: 280, max: 700,
+    guide: "Direct, scannable broadcast for community groups. Use *bold* sparingly, 1-2 emojis, bullet points OK. End with phone number placeholder and area served. NO hashtags.",
+  },
+  TikTok: {
+    target: 150, max: 300,
+    guide: "Punchy caption ≤150 chars. Front-load the hook. End with 4-6 trending SA hashtags (#fyp #southafricatiktok plus niche). No long paragraphs.",
+  },
+};
+
+const TYPE_RECIPE: Record<ContentType, string> = {
+  social: "Format: ready-to-paste caption.",
+  flyer: "Format: HEADLINE on line 1 (≤8 words, all caps), then 2-3 lines of body copy, then a strong CTA line. No hashtags.",
+  whatsapp: "Format: WhatsApp broadcast message. Open with a greeting, list offer in 3-5 bullets, close with contact CTA.",
+  video: "Format: 30-second video script. Label sections HOOK (0-3s), VALUE (3-20s), CTA (20-30s). Include on-screen text suggestions in [brackets].",
+};
+
 export default function FlameMarketing() {
   const [biz, setBiz] = useState("");
   const [type, setType] = useState<ContentType>("social");
@@ -33,21 +63,41 @@ export default function FlameMarketing() {
   const [output, setOutput] = useState("");
   const [loading, setLoading] = useState(false);
 
+  const bizLen = biz.trim().length;
+  const recipe = PLATFORM_RECIPE[platform];
+  const outLen = output.length;
+  const overLimit = outLen > recipe.max;
+
   const generate = async () => {
-    if (!biz.trim()) {
-      toast({ title: "Tell Flame about your business first", variant: "destructive" });
+    const trimmed = biz.trim();
+    if (trimmed.length < BIZ_MIN) {
+      toast({ title: "Add a bit more detail", description: `At least ${BIZ_MIN} characters — what you sell, where, price.`, variant: "destructive" });
+      return;
+    }
+    if (trimmed.length > BIZ_MAX) {
+      toast({ title: "Description too long", description: `Keep it under ${BIZ_MAX} characters.`, variant: "destructive" });
       return;
     }
     setLoading(true);
     try {
       const typeLabel = TYPES.find((t) => t.id === type)?.title ?? "Social Post";
-      const system = `You are Flame, UMOJA's AI marketing assistant for South African micro-businesses. Write punchy, culturally relevant ${tone.toLowerCase()} marketing copy. Use SA English, Rand pricing, and local references where natural. Keep it ready-to-post. Add 5-8 relevant hashtags at the end for social posts.`;
-      const user = `Business: ${biz}\n\nFormat: ${typeLabel}\nPlatform: ${platform}\nTone: ${tone}\n\nWrite the ${typeLabel.toLowerCase()} now.`;
+      const system = [
+        `You are Flame, UMOJA's AI marketing assistant for South African micro-businesses.`,
+        `Write punchy, culturally relevant ${tone.toLowerCase()} marketing copy.`,
+        `Use SA English, Rand pricing, and local references where natural.`,
+        `${TYPE_RECIPE[type]}`,
+        `Platform = ${platform}. ${recipe.guide}`,
+        `STRICT: total output must be at most ${recipe.max} characters and ideally close to ${recipe.target}. Never exceed ${recipe.max}. Output only the copy — no preamble, no markdown headers, no quotes.`,
+      ].join(" ");
+      const user = `Business: ${trimmed}\n\nFormat: ${typeLabel}\nPlatform: ${platform}\nTone: ${tone}\n\nWrite the ${typeLabel.toLowerCase()} now.`;
       const { data, error } = await supabase.functions.invoke("flame-ai", {
         body: { system, temperature: 0.85, messages: [{ role: "user", content: user }] },
       });
       if (error) throw error;
-      setOutput((data as any)?.reply ?? "Flame is thinking… try again.");
+      let reply: string = (data as any)?.reply ?? "Flame is thinking… try again.";
+      // Hard client-side trim safety net
+      if (reply.length > recipe.max) reply = reply.slice(0, recipe.max).replace(/\s\S*$/, "") + "…";
+      setOutput(reply);
     } catch (e: any) {
       toast({ title: "Flame couldn't generate", description: String(e?.message ?? e), variant: "destructive" });
     } finally {
@@ -82,14 +132,25 @@ export default function FlameMarketing() {
       <main className="px-5 space-y-5">
         <Card className="p-4 space-y-4 border-orange-500/20">
           <div>
-            <label className="text-xs font-semibold text-muted-foreground">Describe your business</label>
+            <div className="flex items-center justify-between">
+              <label className="text-xs font-semibold text-muted-foreground">Describe your business</label>
+              <span className={`text-[10px] tabular-nums ${
+                bizLen > BIZ_MAX ? "text-destructive" : bizLen < BIZ_MIN ? "text-muted-foreground" : "text-emerald-400"
+              }`}>
+                {bizLen}/{BIZ_MAX}
+              </span>
+            </div>
             <Textarea
               value={biz}
-              onChange={(e) => setBiz(e.target.value)}
+              onChange={(e) => setBiz(e.target.value.slice(0, BIZ_MAX + 50))}
               rows={4}
+              maxLength={BIZ_MAX + 50}
               placeholder="e.g. I sell homemade vetkoek and koeksisters from home in Soweto. Available daily. Delivery in Soweto only."
               className="mt-1.5"
             />
+            {bizLen > 0 && bizLen < BIZ_MIN && (
+              <p className="mt-1 text-[11px] text-muted-foreground">Add {BIZ_MIN - bizLen} more characters so Flame has enough to work with.</p>
+            )}
           </div>
 
           <div>
@@ -147,11 +208,14 @@ export default function FlameMarketing() {
               ))}
             </div>
           </div>
+            <p className="mt-2 text-[11px] text-muted-foreground">
+              <span className="text-orange-300">{platform} target:</span> ~{recipe.target} chars · max {recipe.max}
+            </p>
 
           <Button
             onClick={generate}
-            disabled={loading}
-            className="w-full h-12 text-base font-semibold bg-gradient-to-r from-orange-500 via-amber-500 to-yellow-500 text-black hover:opacity-95 border-0"
+            disabled={loading || bizLen < BIZ_MIN || bizLen > BIZ_MAX}
+            className="w-full h-12 text-base font-semibold bg-gradient-to-r from-orange-500 via-amber-500 to-yellow-500 text-black hover:opacity-95 border-0 disabled:opacity-50"
           >
             {loading ? <Loader2 className="h-5 w-5 animate-spin" /> : <>Generate with Flame 🔥</>}
           </Button>
@@ -160,7 +224,14 @@ export default function FlameMarketing() {
         {output && (
           <Card className="p-4 border-orange-500/30 bg-gradient-to-br from-card to-orange-950/20 animate-fade-in">
             <div className="flex items-center justify-between mb-3">
-              <div className="text-xs font-semibold text-orange-300 uppercase tracking-wider">🔥 Flame says</div>
+              <div className="flex items-center gap-2">
+                <span className="text-xs font-semibold text-orange-300 uppercase tracking-wider">🔥 {platform}</span>
+                <span className={`text-[10px] tabular-nums px-1.5 py-0.5 rounded ${
+                  overLimit ? "bg-destructive/20 text-destructive" : "bg-emerald-500/15 text-emerald-300"
+                }`}>
+                  {outLen}/{recipe.max}
+                </span>
+              </div>
               <div className="flex gap-2">
                 <Button size="sm" variant="outline" onClick={copy}>
                   <Copy className="h-3.5 w-3.5" /> Copy
