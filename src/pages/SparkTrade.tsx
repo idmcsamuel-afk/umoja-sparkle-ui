@@ -36,17 +36,8 @@ interface Order {
 const fmtR = (n: number | null | undefined) =>
   "R" + Math.round(Number(n ?? 0)).toLocaleString("en-ZA");
 
-const bucket = (p: Shortlist): "now" | "soon" | "wave" => {
-  const status = (p.status ?? "open").toLowerCase();
-  if (status === "closed" || status === "completed") return "wave";
-  if (status === "coming" || status === "upcoming") return "soon";
-  const target = Number(p.target_slots ?? 0) || 1;
-  const ratio = Number(p.joined_count ?? 0) / target;
-  if (ratio >= 0.6) return "now";
-  if (ratio >= 0.2) return "soon";
-  // Default: open & approved items surface in "Buy Now"
-  return "now";
-};
+// Show every shortlisted product in every bucket — copy on the tabs differentiates them
+// until enough products exist to split into distinct phases.
 
 const SparkTrade = () => {
   const { user } = useAuth();
