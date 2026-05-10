@@ -342,6 +342,26 @@ const Dashboard = () => {
               </Link>
             ))}
           </div>
+
+          {/* Secondary tools */}
+          <div className="mt-3 grid grid-cols-3 gap-2">
+            {[
+              { to: "/calculator", icon: CalcIcon, label: "Calculator" },
+              { to: "/market", icon: ShoppingBag, label: "Market" },
+              { to: "/exchange", icon: Repeat, label: "Exchange" },
+            ].map(({ to, icon: Icon, label }) => (
+              <Link
+                key={to}
+                to={to}
+                className="group rounded-2xl border border-border bg-gradient-card p-3 text-center transition-smooth hover:border-accent/50 hover:-translate-y-0.5"
+              >
+                <span className="mx-auto grid h-9 w-9 place-items-center rounded-xl bg-secondary text-accent">
+                  <Icon className="h-4 w-4" />
+                </span>
+                <p className="mt-2 text-[11px] font-medium text-muted-foreground group-hover:text-foreground">{label}</p>
+              </Link>
+            ))}
+          </div>
         </div>
       </section>
 
