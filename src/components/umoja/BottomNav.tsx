@@ -15,8 +15,8 @@ export const BottomNav = () => {
   const { pathname } = useLocation();
   return (
     <nav className="fixed bottom-0 inset-x-0 z-40 px-3 pb-[max(0.75rem,env(safe-area-inset-bottom))] pt-2">
-      <div className="glass mx-auto max-w-md rounded-3xl px-2 py-2 shadow-soft">
-        <ul className="grid grid-cols-5">
+      <div className="glass mx-auto max-w-lg rounded-3xl px-1.5 py-2 shadow-soft">
+        <ul className="grid grid-cols-7">
           {items.map(({ to, label, icon: Icon }) => {
             const active = pathname === to || (to !== "/dashboard" && pathname.startsWith(to));
             return (
