@@ -108,6 +108,9 @@ const Drive = () => {
 
   const join = async (c: DriveCircle) => {
     if (!user) return toast.error("Sign in first");
+    if (c.id.startsWith("synthetic-")) {
+      return toast.message("This circle is forming — join opens when admin activates it.");
+    }
     if (memberships.some((m) => m.circle_id === c.id)) {
       return toast.message("You're already in this circle");
     }
