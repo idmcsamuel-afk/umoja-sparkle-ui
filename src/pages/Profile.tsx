@@ -13,7 +13,7 @@ export default function Profile() {
   const { member, user, signOut } = useAuth();
   const [loading, setLoading] = useState(true);
   const [sparkTxns, setSparkTxns] = useState<Array<{ id: string; tx_type: string; amount: number; created_at: string | null }>>([]);
-  const [bids, setBids] = useState<Array<{ id: string; tier: string; fiat_amount: number; status: string | null; created_at: string | null }>>([]);
+  const [bids, setBids] = useState<Array<{ id: string; tier: string; fiat_amount: number; net_amount: number | null; payout_amount: number | null; status: string | null; created_at: string | null; vault_start: string | null; vault_end: string | null }>>([]);
   const [balance, setBalance] = useState(0);
 
   useEffect(() => {
@@ -21,7 +21,7 @@ export default function Profile() {
     (async () => {
       const [s, b, w] = await Promise.all([
         supabase.from("spark_transactions").select("id, tx_type, amount, created_at").or(`from_member.eq.${user.id},to_member.eq.${user.id}`).order("created_at", { ascending: false }).limit(50),
-        supabase.from("circle_bids").select("id, tier, fiat_amount, status, created_at").eq("member_id", user.id).order("created_at", { ascending: false }).limit(50),
+        supabase.from("circle_bids").select("id, tier, fiat_amount, net_amount, payout_amount, status, created_at, vault_start, vault_end").eq("member_id", user.id).order("created_at", { ascending: false }).limit(50),
         supabase.from("spark_wallets").select("balance").eq("member_id", user.id).maybeSingle(),
       ]);
       setSparkTxns((s.data ?? []) as typeof sparkTxns);
@@ -87,16 +87,52 @@ export default function Profile() {
           {loading ? null : bids.length === 0 ? (
             <p className="mt-4 text-sm text-muted-foreground">No circle bids yet.</p>
           ) : (
-            <ul className="mt-4 divide-y divide-border rounded-3xl border border-border bg-gradient-card overflow-hidden">
-              {bids.slice(0, 10).map((b) => (
-                <li key={b.id} className="flex items-center justify-between p-4 text-sm">
-                  <div>
-                    <p className="font-medium capitalize">{b.tier}</p>
-                    <p className="text-xs text-muted-foreground">{b.status} · {b.created_at ? new Date(b.created_at).toLocaleDateString() : ""}</p>
-                  </div>
-                  <span className="font-display text-gradient-gold">{fmtR(Number(b.fiat_amount))}</span>
-                </li>
-              ))}
+            <ul className="mt-4 space-y-3">
+              {bids.map((b) => {
+                const status = (b.status ?? "pending").toLowerCase();
+                const tone =
+                  status === "paid" || status === "matched"
+                    ? "bg-primary/15 text-primary"
+                    : status === "active"
+                    ? "bg-accent/15 text-accent-soft"
+                    : status === "cancelled" || status === "failed"
+                    ? "bg-destructive/15 text-destructive"
+                    : "bg-secondary text-muted-foreground";
+                const fmtDate = (d: string | null) =>
+                  d ? new Date(d).toLocaleDateString("en-ZA", { day: "2-digit", month: "short", year: "numeric" }) : "—";
+                return (
+                  <li key={b.id} className="rounded-3xl border border-border bg-gradient-card p-4 animate-fade-in">
+                    <div className="flex items-start justify-between gap-3">
+                      <div className="min-w-0">
+                        <p className="font-display text-base capitalize">{b.tier} Circle</p>
+                        <span className={`mt-1 inline-block text-[10px] uppercase tracking-wider rounded-full px-2 py-0.5 ${tone}`}>
+                          {status}
+                        </span>
+                      </div>
+                      <div className="text-right shrink-0">
+                        <p className="font-display text-lg text-gradient-gold">{fmtR(Number(b.fiat_amount))}</p>
+                        {b.payout_amount != null && (
+                          <p className="text-[11px] text-accent-soft">Payout {fmtR(Number(b.payout_amount))}</p>
+                        )}
+                      </div>
+                    </div>
+                    <div className="mt-3 grid grid-cols-3 gap-2 text-[11px]">
+                      <div>
+                        <p className="text-muted-foreground uppercase tracking-wider text-[9px]">Started</p>
+                        <p>{fmtDate(b.created_at)}</p>
+                      </div>
+                      <div>
+                        <p className="text-muted-foreground uppercase tracking-wider text-[9px]">Vault opens</p>
+                        <p>{fmtDate(b.vault_start)}</p>
+                      </div>
+                      <div>
+                        <p className="text-muted-foreground uppercase tracking-wider text-[9px]">Vault ends</p>
+                        <p>{fmtDate(b.vault_end)}</p>
+                      </div>
+                    </div>
+                  </li>
+                );
+              })}
             </ul>
           )}
         </div>
