@@ -109,11 +109,25 @@ export default function Profile() {
                           {status}
                         </span>
                       </div>
-                      <div className="text-right shrink-0">
-                        <p className="font-display text-lg text-gradient-gold">{fmtR(Number(b.fiat_amount))}</p>
-                        {b.payout_amount != null && (
-                          <p className="text-[11px] text-accent-soft">Payout {fmtR(Number(b.payout_amount))}</p>
-                        )}
+                      <p className="text-[10px] uppercase tracking-wider text-muted-foreground shrink-0">
+                        Gross {fmtR(Number(b.fiat_amount))}
+                      </p>
+                    </div>
+
+                    <div className="mt-3 grid grid-cols-2 gap-2">
+                      <div className="rounded-2xl bg-secondary/40 p-3">
+                        <p className="text-[10px] uppercase tracking-wider text-muted-foreground">Contributed</p>
+                        <p className="mt-0.5 font-display text-lg">{fmtR(Number(b.net_amount ?? b.fiat_amount))}</p>
+                        <p className="text-[10px] text-muted-foreground">net of fees</p>
+                      </div>
+                      <div className="rounded-2xl bg-primary/10 p-3 border border-primary/20">
+                        <p className="text-[10px] uppercase tracking-wider text-accent">Payout</p>
+                        <p className="mt-0.5 font-display text-lg text-gradient-gold">
+                          {b.payout_amount != null ? fmtR(Number(b.payout_amount)) : "Pending"}
+                        </p>
+                        <p className="text-[10px] text-muted-foreground">
+                          {b.payout_amount != null ? "scheduled" : "after vault"}
+                        </p>
                       </div>
                     </div>
                     <div className="mt-3 grid grid-cols-3 gap-2 text-[11px]">
