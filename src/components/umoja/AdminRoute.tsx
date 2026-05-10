@@ -1,8 +1,9 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Navigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { Loader2 } from "lucide-react";
+import { toast } from "sonner";
 
 const FALLBACK_ADMIN_EMAIL = "idmcsamuel@gmail.com";
 
@@ -10,6 +11,7 @@ export function AdminRoute({ children }: { children: JSX.Element }) {
   const { user, loading } = useAuth();
   const [checking, setChecking] = useState(true);
   const [isAdmin, setIsAdmin] = useState(false);
+  const toastedRef = useRef(false);
 
   useEffect(() => {
     if (!user) { setChecking(false); return; }
@@ -41,6 +43,15 @@ export function AdminRoute({ children }: { children: JSX.Element }) {
       }
     })();
   }, [user]);
+
+  useEffect(() => {
+    if (!checking && user && !isAdmin && !toastedRef.current) {
+      toastedRef.current = true;
+      toast.error("Admins only", {
+        description: "You don't have access to the admin console.",
+      });
+    }
+  }, [checking, user, isAdmin]);
 
   if (loading || checking) {
     return (
