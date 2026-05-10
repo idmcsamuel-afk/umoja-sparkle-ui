@@ -6,6 +6,21 @@ import { useAuth } from "@/hooks/useAuth";
 import { Logo } from "@/components/umoja/Logo";
 import { BottomNav } from "@/components/umoja/BottomNav";
 import { Button } from "@/components/ui/button";
+import {
+  Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription,
+} from "@/components/ui/dialog";
+
+type Bid = {
+  id: string;
+  tier: string;
+  fiat_amount: number;
+  net_amount: number | null;
+  payout_amount: number | null;
+  status: string | null;
+  created_at: string | null;
+  vault_start: string | null;
+  vault_end: string | null;
+};
 
 const fmtR = (n: number) => "R" + Math.round(n).toLocaleString("en-ZA");
 
@@ -13,8 +28,9 @@ export default function Profile() {
   const { member, user, signOut } = useAuth();
   const [loading, setLoading] = useState(true);
   const [sparkTxns, setSparkTxns] = useState<Array<{ id: string; tx_type: string; amount: number; created_at: string | null }>>([]);
-  const [bids, setBids] = useState<Array<{ id: string; tier: string; fiat_amount: number; net_amount: number | null; payout_amount: number | null; status: string | null; created_at: string | null; vault_start: string | null; vault_end: string | null }>>([]);
+  const [bids, setBids] = useState<Bid[]>([]);
   const [balance, setBalance] = useState(0);
+  const [openBid, setOpenBid] = useState<Bid | null>(null);
 
   useEffect(() => {
     if (!user) return;
@@ -101,7 +117,12 @@ export default function Profile() {
                 const fmtDate = (d: string | null) =>
                   d ? new Date(d).toLocaleDateString("en-ZA", { day: "2-digit", month: "short", year: "numeric" }) : "—";
                 return (
-                  <li key={b.id} className="rounded-3xl border border-border bg-gradient-card p-4 animate-fade-in">
+                  <li key={b.id}>
+                    <button
+                      type="button"
+                      onClick={() => setOpenBid(b)}
+                      className="w-full text-left rounded-3xl border border-border bg-gradient-card p-4 animate-fade-in transition-smooth hover:border-primary/40 hover:-translate-y-0.5"
+                    >
                     <div className="flex items-start justify-between gap-3">
                       <div className="min-w-0">
                         <p className="font-display text-base capitalize">{b.tier} Circle</p>
@@ -144,6 +165,7 @@ export default function Profile() {
                         <p>{fmtDate(b.vault_end)}</p>
                       </div>
                     </div>
+                    </button>
                   </li>
                 );
               })}
@@ -151,6 +173,65 @@ export default function Profile() {
           )}
         </div>
       </section>
+
+      <Dialog open={!!openBid} onOpenChange={(v) => !v && setOpenBid(null)}>
+        <DialogContent className="rounded-3xl border border-border bg-gradient-card max-w-md">
+          {openBid && (() => {
+            const b = openBid;
+            const status = (b.status ?? "pending").toLowerCase();
+            const fmtDateTime = (d: string | null) =>
+              d ? new Date(d).toLocaleString("en-ZA", { day: "2-digit", month: "short", year: "numeric", hour: "2-digit", minute: "2-digit" }) : "—";
+            return (
+              <>
+                <DialogHeader>
+                  <p className="text-[10px] uppercase tracking-[0.22em] text-accent">Bid details</p>
+                  <DialogTitle className="font-display text-2xl capitalize">{b.tier} Circle</DialogTitle>
+                  <DialogDescription>
+                    <span className="inline-block text-[10px] uppercase tracking-wider rounded-full bg-secondary px-2 py-0.5">
+                      {status}
+                    </span>
+                  </DialogDescription>
+                </DialogHeader>
+
+                <div className="grid grid-cols-2 gap-3">
+                  <div className="rounded-2xl bg-secondary/40 p-3">
+                    <p className="text-[10px] uppercase tracking-wider text-muted-foreground">Stake (gross)</p>
+                    <p className="mt-0.5 font-display text-lg">{fmtR(Number(b.fiat_amount))}</p>
+                  </div>
+                  <div className="rounded-2xl bg-secondary/40 p-3">
+                    <p className="text-[10px] uppercase tracking-wider text-muted-foreground">Contributed (net)</p>
+                    <p className="mt-0.5 font-display text-lg">{fmtR(Number(b.net_amount ?? b.fiat_amount))}</p>
+                  </div>
+                  <div className="col-span-2 rounded-2xl bg-primary/10 p-3 border border-primary/20">
+                    <p className="text-[10px] uppercase tracking-wider text-accent">Payout</p>
+                    <p className="mt-0.5 font-display text-2xl text-gradient-gold">
+                      {b.payout_amount != null ? fmtR(Number(b.payout_amount)) : "Pending"}
+                    </p>
+                    <p className="text-[10px] text-muted-foreground">
+                      {b.payout_amount != null ? "Scheduled at vault end" : "Calculated after vault closes"}
+                    </p>
+                  </div>
+                </div>
+
+                <ul className="mt-2 divide-y divide-border rounded-2xl border border-border overflow-hidden">
+                  {[
+                    { label: "Bid placed", value: fmtDateTime(b.created_at) },
+                    { label: "Vault opens", value: fmtDateTime(b.vault_start) },
+                    { label: "Vault ends", value: fmtDateTime(b.vault_end) },
+                  ].map((row) => (
+                    <li key={row.label} className="flex items-center justify-between p-3 text-sm">
+                      <span className="text-muted-foreground">{row.label}</span>
+                      <span className="font-medium">{row.value}</span>
+                    </li>
+                  ))}
+                </ul>
+
+                <p className="text-[10px] text-muted-foreground">Reference: {b.id.slice(0, 8)}…</p>
+              </>
+            );
+          })()}
+        </DialogContent>
+      </Dialog>
 
       <BottomNav />
     </main>
