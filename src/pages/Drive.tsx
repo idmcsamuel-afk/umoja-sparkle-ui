@@ -129,6 +129,9 @@ const Drive = () => {
     setCircles([...realCircles, ...synthetic]);
     setMemberships((mRes.data ?? []) as Membership[]);
     setRepayments((rRes.data ?? []) as Repayment[]);
+    const prefMap: Record<string, NotifPref> = {};
+    for (const row of (pRes.data ?? []) as NotifPref[]) prefMap[row.circle_id] = { ...DEFAULT_PREF, ...row };
+    setPrefs(prefMap);
     setLoading(false);
   };
 
