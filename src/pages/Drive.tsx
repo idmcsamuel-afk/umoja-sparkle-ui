@@ -32,6 +32,7 @@ interface DriveCircle {
   current_pool: number | null;
   members_count: number | null;
   status: string | null;
+  created_at?: string | null;
 }
 
 interface Membership {
@@ -110,6 +111,39 @@ const Drive = () => {
     load();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [user?.id]);
+
+  // Live updates: refresh whenever circles or members change
+  useEffect(() => {
+    const channel = supabase
+      .channel("drive-live")
+      .on("postgres_changes", { event: "*", schema: "public", table: "drive_circles" }, () => load())
+      .on("postgres_changes", { event: "*", schema: "public", table: "drive_members" }, () => load())
+      .subscribe();
+    return () => { supabase.removeChannel(channel); };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [user?.id]);
+
+  // Tick every 30s so countdowns stay fresh even without DB changes
+  const [tick, setTick] = useState(0);
+  useEffect(() => {
+    const id = setInterval(() => setTick((n) => n + 1), 30_000);
+    return () => clearInterval(id);
+  }, []);
+
+  // Estimate when a forming circle will activate based on join velocity since creation
+  const estimateActivation = (c: DriveCircle, targetSeats: number) => {
+    void tick; // re-evaluate on tick
+    if (!c.created_at) return null;
+    const seats = Math.max(0, c.members_count ?? 0);
+    const remaining = Math.max(0, targetSeats - seats);
+    if (remaining === 0) return { etaDate: new Date(), ready: true as const };
+    if (seats < 1) return null;
+    const ageMs = Date.now() - new Date(c.created_at).getTime();
+    if (ageMs < 60_000) return null; // need at least a minute of data
+    const msPerSeat = ageMs / seats;
+    const etaDate = new Date(Date.now() + msPerSeat * remaining);
+    return { etaDate, ready: false as const };
+  };
 
   const requestJoin = (c: DriveCircle) => {
     if (!user) return toast.error("Sign in first");
@@ -336,31 +370,74 @@ const Drive = () => {
                         </div>
                       )}
 
-                      {isForming && joined && (
-                        <div className="mt-4 rounded-2xl border border-accent/40 bg-accent/10 p-3 animate-fade-in">
-                          <p className="inline-flex items-center gap-1.5 text-[10px] uppercase tracking-[0.18em] text-accent">
-                            <CheckCircle2 className="h-3 w-3" /> Seat reserved
-                          </p>
-                          <ul className="mt-2 space-y-1.5 text-xs text-muted-foreground">
-                            <li className="inline-flex items-start gap-1.5">
-                              <Users className="mt-0.5 h-3 w-3 text-accent shrink-0" />
-                              <span>
-                                {Math.max(0, (t?.circle_size ?? 0) - (c.members_count ?? 0))} more seats needed to activate.
+                      {isForming && joined && (() => {
+                        const targetSeats = t?.circle_size ?? 0;
+                        const seats = c.members_count ?? 0;
+                        const seatsLeft = Math.max(0, targetSeats - seats);
+                        const seatPct = targetSeats
+                          ? Math.min(100, Math.round((seats / targetSeats) * 100))
+                          : 0;
+                        const eta = estimateActivation(c, targetSeats);
+                        const etaLabel = eta?.ready
+                          ? "Activating now"
+                          : eta
+                          ? `~${eta.etaDate.toLocaleDateString(undefined, { month: "short", day: "numeric" })}`
+                          : "Gathering data…";
+                        return (
+                          <div className="mt-4 rounded-2xl border border-accent/40 bg-accent/10 p-4 animate-fade-in">
+                            <div className="flex items-center justify-between">
+                              <p className="inline-flex items-center gap-1.5 text-[10px] uppercase tracking-[0.18em] text-accent">
+                                <CheckCircle2 className="h-3 w-3" /> Seat reserved
+                              </p>
+                              <span className="inline-flex items-center gap-1 rounded-full bg-background/40 px-2 py-0.5 text-[10px] uppercase tracking-[0.18em] text-accent">
+                                <span className="relative flex h-1.5 w-1.5">
+                                  <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-accent opacity-75" />
+                                  <span className="relative inline-flex h-1.5 w-1.5 rounded-full bg-accent" />
+                                </span>
+                                Live
                               </span>
-                            </li>
-                            <li className="inline-flex items-start gap-1.5">
-                              <Bell className="mt-0.5 h-3 w-3 text-accent shrink-0" />
-                              <span>You'll get a notification the moment we go live.</span>
-                            </li>
-                            <li className="inline-flex items-start gap-1.5">
-                              <Wallet className="mt-0.5 h-3 w-3 text-accent shrink-0" />
-                              <span>
-                                First weekly contribution of {fmtR(t?.weekly_contribution)} starts on activation day.
-                              </span>
-                            </li>
-                          </ul>
-                        </div>
-                      )}
+                            </div>
+
+                            <div className="mt-3">
+                              <div className="flex items-baseline justify-between text-xs">
+                                <span className="text-foreground font-medium">
+                                  {seats} / {targetSeats || "—"} seats filled
+                                </span>
+                                <span className="text-muted-foreground">{seatPct}%</span>
+                              </div>
+                              <div className="mt-1.5 h-2 w-full rounded-full bg-background/40 overflow-hidden">
+                                <div
+                                  className="h-full rounded-full bg-gradient-gold transition-all duration-700"
+                                  style={{ width: `${Math.max(seatPct, 4)}%` }}
+                                />
+                              </div>
+                              <div className="mt-2 flex items-center justify-between text-[11px] text-muted-foreground">
+                                <span className="inline-flex items-center gap-1">
+                                  <Users className="h-3 w-3 text-accent" />
+                                  {seatsLeft === 0 ? "All seats secured" : `${seatsLeft} seat${seatsLeft === 1 ? "" : "s"} to go`}
+                                </span>
+                                <span className="inline-flex items-center gap-1">
+                                  <Calendar className="h-3 w-3 text-accent" />
+                                  {etaLabel}
+                                </span>
+                              </div>
+                            </div>
+
+                            <ul className="mt-3 space-y-1.5 text-xs text-muted-foreground border-t border-accent/20 pt-3">
+                              <li className="inline-flex items-start gap-1.5">
+                                <Bell className="mt-0.5 h-3 w-3 text-accent shrink-0" />
+                                <span>You'll get a notification the moment we go live.</span>
+                              </li>
+                              <li className="inline-flex items-start gap-1.5">
+                                <Wallet className="mt-0.5 h-3 w-3 text-accent shrink-0" />
+                                <span>
+                                  First weekly contribution of {fmtR(t?.weekly_contribution)} starts on activation day.
+                                </span>
+                              </li>
+                            </ul>
+                          </div>
+                        );
+                      })()}
 
                       <button
                         onClick={() => requestJoin(c)}
