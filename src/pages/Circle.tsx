@@ -331,4 +331,25 @@ const Circle = () => {
   );
 };
 
+function NextSession({ sessionsPerDay }: { sessionsPerDay: number }) {
+  const [now, setNow] = useState(() => Date.now());
+  useEffect(() => {
+    const t = setInterval(() => setNow(Date.now()), 1000);
+    return () => clearInterval(t);
+  }, []);
+  const next = useMemo(() => {
+    const slotMs = (24 * 60 * 60 * 1000) / sessionsPerDay;
+    const start = new Date(); start.setHours(0, 0, 0, 0);
+    const elapsed = now - start.getTime();
+    const idx = Math.floor(elapsed / slotMs) + 1;
+    return start.getTime() + idx * slotMs;
+  }, [now, sessionsPerDay]);
+  const diff = Math.max(0, next - now);
+  const h = Math.floor(diff / 3_600_000);
+  const m = Math.floor((diff % 3_600_000) / 60_000);
+  const s = Math.floor((diff % 60_000) / 1000);
+  return <span className="font-mono text-foreground">{String(h).padStart(2,"0")}:{String(m).padStart(2,"0")}:{String(s).padStart(2,"0")}</span>;
+}
+
+export default Circle;
 export default Circle;
