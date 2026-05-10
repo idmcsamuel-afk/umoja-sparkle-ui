@@ -52,6 +52,13 @@ export default function AdminPredictor() {
     load();
   };
 
+  const updateAnswer = async (id: string, answer: string) => {
+    const { error } = await supabase.from("predictor_questions").update({ correct_answer: answer }).eq("id", id);
+    if (error) return toast.error(error.message);
+    toast.success("Correct answer updated.");
+    load();
+  };
+
   return (
     <div>
       <h1 className="font-display text-3xl">Predictor</h1>
