@@ -701,7 +701,7 @@ const Drive = () => {
 };
 
 interface PrefRowProps {
-  icon: React.ReactNode;
+  icon: ReactNode;
   label: string;
   hint?: string;
   checked: boolean;
