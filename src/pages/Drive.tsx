@@ -304,44 +304,34 @@ const Drive = () => {
                         </div>
                       </div>
 
-                      {isForming ? (
-                        <div className="mt-5 space-y-3">
-                          <div className="rounded-2xl bg-secondary/60 p-3">
-                            <p className="inline-flex items-center gap-1.5 text-[10px] uppercase tracking-[0.18em] text-accent">
-                              <Clock className="h-3 w-3" /> Opens when full
-                            </p>
-                            <p className="mt-1 text-xs text-muted-foreground">
-                              {t ? `Joining opens once ${t.circle_size} members reserve a seat. ` : ""}
-                              We'll notify you the moment this circle activates.
-                            </p>
-                          </div>
-                          <button
-                            disabled
-                            aria-disabled="true"
-                            className="w-full h-11 rounded-2xl border border-border bg-secondary/40 text-sm font-medium text-muted-foreground inline-flex items-center justify-center gap-1.5 cursor-not-allowed"
-                          >
-                            <Clock className="h-4 w-4" /> Join opens soon
-                          </button>
+                      {isForming && (
+                        <div className="mt-4 rounded-2xl bg-secondary/60 p-3">
+                          <p className="inline-flex items-center gap-1.5 text-[10px] uppercase tracking-[0.18em] text-accent">
+                            <Clock className="h-3 w-3" /> Forming now
+                          </p>
+                          <p className="mt-1 text-xs text-muted-foreground">
+                            {t ? `Be one of the first ${t.circle_size} to reserve a seat. ` : ""}
+                            The circle activates once it fills up.
+                          </p>
                         </div>
-                      ) : (
-                        <button
-                          onClick={() => join(c)}
-                          disabled={joined || joining === c.id}
-                          className="mt-5 w-full h-11 rounded-2xl bg-gradient-primary text-primary-foreground text-sm font-medium shadow-glow inline-flex items-center justify-center gap-1.5 disabled:opacity-60"
-                        >
-                          {joining === c.id ? (
-                            <Loader2 className="h-4 w-4 animate-spin" />
-                          ) : joined ? (
-                            <>
-                              <CheckCircle2 className="h-4 w-4" /> Joined
-                            </>
-                          ) : (
-                            <>
-                              <Car className="h-4 w-4" /> Join Circle
-                            </>
-                          )}
-                        </button>
                       )}
+                      <button
+                        onClick={() => join(c)}
+                        disabled={joined || joining === c.id}
+                        className="mt-5 w-full h-11 rounded-2xl bg-gradient-primary text-primary-foreground text-sm font-medium shadow-glow inline-flex items-center justify-center gap-1.5 disabled:opacity-60"
+                      >
+                        {joining === c.id ? (
+                          <Loader2 className="h-4 w-4 animate-spin" />
+                        ) : joined ? (
+                          <>
+                            <CheckCircle2 className="h-4 w-4" /> Joined
+                          </>
+                        ) : (
+                          <>
+                            <Car className="h-4 w-4" /> {isForming ? "Reserve a seat" : "Join Circle"}
+                          </>
+                        )}
+                      </button>
                     </article>
                   );
                 })}
