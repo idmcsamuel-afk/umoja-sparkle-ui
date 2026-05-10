@@ -112,6 +112,39 @@ const Drive = () => {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [user?.id]);
 
+  // Live updates: refresh whenever circles or members change
+  useEffect(() => {
+    const channel = supabase
+      .channel("drive-live")
+      .on("postgres_changes", { event: "*", schema: "public", table: "drive_circles" }, () => load())
+      .on("postgres_changes", { event: "*", schema: "public", table: "drive_members" }, () => load())
+      .subscribe();
+    return () => { supabase.removeChannel(channel); };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [user?.id]);
+
+  // Tick every 30s so countdowns stay fresh even without DB changes
+  const [tick, setTick] = useState(0);
+  useEffect(() => {
+    const id = setInterval(() => setTick((n) => n + 1), 30_000);
+    return () => clearInterval(id);
+  }, []);
+
+  // Estimate when a forming circle will activate based on join velocity since creation
+  const estimateActivation = (c: DriveCircle, targetSeats: number) => {
+    void tick; // re-evaluate on tick
+    if (!c.created_at) return null;
+    const seats = Math.max(0, c.members_count ?? 0);
+    const remaining = Math.max(0, targetSeats - seats);
+    if (remaining === 0) return { etaDate: new Date(), ready: true as const };
+    if (seats < 1) return null;
+    const ageMs = Date.now() - new Date(c.created_at).getTime();
+    if (ageMs < 60_000) return null; // need at least a minute of data
+    const msPerSeat = ageMs / seats;
+    const etaDate = new Date(Date.now() + msPerSeat * remaining);
+    return { etaDate, ready: false as const };
+  };
+
   const requestJoin = (c: DriveCircle) => {
     if (!user) return toast.error("Sign in first");
     setConfirm(c);
