@@ -75,11 +75,10 @@ const SparkTrade = () => {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [user?.id]);
 
-  const buckets = useMemo(() => {
-    const g: Record<"now" | "soon" | "wave", Shortlist[]> = { now: [], soon: [], wave: [] };
-    for (const p of items) g[bucket(p)].push(p);
-    return g;
-  }, [items]);
+  const buckets = useMemo(
+    () => ({ now: items, soon: items, wave: items }),
+    [items]
+  );
 
   const join = async (p: Shortlist) => {
     if (!user) return toast.error("Sign in to join");
