@@ -1,10 +1,14 @@
 import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
-import { ArrowLeft, Car, Loader2, Users, Calendar, CheckCircle2, Clock } from "lucide-react";
+import { ArrowLeft, Car, Loader2, Users, Calendar, CheckCircle2, Clock, Sparkles, Bell, Wallet } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { Logo } from "@/components/umoja/Logo";
 import { BottomNav } from "@/components/umoja/BottomNav";
+import {
+  AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
+  AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import { toast } from "sonner";
 
 interface Tier {
@@ -58,7 +62,8 @@ const Drive = () => {
   const [repayments, setRepayments] = useState<Repayment[]>([]);
   const [loading, setLoading] = useState(true);
   const [joining, setJoining] = useState<string | null>(null);
-
+  const [confirm, setConfirm] = useState<DriveCircle | null>(null);
+  const [justReserved, setJustReserved] = useState<string | null>(null);
   const load = async () => {
     setLoading(true);
     const [tRes, cRes, mRes, rRes] = await Promise.all([
@@ -106,10 +111,17 @@ const Drive = () => {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [user?.id]);
 
-  const join = async (c: DriveCircle) => {
+  const requestJoin = (c: DriveCircle) => {
     if (!user) return toast.error("Sign in first");
+    setConfirm(c);
+  };
+
+  const confirmJoin = async () => {
+    const c = confirm;
+    if (!c || !user) return;
     setJoining(c.id);
     let circleId = c.id;
+    const wasForming = c.id.startsWith("synthetic-") || c.status === "forming";
     // Materialize the synthetic forming circle into a real drive_circles row
     if (c.id.startsWith("synthetic-") && c.tier_id) {
       const { data: created, error: cErr } = await supabase
@@ -126,12 +138,14 @@ const Drive = () => {
         .single();
       if (cErr || !created) {
         setJoining(null);
+        setConfirm(null);
         return toast.error(cErr?.message ?? "Could not start circle");
       }
       circleId = created.id;
     }
     if (memberships.some((m) => m.circle_id === circleId)) {
       setJoining(null);
+      setConfirm(null);
       return toast.message("You're already in this circle");
     }
     const { error } = await supabase.from("drive_members").insert({
@@ -141,9 +155,15 @@ const Drive = () => {
       status: "active",
     });
     setJoining(null);
+    setConfirm(null);
     if (error) return toast.error(error.message);
-    toast.success(`Joined ${c.name ?? "circle"}`);
-    load();
+    setJustReserved(circleId);
+    toast.success(wasForming ? "Seat reserved ✨" : `Joined ${c.name ?? "circle"}`, {
+      description: wasForming
+        ? "We'll notify you the moment this circle activates."
+        : undefined,
+    });
+    await load();
   };
 
   const tierFor = (id: string | null) => tiers.find((t) => t.id === id);
@@ -304,7 +324,7 @@ const Drive = () => {
                         </div>
                       </div>
 
-                      {isForming && (
+                      {isForming && !joined && (
                         <div className="mt-4 rounded-2xl bg-secondary/60 p-3">
                           <p className="inline-flex items-center gap-1.5 text-[10px] uppercase tracking-[0.18em] text-accent">
                             <Clock className="h-3 w-3" /> Forming now
@@ -315,8 +335,35 @@ const Drive = () => {
                           </p>
                         </div>
                       )}
+
+                      {isForming && joined && (
+                        <div className="mt-4 rounded-2xl border border-accent/40 bg-accent/10 p-3 animate-fade-in">
+                          <p className="inline-flex items-center gap-1.5 text-[10px] uppercase tracking-[0.18em] text-accent">
+                            <CheckCircle2 className="h-3 w-3" /> Seat reserved
+                          </p>
+                          <ul className="mt-2 space-y-1.5 text-xs text-muted-foreground">
+                            <li className="inline-flex items-start gap-1.5">
+                              <Users className="mt-0.5 h-3 w-3 text-accent shrink-0" />
+                              <span>
+                                {Math.max(0, (t?.circle_size ?? 0) - (c.members_count ?? 0))} more seats needed to activate.
+                              </span>
+                            </li>
+                            <li className="inline-flex items-start gap-1.5">
+                              <Bell className="mt-0.5 h-3 w-3 text-accent shrink-0" />
+                              <span>You'll get a notification the moment we go live.</span>
+                            </li>
+                            <li className="inline-flex items-start gap-1.5">
+                              <Wallet className="mt-0.5 h-3 w-3 text-accent shrink-0" />
+                              <span>
+                                First weekly contribution of {fmtR(t?.weekly_contribution)} starts on activation day.
+                              </span>
+                            </li>
+                          </ul>
+                        </div>
+                      )}
+
                       <button
-                        onClick={() => join(c)}
+                        onClick={() => requestJoin(c)}
                         disabled={joined || joining === c.id}
                         className="mt-5 w-full h-11 rounded-2xl bg-gradient-primary text-primary-foreground text-sm font-medium shadow-glow inline-flex items-center justify-center gap-1.5 disabled:opacity-60"
                       >
@@ -324,7 +371,8 @@ const Drive = () => {
                           <Loader2 className="h-4 w-4 animate-spin" />
                         ) : joined ? (
                           <>
-                            <CheckCircle2 className="h-4 w-4" /> Joined
+                            <CheckCircle2 className="h-4 w-4" />
+                            {isForming ? (justReserved === c.id ? "Reserved ✓" : "Seat reserved") : "Joined"}
                           </>
                         ) : (
                           <>
@@ -367,6 +415,85 @@ const Drive = () => {
           </div>
         </section>
       )}
+
+      <AlertDialog open={!!confirm} onOpenChange={(o) => !o && !joining && setConfirm(null)}>
+        <AlertDialogContent className="rounded-3xl">
+          {(() => {
+            const c = confirm;
+            if (!c) return null;
+            const t = tierFor(c.tier_id);
+            const forming = c.id.startsWith("synthetic-") || c.status === "forming";
+            const seatsLeft = Math.max(0, (t?.circle_size ?? 0) - (c.members_count ?? 0));
+            return (
+              <>
+                <AlertDialogHeader>
+                  <AlertDialogTitle className="font-display text-xl">
+                    {forming ? "Reserve your seat?" : "Join this circle?"}
+                  </AlertDialogTitle>
+                  <AlertDialogDescription>
+                    {forming
+                      ? "You're locking in a spot in a circle that's still forming. Here's what happens next:"
+                      : "You're about to join an active circle. Weekly contributions begin immediately."}
+                  </AlertDialogDescription>
+                </AlertDialogHeader>
+
+                <div className="space-y-2.5 rounded-2xl bg-secondary/60 p-4 text-sm">
+                  <div className="flex items-start gap-2.5">
+                    <Sparkles className="mt-0.5 h-4 w-4 text-accent shrink-0" />
+                    <div>
+                      <p className="font-medium">{c.name ?? "Drive Circle"}</p>
+                      {t && (
+                        <p className="text-xs text-muted-foreground">
+                          {t.car_year} {t.car_make} {t.car_model}
+                        </p>
+                      )}
+                    </div>
+                  </div>
+                  <div className="flex items-start gap-2.5">
+                    <Wallet className="mt-0.5 h-4 w-4 text-accent shrink-0" />
+                    <p className="text-xs text-muted-foreground">
+                      {fmtR(t?.weekly_contribution)}/week — first payment {forming ? "starts on activation" : "due this week"}.
+                    </p>
+                  </div>
+                  <div className="flex items-start gap-2.5">
+                    <Users className="mt-0.5 h-4 w-4 text-accent shrink-0" />
+                    <p className="text-xs text-muted-foreground">
+                      {forming
+                        ? `${seatsLeft} of ${t?.circle_size ?? "—"} seats still need to fill before this circle activates.`
+                        : `${c.members_count ?? 0} / ${t?.circle_size ?? "—"} members already in.`}
+                    </p>
+                  </div>
+                  {forming && (
+                    <div className="flex items-start gap-2.5">
+                      <Bell className="mt-0.5 h-4 w-4 text-accent shrink-0" />
+                      <p className="text-xs text-muted-foreground">
+                        We'll notify you the moment the circle goes live — no charge until then.
+                      </p>
+                    </div>
+                  )}
+                </div>
+
+                <AlertDialogFooter>
+                  <AlertDialogCancel disabled={!!joining} className="rounded-2xl">Not yet</AlertDialogCancel>
+                  <AlertDialogAction
+                    disabled={!!joining}
+                    onClick={(e) => { e.preventDefault(); confirmJoin(); }}
+                    className="rounded-2xl bg-gradient-primary text-primary-foreground"
+                  >
+                    {joining ? (
+                      <Loader2 className="h-4 w-4 animate-spin" />
+                    ) : forming ? (
+                      "Reserve my seat"
+                    ) : (
+                      "Confirm join"
+                    )}
+                  </AlertDialogAction>
+                </AlertDialogFooter>
+              </>
+            );
+          })()}
+        </AlertDialogContent>
+      </AlertDialog>
 
       <BottomNav />
     </main>
