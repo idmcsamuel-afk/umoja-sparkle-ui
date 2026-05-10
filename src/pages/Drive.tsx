@@ -56,7 +56,7 @@ const fmtR = (n: number | null | undefined) =>
   "R" + Math.round(Number(n ?? 0)).toLocaleString("en-ZA");
 
 const Drive = () => {
-  const { user } = useAuth();
+  const { user, member } = useAuth();
   const [tiers, setTiers] = useState<Tier[]>([]);
   const [circles, setCircles] = useState<DriveCircle[]>([]);
   const [memberships, setMemberships] = useState<Membership[]>([]);
@@ -112,16 +112,45 @@ const Drive = () => {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [user?.id]);
 
-  // Live updates: refresh whenever circles or members change
+  // Live updates: refresh whenever circles or members change, and surface
+  // an OS-level push notification the moment a circle the user joined goes live.
   useEffect(() => {
     const channel = supabase
       .channel("drive-live")
       .on("postgres_changes", { event: "*", schema: "public", table: "drive_circles" }, () => load())
       .on("postgres_changes", { event: "*", schema: "public", table: "drive_members" }, () => load())
+      .on(
+        "postgres_changes",
+        { event: "INSERT", schema: "public", table: "notifications", filter: user?.id ? `member_id=eq.${user.id}` : undefined },
+        (payload) => {
+          const n: any = payload.new;
+          if (n?.kind === "drive_activated") {
+            toast.success(n.title ?? "Your circle is live", { description: n.body ?? undefined });
+            if (typeof window !== "undefined" && "Notification" in window && Notification.permission === "granted") {
+              try { new Notification(n.title ?? "Drive circle live", { body: n.body ?? "", tag: `drive-${n.id}` }); } catch {}
+            }
+          }
+        },
+      )
       .subscribe();
     return () => { supabase.removeChannel(channel); };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [user?.id]);
+
+  // Browser push opt-in
+  const [pushPerm, setPushPerm] = useState<NotificationPermission | "unsupported">(() => {
+    if (typeof window === "undefined" || !("Notification" in window)) return "unsupported";
+    return Notification.permission;
+  });
+  const enablePush = async () => {
+    if (pushPerm === "unsupported") return toast.error("This browser doesn't support push alerts");
+    if (pushPerm === "granted") return;
+    try {
+      const p = await Notification.requestPermission();
+      setPushPerm(p);
+      if (p === "granted") toast.success("Browser alerts on", { description: "We'll ping you when your circle activates." });
+    } catch { /* noop */ }
+  };
 
   // Tick every 30s so countdowns stay fresh even without DB changes
   const [tick, setTick] = useState(0);
@@ -426,7 +455,10 @@ const Drive = () => {
                             <ul className="mt-3 space-y-1.5 text-xs text-muted-foreground border-t border-accent/20 pt-3">
                               <li className="inline-flex items-start gap-1.5">
                                 <Bell className="mt-0.5 h-3 w-3 text-accent shrink-0" />
-                                <span>You'll get a notification the moment we go live.</span>
+                                <span>
+                                  In-app alert{member?.email ? " + email" : ""}
+                                  {pushPerm === "granted" ? " + browser push" : ""} the moment seats fill.
+                                </span>
                               </li>
                               <li className="inline-flex items-start gap-1.5">
                                 <Wallet className="mt-0.5 h-3 w-3 text-accent shrink-0" />
@@ -435,6 +467,16 @@ const Drive = () => {
                                 </span>
                               </li>
                             </ul>
+
+                            {pushPerm !== "granted" && pushPerm !== "unsupported" && (
+                              <button
+                                type="button"
+                                onClick={enablePush}
+                                className="mt-3 w-full h-9 rounded-xl border border-accent/40 bg-background/40 text-[11px] font-medium text-accent inline-flex items-center justify-center gap-1.5 hover:bg-accent/10 transition-colors"
+                              >
+                                <Bell className="h-3.5 w-3.5" /> Turn on browser alerts
+                              </button>
+                            )}
                           </div>
                         );
                       })()}
