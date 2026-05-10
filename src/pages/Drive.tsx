@@ -77,8 +77,25 @@ const Drive = () => {
     ]);
     if (tRes.error) console.error(tRes.error);
     if (cRes.error) console.error(cRes.error);
-    setTiers((tRes.data ?? []) as Tier[]);
-    setCircles((cRes.data ?? []) as DriveCircle[]);
+    const tiersData = (tRes.data ?? []) as Tier[];
+    const realCircles = (cRes.data ?? []) as DriveCircle[];
+
+    // Synthesize a forming circle for any active tier that has none yet
+    const tiersWithCircles = new Set(realCircles.map((c) => c.tier_id));
+    const synthetic: DriveCircle[] = tiersData
+      .filter((t) => !tiersWithCircles.has(t.id))
+      .map((t) => ({
+        id: `synthetic-${t.id}`,
+        name: `${t.name} Circle`,
+        tier_id: t.id,
+        target_pool: Number(t.pool_target),
+        current_pool: 0,
+        members_count: 0,
+        status: "forming",
+      }));
+
+    setTiers(tiersData);
+    setCircles([...realCircles, ...synthetic]);
     setMemberships((mRes.data ?? []) as Membership[]);
     setRepayments((rRes.data ?? []) as Repayment[]);
     setLoading(false);
