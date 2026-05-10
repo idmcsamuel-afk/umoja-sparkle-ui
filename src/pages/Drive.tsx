@@ -228,21 +228,35 @@ const Drive = () => {
                   const t = tierFor(c.tier_id);
                   const pct = Math.min(100, Math.round(((c.current_pool ?? 0) / Math.max(1, c.target_pool)) * 100));
                   const joined = memberships.some((m) => m.circle_id === c.id);
+                  const isForming = c.id.startsWith("synthetic-") || c.status === "forming";
                   return (
                     <article
                       key={c.id}
                       style={{ animationDelay: `${i * 60}ms` }}
-                      className="relative overflow-hidden rounded-3xl glass p-5 animate-slide-up"
+                      className={`relative overflow-hidden rounded-3xl p-5 animate-slide-up ${
+                        isForming
+                          ? "border border-dashed border-accent/40 bg-gradient-card"
+                          : "glass"
+                      }`}
                     >
+                      {isForming && (
+                        <div className="absolute right-4 top-4 inline-flex items-center gap-1 rounded-full border border-accent/40 bg-accent/10 px-2.5 py-1 text-[10px] uppercase tracking-[0.18em] text-accent">
+                          <span className="relative flex h-1.5 w-1.5">
+                            <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-accent opacity-75" />
+                            <span className="relative inline-flex h-1.5 w-1.5 rounded-full bg-accent" />
+                          </span>
+                          Forming
+                        </div>
+                      )}
                       <div className="flex items-start gap-4">
-                        <div className="grid h-14 w-14 shrink-0 place-items-center rounded-2xl bg-secondary text-primary">
+                        <div className={`grid h-14 w-14 shrink-0 place-items-center rounded-2xl bg-secondary text-primary ${isForming ? "opacity-80" : ""}`}>
                           {t?.car_image_url ? (
                             <img src={t.car_image_url} alt="" className="h-14 w-14 rounded-2xl object-cover" />
                           ) : (
                             <Car className="h-5 w-5" />
                           )}
                         </div>
-                        <div className="min-w-0 flex-1">
+                        <div className="min-w-0 flex-1 pr-20">
                           <p className="text-[10px] uppercase tracking-[0.18em] text-accent">{t?.name ?? "Drive"}</p>
                           <p className="font-display text-lg leading-tight truncate">{c.name ?? "Drive Circle"}</p>
                           {t && (
@@ -264,27 +278,51 @@ const Drive = () => {
                           </span>
                         </div>
                         <div className="mt-2 h-2 w-full rounded-full bg-secondary overflow-hidden">
-                          <div className="h-full rounded-full bg-gradient-gold transition-all" style={{ width: `${pct}%` }} />
+                          <div
+                            className={`h-full rounded-full transition-all ${isForming ? "bg-accent/30" : "bg-gradient-gold"}`}
+                            style={{ width: `${Math.max(pct, isForming ? 4 : 0)}%` }}
+                          />
                         </div>
                       </div>
 
-                      <button
-                        onClick={() => join(c)}
-                        disabled={joined || joining === c.id}
-                        className="mt-5 w-full h-11 rounded-2xl bg-gradient-primary text-primary-foreground text-sm font-medium shadow-glow inline-flex items-center justify-center gap-1.5 disabled:opacity-60"
-                      >
-                        {joining === c.id ? (
-                          <Loader2 className="h-4 w-4 animate-spin" />
-                        ) : joined ? (
-                          <>
-                            <CheckCircle2 className="h-4 w-4" /> Joined
-                          </>
-                        ) : (
-                          <>
-                            <Car className="h-4 w-4" /> Join Circle
-                          </>
-                        )}
-                      </button>
+                      {isForming ? (
+                        <div className="mt-5 space-y-3">
+                          <div className="rounded-2xl bg-secondary/60 p-3">
+                            <p className="inline-flex items-center gap-1.5 text-[10px] uppercase tracking-[0.18em] text-accent">
+                              <Clock className="h-3 w-3" /> Opens when full
+                            </p>
+                            <p className="mt-1 text-xs text-muted-foreground">
+                              {t ? `Joining opens once ${t.circle_size} members reserve a seat. ` : ""}
+                              We'll notify you the moment this circle activates.
+                            </p>
+                          </div>
+                          <button
+                            disabled
+                            aria-disabled="true"
+                            className="w-full h-11 rounded-2xl border border-border bg-secondary/40 text-sm font-medium text-muted-foreground inline-flex items-center justify-center gap-1.5 cursor-not-allowed"
+                          >
+                            <Clock className="h-4 w-4" /> Join opens soon
+                          </button>
+                        </div>
+                      ) : (
+                        <button
+                          onClick={() => join(c)}
+                          disabled={joined || joining === c.id}
+                          className="mt-5 w-full h-11 rounded-2xl bg-gradient-primary text-primary-foreground text-sm font-medium shadow-glow inline-flex items-center justify-center gap-1.5 disabled:opacity-60"
+                        >
+                          {joining === c.id ? (
+                            <Loader2 className="h-4 w-4 animate-spin" />
+                          ) : joined ? (
+                            <>
+                              <CheckCircle2 className="h-4 w-4" /> Joined
+                            </>
+                          ) : (
+                            <>
+                              <Car className="h-4 w-4" /> Join Circle
+                            </>
+                          )}
+                        </button>
+                      )}
                     </article>
                   );
                 })}
