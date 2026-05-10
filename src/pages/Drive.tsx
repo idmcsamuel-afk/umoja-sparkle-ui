@@ -32,6 +32,7 @@ interface DriveCircle {
   current_pool: number | null;
   members_count: number | null;
   status: string | null;
+  created_at?: string | null;
 }
 
 interface Membership {
