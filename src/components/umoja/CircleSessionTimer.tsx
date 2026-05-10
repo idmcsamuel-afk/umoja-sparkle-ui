@@ -1,4 +1,12 @@
 import { useEffect, useState } from "react";
+import { useTimezone, formatTime, tzAbbrev } from "@/hooks/useTimezone";
+
+const SAST_TZ = "Africa/Johannesburg";
+function timeStamp(ts: number, tz: string) {
+  const showBoth = tz !== SAST_TZ;
+  const local = `${formatTime(ts, tz)} ${tzAbbrev(ts, tz)}`;
+  return showBoth ? `${local} · ${formatTime(ts, SAST_TZ)} SAST` : `${local}`;
+}
 
 // SAST = UTC+2 (no DST)
 const SAST_OFFSET_MS = 2 * 60 * 60 * 1000;
