@@ -736,20 +736,24 @@ interface PrefRowProps {
   hint?: string;
   checked: boolean;
   disabled?: boolean;
+  loading?: boolean;
   onChange: (v: boolean) => void;
 }
-const PrefRow = ({ icon, label, hint, checked, disabled, onChange }: PrefRowProps) => (
+const PrefRow = ({ icon, label, hint, checked, disabled, loading, onChange }: PrefRowProps) => (
   <div className={`flex items-center justify-between gap-3 ${disabled ? "opacity-60" : ""}`}>
     <div className="flex items-start gap-2 min-w-0">
       <span className="mt-0.5 grid h-6 w-6 place-items-center rounded-md bg-accent/15 text-accent shrink-0">
         {icon}
       </span>
       <div className="min-w-0">
-        <p className="text-xs font-medium text-foreground">{label}</p>
+        <p className="text-xs font-medium text-foreground inline-flex items-center gap-1.5">
+          {label}
+          {loading && <Loader2 className="h-3 w-3 animate-spin text-accent" aria-label="Saving" />}
+        </p>
         {hint && <p className="text-[10px] text-muted-foreground truncate">{hint}</p>}
       </div>
     </div>
-    <Switch checked={checked} disabled={disabled} onCheckedChange={onChange} />
+    <Switch checked={checked} disabled={disabled || loading} onCheckedChange={onChange} />
   </div>
 );
 
