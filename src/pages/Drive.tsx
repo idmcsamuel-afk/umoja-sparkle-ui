@@ -56,7 +56,7 @@ const fmtR = (n: number | null | undefined) =>
   "R" + Math.round(Number(n ?? 0)).toLocaleString("en-ZA");
 
 const Drive = () => {
-  const { user } = useAuth();
+  const { user, member } = useAuth();
   const [tiers, setTiers] = useState<Tier[]>([]);
   const [circles, setCircles] = useState<DriveCircle[]>([]);
   const [memberships, setMemberships] = useState<Membership[]>([]);
