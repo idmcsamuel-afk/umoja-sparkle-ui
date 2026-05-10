@@ -12,6 +12,9 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { toast } from "sonner";
+import { CircleAcceptanceModal, hasAcceptedCircle } from "@/components/umoja/CircleAcceptanceModal";
+import { CircleSessionTimer } from "@/components/umoja/CircleSessionTimer";
+import { SparksDisclaimer } from "@/components/umoja/SparksDisclaimer";
 
 interface Tier {
   tier: string;
@@ -259,28 +262,36 @@ const Circle = () => {
                       </div>
                     </div>
 
-                    <div className="mt-3 flex items-center justify-between text-xs">
-                      <span className="inline-flex items-center gap-1 text-muted-foreground">
-                        <Clock className="h-3 w-3 text-accent" /> Next session in <NextSession sessionsPerDay={sessionsPerDay} />
-                      </span>
-                      {myTotal > 0 && (
+                    <div className="mt-4">
+                      <CircleSessionTimer tier={t.tier} />
+                    </div>
+                    {myTotal > 0 && (
+                      <div className="mt-3 flex items-center justify-end text-xs">
                         <span className="inline-flex items-center gap-1 text-accent-soft">
                           <Flame className="h-3 w-3" /> Your stake {fmtR(myTotal)}
                         </span>
-                      )}
-                    </div>
+                      </div>
+                    )}
 
                     <div className="mt-5 flex gap-2">
                       <button
                         disabled={locked}
-                        onClick={() => { if (!locked) { setOpen(t); setAmount(String(t.min_entry)); } }}
+                        onClick={() => {
+                          if (locked) return;
+                          if (!hasAcceptedCircle()) { toast.info("Please accept the Circle terms first."); return; }
+                          setOpen(t); setAmount(String(t.min_entry));
+                        }}
                         className="flex-1 h-11 rounded-2xl bg-gradient-primary text-primary-foreground text-sm font-medium shadow-glow inline-flex items-center justify-center gap-1.5 disabled:opacity-50 disabled:cursor-not-allowed"
                       >
                         {locked ? <><Lock className="h-4 w-4" /> Locked</> : <><Plus className="h-4 w-4" /> Enter {niceName}</>}
                       </button>
                       <button
                         disabled={locked}
-                        onClick={() => { if (!locked) { setOpen(t); setAmount(String(t.max_entry)); } }}
+                        onClick={() => {
+                          if (locked) return;
+                          if (!hasAcceptedCircle()) { toast.info("Please accept the Circle terms first."); return; }
+                          setOpen(t); setAmount(String(t.max_entry));
+                        }}
                         className="h-11 px-5 rounded-2xl border border-border text-sm font-medium hover:bg-secondary transition-smooth inline-flex items-center gap-1 disabled:opacity-50 disabled:cursor-not-allowed"
                       >
                         Bid <ChevronRight className="h-3 w-3" />
@@ -326,6 +337,13 @@ const Circle = () => {
         </DialogContent>
       </Dialog>
 
+      <section className="px-5 pt-8">
+        <div className="mx-auto max-w-md">
+          <SparksDisclaimer />
+        </div>
+      </section>
+
+      <CircleAcceptanceModal />
       <BottomNav />
     </main>
   );
