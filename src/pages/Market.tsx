@@ -153,7 +153,7 @@ export default function Market() {
               </button>
             )}
           </div>
-          <div className="mt-3 flex gap-2 overflow-x-auto -mx-5 px-5 pb-1 scrollbar-none">
+          <div className="mt-3 flex gap-2 overflow-x-auto -mx-5 px-5 pb-1 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
             {CATEGORIES.map((c) => {
               const active = c === cat;
               return (
