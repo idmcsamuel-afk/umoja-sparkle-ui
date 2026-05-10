@@ -26,13 +26,13 @@ export const BottomNav = () => {
                   className="group flex flex-col items-center gap-1 py-2 transition-smooth"
                 >
                   <span
-                    className={`grid h-10 w-10 place-items-center rounded-2xl transition-smooth ${
+                    className={`grid h-9 w-9 place-items-center rounded-2xl transition-smooth ${
                       active
                         ? "bg-gradient-primary text-primary-foreground shadow-glow"
                         : "text-muted-foreground group-hover:text-foreground"
                     }`}
                   >
-                    <Icon className="h-[18px] w-[18px]" strokeWidth={2.2} />
+                    <Icon className="h-[16px] w-[16px]" strokeWidth={2.2} />
                   </span>
                   <span
                     className={`text-[10px] font-medium tracking-wide ${
