@@ -215,24 +215,31 @@ const Circle = () => {
               {tiers.map((t, i) => {
                 const s = stats[t.tier] ?? { pool: 0, members: 0, target: 1 };
                 const pct = Math.min(100, Math.round((s.pool / Math.max(1, s.target)) * 100));
+                const locked = !t.is_active;
+                const myBids = bids.filter((b) => b.tier === t.tier);
+                const myTotal = myBids.reduce((sum, b) => sum + Number(b.fiat_amount ?? 0), 0);
+                const sessionsPerDay = Math.max(1, Number(t.sessions_per_day ?? 1));
+                const niceName = `${t.tier.charAt(0).toUpperCase() + t.tier.slice(1)} Circle`;
                 return (
                   <article
                     key={t.tier}
                     style={{ animationDelay: `${i * 60}ms` }}
-                    className="group relative overflow-hidden rounded-3xl glass p-5 animate-slide-up"
+                    className={`group relative overflow-hidden rounded-3xl glass p-5 animate-slide-up ${locked ? "opacity-80" : ""}`}
                   >
                     <div className="flex items-start justify-between">
                       <div>
                         <p className="text-[10px] uppercase tracking-[0.18em] text-accent">
                           Vault {t.vault_days}d · +{Math.round(Number(t.growth_rate) * 100)}%
                         </p>
-                        <p className="mt-1 font-display text-xl capitalize">{t.tier}</p>
+                        <p className="mt-1 font-display text-xl">{niceName}</p>
                         <p className="mt-1 text-xs text-muted-foreground">
                           {fmtR(Number(t.min_entry))} – {fmtR(Number(t.max_entry))}
                         </p>
                       </div>
-                      <div className="text-right">
-                        <p className="text-[10px] uppercase tracking-[0.18em] text-muted-foreground">Pool</p>
+                      <div className="flex flex-col items-end gap-1">
+                        <span className={`inline-flex items-center gap-1 text-[10px] uppercase tracking-wider rounded-full px-2 py-1 ${locked ? "bg-muted text-muted-foreground" : "bg-primary/15 text-primary"}`}>
+                          {locked ? <><Lock className="h-3 w-3" /> Locked</> : "Active"}
+                        </span>
                         <p className="font-display text-base text-gradient-gold">{fmtR(s.pool)}</p>
                       </div>
                     </div>
@@ -252,16 +259,29 @@ const Circle = () => {
                       </div>
                     </div>
 
+                    <div className="mt-3 flex items-center justify-between text-xs">
+                      <span className="inline-flex items-center gap-1 text-muted-foreground">
+                        <Clock className="h-3 w-3 text-accent" /> Next session in <NextSession sessionsPerDay={sessionsPerDay} />
+                      </span>
+                      {myTotal > 0 && (
+                        <span className="inline-flex items-center gap-1 text-accent-soft">
+                          <Flame className="h-3 w-3" /> Your stake {fmtR(myTotal)}
+                        </span>
+                      )}
+                    </div>
+
                     <div className="mt-5 flex gap-2">
                       <button
-                        onClick={() => { setOpen(t); setAmount(String(t.min_entry)); }}
-                        className="flex-1 h-11 rounded-2xl bg-gradient-primary text-primary-foreground text-sm font-medium shadow-glow inline-flex items-center justify-center gap-1.5"
+                        disabled={locked}
+                        onClick={() => { if (!locked) { setOpen(t); setAmount(String(t.min_entry)); } }}
+                        className="flex-1 h-11 rounded-2xl bg-gradient-primary text-primary-foreground text-sm font-medium shadow-glow inline-flex items-center justify-center gap-1.5 disabled:opacity-50 disabled:cursor-not-allowed"
                       >
-                        <Plus className="h-4 w-4" /> Contribute
+                        {locked ? <><Lock className="h-4 w-4" /> Locked</> : <><Plus className="h-4 w-4" /> Enter {niceName}</>}
                       </button>
                       <button
-                        onClick={() => { setOpen(t); setAmount(String(t.max_entry)); }}
-                        className="h-11 px-5 rounded-2xl border border-border text-sm font-medium hover:bg-secondary transition-smooth inline-flex items-center gap-1"
+                        disabled={locked}
+                        onClick={() => { if (!locked) { setOpen(t); setAmount(String(t.max_entry)); } }}
+                        className="h-11 px-5 rounded-2xl border border-border text-sm font-medium hover:bg-secondary transition-smooth inline-flex items-center gap-1 disabled:opacity-50 disabled:cursor-not-allowed"
                       >
                         Bid <ChevronRight className="h-3 w-3" />
                       </button>
