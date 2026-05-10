@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { Link } from "react-router-dom";
-import { ArrowLeft, TrendingUp, Loader2, Trophy, Sparkles, Clock, CheckCircle2, XCircle } from "lucide-react";
+import { ArrowLeft, TrendingUp, Loader2, Trophy, Sparkles, Clock, CheckCircle2, XCircle, History, Lock } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { Logo } from "@/components/umoja/Logo";
@@ -105,10 +105,13 @@ const QuestionCard = ({
   );
 };
 
+interface QMeta { question: string; category: string | null; correct_answer: string | null; closes_at: string | null }
+
 const Predictor = () => {
   const { user } = useAuth();
   const [questions, setQuestions] = useState<Question[]>([]);
   const [entries, setEntries] = useState<Entry[]>([]);
+  const [qMeta, setQMeta] = useState<Record<string, QMeta>>({});
   const [leaders, setLeaders] = useState<LeaderRow[]>([]);
   const [loading, setLoading] = useState(true);
   const [busy, setBusy] = useState(false);
@@ -133,13 +136,32 @@ const Predictor = () => {
     if (qRes.error) console.error(qRes.error);
 
     const rawQuestions = (qRes.data ?? []) as Array<Omit<Question, "options"> & { options: unknown }>;
-    setQuestions(
-      rawQuestions.map((q) => ({
-        ...q,
-        options: Array.isArray(q.options) ? (q.options as string[]) : null,
-      }))
+    const liveQs: Question[] = rawQuestions.map((q) => ({
+      ...q,
+      options: Array.isArray(q.options) ? (q.options as string[]) : null,
+    }));
+    setQuestions(liveQs);
+
+    const myEntries = (eRes.data ?? []) as Entry[];
+    setEntries(myEntries);
+
+    // Fetch question meta for any entries whose question isn't in the live list
+    const liveIds = new Set(liveQs.map((q) => q.id));
+    const missingIds = Array.from(
+      new Set(myEntries.map((e) => e.question_id).filter((id): id is string => !!id && !liveIds.has(id)))
     );
-    setEntries((eRes.data ?? []) as Entry[]);
+    const meta: Record<string, QMeta> = {};
+    for (const q of liveQs) meta[q.id] = { question: q.question, category: q.category, correct_answer: null, closes_at: q.closes_at };
+    if (missingIds.length > 0) {
+      const { data: extra } = await supabase
+        .from("predictor_questions")
+        .select("id, question, category, correct_answer, closes_at")
+        .in("id", missingIds);
+      for (const q of (extra ?? []) as Array<{ id: string } & QMeta>) {
+        meta[q.id] = { question: q.question, category: q.category, correct_answer: q.correct_answer, closes_at: q.closes_at };
+      }
+    }
+    setQMeta(meta);
 
     const board = ((lRes.data ?? []) as Array<{ member_id: string; full_name: string | null; correct: number; sparks_won: number }>).map(
       (r) => ({
@@ -240,40 +262,110 @@ const Predictor = () => {
                   )}
                 </TabsContent>
 
-                <TabsContent value="picks" className="mt-5">
-                  {entries.length === 0 ? (
-                    <div className="rounded-3xl glass p-6 text-center text-sm text-muted-foreground">
-                      You haven't placed any picks yet.
+                <TabsContent value="picks" className="mt-5 space-y-3">
+                  {!user ? (
+                    <div className="rounded-3xl glass p-8 text-center animate-fade-in">
+                      <Lock className="mx-auto h-5 w-5 text-muted-foreground" />
+                      <p className="mt-3 text-sm text-muted-foreground">Sign in to see your prediction history.</p>
+                    </div>
+                  ) : entries.length === 0 ? (
+                    <div className="rounded-3xl glass p-8 text-center animate-fade-in">
+                      <div className="mx-auto grid h-12 w-12 place-items-center rounded-2xl bg-gradient-primary/10 border border-primary/20">
+                        <History className="h-5 w-5 text-primary" />
+                      </div>
+                      <h3 className="mt-3 font-display text-lg">No picks yet</h3>
+                      <p className="mt-1 text-sm text-muted-foreground">Place your first prediction in the Play tab.</p>
                     </div>
                   ) : (
-                    <ul className="divide-y divide-border rounded-3xl border border-border bg-gradient-card overflow-hidden">
-                      {entries.slice(0, 20).map((e) => (
-                        <li key={e.id} className="flex items-center gap-4 p-4">
-                          <div className="grid h-10 w-10 shrink-0 place-items-center rounded-2xl bg-secondary text-primary">
-                            {e.is_correct === true ? (
-                              <CheckCircle2 className="h-4 w-4 text-accent" />
-                            ) : e.is_correct === false ? (
-                              <XCircle className="h-4 w-4 text-muted-foreground" />
-                            ) : (
-                              <Clock className="h-4 w-4" />
-                            )}
+                    <>
+                      {/* Summary stats */}
+                      {(() => {
+                        const won = entries.filter((e) => e.is_correct === true).length;
+                        const lost = entries.filter((e) => e.is_correct === false).length;
+                        const pending = entries.filter((e) => e.is_correct === null).length;
+                        const net = entries.reduce(
+                          (s, e) => s + (e.is_correct ? Number(e.sparks_won ?? 0) : e.is_correct === false ? -Number(e.sparks_spent ?? 0) : 0),
+                          0
+                        );
+                        const acc = won + lost > 0 ? Math.round((won / (won + lost)) * 100) : 0;
+                        return (
+                          <div className="grid grid-cols-4 gap-2 animate-fade-in">
+                            <Stat label="Picks" value={entries.length.toString()} />
+                            <Stat label="Won" value={won.toString()} accent />
+                            <Stat label="Pending" value={pending.toString()} />
+                            <Stat label="Net SP" value={`${net >= 0 ? "+" : ""}${net}`} gold={net > 0} />
+                            <div className="col-span-4 rounded-2xl border border-border bg-secondary/30 p-3 text-xs text-muted-foreground inline-flex items-center justify-between">
+                              <span>Accuracy</span>
+                              <span className="font-display text-base text-gradient-gold">{acc}%</span>
+                            </div>
                           </div>
-                          <div className="min-w-0 flex-1">
-                            <p className="truncate text-sm font-medium">{e.selected_answer ?? "—"}</p>
-                            <p className="truncate text-xs text-muted-foreground">
-                              {e.is_correct === null
-                                ? "Awaiting result"
-                                : e.is_correct
-                                ? `Won +${e.sparks_won ?? 0} SP`
-                                : `−${e.sparks_spent ?? 0} SP`}
-                            </p>
-                          </div>
-                          <span className="text-xs text-muted-foreground">
-                            {e.created_at ? new Date(e.created_at).toLocaleDateString() : ""}
-                          </span>
-                        </li>
-                      ))}
-                    </ul>
+                        );
+                      })()}
+
+                      <ul className="space-y-2 animate-slide-up">
+                        {entries.map((e) => {
+                          const meta = e.question_id ? qMeta[e.question_id] : undefined;
+                          const dt = e.created_at ? new Date(e.created_at) : null;
+                          const status =
+                            e.is_correct === true ? "won" : e.is_correct === false ? "lost" : "pending";
+                          return (
+                            <li
+                              key={e.id}
+                              className="rounded-3xl border border-border bg-gradient-card p-4 transition-smooth hover:border-primary/40"
+                            >
+                              <div className="flex items-start gap-3">
+                                <div className={`grid h-10 w-10 shrink-0 place-items-center rounded-2xl ${
+                                  status === "won" ? "bg-gradient-gold text-background"
+                                  : status === "lost" ? "bg-destructive/15 text-destructive"
+                                  : "bg-secondary text-muted-foreground"
+                                }`}>
+                                  {status === "won" ? <CheckCircle2 className="h-4 w-4" />
+                                    : status === "lost" ? <XCircle className="h-4 w-4" />
+                                    : <Clock className="h-4 w-4" />}
+                                </div>
+                                <div className="min-w-0 flex-1">
+                                  <div className="flex items-baseline justify-between gap-3">
+                                    <p className="text-[10px] uppercase tracking-[0.18em] text-accent truncate">
+                                      {meta?.category ?? "Market"}
+                                    </p>
+                                    <span className="text-[10px] uppercase tracking-[0.18em] text-muted-foreground shrink-0">
+                                      {dt ? dt.toLocaleDateString("en-ZA", { day: "numeric", month: "short" }) : ""}
+                                    </span>
+                                  </div>
+                                  <p className="mt-0.5 text-sm font-medium leading-snug line-clamp-2">
+                                    {meta?.question ?? "Question"}
+                                  </p>
+                                  <div className="mt-2 flex flex-wrap items-center gap-2 text-xs">
+                                    <span className="rounded-full bg-secondary/60 border border-border px-2.5 py-0.5">
+                                      Your pick: <span className="font-medium">{e.selected_answer ?? "—"}</span>
+                                    </span>
+                                    {meta?.correct_answer && status !== "pending" && (
+                                      <span className="rounded-full bg-secondary/30 border border-border px-2.5 py-0.5 text-muted-foreground">
+                                        Outcome: {meta.correct_answer}
+                                      </span>
+                                    )}
+                                    <span
+                                      className={`ml-auto inline-flex items-center gap-1 font-display ${
+                                        status === "won" ? "text-gradient-gold"
+                                        : status === "lost" ? "text-destructive"
+                                        : "text-muted-foreground"
+                                      }`}
+                                    >
+                                      <Sparkles className="h-3 w-3" />
+                                      {status === "won"
+                                        ? `+${e.sparks_won ?? 0} SP`
+                                        : status === "lost"
+                                        ? `−${e.sparks_spent ?? 0} SP`
+                                        : `${e.sparks_spent ?? 0} SP held`}
+                                    </span>
+                                  </div>
+                                </div>
+                              </div>
+                            </li>
+                          );
+                        })}
+                      </ul>
+                    </>
                   )}
                 </TabsContent>
 
@@ -313,5 +405,14 @@ const Predictor = () => {
     </main>
   );
 };
+
+function Stat({ label, value, accent, gold }: { label: string; value: string; accent?: boolean; gold?: boolean }) {
+  return (
+    <div className="rounded-2xl border border-border bg-secondary/40 p-2.5 text-center">
+      <p className="text-[9px] uppercase tracking-wider text-muted-foreground">{label}</p>
+      <p className={`mt-1 font-display text-base ${gold ? "text-gradient-gold" : accent ? "text-accent" : ""}`}>{value}</p>
+    </div>
+  );
+}
 
 export default Predictor;
