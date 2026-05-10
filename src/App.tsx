@@ -16,6 +16,9 @@ import SparkTrade from "./pages/SparkTrade.tsx";
 import Drive from "./pages/Drive.tsx";
 import Predictor from "./pages/Predictor.tsx";
 import Profile from "./pages/Profile.tsx";
+import Calculator from "./pages/Calculator.tsx";
+import Market from "./pages/Market.tsx";
+import Exchange from "./pages/Exchange.tsx";
 import NotFound from "./pages/NotFound.tsx";
 import AdminLayout from "./components/umoja/AdminLayout";
 import AdminDashboard from "./pages/admin/AdminDashboard";
@@ -46,6 +49,9 @@ const App = () => (
               <Route path="/drive" element={<ProtectedRoute><Drive /></ProtectedRoute>} />
               <Route path="/predictor" element={<ProtectedRoute><Predictor /></ProtectedRoute>} />
               <Route path="/profile" element={<ProtectedRoute><Profile /></ProtectedRoute>} />
+              <Route path="/calculator" element={<ProtectedRoute><Calculator /></ProtectedRoute>} />
+              <Route path="/market" element={<ProtectedRoute><Market /></ProtectedRoute>} />
+              <Route path="/exchange" element={<ProtectedRoute><Exchange /></ProtectedRoute>} />
 
               <Route path="/admin" element={<AdminRoute><AdminLayout /></AdminRoute>}>
                 <Route index element={<AdminDashboard />} />

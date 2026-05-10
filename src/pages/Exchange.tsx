@@ -1,0 +1,332 @@
+import { useEffect, useMemo, useState } from "react";
+import { Link } from "react-router-dom";
+import { ArrowLeft, Loader2, Sparkles, ArrowDownLeft, ArrowUpRight, Plus, Wallet, History } from "lucide-react";
+import { supabase } from "@/integrations/supabase/client";
+import { useAuth } from "@/hooks/useAuth";
+import { Logo } from "@/components/umoja/Logo";
+import { BottomNav } from "@/components/umoja/BottomNav";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Button } from "@/components/ui/button";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog";
+import { toast } from "sonner";
+
+const SPARK_RATE = 1; // 1 Spark = R1 ZAR
+const COMMISSION = 0.02;
+
+interface Offer {
+  id: string;
+  seller_id: string;
+  buyer_id: string | null;
+  spark_amount: number;
+  price_per_spark: number;
+  total_price: number;
+  commission: number;
+  seller_receives: number;
+  status: string | null;
+  created_at: string | null;
+}
+
+interface Txn {
+  id: string;
+  tx_type: string;
+  amount: number;
+  fiat_amount: number | null;
+  status: string | null;
+  created_at: string | null;
+  from_member: string | null;
+  to_member: string | null;
+}
+
+const fmtR = (n: number) => "R" + Math.round(n).toLocaleString("en-ZA");
+const fmtSP = (n: number) => Math.round(n).toLocaleString("en-ZA") + " SP";
+
+export default function Exchange() {
+  const { user } = useAuth();
+  const [offers, setOffers] = useState<Offer[]>([]);
+  const [txns, setTxns] = useState<Txn[]>([]);
+  const [balance, setBalance] = useState<number>(0);
+  const [loading, setLoading] = useState(true);
+  const [sellOpen, setSellOpen] = useState(false);
+  const [busy, setBusy] = useState(false);
+  const [sellAmt, setSellAmt] = useState("");
+  const [sellPrice, setSellPrice] = useState(String(SPARK_RATE));
+
+  const load = async () => {
+    setLoading(true);
+    const [oRes, tRes, wRes] = await Promise.all([
+      supabase
+        .from("spark_exchange")
+        .select("*")
+        .eq("status", "open")
+        .order("created_at", { ascending: false })
+        .limit(50),
+      user
+        ? supabase
+            .from("spark_transactions")
+            .select("id, tx_type, amount, fiat_amount, status, created_at, from_member, to_member")
+            .or(`from_member.eq.${user.id},to_member.eq.${user.id}`)
+            .order("created_at", { ascending: false })
+            .limit(50)
+        : Promise.resolve({ data: [], error: null } as const),
+      user
+        ? supabase.from("spark_wallets").select("balance").eq("member_id", user.id).maybeSingle()
+        : Promise.resolve({ data: null, error: null } as const),
+    ]);
+    setOffers((oRes.data ?? []) as Offer[]);
+    setTxns((tRes.data ?? []) as Txn[]);
+    setBalance(Number((wRes.data as { balance?: number } | null)?.balance ?? 0));
+    setLoading(false);
+  };
+
+  useEffect(() => {
+    load();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [user?.id]);
+
+  const sellPreview = useMemo(() => {
+    const amt = Number(sellAmt) || 0;
+    const price = Number(sellPrice) || 0;
+    const total = +(amt * price).toFixed(2);
+    const commission = +(total * COMMISSION).toFixed(2);
+    const receives = +(total - commission).toFixed(2);
+    return { total, commission, receives };
+  }, [sellAmt, sellPrice]);
+
+  const postSell = async () => {
+    if (!user) return toast.error("Sign in first");
+    const amt = Number(sellAmt);
+    const price = Number(sellPrice);
+    if (!Number.isFinite(amt) || amt <= 0) return toast.error("Enter Spark amount");
+    if (!Number.isFinite(price) || price <= 0) return toast.error("Enter price per Spark");
+    if (amt > balance) return toast.error("Not enough Sparks in your wallet");
+    setBusy(true);
+    const { error } = await supabase.from("spark_exchange").insert({
+      seller_id: user.id,
+      spark_amount: amt,
+      price_per_spark: price,
+      total_price: sellPreview.total,
+      commission: sellPreview.commission,
+      seller_receives: sellPreview.receives,
+      status: "open",
+    });
+    setBusy(false);
+    if (error) return toast.error(error.message);
+    toast.success("Offer posted to exchange ✨");
+    setSellOpen(false);
+    setSellAmt("");
+    load();
+  };
+
+  const reserve = async (o: Offer) => {
+    if (!user) return toast.error("Sign in first");
+    if (o.seller_id === user.id) return toast.error("That's your own offer");
+    toast.success("Reserved — admin will settle the trade shortly.", { description: `${fmtSP(o.spark_amount)} for ${fmtR(o.total_price)}` });
+  };
+
+  return (
+    <main className="relative min-h-screen pb-32">
+      <header className="px-5 pt-6">
+        <div className="mx-auto flex max-w-md items-center justify-between">
+          <Link to="/dashboard" className="grid h-10 w-10 place-items-center rounded-2xl glass">
+            <ArrowLeft className="h-4 w-4" />
+          </Link>
+          <Logo />
+          <button
+            onClick={() => setSellOpen(true)}
+            className="grid h-10 w-10 place-items-center rounded-2xl bg-gradient-primary text-primary-foreground shadow-glow"
+            aria-label="Sell sparks"
+          >
+            <Plus className="h-4 w-4" />
+          </button>
+        </div>
+      </header>
+
+      <section className="px-5 pt-6">
+        <div className="mx-auto max-w-md animate-fade-in">
+          <p className="text-[11px] uppercase tracking-[0.22em] text-accent">Spark Exchange</p>
+          <h1 className="mt-2 font-display text-[34px] leading-tight tracking-tight">
+            Trade Sparks<br />
+            <span className="text-gradient-gold italic font-[450]">at fair rates.</span>
+          </h1>
+        </div>
+      </section>
+
+      {/* Balance + rate */}
+      <section className="px-5 pt-6">
+        <div className="mx-auto max-w-md grid grid-cols-2 gap-3">
+          <div className="rounded-3xl glass p-5">
+            <div className="flex items-center gap-2 text-[10px] uppercase tracking-[0.18em] text-muted-foreground">
+              <Wallet className="h-3.5 w-3.5" /> Your wallet
+            </div>
+            <p className="mt-2 font-display text-2xl text-gradient-gold">{fmtSP(balance)}</p>
+            <p className="text-xs text-muted-foreground">≈ {fmtR(balance * SPARK_RATE)}</p>
+          </div>
+          <div className="rounded-3xl glass p-5">
+            <div className="flex items-center gap-2 text-[10px] uppercase tracking-[0.18em] text-muted-foreground">
+              <Sparkles className="h-3.5 w-3.5 text-accent" /> Current rate
+            </div>
+            <p className="mt-2 font-display text-2xl">1 SP = R{SPARK_RATE.toFixed(2)}</p>
+            <p className="text-xs text-muted-foreground">{Math.round(COMMISSION * 100)}% platform fee</p>
+          </div>
+        </div>
+      </section>
+
+      <section className="px-5 pt-8">
+        <div className="mx-auto max-w-md">
+          <Tabs defaultValue="market" className="w-full">
+            <TabsList className="grid w-full grid-cols-2 rounded-2xl bg-secondary/60 p-1 h-12">
+              <TabsTrigger value="market" className="rounded-xl data-[state=active]:bg-gradient-primary data-[state=active]:text-primary-foreground data-[state=active]:shadow-glow text-xs">
+                Open offers
+              </TabsTrigger>
+              <TabsTrigger value="history" className="rounded-xl data-[state=active]:bg-gradient-primary data-[state=active]:text-primary-foreground text-xs">
+                History
+              </TabsTrigger>
+            </TabsList>
+
+            {loading ? (
+              <div className="mt-6 grid place-items-center rounded-3xl glass p-10">
+                <Loader2 className="h-5 w-5 animate-spin text-primary" />
+              </div>
+            ) : (
+              <>
+                <TabsContent value="market" className="mt-5 space-y-3">
+                  {offers.length === 0 ? (
+                    <div className="rounded-3xl glass p-8 text-center">
+                      <Sparkles className="mx-auto h-7 w-7 text-accent" />
+                      <p className="mt-3 text-sm text-muted-foreground">No open offers. Be the first to post.</p>
+                      <Button
+                        onClick={() => setSellOpen(true)}
+                        className="mt-4 rounded-2xl bg-gradient-primary text-primary-foreground shadow-glow"
+                      >
+                        <Plus className="h-4 w-4 mr-1" /> Sell Sparks
+                      </Button>
+                    </div>
+                  ) : (
+                    offers.map((o, i) => {
+                      const mine = o.seller_id === user?.id;
+                      return (
+                        <article
+                          key={o.id}
+                          style={{ animationDelay: `${i * 40}ms` }}
+                          className="rounded-3xl glass p-5 animate-slide-up"
+                        >
+                          <div className="flex items-start justify-between">
+                            <div>
+                              <p className="text-[10px] uppercase tracking-[0.18em] text-accent">
+                                {mine ? "Your offer" : "Selling"}
+                              </p>
+                              <p className="mt-1 font-display text-xl">
+                                <span className="text-gradient-gold">{fmtSP(Number(o.spark_amount))}</span>
+                              </p>
+                              <p className="text-xs text-muted-foreground">
+                                @ R{Number(o.price_per_spark).toFixed(2)} per SP
+                              </p>
+                            </div>
+                            <div className="text-right">
+                              <p className="font-display text-lg">{fmtR(Number(o.total_price))}</p>
+                              <p className="text-[11px] text-muted-foreground">{o.created_at ? new Date(o.created_at).toLocaleDateString() : ""}</p>
+                            </div>
+                          </div>
+                          <Button
+                            size="sm"
+                            disabled={mine}
+                            onClick={() => reserve(o)}
+                            className="mt-4 w-full rounded-2xl bg-gradient-primary text-primary-foreground shadow-glow disabled:opacity-50"
+                          >
+                            {mine ? "Awaiting buyer" : (<><ArrowDownLeft className="h-4 w-4 mr-1.5" /> Buy now</>)}
+                          </Button>
+                        </article>
+                      );
+                    })
+                  )}
+                </TabsContent>
+
+                <TabsContent value="history" className="mt-5">
+                  {txns.length === 0 ? (
+                    <div className="rounded-3xl glass p-8 text-center">
+                      <History className="mx-auto h-7 w-7 text-muted-foreground" />
+                      <p className="mt-3 text-sm text-muted-foreground">No transactions yet.</p>
+                    </div>
+                  ) : (
+                    <ul className="divide-y divide-border rounded-3xl border border-border bg-gradient-card overflow-hidden">
+                      {txns.map((t) => {
+                        const incoming = t.to_member === user?.id;
+                        return (
+                          <li key={t.id} className="flex items-center gap-4 p-4">
+                            <div className={`grid h-10 w-10 shrink-0 place-items-center rounded-2xl ${incoming ? "bg-primary/15 text-primary" : "bg-secondary text-muted-foreground"}`}>
+                              {incoming ? <ArrowDownLeft className="h-4 w-4" /> : <ArrowUpRight className="h-4 w-4" />}
+                            </div>
+                            <div className="min-w-0 flex-1">
+                              <p className="truncate text-sm font-medium capitalize">{t.tx_type.replace(/_/g, " ")}</p>
+                              <p className="truncate text-xs text-muted-foreground">
+                                {t.status} · {t.created_at ? new Date(t.created_at).toLocaleDateString() : ""}
+                              </p>
+                            </div>
+                            <span className={`text-sm font-display ${incoming ? "text-gradient-gold" : "text-muted-foreground"}`}>
+                              {incoming ? "+" : "−"}{fmtSP(Number(t.amount))}
+                            </span>
+                          </li>
+                        );
+                      })}
+                    </ul>
+                  )}
+                </TabsContent>
+              </>
+            )}
+          </Tabs>
+        </div>
+      </section>
+
+      {/* Sell offer dialog */}
+      <Dialog open={sellOpen} onOpenChange={setSellOpen}>
+        <DialogContent className="rounded-3xl border border-border bg-gradient-card max-w-md">
+          <DialogHeader>
+            <DialogTitle className="font-display text-2xl">Sell Sparks</DialogTitle>
+            <DialogDescription>
+              Post an offer for buyers. {Math.round(COMMISSION * 100)}% platform fee on completion.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-3">
+            <div>
+              <Label className="text-xs uppercase tracking-[0.18em] text-muted-foreground">Sparks to sell</Label>
+              <Input
+                type="number"
+                value={sellAmt}
+                onChange={(e) => setSellAmt(e.target.value)}
+                placeholder="0"
+                className="mt-1 h-12 rounded-2xl bg-secondary/60 font-display text-xl"
+              />
+              <p className="mt-1 text-[11px] text-muted-foreground">Wallet balance: {fmtSP(balance)}</p>
+            </div>
+            <div>
+              <Label className="text-xs uppercase tracking-[0.18em] text-muted-foreground">Price per Spark (R)</Label>
+              <Input
+                type="number"
+                step="0.01"
+                value={sellPrice}
+                onChange={(e) => setSellPrice(e.target.value)}
+                className="mt-1 h-12 rounded-2xl bg-secondary/60"
+              />
+            </div>
+            <div className="rounded-2xl border border-border bg-secondary/30 p-4 space-y-1.5 text-sm">
+              <div className="flex justify-between"><span className="text-muted-foreground">Total</span><span>{fmtR(sellPreview.total)}</span></div>
+              <div className="flex justify-between"><span className="text-muted-foreground">Fee ({Math.round(COMMISSION * 100)}%)</span><span className="text-muted-foreground">− {fmtR(sellPreview.commission)}</span></div>
+              <div className="my-1 h-px bg-border" />
+              <div className="flex justify-between"><span>You receive</span><span className="text-gradient-gold font-display">{fmtR(sellPreview.receives)}</span></div>
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="ghost" onClick={() => setSellOpen(false)}>Cancel</Button>
+            <Button onClick={postSell} disabled={busy} className="rounded-2xl bg-gradient-primary text-primary-foreground shadow-glow">
+              {busy ? <Loader2 className="h-4 w-4 animate-spin" /> : "Post offer"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      <BottomNav />
+    </main>
+  );
+}
