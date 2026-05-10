@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import { ArrowLeft, Plus, Loader2, Users, Flame, Clock, ChevronRight, Lock } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
@@ -12,6 +12,9 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { toast } from "sonner";
+import { CircleAcceptanceModal, hasAcceptedCircle } from "@/components/umoja/CircleAcceptanceModal";
+import { CircleSessionTimer } from "@/components/umoja/CircleSessionTimer";
+import { SparksDisclaimer } from "@/components/umoja/SparksDisclaimer";
 
 interface Tier {
   tier: string;
@@ -218,7 +221,7 @@ const Circle = () => {
                 const locked = !t.is_active;
                 const myBids = bids.filter((b) => b.tier === t.tier);
                 const myTotal = myBids.reduce((sum, b) => sum + Number(b.fiat_amount ?? 0), 0);
-                const sessionsPerDay = Math.max(1, Number(t.sessions_per_day ?? 1));
+                
                 const niceName = `${t.tier.charAt(0).toUpperCase() + t.tier.slice(1)} Circle`;
                 return (
                   <article
@@ -259,28 +262,36 @@ const Circle = () => {
                       </div>
                     </div>
 
-                    <div className="mt-3 flex items-center justify-between text-xs">
-                      <span className="inline-flex items-center gap-1 text-muted-foreground">
-                        <Clock className="h-3 w-3 text-accent" /> Next session in <NextSession sessionsPerDay={sessionsPerDay} />
-                      </span>
-                      {myTotal > 0 && (
+                    <div className="mt-4">
+                      <CircleSessionTimer tier={t.tier} />
+                    </div>
+                    {myTotal > 0 && (
+                      <div className="mt-3 flex items-center justify-end text-xs">
                         <span className="inline-flex items-center gap-1 text-accent-soft">
                           <Flame className="h-3 w-3" /> Your stake {fmtR(myTotal)}
                         </span>
-                      )}
-                    </div>
+                      </div>
+                    )}
 
                     <div className="mt-5 flex gap-2">
                       <button
                         disabled={locked}
-                        onClick={() => { if (!locked) { setOpen(t); setAmount(String(t.min_entry)); } }}
+                        onClick={() => {
+                          if (locked) return;
+                          if (!hasAcceptedCircle()) { toast.info("Please accept the Circle terms first."); return; }
+                          setOpen(t); setAmount(String(t.min_entry));
+                        }}
                         className="flex-1 h-11 rounded-2xl bg-gradient-primary text-primary-foreground text-sm font-medium shadow-glow inline-flex items-center justify-center gap-1.5 disabled:opacity-50 disabled:cursor-not-allowed"
                       >
                         {locked ? <><Lock className="h-4 w-4" /> Locked</> : <><Plus className="h-4 w-4" /> Enter {niceName}</>}
                       </button>
                       <button
                         disabled={locked}
-                        onClick={() => { if (!locked) { setOpen(t); setAmount(String(t.max_entry)); } }}
+                        onClick={() => {
+                          if (locked) return;
+                          if (!hasAcceptedCircle()) { toast.info("Please accept the Circle terms first."); return; }
+                          setOpen(t); setAmount(String(t.max_entry));
+                        }}
                         className="h-11 px-5 rounded-2xl border border-border text-sm font-medium hover:bg-secondary transition-smooth inline-flex items-center gap-1 disabled:opacity-50 disabled:cursor-not-allowed"
                       >
                         Bid <ChevronRight className="h-3 w-3" />
@@ -326,29 +337,17 @@ const Circle = () => {
         </DialogContent>
       </Dialog>
 
+      <section className="px-5 pt-8">
+        <div className="mx-auto max-w-md">
+          <SparksDisclaimer />
+        </div>
+      </section>
+
+      <CircleAcceptanceModal />
       <BottomNav />
     </main>
   );
 };
 
-function NextSession({ sessionsPerDay }: { sessionsPerDay: number }) {
-  const [now, setNow] = useState(() => Date.now());
-  useEffect(() => {
-    const t = setInterval(() => setNow(Date.now()), 1000);
-    return () => clearInterval(t);
-  }, []);
-  const next = useMemo(() => {
-    const slotMs = (24 * 60 * 60 * 1000) / sessionsPerDay;
-    const start = new Date(); start.setHours(0, 0, 0, 0);
-    const elapsed = now - start.getTime();
-    const idx = Math.floor(elapsed / slotMs) + 1;
-    return start.getTime() + idx * slotMs;
-  }, [now, sessionsPerDay]);
-  const diff = Math.max(0, next - now);
-  const h = Math.floor(diff / 3_600_000);
-  const m = Math.floor((diff % 3_600_000) / 60_000);
-  const s = Math.floor((diff % 60_000) / 1000);
-  return <span className="font-mono text-foreground">{String(h).padStart(2,"0")}:{String(m).padStart(2,"0")}:{String(s).padStart(2,"0")}</span>;
-}
 
 export default Circle;
