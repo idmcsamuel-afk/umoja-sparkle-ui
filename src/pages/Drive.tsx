@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, type ReactNode } from "react";
 import { Link } from "react-router-dom";
 import { ArrowLeft, Car, Loader2, Users, Calendar, CheckCircle2, Clock, Sparkles, Bell, Wallet, Settings2, Smartphone, Mail, MessageSquare } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
