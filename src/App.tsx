@@ -79,6 +79,7 @@ const App = () => (
                 <Route path="predictor" element={<AdminPredictor />} />
                 <Route path="kyc-review" element={<AdminKycReview />} />
                 <Route path="payouts" element={<AdminPayouts />} />
+                <Route path="invites" element={<AdminInvites />} />
               </Route>
 
               <Route path="*" element={<NotFound />} />
