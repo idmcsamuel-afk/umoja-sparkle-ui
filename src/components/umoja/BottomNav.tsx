@@ -1,5 +1,5 @@
 import { Link, useLocation } from "react-router-dom";
-import { Home, Users, Sparkles, Car, Store, ArrowLeftRight, Megaphone, Gamepad2 } from "lucide-react";
+import { Home, Users, Sparkles, Car, Store, ArrowLeftRight, Gamepad2, Gift } from "lucide-react";
 
 const items = [
   { to: "/dashboard", label: "Home", icon: Home },
@@ -9,7 +9,7 @@ const items = [
   { to: "/exchange", label: "Swap", icon: ArrowLeftRight },
   { to: "/drive", label: "Drive", icon: Car },
   { to: "/spark-pit", label: "Pit", icon: Gamepad2 },
-  { to: "/flame-marketing", label: "Market AI", icon: Megaphone },
+  { to: "/referrals", label: "Invite", icon: Gift },
 ];
 
 export const BottomNav = () => {
