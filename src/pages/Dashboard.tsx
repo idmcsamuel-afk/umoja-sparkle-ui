@@ -2,7 +2,7 @@ import { useEffect, useMemo, useState } from "react";
 import { Link } from "react-router-dom";
 import {
   ArrowUpRight, Users, Sparkles, Car, TrendingUp, ChevronRight, Loader2, User as UserIcon, Shield,
-  Calculator as CalcIcon, ShoppingBag, Repeat, Building2, ShieldAlert, Gift,
+  Calculator as CalcIcon, ShoppingBag, Repeat, Building2, ShieldAlert, Gift, Palette,
 } from "lucide-react";
 import { Logo } from "@/components/umoja/Logo";
 import { BottomNav } from "@/components/umoja/BottomNav";
@@ -391,6 +391,24 @@ const Dashboard = () => {
               </Link>
             ))}
           </div>
+
+          {/* Flame Marketing shortcut */}
+          <Link
+            to="/flame-marketing"
+            className="mt-4 group relative block overflow-hidden rounded-3xl border border-orange-500/30 bg-gradient-to-br from-emerald-950/60 via-card to-orange-950/40 p-4 transition-smooth hover:border-orange-500/60 hover:-translate-y-0.5"
+          >
+            <div className="absolute -right-10 -top-10 h-32 w-32 rounded-full bg-gradient-to-br from-amber-400/40 to-orange-500/20 blur-2xl" />
+            <div className="relative flex items-center gap-3">
+              <div className="grid h-12 w-12 shrink-0 place-items-center rounded-2xl bg-gradient-to-br from-orange-500 to-amber-600 text-white shadow-[0_10px_30px_-10px_hsl(20_90%_50%/0.7)]">
+                <Palette className="h-5 w-5" />
+              </div>
+              <div className="min-w-0 flex-1">
+                <p className="font-display text-base">Create Marketing Content 🎨</p>
+                <p className="text-xs text-muted-foreground">AI captions, flyers & plans for your hustle — free</p>
+              </div>
+              <ArrowUpRight className="h-4 w-4 text-amber-400 group-hover:translate-x-0.5 transition-smooth" />
+            </div>
+          </Link>
         </div>
       </section>
 
