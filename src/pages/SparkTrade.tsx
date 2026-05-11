@@ -290,6 +290,82 @@ const SparkTrade = () => {
         </div>
       </section>
 
+      <section id="amazon-live" className="px-5 pt-8">
+        <div className="mx-auto max-w-md">
+          <div className="flex items-baseline justify-between">
+            <h2 className="font-display text-xl">Live from Amazon</h2>
+            <span className="text-[10px] uppercase tracking-[0.18em] text-accent">SP-API</span>
+          </div>
+          <div className="mt-3 flex gap-2">
+            <div className="relative flex-1">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+              <input
+                value={keywords}
+                onChange={(e) => setKeywords(e.target.value)}
+                onKeyDown={(e) => e.key === "Enter" && searchAmazon()}
+                placeholder="Search keywords (e.g. trending)"
+                className="w-full h-11 pl-9 pr-3 rounded-2xl bg-secondary/60 text-sm outline-none focus:ring-2 focus:ring-primary"
+              />
+            </div>
+            <button
+              onClick={searchAmazon}
+              disabled={searching}
+              className="h-11 px-4 rounded-2xl bg-gradient-primary text-primary-foreground text-sm font-medium shadow-glow inline-flex items-center gap-1.5 disabled:opacity-60"
+            >
+              {searching ? <Loader2 className="h-4 w-4 animate-spin" /> : <Sparkles className="h-4 w-4" />}
+              Search
+            </button>
+          </div>
+
+          {products.length > 0 && (
+            <ul className="mt-4 space-y-3">
+              {products.map((p) => {
+                const isAdded = shortlisted.has(p.asin);
+                return (
+                  <li key={p.asin} className="rounded-3xl glass p-4 flex gap-3 animate-fade-in">
+                    <div className="h-20 w-20 shrink-0 overflow-hidden rounded-2xl bg-secondary grid place-items-center">
+                      {p.image ? (
+                        <img src={p.image} alt={p.title ?? p.asin} className="h-full w-full object-cover" loading="lazy" />
+                      ) : (
+                        <Package className="h-6 w-6 text-muted-foreground" />
+                      )}
+                    </div>
+                    <div className="min-w-0 flex-1">
+                      <p className="text-sm font-medium line-clamp-2">{p.title ?? p.asin}</p>
+                      <p className="mt-1 text-[11px] text-muted-foreground">ASIN {p.asin}{p.category ? ` · ${p.category}` : ""}</p>
+                      <div className="mt-1.5 flex flex-wrap gap-x-3 gap-y-1 text-[11px] text-muted-foreground">
+                        {typeof p.price === "number" && (
+                          <span className="text-gradient-gold font-display text-sm">{fmtR(p.price)}</span>
+                        )}
+                        {p.sales_rank && (
+                          <span className="inline-flex items-center gap-1"><TrendingUp className="h-3 w-3" />#{p.sales_rank}</span>
+                        )}
+                        {p.rating && (
+                          <span className="inline-flex items-center gap-1"><Star className="h-3 w-3" />{p.rating.toFixed(1)}{p.reviews ? ` (${p.reviews})` : ""}</span>
+                        )}
+                      </div>
+                      <button
+                        onClick={() => addToShortlist(p)}
+                        disabled={isAdded || addingAsin === p.asin}
+                        className="mt-2 h-8 px-3 rounded-xl bg-secondary text-xs inline-flex items-center gap-1 hover:bg-secondary/80 disabled:opacity-60"
+                      >
+                        {addingAsin === p.asin ? (
+                          <Loader2 className="h-3 w-3 animate-spin" />
+                        ) : isAdded ? (
+                          <><Check className="h-3 w-3" /> Shortlisted</>
+                        ) : (
+                          <><Plus className="h-3 w-3" /> Add to Shortlist</>
+                        )}
+                      </button>
+                    </div>
+                  </li>
+                );
+              })}
+            </ul>
+          )}
+        </div>
+      </section>
+
       <section id="signals" className="px-5 pt-8 scroll-mt-24">
         <div className="mx-auto max-w-md">
           <Tabs defaultValue="now" className="w-full">
