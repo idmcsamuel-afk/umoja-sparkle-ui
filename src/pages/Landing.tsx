@@ -90,8 +90,8 @@ const Landing = () => {
           {/* Primary + secondary CTAs */}
           <div className="mt-7 flex flex-col gap-2.5 animate-slide-up [animation-delay:200ms]">
             <Button asChild size="lg" className="h-14 rounded-2xl bg-gradient-primary text-primary-foreground shadow-glow hover:opacity-95 px-5 text-base font-semibold">
-              <Link to="/signup">
-                Start free — Join a Circle <ArrowRight className="ml-1.5 h-4 w-4" />
+              <Link to="/waitlist">
+                Join the waitlist <ArrowRight className="ml-1.5 h-4 w-4" />
               </Link>
             </Button>
             <div className="flex items-center gap-2">
