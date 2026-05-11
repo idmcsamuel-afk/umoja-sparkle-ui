@@ -14,6 +14,33 @@ export type Database = {
   }
   public: {
     Tables: {
+      admin_audit_log: {
+        Row: {
+          action: string
+          actor_id: string | null
+          created_at: string
+          details: Json | null
+          id: string
+          target_member: string | null
+        }
+        Insert: {
+          action: string
+          actor_id?: string | null
+          created_at?: string
+          details?: Json | null
+          id?: string
+          target_member?: string | null
+        }
+        Update: {
+          action?: string
+          actor_id?: string | null
+          created_at?: string
+          details?: Json | null
+          id?: string
+          target_member?: string | null
+        }
+        Relationships: []
+      }
       admin_invite_codes: {
         Row: {
           code: string
@@ -969,6 +996,7 @@ export type Database = {
           dream_goal: string | null
           email: string | null
           full_name: string
+          has_buyers_club_access: boolean
           id: string
           id_number: string | null
           is_active: boolean | null
@@ -1007,6 +1035,7 @@ export type Database = {
           dream_goal?: string | null
           email?: string | null
           full_name: string
+          has_buyers_club_access?: boolean
           id?: string
           id_number?: string | null
           is_active?: boolean | null
@@ -1045,6 +1074,7 @@ export type Database = {
           dream_goal?: string | null
           email?: string | null
           full_name?: string
+          has_buyers_club_access?: boolean
           id?: string
           id_number?: string | null
           is_active?: boolean | null
@@ -1475,7 +1505,9 @@ export type Database = {
           cost_price: number | null
           data_source: string | null
           estimated_margin: number | null
+          estimated_monthly_sales: number | null
           id: string
+          is_demo: boolean
           joined_count: number | null
           margin_pct: number | null
           moq: number | null
@@ -1494,7 +1526,9 @@ export type Database = {
           cost_price?: number | null
           data_source?: string | null
           estimated_margin?: number | null
+          estimated_monthly_sales?: number | null
           id?: string
+          is_demo?: boolean
           joined_count?: number | null
           margin_pct?: number | null
           moq?: number | null
@@ -1513,7 +1547,9 @@ export type Database = {
           cost_price?: number | null
           data_source?: string | null
           estimated_margin?: number | null
+          estimated_monthly_sales?: number | null
           id?: string
+          is_demo?: boolean
           joined_count?: number | null
           margin_pct?: number | null
           moq?: number | null
@@ -1928,6 +1964,10 @@ export type Database = {
         Returns: string
       }
       apply_referral_signup: { Args: { _code: string }; Returns: Json }
+      assign_referrer: {
+        Args: { _member: string; _referrer: string }
+        Returns: Json
+      }
       award_kyc_referral_bonus: { Args: { _member?: string }; Returns: boolean }
       claim_signup_bonus: { Args: never; Returns: number }
       compute_session_scores: {
