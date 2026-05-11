@@ -7,6 +7,7 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import { AuthProvider } from "@/hooks/useAuth";
 import { ThemeProvider } from "@/hooks/useTheme";
 import { ProtectedRoute } from "@/components/umoja/ProtectedRoute";
+import { RouteTitle } from "@/components/umoja/RouteTitle";
 import { AdminRoute } from "@/components/umoja/AdminRoute";
 import Landing from "./pages/Landing.tsx";
 import Dashboard from "./pages/Dashboard.tsx";
