@@ -235,13 +235,7 @@ const Circle = () => {
     setPendingBid({ id: data.id, amount: amt, ref });
     setStep("pay");
     // Load top 2 leaders for this tier (privacy: only initials + masked code)
-    supabase.rpc("compute_session_scores", { _tier: open.tier }).then(({ data: scores }) => {
-      const top = ((scores ?? []) as Array<{ member_id: string; full_name: string; priority_score: number; eligible: boolean }>)
-        .filter((s) => s.eligible)
-        .slice(0, 2)
-        .map((s) => ({ member_id: s.member_id, full_name: s.full_name, priority_score: Number(s.priority_score) }));
-      setLeaders(top);
-    });
+    loadLeaders(open.tier);
   };
 
   const initials = (name: string) =>
