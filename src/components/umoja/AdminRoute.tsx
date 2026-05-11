@@ -5,7 +5,7 @@ import { useAuth } from "@/hooks/useAuth";
 import { AlertTriangle, ArrowLeft, Loader2, RefreshCw } from "lucide-react";
 import { toast } from "sonner";
 
-const FALLBACK_ADMIN_EMAIL = "idmcsamuel@gmail.com";
+
 
 export function AdminRoute({ children }: { children: JSX.Element }) {
   const { user, loading } = useAuth();
