@@ -92,6 +92,25 @@ const Circle = () => {
   const [proofFile, setProofFile] = useState<File | null>(null);
   const [copied, setCopied] = useState<string | null>(null);
   const [leaders, setLeaders] = useState<Array<{ member_id: string; full_name: string; priority_score: number }>>([]);
+  const [leadersLoading, setLeadersLoading] = useState(false);
+  const [leadersError, setLeadersError] = useState<string | null>(null);
+
+  const loadLeaders = async (tier: string) => {
+    setLeadersLoading(true);
+    setLeadersError(null);
+    const { data, error } = await supabase.rpc("compute_session_scores", { _tier: tier });
+    if (error) {
+      setLeadersError(error.message || "Could not load leaders");
+      setLeaders([]);
+    } else {
+      const top = ((data ?? []) as Array<{ member_id: string; full_name: string; priority_score: number; eligible: boolean }>)
+        .filter((s) => s.eligible)
+        .slice(0, 2)
+        .map((s) => ({ member_id: s.member_id, full_name: s.full_name, priority_score: Number(s.priority_score) }));
+      setLeaders(top);
+    }
+    setLeadersLoading(false);
+  };
 
   // Tick for closed-session countdowns on buttons
   const [now, setNow] = useState(() => Date.now());
