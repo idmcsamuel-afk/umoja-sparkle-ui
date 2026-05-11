@@ -97,7 +97,7 @@ export function BuyersClubModal({ open, onOpenChange, onSuccess }: { open: boole
               <div key={t.id} className={`rounded-2xl p-4 border border-border bg-secondary/40 ring-1 ${t.ring}`}>
                 <div className="flex items-baseline justify-between gap-3">
                   <p className="font-display text-lg">{t.name}</p>
-                  <p className="text-gradient-gold font-display">R{t.price.toLocaleString()}</p>
+                  <p className="text-gradient-gold font-display">R{t.price.toLocaleString()}<span className="text-xs text-muted-foreground font-sans"> / month</span></p>
                 </div>
                 <ul className="mt-2 space-y-1 text-xs text-muted-foreground">
                   {t.benefits.map((b) => (
