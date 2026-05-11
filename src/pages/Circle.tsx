@@ -662,23 +662,23 @@ const Circle = () => {
                 </label>
               </div>
 
-              <DialogFooter className="flex-col-reverse sm:flex-row gap-2">
+              <div className="sticky bottom-0 z-10 flex gap-3 border-t border-border bg-background/95 backdrop-blur p-4">
                 <Button
                   variant="outline"
                   onClick={cancelBid}
                   disabled={busy}
-                  className="rounded-2xl"
+                  className="flex-1 min-h-12 rounded-2xl"
                 >
-                  <X className="h-4 w-4 mr-1" /> Cancel Bid
+                  <X className="h-4 w-4 mr-1" /> Cancel
                 </Button>
                 <Button
                   onClick={submitPayment}
                   disabled={busy || !proofFile || !settingsReady}
-                  className="rounded-2xl bg-gradient-primary text-primary-foreground shadow-glow"
+                  className="flex-1 min-h-12 rounded-2xl bg-gradient-primary text-primary-foreground shadow-glow"
                 >
                   {busy ? <Loader2 className="h-4 w-4 animate-spin" /> : "I've Made Payment"}
                 </Button>
-              </DialogFooter>
+              </div>
             </>
           )}
         </DialogContent>
