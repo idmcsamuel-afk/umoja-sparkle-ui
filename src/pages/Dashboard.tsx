@@ -69,6 +69,7 @@ const Dashboard = () => {
     has_access: boolean;
     rejection_reason: string | null;
     renewal_at: string | null;
+    referral_code: string | null;
   } | null>(null);
 
   useEffect(() => {
@@ -93,7 +94,7 @@ const Dashboard = () => {
     const uid = user.id;
     const fetchBc = async () => {
       const { data } = await supabase.from("members")
-        .select("kyc_level, buyers_club_status, buyers_club_tier, has_buyers_club_access, buyers_club_rejection_reason, buyers_club_renewal_at")
+        .select("kyc_level, buyers_club_status, buyers_club_tier, has_buyers_club_access, buyers_club_rejection_reason, buyers_club_renewal_at, referral_code")
         .eq("id", uid).maybeSingle();
       setKycLevel(data?.kyc_level ?? 0);
       setBc({
@@ -102,6 +103,7 @@ const Dashboard = () => {
         has_access: !!data?.has_buyers_club_access,
         rejection_reason: data?.buyers_club_rejection_reason ?? null,
         renewal_at: (data as any)?.buyers_club_renewal_at ?? null,
+        referral_code: (data as any)?.referral_code ?? null,
       });
     };
     fetchBc();
@@ -337,6 +339,7 @@ const Dashboard = () => {
         <section className="px-5 pt-4">
           <div className="mx-auto max-w-md animate-fade-in">
             {bc.has_access ? (
+              <>
               <Link
                 to="/spark"
                 className="flex items-center gap-3 rounded-2xl border border-primary/40 bg-gradient-to-r from-primary/15 to-accent/10 p-4 transition-smooth hover:border-primary/70"
@@ -356,6 +359,24 @@ const Dashboard = () => {
                 </div>
                 <ChevronRight className="h-4 w-4 text-muted-foreground" />
               </Link>
+              {bc.tier?.toLowerCase() === "gold" && bc.referral_code && (
+                <Link
+                  to="/storefront/edit"
+                  className="mt-2 flex items-center gap-3 rounded-2xl border border-accent/40 bg-gradient-to-r from-accent/15 to-primary/10 p-4 transition-smooth hover:border-accent/70"
+                >
+                  <div className="grid h-10 w-10 shrink-0 place-items-center rounded-2xl bg-accent/20 text-accent">
+                    🛍️
+                  </div>
+                  <div className="min-w-0 flex-1">
+                    <p className="text-sm font-medium">Your Storefront is live</p>
+                    <p className="text-[11px] text-muted-foreground truncate">
+                      umojarise.com/shop/{bc.referral_code} · tap to edit
+                    </p>
+                  </div>
+                  <ChevronRight className="h-4 w-4 text-muted-foreground" />
+                </Link>
+              )}
+              </>
             ) : bc.status === "payment_pending" ? (
               <div className="flex items-center gap-3 rounded-2xl border border-accent/40 bg-gradient-to-r from-accent/15 to-primary/10 p-4">
                 <div className="grid h-10 w-10 shrink-0 place-items-center rounded-2xl bg-accent/20 text-accent">
