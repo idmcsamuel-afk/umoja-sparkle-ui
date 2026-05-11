@@ -8,6 +8,8 @@ interface MemberProfile {
   email: string | null;
   phone: string;
   rank: string | null;
+  has_buyers_club_access: boolean | null;
+  referral_code: string | null;
 }
 
 interface AuthContextValue {
@@ -30,7 +32,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const loadMember = async (uid: string) => {
     const { data } = await supabase
       .from("members")
-      .select("id, full_name, email, phone, rank")
+      .select("id, full_name, email, phone, rank, has_buyers_club_access, referral_code")
       .eq("id", uid)
       .maybeSingle();
     setMember(data as MemberProfile | null);
