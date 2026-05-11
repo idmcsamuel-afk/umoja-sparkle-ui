@@ -72,6 +72,7 @@ type TemplateName =
   | "allocation_winner"
   | "kyc_approved"
   | "kyc_rejected"
+  | "contact_form"
   | "custom";
 
 const CRITICAL: TemplateName[] = [
@@ -79,16 +80,18 @@ const CRITICAL: TemplateName[] = [
   "allocation_winner",
   "kyc_approved",
   "kyc_rejected",
+  "contact_form",
 ];
 
 const PREF_MAP: Record<string, "circle" | "spark_trade" | "marketing" | "weekly_digest" | null> = {
-  welcome: null, // always send
+  welcome: null,
   referral_success: "marketing",
   custom: "marketing",
   payment_verified: null,
   allocation_winner: null,
   kyc_approved: null,
   kyc_rejected: null,
+  contact_form: null,
 };
 
 function buildEmail(template: TemplateName, data: Record<string, any>) {
