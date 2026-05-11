@@ -8,6 +8,7 @@ import { BottomNav } from "@/components/umoja/BottomNav";
 import { SparksDisclaimer } from "@/components/umoja/SparksDisclaimer";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { toast } from "sonner";
+import { BuyersClubModal } from "@/components/umoja/BuyersClubModal";
 
 interface Shortlist {
   id: string;
@@ -47,6 +48,7 @@ const SparkTrade = () => {
   const [orders, setOrders] = useState<Order[]>([]);
   const [loading, setLoading] = useState(true);
   const [joining, setJoining] = useState<string | null>(null);
+  const [clubOpen, setClubOpen] = useState(false);
 
   const load = async () => {
     setLoading(true);
@@ -244,12 +246,12 @@ const SparkTrade = () => {
                   <p className="mt-1 text-xs text-accent-soft leading-relaxed">
                     Unlock real product picks, group buying power and live margin data. The 3 demo products below show what you'll see inside.
                   </p>
-                  <Link
-                    to="/dashboard"
+                  <button
+                    onClick={() => setClubOpen(true)}
                     className="mt-4 inline-flex h-10 items-center gap-1.5 rounded-2xl bg-gradient-primary px-4 text-sm font-medium text-primary-foreground shadow-glow"
                   >
                     <Crown className="h-4 w-4" /> Join Buyers Club
-                  </Link>
+                  </button>
                 </div>
               </div>
             </div>
@@ -324,6 +326,7 @@ const SparkTrade = () => {
 
       <section className="px-5 pt-6"><div className="mx-auto max-w-md"><SparksDisclaimer /></div></section>
       <BottomNav />
+      <BuyersClubModal open={clubOpen} onOpenChange={setClubOpen} onSuccess={load} />
     </main>
   );
 };
