@@ -206,7 +206,16 @@ const SparkTrade = () => {
             <p className="mt-1 text-xs text-muted-foreground inline-flex items-center gap-2">
               <Package className="h-3 w-3" /> {(p as any).data_source === "makro" ? "SKU" : "ASIN"} {p.asin} · MOQ {p.moq ?? 1}
             </p>
-            {(p as any).data_source && (
+            {(p as any).data_source === "serpapi" ? (
+              <div className="mt-2 flex flex-wrap gap-1.5">
+                <span className="text-[10px] uppercase tracking-[0.18em] rounded-full bg-emerald-700/30 text-amber-300 px-2 py-0.5">
+                  🌍 International Opportunity
+                </span>
+                <span className="text-[10px] uppercase tracking-[0.18em] rounded-full bg-secondary px-2 py-0.5 text-muted-foreground">
+                  Popular in US/UK
+                </span>
+              </div>
+            ) : (p as any).data_source && (
               <span className="mt-2 inline-block text-[10px] uppercase tracking-[0.18em] rounded-full bg-secondary px-2 py-0.5 text-muted-foreground">
                 Sourced from {(p as any).data_source === "makro" ? "Makro" : (p as any).data_source === "amazon" ? "Amazon" : (p as any).data_source}
               </span>

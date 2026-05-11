@@ -2,8 +2,9 @@ import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Loader2, Check, X, RefreshCw, Zap, Clock } from "lucide-react";
+import { Loader2, Check, X, RefreshCw, Zap, Clock, Globe2, Plus } from "lucide-react";
 import { toast } from "sonner";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 
 interface Row {
   id: string;
@@ -19,10 +20,25 @@ interface Row {
   cost_price: number | null;
 }
 
+interface Opportunity {
+  title: string;
+  category: string;
+  markets: string[];
+  flags: string[];
+  takealot_count: number;
+  estimated_margin_zar: number;
+  sale_price_zar: number;
+  cost_price_zar: number;
+  thumbnail?: string;
+}
+
 export default function AdminSparkTrade() {
   const [rows, setRows] = useState<Row[]>([]);
   const [loading, setLoading] = useState(true);
   const [fetching, setFetching] = useState(false);
+  const [scouting, setScouting] = useState(false);
+  const [opps, setOpps] = useState<Opportunity[] | null>(null);
+  const [adding, setAdding] = useState<string | null>(null);
 
   const load = async () => {
     setLoading(true);
@@ -50,10 +66,46 @@ export default function AdminSparkTrade() {
     load();
   };
 
+  const findBuySoon = async () => {
+    setScouting(true);
+    const { data, error } = await supabase.functions.invoke("serpapi-trending");
+    setScouting(false);
+    if (error) return toast.error(error.message);
+    const list = (data as any)?.opportunities ?? [];
+    setOpps(list);
+    if (!list.length) toast.message("No opportunities found this run.");
+  };
+
+  const addOpportunity = async (o: Opportunity) => {
+    const sku = "SERP-" + o.title.toLowerCase().replace(/[^a-z0-9]+/g, "-").slice(0, 40);
+    setAdding(sku);
+    const { error } = await supabase.from("spark_trade_shortlist").insert({
+      asin: sku,
+      product_name: o.title,
+      category: "Buy Soon",
+      sale_price: o.sale_price_zar,
+      cost_price: o.cost_price_zar,
+      estimated_margin: o.estimated_margin_zar,
+      margin_pct: o.sale_price_zar > 0 ? Number(((o.estimated_margin_zar / o.sale_price_zar) * 100).toFixed(2)) : 0,
+      data_source: "serpapi",
+      status: "buy_soon",
+      target_slots: 25,
+      moq: 5,
+    } as any);
+    setAdding(null);
+    if (error) return toast.error(error.message);
+    toast.success(`Added ${o.title}`);
+    load();
+  };
+
   const sourceBadge = (s: string | null) => {
-    const label = s === "makro" ? "Makro" : s === "amazon" ? "Amazon" : (s ?? "Manual");
-    const tone = s === "makro" ? "bg-accent/20 text-accent" : s === "amazon" ? "bg-primary/20 text-primary" : "bg-secondary text-muted-foreground";
-    return <span className={`text-[10px] uppercase tracking-wider rounded-full px-2 py-1 ${tone}`}>{label}</span>;
+    const map: Record<string, { label: string; tone: string }> = {
+      makro: { label: "Makro", tone: "bg-accent/20 text-accent" },
+      amazon: { label: "Amazon", tone: "bg-primary/20 text-primary" },
+      serpapi: { label: "🌍 Buy Soon", tone: "bg-emerald-700/30 text-amber-300" },
+    };
+    const m = map[s ?? ""] ?? { label: s ?? "Manual", tone: "bg-secondary text-muted-foreground" };
+    return <span className={`text-[10px] uppercase tracking-wider rounded-full px-2 py-1 ${m.tone}`}>{m.label}</span>;
   };
 
   return (
@@ -63,10 +115,16 @@ export default function AdminSparkTrade() {
           <h1 className="font-display text-3xl">Spark Trade Shortlist</h1>
           <p className="text-sm text-muted-foreground mt-1">Manage MOQ, slots, source, and approval status.</p>
         </div>
-        <Button onClick={fetchMakro} disabled={fetching} className="gap-2">
-          {fetching ? <Loader2 className="h-4 w-4 animate-spin" /> : <RefreshCw className="h-4 w-4" />}
-          Fetch Products from Makro
-        </Button>
+        <div className="flex gap-2 flex-wrap">
+          <Button onClick={findBuySoon} disabled={scouting} variant="outline" className="gap-2">
+            {scouting ? <Loader2 className="h-4 w-4 animate-spin" /> : <Globe2 className="h-4 w-4" />}
+            Find Buy Soon Products
+          </Button>
+          <Button onClick={fetchMakro} disabled={fetching} className="gap-2">
+            {fetching ? <Loader2 className="h-4 w-4 animate-spin" /> : <RefreshCw className="h-4 w-4" />}
+            Fetch Products from Makro
+          </Button>
+        </div>
       </div>
 
       {loading ? (
@@ -130,6 +188,46 @@ export default function AdminSparkTrade() {
           </table>
         </div>
       )}
+
+      <Dialog open={opps !== null} onOpenChange={(o) => !o && setOpps(null)}>
+        <DialogContent className="max-w-2xl max-h-[80vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle className="font-display text-2xl">🌍 International Buy Soon Opportunities</DialogTitle>
+            <DialogDescription>
+              Trending in US/UK/AU with low Takealot availability. Add the best to your shortlist.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-3 mt-2">
+            {opps?.length === 0 && (
+              <p className="text-sm text-muted-foreground text-center py-8">No opportunities found this run.</p>
+            )}
+            {opps?.map((o, i) => {
+              const sku = "SERP-" + o.title.toLowerCase().replace(/[^a-z0-9]+/g, "-").slice(0, 40);
+              return (
+                <div key={i} className="rounded-2xl border border-border bg-secondary/40 p-4 flex gap-3">
+                  {o.thumbnail && (
+                    <img src={o.thumbnail} alt="" className="h-16 w-16 rounded-xl object-cover bg-secondary" />
+                  )}
+                  <div className="flex-1 min-w-0">
+                    <p className="font-medium text-sm line-clamp-2">{o.title}</p>
+                    <div className="mt-1 flex flex-wrap gap-x-3 gap-y-1 text-[11px] text-muted-foreground">
+                      <span>Popular in: <span className="text-base">{o.flags.join(" ")}</span></span>
+                      <span className={o.takealot_count <= 1 ? "text-amber-300" : ""}>
+                        Takealot: {o.takealot_count} listing{o.takealot_count === 1 ? "" : "s"}
+                      </span>
+                      <span className="text-emerald-400">~R{o.estimated_margin_zar} margin</span>
+                    </div>
+                  </div>
+                  <Button size="sm" disabled={adding === sku} onClick={() => addOpportunity(o)} className="gap-1">
+                    {adding === sku ? <Loader2 className="h-3 w-3 animate-spin" /> : <Plus className="h-3 w-3" />}
+                    Add
+                  </Button>
+                </div>
+              );
+            })}
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
