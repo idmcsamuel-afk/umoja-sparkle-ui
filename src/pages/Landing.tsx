@@ -288,7 +288,7 @@ const Landing = () => {
                   ))}
                 </ul>
                 <Button asChild size="lg" className="mt-5 w-full h-11 rounded-2xl bg-gradient-primary text-primary-foreground shadow-glow hover:opacity-95">
-                  <Link to="/signup">{tier.cta} →</Link>
+                  <Link to="/waitlist">{tier.cta} →</Link>
                 </Button>
               </article>
             ))}
