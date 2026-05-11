@@ -122,7 +122,7 @@ export function BuyersClubModal({ open, onOpenChange, onSuccess }: { open: boole
                 ["Account", bank.account_number ?? "—"],
                 ["Branch", bank.branch_code ?? "—"],
                 ["Reference", reference],
-                ["Amount", `R${selected.price.toLocaleString()}`],
+                ["Amount", `R${selected.price.toLocaleString()} (1 month)`],
               ].map(([k, v]) => (
                 <div key={k} className="flex items-center justify-between gap-2 border-b border-border/40 pb-1.5 last:border-0 last:pb-0">
                   <span className="text-muted-foreground text-xs">{k}</span>
