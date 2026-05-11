@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Loader2, CheckCircle2 } from "lucide-react";
+import { Loader2, CheckCircle2, ShieldAlert, ShieldCheck } from "lucide-react";
 import { toast } from "sonner";
 import {
   AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
@@ -21,7 +21,7 @@ interface Bid {
   payout_date: string | null;
   status: string | null;
   vault_end: string | null;
-  member?: { full_name: string; email: string | null; phone: string };
+  member?: { full_name: string; email: string | null; phone: string; kyc_level: number };
 }
 
 export default function AdminPayouts() {
@@ -44,7 +44,7 @@ export default function AdminPayouts() {
     if (ids.length) {
       const { data: members } = await supabase
         .from("members")
-        .select("id, full_name, email, phone")
+        .select("id, full_name, email, phone, kyc_level")
         .in("id", ids);
       memberMap = new Map((members ?? []).map((m: any) => [m.id, m]));
     }
@@ -54,6 +54,10 @@ export default function AdminPayouts() {
   useEffect(() => { load(); }, []);
 
   const openConfirm = (b: Bid) => {
+    if ((b.member?.kyc_level ?? 0) < 3) {
+      toast.error("Member not verified. Cannot process payout.");
+      return;
+    }
     setOverride(String(b.payout_amount ?? b.net_amount ?? ""));
     setConfirm(b);
   };
@@ -100,6 +104,7 @@ export default function AdminPayouts() {
             <thead>
               <tr className="text-[10px] uppercase tracking-[0.18em] text-muted-foreground border-b border-border">
                 <th className="text-left p-4">Member</th>
+                <th className="text-left p-4">KYC</th>
                 <th className="text-left p-4">Tier</th>
                 <th className="text-right p-4">Net</th>
                 <th className="text-right p-4">Payout</th>
@@ -109,11 +114,20 @@ export default function AdminPayouts() {
               </tr>
             </thead>
             <tbody>
-              {rows.map((r) => (
+              {rows.map((r) => {
+                const lvl = r.member?.kyc_level ?? 0;
+                const verified = lvl >= 3;
+                return (
                 <tr key={r.id} className="border-b border-border/50 last:border-0">
                   <td className="p-4">
                     <div className="font-medium">{r.member?.full_name ?? r.member_id.slice(0, 8) + "…"}</div>
                     <div className="text-[11px] text-muted-foreground">{r.member?.email ?? r.member?.phone}</div>
+                  </td>
+                  <td className="p-4">
+                    <span className={`inline-flex items-center gap-1 text-[10px] uppercase tracking-wider rounded-full px-2 py-1 ${verified ? "bg-primary/15 text-primary" : "bg-destructive/15 text-destructive"}`}>
+                      {verified ? <ShieldCheck className="h-3 w-3" /> : <ShieldAlert className="h-3 w-3" />}
+                      L{lvl}/3
+                    </span>
                   </td>
                   <td className="p-4 capitalize">{r.tier}</td>
                   <td className="p-4 text-right">{fmtR(Number(r.net_amount))}</td>
@@ -121,14 +135,20 @@ export default function AdminPayouts() {
                   <td className="p-4 text-xs">{r.vault_end ? new Date(r.vault_end).toLocaleString() : "—"}</td>
                   <td className="p-4 text-xs capitalize">{r.status}</td>
                   <td className="p-4 text-right">
-                    <Button size="sm" className="bg-gradient-gold text-amber-950 hover:opacity-95" onClick={() => openConfirm(r)}>
-                      <CheckCircle2 className="h-3.5 w-3.5 mr-1" /> Mark paid
-                    </Button>
+                    {verified ? (
+                      <Button size="sm" className="bg-gradient-gold text-amber-950 hover:opacity-95" onClick={() => openConfirm(r)}>
+                        <CheckCircle2 className="h-3.5 w-3.5 mr-1" /> Mark paid
+                      </Button>
+                    ) : (
+                      <span className="text-[11px] text-destructive inline-flex items-center gap-1">
+                        <ShieldAlert className="h-3 w-3" /> Member not verified
+                      </span>
+                    )}
                   </td>
                 </tr>
-              ))}
+              );})}
               {rows.length === 0 && (
-                <tr><td colSpan={7} className="p-8 text-center text-sm text-muted-foreground">No pending payouts.</td></tr>
+                <tr><td colSpan={8} className="p-8 text-center text-sm text-muted-foreground">No pending payouts.</td></tr>
               )}
             </tbody>
           </table>

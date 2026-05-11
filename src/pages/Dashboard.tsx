@@ -2,7 +2,7 @@ import { useEffect, useMemo, useState } from "react";
 import { Link } from "react-router-dom";
 import {
   ArrowUpRight, Users, Sparkles, Car, TrendingUp, ChevronRight, Loader2, User as UserIcon, Shield,
-  Calculator as CalcIcon, ShoppingBag, Repeat, Building2,
+  Calculator as CalcIcon, ShoppingBag, Repeat, Building2, ShieldAlert,
 } from "lucide-react";
 import { Logo } from "@/components/umoja/Logo";
 import { BottomNav } from "@/components/umoja/BottomNav";
@@ -62,6 +62,7 @@ const Dashboard = () => {
   const [memberSince, setMemberSince] = useState<string | null>(null);
   const [teaser, setTeaser] = useState<PredictorTeaser | null>(null);
   const [isAdmin, setIsAdmin] = useState(false);
+  const [kycLevel, setKycLevel] = useState<number | null>(null);
 
   useEffect(() => {
     if (!user) { setIsAdmin(false); return; }
@@ -78,6 +79,12 @@ const Dashboard = () => {
         setIsAdmin(!!data);
       }
     })();
+  }, [user]);
+
+  useEffect(() => {
+    if (!user) { setKycLevel(null); return; }
+    supabase.from("members").select("kyc_level").eq("id", user.id).maybeSingle()
+      .then(({ data }) => setKycLevel(data?.kyc_level ?? 0));
   }, [user]);
 
   useEffect(() => {
@@ -260,6 +267,27 @@ const Dashboard = () => {
           </div>
         </div>
       </header>
+
+      {/* KYC banner */}
+      {kycLevel !== null && kycLevel < 3 && (
+        <section className="px-5 pt-4">
+          <Link
+            to="/kyc"
+            className="mx-auto flex max-w-md items-center gap-3 rounded-2xl border border-accent/40 bg-gradient-to-r from-accent/15 to-primary/10 p-4 transition-smooth hover:border-accent/70 animate-fade-in"
+          >
+            <div className="grid h-10 w-10 shrink-0 place-items-center rounded-2xl bg-accent/20 text-accent">
+              <ShieldAlert className="h-5 w-5" />
+            </div>
+            <div className="min-w-0 flex-1">
+              <p className="text-sm font-medium">⚠️ Complete verification to unlock payouts</p>
+              <p className="text-[11px] text-muted-foreground">Level {kycLevel} of 3 complete</p>
+            </div>
+            <span className="shrink-0 rounded-full bg-gradient-gold px-3 py-1.5 text-[11px] font-medium text-amber-950">
+              Verify Now →
+            </span>
+          </Link>
+        </section>
+      )}
 
       {/* Greeting */}
       <section className="px-5 pt-6">

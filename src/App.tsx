@@ -25,6 +25,7 @@ import FlameMarketing from "./pages/FlameMarketing.tsx";
 import SparkPit from "./pages/SparkPit.tsx";
 import DreamDraw from "./pages/DreamDraw.tsx";
 import SparkFlip from "./pages/SparkFlip.tsx";
+import Kyc from "./pages/Kyc.tsx";
 import NotFound from "./pages/NotFound.tsx";
 import AdminLayout from "./components/umoja/AdminLayout";
 import AdminDashboard from "./pages/admin/AdminDashboard";
@@ -33,6 +34,7 @@ import AdminCircles from "./pages/admin/AdminCircles";
 import AdminSparkTrade from "./pages/admin/AdminSparkTrade";
 import AdminDrive from "./pages/admin/AdminDrive";
 import AdminPredictor from "./pages/admin/AdminPredictor";
+import AdminKycReview from "./pages/admin/AdminKycReview";
 import AdminPayouts from "./pages/admin/AdminPayouts";
 
 const queryClient = new QueryClient();
@@ -63,6 +65,7 @@ const App = () => (
               <Route path="/spark-pit" element={<ProtectedRoute><SparkPit /></ProtectedRoute>} />
               <Route path="/spark-pit/dream-draw" element={<ProtectedRoute><DreamDraw /></ProtectedRoute>} />
               <Route path="/spark-pit/spark-flip" element={<ProtectedRoute><SparkFlip /></ProtectedRoute>} />
+              <Route path="/kyc" element={<ProtectedRoute><Kyc /></ProtectedRoute>} />
 
               <Route path="/admin" element={<AdminRoute><AdminLayout /></AdminRoute>}>
                 <Route index element={<AdminDashboard />} />
@@ -71,6 +74,7 @@ const App = () => (
                 <Route path="spark-trade" element={<AdminSparkTrade />} />
                 <Route path="drive" element={<AdminDrive />} />
                 <Route path="predictor" element={<AdminPredictor />} />
+                <Route path="kyc-review" element={<AdminKycReview />} />
                 <Route path="payouts" element={<AdminPayouts />} />
               </Route>
 
