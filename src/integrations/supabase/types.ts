@@ -783,6 +783,7 @@ export type Database = {
           kyc_document_url: string | null
           kyc_level: number
           kyc_photo_url: string | null
+          kyc_referral_bonus_paid: boolean
           kyc_rejection_reason: string | null
           kyc_status: string | null
           kyc_submitted_at: string | null
@@ -790,7 +791,9 @@ export type Database = {
           phone: string
           phone_verified: boolean
           rank: string | null
+          referral_code: string | null
           referred_by: string | null
+          referred_by_code: string | null
           spark_link_code: string | null
           status: string
           streak_count: number | null
@@ -812,6 +815,7 @@ export type Database = {
           kyc_document_url?: string | null
           kyc_level?: number
           kyc_photo_url?: string | null
+          kyc_referral_bonus_paid?: boolean
           kyc_rejection_reason?: string | null
           kyc_status?: string | null
           kyc_submitted_at?: string | null
@@ -819,7 +823,9 @@ export type Database = {
           phone: string
           phone_verified?: boolean
           rank?: string | null
+          referral_code?: string | null
           referred_by?: string | null
+          referred_by_code?: string | null
           spark_link_code?: string | null
           status?: string
           streak_count?: number | null
@@ -841,6 +847,7 @@ export type Database = {
           kyc_document_url?: string | null
           kyc_level?: number
           kyc_photo_url?: string | null
+          kyc_referral_bonus_paid?: boolean
           kyc_rejection_reason?: string | null
           kyc_status?: string | null
           kyc_submitted_at?: string | null
@@ -848,7 +855,9 @@ export type Database = {
           phone?: string
           phone_verified?: boolean
           rank?: string | null
+          referral_code?: string | null
           referred_by?: string | null
+          referred_by_code?: string | null
           spark_link_code?: string | null
           status?: string
           streak_count?: number | null
@@ -1606,6 +1615,10 @@ export type Database = {
         Args: { _delta: number; _member: string; _note?: string }
         Returns: number
       }
+      admin_award_referral_bonus: {
+        Args: { _amount: number; _member: string; _note?: string }
+        Returns: number
+      }
       admin_list_predictor_questions: {
         Args: never
         Returns: {
@@ -1627,13 +1640,40 @@ export type Database = {
           isSetofReturn: true
         }
       }
+      admin_referral_overview: { Args: never; Returns: Json }
+      admin_top_referrers_month: {
+        Args: { _limit?: number }
+        Returns: {
+          full_name: string
+          member_id: string
+          refs_this_month: number
+        }[]
+      }
+      apply_referral_signup: { Args: { _code: string }; Returns: Json }
+      award_kyc_referral_bonus: { Args: { _member?: string }; Returns: boolean }
       claim_signup_bonus: { Args: never; Returns: number }
+      gen_referral_code: { Args: { _seed?: string }; Returns: string }
       increment_ubuntu_fund: {
         Args: { contribution: number }
         Returns: undefined
       }
       is_admin: { Args: { _uid: string }; Returns: boolean }
       join_spark_trade: { Args: { _id: string }; Returns: undefined }
+      lookup_referrer: {
+        Args: { _code: string }
+        Returns: {
+          full_name: string
+        }[]
+      }
+      my_referred_members: {
+        Args: never
+        Returns: {
+          full_name: string
+          id: string
+          joined_at: string
+          kyc_level: number
+        }[]
+      }
       predictor_leaderboard: {
         Args: { _limit?: number }
         Returns: {
@@ -1644,6 +1684,23 @@ export type Database = {
         }[]
       }
       redeem_invite_code: { Args: { _code: string }; Returns: boolean }
+      referral_leaderboard: {
+        Args: { _limit?: number }
+        Returns: {
+          full_name: string
+          member_id: string
+          referral_code: string
+          sparks_earned: number
+          total_refs: number
+        }[]
+      }
+      referral_stats: {
+        Args: { _member?: string }
+        Returns: {
+          sparks_earned: number
+          total_refs: number
+        }[]
+      }
     }
     Enums: {
       [_ in never]: never
