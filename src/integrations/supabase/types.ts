@@ -14,6 +14,33 @@ export type Database = {
   }
   public: {
     Tables: {
+      admin_invite_codes: {
+        Row: {
+          code: string
+          created_at: string
+          created_by: string | null
+          expires_at: string | null
+          id: string
+          uses_remaining: number
+        }
+        Insert: {
+          code: string
+          created_at?: string
+          created_by?: string | null
+          expires_at?: string | null
+          id?: string
+          uses_remaining?: number
+        }
+        Update: {
+          code?: string
+          created_at?: string
+          created_by?: string | null
+          expires_at?: string | null
+          id?: string
+          uses_remaining?: number
+        }
+        Relationships: []
+      }
       admin_users: {
         Row: {
           created_at: string | null
@@ -1616,6 +1643,7 @@ export type Database = {
           sparks_won: number
         }[]
       }
+      redeem_invite_code: { Args: { _code: string }; Returns: boolean }
     }
     Enums: {
       [_ in never]: never

@@ -26,6 +26,7 @@ import SparkPit from "./pages/SparkPit.tsx";
 import DreamDraw from "./pages/DreamDraw.tsx";
 import SparkFlip from "./pages/SparkFlip.tsx";
 import Kyc from "./pages/Kyc.tsx";
+import Waitlist from "./pages/Waitlist.tsx";
 import NotFound from "./pages/NotFound.tsx";
 import AdminLayout from "./components/umoja/AdminLayout";
 import AdminDashboard from "./pages/admin/AdminDashboard";
@@ -36,6 +37,7 @@ import AdminDrive from "./pages/admin/AdminDrive";
 import AdminPredictor from "./pages/admin/AdminPredictor";
 import AdminKycReview from "./pages/admin/AdminKycReview";
 import AdminPayouts from "./pages/admin/AdminPayouts";
+import AdminInvites from "./pages/admin/AdminInvites";
 
 const queryClient = new QueryClient();
 
@@ -51,6 +53,7 @@ const App = () => (
               <Route path="/" element={<Landing />} />
               <Route path="/login" element={<Login />} />
               <Route path="/signup" element={<Signup />} />
+              <Route path="/waitlist" element={<Waitlist />} />
               <Route path="/dashboard" element={<ProtectedRoute><Dashboard /></ProtectedRoute>} />
               <Route path="/circle" element={<ProtectedRoute><Circle /></ProtectedRoute>} />
               <Route path="/spark" element={<ProtectedRoute><SparkTrade /></ProtectedRoute>} />
@@ -76,6 +79,7 @@ const App = () => (
                 <Route path="predictor" element={<AdminPredictor />} />
                 <Route path="kyc-review" element={<AdminKycReview />} />
                 <Route path="payouts" element={<AdminPayouts />} />
+                <Route path="invites" element={<AdminInvites />} />
               </Route>
 
               <Route path="*" element={<NotFound />} />

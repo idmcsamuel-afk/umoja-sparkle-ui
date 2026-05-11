@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { z } from "zod";
-import { ArrowRight, Loader2, Sparkles } from "lucide-react";
+import { ArrowRight, Loader2, Sparkles, Lock } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { Logo } from "@/components/umoja/Logo";
 import { Button } from "@/components/ui/button";
@@ -14,11 +14,12 @@ const schema = z.object({
   email: z.string().trim().email("Enter a valid email").max(255),
   phone: z.string().trim().min(7, "Enter a valid phone").max(20),
   password: z.string().min(6, "At least 6 characters").max(100),
+  invite_code: z.string().trim().max(64).optional(),
 });
 
 const Signup = () => {
   const nav = useNavigate();
-  const [form, setForm] = useState({ full_name: "", email: "", phone: "", password: "" });
+  const [form, setForm] = useState({ full_name: "", email: "", phone: "", password: "", invite_code: "" });
   const [busy, setBusy] = useState(false);
 
   const update = (k: keyof typeof form) => (e: React.ChangeEvent<HTMLInputElement>) =>
@@ -32,6 +33,32 @@ const Signup = () => {
       return;
     }
     setBusy(true);
+
+    // Gate: SA phone OR valid invite code
+    const phoneSA = parsed.data.phone.replace(/\s+/g, "").startsWith("+27");
+    const code = parsed.data.invite_code?.trim();
+
+    let inviteRedeemed = false;
+    if (code) {
+      const { data: ok, error: rpcErr } = await supabase.rpc("redeem_invite_code", { _code: code });
+      if (rpcErr) {
+        setBusy(false);
+        toast.error("Could not validate invite code");
+        return;
+      }
+      if (!ok) {
+        setBusy(false);
+        toast.error("Invite code is invalid or already used");
+        return;
+      }
+      inviteRedeemed = true;
+    }
+
+    if (!phoneSA && !inviteRedeemed) {
+      setBusy(false);
+      toast.error("UMOJA is currently invite-only outside South Africa. Enter a valid invite code or join the waitlist.");
+      return;
+    }
 
     const { data, error } = await supabase.auth.signUp({
       email: parsed.data.email,
@@ -48,7 +75,6 @@ const Signup = () => {
       return;
     }
 
-    // Insert member profile + welcome wallet (RLS requires auth.uid() = id / member_id)
     const uid = data.user.id;
     const { error: memberErr } = await supabase.from("members").insert({
       id: uid,
@@ -96,14 +122,18 @@ const Signup = () => {
             <span className="text-muted-foreground">100 welcome Sparks for new members</span>
           </div>
           <h1 className="mt-5 font-display text-[40px] leading-[1.05] tracking-tight">
-            Join the{" "}
-            <span className="text-gradient-gold italic font-[450]">circle.</span>
+            Join the <span className="text-gradient-gold italic font-[450]">circle.</span>
           </h1>
-          <p className="mt-4 text-muted-foreground">
-            Wealth is stronger when it's shared.
-          </p>
 
-          <form onSubmit={onSubmit} className="mt-10 space-y-5">
+          <div className="mt-5 rounded-2xl border border-accent/30 bg-accent/5 p-4 flex gap-3">
+            <Lock className="h-4 w-4 text-accent shrink-0 mt-0.5" />
+            <p className="text-xs text-accent-soft leading-relaxed">
+              UMOJA is currently invite-only for South African residents.{" "}
+              <Link to="/waitlist" className="underline text-accent">Join the waitlist</Link> to be notified when we open in your region.
+            </p>
+          </div>
+
+          <form onSubmit={onSubmit} className="mt-8 space-y-5">
             <div className="space-y-2">
               <Label className="text-xs uppercase tracking-[0.18em] text-muted-foreground">Full name</Label>
               <Input value={form.full_name} onChange={update("full_name")} className="h-12 rounded-2xl bg-secondary/60 border-border" placeholder="Amara Khumalo" required />
@@ -115,6 +145,11 @@ const Signup = () => {
             <div className="space-y-2">
               <Label className="text-xs uppercase tracking-[0.18em] text-muted-foreground">Phone</Label>
               <Input type="tel" autoComplete="tel" value={form.phone} onChange={update("phone")} className="h-12 rounded-2xl bg-secondary/60 border-border" placeholder="+27 …" required />
+              <p className="text-[11px] text-muted-foreground">South African numbers (+27) are auto-approved.</p>
+            </div>
+            <div className="space-y-2">
+              <Label className="text-xs uppercase tracking-[0.18em] text-muted-foreground">Invite code (optional)</Label>
+              <Input value={form.invite_code} onChange={update("invite_code")} className="h-12 rounded-2xl bg-secondary/60 border-border" placeholder="Required outside +27" />
             </div>
             <div className="space-y-2">
               <Label className="text-xs uppercase tracking-[0.18em] text-muted-foreground">Password</Label>
