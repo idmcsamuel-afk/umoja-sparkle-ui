@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { Link, useLocation } from "react-router-dom";
-import { ArrowLeft, Sparkles, Loader2, TrendingUp, Users, Package, Flame, Clock } from "lucide-react";
+import { ArrowLeft, Sparkles, Loader2, TrendingUp, Users, Package, Flame, Clock, Search, Star, Plus, Check } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { Logo } from "@/components/umoja/Logo";
@@ -46,6 +46,95 @@ const SparkTrade = () => {
   const [orders, setOrders] = useState<Order[]>([]);
   const [loading, setLoading] = useState(true);
   const [joining, setJoining] = useState<string | null>(null);
+
+  // Live Amazon search
+  type AmazonProduct = {
+    asin: string;
+    title?: string;
+    image?: string;
+    price?: number;
+    currency?: string;
+    sales_rank?: number;
+    category?: string;
+    rating?: number;
+    reviews?: number;
+  };
+  const [keywords, setKeywords] = useState("trending");
+  const [searching, setSearching] = useState(false);
+  const [products, setProducts] = useState<AmazonProduct[]>([]);
+  const [shortlisted, setShortlisted] = useState<Set<string>>(new Set());
+  const [addingAsin, setAddingAsin] = useState<string | null>(null);
+
+  const normalizeProducts = (raw: any): AmazonProduct[] => {
+    const list =
+      (Array.isArray(raw) && raw) ||
+      raw?.products ||
+      raw?.items ||
+      raw?.results ||
+      raw?.data ||
+      raw?.payload?.products ||
+      [];
+    return (list as any[])
+      .map((p) => {
+        const asin = p.asin ?? p.ASIN ?? p.id ?? p.productId;
+        if (!asin) return null;
+        const price =
+          typeof p.price === "number"
+            ? p.price
+            : Number(p.price?.amount ?? p.price?.value ?? p.listing_price ?? p.sale_price ?? 0) || undefined;
+        return {
+          asin: String(asin),
+          title: p.title ?? p.name ?? p.product_name ?? null,
+          image: p.image ?? p.image_url ?? p.thumbnail ?? p.images?.[0] ?? null,
+          price,
+          currency: p.currency ?? p.price?.currency ?? "ZAR",
+          sales_rank: Number(p.sales_rank ?? p.rank ?? p.bsr) || undefined,
+          category: p.category ?? p.category_name ?? null,
+          rating: Number(p.rating ?? p.stars) || undefined,
+          reviews: Number(p.reviews ?? p.review_count) || undefined,
+        } as AmazonProduct;
+      })
+      .filter(Boolean) as AmazonProduct[];
+  };
+
+  const searchAmazon = async () => {
+    setSearching(true);
+    try {
+      const { data, error } = await supabase.functions.invoke("amazon-sp", {
+        body: { action: "search", keywords: keywords || "trending" },
+      });
+      if (error) throw error;
+      const list = normalizeProducts(data);
+      setProducts(list);
+      if (!list.length) toast.message("No products returned for that search.");
+    } catch (e: any) {
+      console.error(e);
+      toast.error(e?.message ?? "Failed to fetch Amazon products");
+    } finally {
+      setSearching(false);
+    }
+  };
+
+  const addToShortlist = async (p: AmazonProduct) => {
+    setAddingAsin(p.asin);
+    const { error } = await supabase.from("spark_trade_shortlist").insert({
+      asin: p.asin,
+      product_name: p.title ?? null,
+      category: p.category ?? null,
+      sale_price: p.price ?? null,
+      target_slots: 10,
+      moq: 1,
+      status: "open",
+    });
+    setAddingAsin(null);
+    if (error) {
+      toast.error(error.message);
+      return;
+    }
+    setShortlisted((s) => new Set(s).add(p.asin));
+    toast.success("Added to shortlist");
+    load();
+  };
 
   const load = async () => {
     setLoading(true);
@@ -198,6 +287,82 @@ const SparkTrade = () => {
           <p className="mt-3 text-sm text-muted-foreground">
             Vetted products. Group buying power. Real margins.
           </p>
+        </div>
+      </section>
+
+      <section id="amazon-live" className="px-5 pt-8">
+        <div className="mx-auto max-w-md">
+          <div className="flex items-baseline justify-between">
+            <h2 className="font-display text-xl">Live from Amazon</h2>
+            <span className="text-[10px] uppercase tracking-[0.18em] text-accent">SP-API</span>
+          </div>
+          <div className="mt-3 flex gap-2">
+            <div className="relative flex-1">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+              <input
+                value={keywords}
+                onChange={(e) => setKeywords(e.target.value)}
+                onKeyDown={(e) => e.key === "Enter" && searchAmazon()}
+                placeholder="Search keywords (e.g. trending)"
+                className="w-full h-11 pl-9 pr-3 rounded-2xl bg-secondary/60 text-sm outline-none focus:ring-2 focus:ring-primary"
+              />
+            </div>
+            <button
+              onClick={searchAmazon}
+              disabled={searching}
+              className="h-11 px-4 rounded-2xl bg-gradient-primary text-primary-foreground text-sm font-medium shadow-glow inline-flex items-center gap-1.5 disabled:opacity-60"
+            >
+              {searching ? <Loader2 className="h-4 w-4 animate-spin" /> : <Sparkles className="h-4 w-4" />}
+              Search
+            </button>
+          </div>
+
+          {products.length > 0 && (
+            <ul className="mt-4 space-y-3">
+              {products.map((p) => {
+                const isAdded = shortlisted.has(p.asin);
+                return (
+                  <li key={p.asin} className="rounded-3xl glass p-4 flex gap-3 animate-fade-in">
+                    <div className="h-20 w-20 shrink-0 overflow-hidden rounded-2xl bg-secondary grid place-items-center">
+                      {p.image ? (
+                        <img src={p.image} alt={p.title ?? p.asin} className="h-full w-full object-cover" loading="lazy" />
+                      ) : (
+                        <Package className="h-6 w-6 text-muted-foreground" />
+                      )}
+                    </div>
+                    <div className="min-w-0 flex-1">
+                      <p className="text-sm font-medium line-clamp-2">{p.title ?? p.asin}</p>
+                      <p className="mt-1 text-[11px] text-muted-foreground">ASIN {p.asin}{p.category ? ` · ${p.category}` : ""}</p>
+                      <div className="mt-1.5 flex flex-wrap gap-x-3 gap-y-1 text-[11px] text-muted-foreground">
+                        {typeof p.price === "number" && (
+                          <span className="text-gradient-gold font-display text-sm">{fmtR(p.price)}</span>
+                        )}
+                        {p.sales_rank && (
+                          <span className="inline-flex items-center gap-1"><TrendingUp className="h-3 w-3" />#{p.sales_rank}</span>
+                        )}
+                        {p.rating && (
+                          <span className="inline-flex items-center gap-1"><Star className="h-3 w-3" />{p.rating.toFixed(1)}{p.reviews ? ` (${p.reviews})` : ""}</span>
+                        )}
+                      </div>
+                      <button
+                        onClick={() => addToShortlist(p)}
+                        disabled={isAdded || addingAsin === p.asin}
+                        className="mt-2 h-8 px-3 rounded-xl bg-secondary text-xs inline-flex items-center gap-1 hover:bg-secondary/80 disabled:opacity-60"
+                      >
+                        {addingAsin === p.asin ? (
+                          <Loader2 className="h-3 w-3 animate-spin" />
+                        ) : isAdded ? (
+                          <><Check className="h-3 w-3" /> Shortlisted</>
+                        ) : (
+                          <><Plus className="h-3 w-3" /> Add to Shortlist</>
+                        )}
+                      </button>
+                    </div>
+                  </li>
+                );
+              })}
+            </ul>
+          )}
         </div>
       </section>
 
