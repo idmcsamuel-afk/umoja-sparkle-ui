@@ -87,7 +87,7 @@ export default function FlameMarketing() {
 
     try {
       const { data, error } = await supabase.functions.invoke("flame-ai", {
-        body: { system, temperature: 0.85, messages: [{ role: "user", content: user }] },
+        body: { prompt: "marketing", temperature: 0.85, messages: [{ role: "user", content: user }] },
       });
       if (error) throw error;
       let reply: string = (data as any)?.reply ?? "";
