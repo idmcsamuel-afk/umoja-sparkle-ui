@@ -168,9 +168,19 @@ const Signup = () => {
             </p>
           </div>
 
-          {refParam && (
+          {refParam && refStatus === "checking" && (
+            <div className="mt-3 rounded-2xl border border-border bg-secondary/40 p-4 text-xs text-muted-foreground">
+              Checking referral code <strong className="font-mono">{refParam}</strong>…
+            </div>
+          )}
+          {refParam && refStatus === "valid" && (
             <div className="mt-3 rounded-2xl border border-accent/40 bg-accent/10 p-4 text-xs text-accent-soft">
               🎉 You were invited by <strong>{referrerName ?? refParam}</strong>. You'll both earn Sparks when you join.
+            </div>
+          )}
+          {refParam && refStatus === "invalid" && (
+            <div className="mt-3 rounded-2xl border border-destructive/40 bg-destructive/10 p-4 text-xs text-destructive">
+              ⚠️ Referral code <strong className="font-mono">{refParam}</strong> isn't valid. You can still sign up — you just won't get a referral bonus.
             </div>
           )}
 
