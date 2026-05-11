@@ -116,10 +116,16 @@ const Signup = () => {
     await supabase.rpc("claim_signup_bonus");
 
     let refMsg = "";
-    if (refParam) {
-      const { data: res } = await supabase.rpc("apply_referral_signup", { _code: refParam });
-      const r = res as { ok?: boolean; referrer_name?: string } | null;
-      if (r?.ok) refMsg = ` You were referred by ${r.referrer_name ?? "a member"}!`;
+    if (refParam && refStatus !== "invalid") {
+      const { data: res, error: refErr } = await supabase.rpc("apply_referral_signup", { _code: refParam });
+      const r = res as { ok?: boolean; reason?: string; referrer_name?: string } | null;
+      if (refErr || !r?.ok) {
+        toast.warning("Referral code couldn't be applied, but your account was created.");
+      } else {
+        refMsg = ` Your referrer ${r.referrer_name ?? ""} earned 200 Sparks too 🎁`;
+      }
+    } else if (refParam && refStatus === "invalid") {
+      toast.warning("Invalid referral code — signup allowed without referral bonus.");
     }
 
     setBusy(false);
