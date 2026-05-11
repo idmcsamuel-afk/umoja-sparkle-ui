@@ -1472,6 +1472,8 @@ export type Database = {
           amazon_fee: number | null
           asin: string
           category: string | null
+          cost_price: number | null
+          data_source: string | null
           estimated_margin: number | null
           id: string
           joined_count: number | null
@@ -1489,6 +1491,8 @@ export type Database = {
           amazon_fee?: number | null
           asin: string
           category?: string | null
+          cost_price?: number | null
+          data_source?: string | null
           estimated_margin?: number | null
           id?: string
           joined_count?: number | null
@@ -1506,6 +1510,8 @@ export type Database = {
           amazon_fee?: number | null
           asin?: string
           category?: string | null
+          cost_price?: number | null
+          data_source?: string | null
           estimated_margin?: number | null
           id?: string
           joined_count?: number | null
