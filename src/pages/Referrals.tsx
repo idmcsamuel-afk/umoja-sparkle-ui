@@ -1,7 +1,7 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { Link } from "react-router-dom";
 import { QRCodeSVG } from "qrcode.react";
-import { Copy, Share2, Sparkles, Users, Trophy, Crown, Medal, Award, ArrowLeft } from "lucide-react";
+import { Copy, Share2, Sparkles, Users, Trophy, Crown, Medal, Award, ArrowLeft, Check } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Logo } from "@/components/umoja/Logo";
 import { BottomNav } from "@/components/umoja/BottomNav";
