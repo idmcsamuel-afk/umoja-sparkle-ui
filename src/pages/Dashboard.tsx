@@ -93,7 +93,7 @@ const Dashboard = () => {
     const uid = user.id;
     const fetchBc = async () => {
       const { data } = await supabase.from("members")
-        .select("kyc_level, buyers_club_status, buyers_club_tier, has_buyers_club_access, buyers_club_rejection_reason, buyers_club_renewal_at")
+        .select("kyc_level, buyers_club_status, buyers_club_tier, has_buyers_club_access, buyers_club_rejection_reason, buyers_club_renewal_at, referral_code")
         .eq("id", uid).maybeSingle();
       setKycLevel(data?.kyc_level ?? 0);
       setBc({
@@ -102,6 +102,7 @@ const Dashboard = () => {
         has_access: !!data?.has_buyers_club_access,
         rejection_reason: data?.buyers_club_rejection_reason ?? null,
         renewal_at: (data as any)?.buyers_club_renewal_at ?? null,
+        referral_code: (data as any)?.referral_code ?? null,
       });
     };
     fetchBc();
