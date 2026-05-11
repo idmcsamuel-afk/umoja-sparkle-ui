@@ -521,8 +521,29 @@ const Circle = () => {
               </DialogHeader>
 
               {!settingsReady ? (
-                <div className="rounded-2xl border border-destructive/40 bg-destructive/10 p-4 text-sm">
-                  Bank details are not configured yet. Please contact an admin.
+                <div className="rounded-2xl border border-destructive/40 bg-destructive/10 p-4 space-y-3">
+                  <div>
+                    <p className="text-sm font-medium text-destructive">Bank details not configured</p>
+                    <p className="mt-1 text-xs text-muted-foreground">
+                      EFT instructions can't be shown until an admin saves the bank name, account name, account number, and branch code.
+                    </p>
+                  </div>
+                  {isAdmin ? (
+                    <Button
+                      asChild
+                      onClick={closeModal}
+                      className="w-full rounded-2xl bg-gradient-primary text-primary-foreground shadow-glow"
+                    >
+                      <Link to="/admin/settings">
+                        Configure bank details
+                        <ChevronRight className="h-4 w-4 ml-1" />
+                      </Link>
+                    </Button>
+                  ) : (
+                    <p className="text-xs text-muted-foreground">
+                      Please contact an admin and try again once they're saved.
+                    </p>
+                  )}
                 </div>
               ) : (
                 <div className="space-y-2 rounded-2xl border border-border bg-secondary/40 p-4 text-sm">
