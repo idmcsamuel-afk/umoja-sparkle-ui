@@ -138,6 +138,62 @@ export default function AdminSettings() {
           </Button>
         </div>
       </div>
+
+      <div className="mt-8 rounded-3xl border border-border bg-gradient-card p-6">
+        <div className="flex items-center justify-between gap-3 mb-4">
+          <div>
+            <h2 className="font-display text-xl">Member EFT preview</h2>
+            <p className="text-xs text-muted-foreground mt-1">
+              Exactly what members see in the bid modal. Account number is masked by default.
+            </p>
+          </div>
+          <Button
+            type="button"
+            variant="outline"
+            size="sm"
+            onClick={() => setUnmask((v) => !v)}
+            className="rounded-2xl"
+          >
+            {unmask ? <><EyeOff className="h-4 w-4 mr-1" /> Mask</> : <><Eye className="h-4 w-4 mr-1" /> Reveal</>}
+          </Button>
+        </div>
+
+        {!previewReady ? (
+          <div className="rounded-2xl border border-dashed border-border bg-secondary/30 p-4 text-sm text-muted-foreground">
+            Fill in at least the bank name and account number above to preview the modal.
+          </div>
+        ) : (
+          <div className="space-y-2 rounded-2xl border border-border bg-secondary/40 p-4 text-sm">
+            <p className="text-xs uppercase tracking-[0.18em] text-accent pb-2 border-b border-border/40">
+              Pay via EFT
+            </p>
+            {[
+              ["Bank", s.bank_name],
+              ["Account Name", s.account_name],
+              ["Account Number", maskAccount(s.account_number)],
+              ["Branch Code", s.branch_code],
+              ["Reference", sampleRef],
+              ["Amount", sampleAmount],
+            ].map(([label, value]) => (
+              <div
+                key={label}
+                className="flex items-center justify-between gap-3 py-1 border-b border-border/40 last:border-b-0"
+              >
+                <span className="text-xs uppercase tracking-wider text-muted-foreground">{label}</span>
+                <span className="font-mono text-sm truncate">{value || "—"}</span>
+              </div>
+            ))}
+            {s.payment_instructions && (
+              <p className="pt-2 text-xs text-muted-foreground whitespace-pre-line">
+                {s.payment_instructions}
+              </p>
+            )}
+            <p className="pt-3 text-[11px] uppercase tracking-[0.18em] text-muted-foreground">
+              Sample reference & amount — actual values are generated per bid.
+            </p>
+          </div>
+        )}
+      </div>
     </div>
   );
 }
