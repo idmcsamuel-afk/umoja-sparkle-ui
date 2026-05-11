@@ -2,7 +2,7 @@ import { useEffect, useMemo, useState } from "react";
 import { Link } from "react-router-dom";
 import {
   ArrowUpRight, Users, Sparkles, Car, TrendingUp, ChevronRight, Loader2, User as UserIcon, Shield,
-  Calculator as CalcIcon, ShoppingBag, Repeat, Building2, ShieldAlert, Gift, Palette,
+  Calculator as CalcIcon, ShoppingBag, Repeat, Building2, ShieldAlert, Gift, Palette, ShoppingCart, CheckCircle2, Clock, XCircle,
 } from "lucide-react";
 import { Logo } from "@/components/umoja/Logo";
 import { BottomNav } from "@/components/umoja/BottomNav";
@@ -63,6 +63,12 @@ const Dashboard = () => {
   const [teaser, setTeaser] = useState<PredictorTeaser | null>(null);
   const [isAdmin, setIsAdmin] = useState(false);
   const [kycLevel, setKycLevel] = useState<number | null>(null);
+  const [bc, setBc] = useState<{
+    status: string | null;
+    tier: string | null;
+    has_access: boolean;
+    rejection_reason: string | null;
+  } | null>(null);
 
   useEffect(() => {
     if (!user) { setIsAdmin(false); return; }
@@ -82,9 +88,19 @@ const Dashboard = () => {
   }, [user]);
 
   useEffect(() => {
-    if (!user) { setKycLevel(null); return; }
-    supabase.from("members").select("kyc_level").eq("id", user.id).maybeSingle()
-      .then(({ data }) => setKycLevel(data?.kyc_level ?? 0));
+    if (!user) { setKycLevel(null); setBc(null); return; }
+    supabase.from("members")
+      .select("kyc_level, buyers_club_status, buyers_club_tier, has_buyers_club_access, buyers_club_rejection_reason")
+      .eq("id", user.id).maybeSingle()
+      .then(({ data }) => {
+        setKycLevel(data?.kyc_level ?? 0);
+        setBc({
+          status: data?.buyers_club_status ?? null,
+          tier: data?.buyers_club_tier ?? null,
+          has_access: !!data?.has_buyers_club_access,
+          rejection_reason: data?.buyers_club_rejection_reason ?? null,
+        });
+      });
   }, [user]);
 
   useEffect(() => {
@@ -286,6 +302,78 @@ const Dashboard = () => {
               Verify Now →
             </span>
           </Link>
+        </section>
+      )}
+
+      {/* Buyers Club status card */}
+      {bc && (
+        <section className="px-5 pt-4">
+          <div className="mx-auto max-w-md animate-fade-in">
+            {bc.has_access ? (
+              <Link
+                to="/spark"
+                className="flex items-center gap-3 rounded-2xl border border-primary/40 bg-gradient-to-r from-primary/15 to-accent/10 p-4 transition-smooth hover:border-primary/70"
+              >
+                <div className="grid h-10 w-10 shrink-0 place-items-center rounded-2xl bg-primary/20 text-primary">
+                  <CheckCircle2 className="h-5 w-5" />
+                </div>
+                <div className="min-w-0 flex-1">
+                  <p className="text-sm font-medium">
+                    Buyers Club <span className="capitalize text-accent">{bc.tier ?? "active"}</span> ✓
+                  </p>
+                  <p className="text-[11px] text-muted-foreground">Member benefits unlocked — browse buying groups</p>
+                </div>
+                <ChevronRight className="h-4 w-4 text-muted-foreground" />
+              </Link>
+            ) : bc.status === "payment_pending" ? (
+              <div className="flex items-center gap-3 rounded-2xl border border-accent/40 bg-gradient-to-r from-accent/15 to-primary/10 p-4">
+                <div className="grid h-10 w-10 shrink-0 place-items-center rounded-2xl bg-accent/20 text-accent">
+                  <Clock className="h-5 w-5" />
+                </div>
+                <div className="min-w-0 flex-1">
+                  <p className="text-sm font-medium">Buyers Club payment under review</p>
+                  <p className="text-[11px] text-muted-foreground">
+                    {bc.tier ? `${bc.tier.charAt(0).toUpperCase() + bc.tier.slice(1)} tier · ` : ""}
+                    We'll confirm within 24 hours
+                  </p>
+                </div>
+              </div>
+            ) : bc.status === "rejected" ? (
+              <Link
+                to="/spark"
+                className="flex items-center gap-3 rounded-2xl border border-destructive/40 bg-destructive/10 p-4 transition-smooth hover:border-destructive/70"
+              >
+                <div className="grid h-10 w-10 shrink-0 place-items-center rounded-2xl bg-destructive/20 text-destructive">
+                  <XCircle className="h-5 w-5" />
+                </div>
+                <div className="min-w-0 flex-1">
+                  <p className="text-sm font-medium">Buyers Club payment rejected</p>
+                  <p className="text-[11px] text-muted-foreground line-clamp-1">
+                    {bc.rejection_reason ?? "Tap to resubmit your proof of payment"}
+                  </p>
+                </div>
+                <span className="shrink-0 rounded-full bg-gradient-gold px-3 py-1.5 text-[11px] font-medium text-amber-950">
+                  Retry →
+                </span>
+              </Link>
+            ) : (
+              <Link
+                to="/spark"
+                className="flex items-center gap-3 rounded-2xl border border-accent/40 bg-gradient-to-r from-primary/10 to-accent/15 p-4 transition-smooth hover:border-accent/70"
+              >
+                <div className="grid h-10 w-10 shrink-0 place-items-center rounded-2xl bg-accent/20 text-accent">
+                  <ShoppingCart className="h-5 w-5" />
+                </div>
+                <div className="min-w-0 flex-1">
+                  <p className="text-sm font-medium">Join the Buyers Club 🛒</p>
+                  <p className="text-[11px] text-muted-foreground">Unlock real products & better margins from R200</p>
+                </div>
+                <span className="shrink-0 rounded-full bg-gradient-gold px-3 py-1.5 text-[11px] font-medium text-amber-950">
+                  Join →
+                </span>
+              </Link>
+            )}
+          </div>
         </section>
       )}
 
