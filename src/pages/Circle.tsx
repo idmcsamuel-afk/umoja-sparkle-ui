@@ -71,6 +71,17 @@ const Circle = () => {
   const [stats, setStats] = useState<Record<string, TierStats>>({});
   const [loading, setLoading] = useState(true);
   const [settings, setSettings] = useState<Settings | null>(null);
+  const [isAdmin, setIsAdmin] = useState(false);
+
+  useEffect(() => {
+    if (!user) { setIsAdmin(false); return; }
+    supabase
+      .from("admin_users")
+      .select("user_id")
+      .eq("user_id", user.id)
+      .maybeSingle()
+      .then(({ data }) => setIsAdmin(!!data));
+  }, [user]);
 
   // Bid modal flow
   const [open, setOpen] = useState<Tier | null>(null);
