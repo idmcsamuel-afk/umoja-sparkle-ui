@@ -47,6 +47,95 @@ const SparkTrade = () => {
   const [loading, setLoading] = useState(true);
   const [joining, setJoining] = useState<string | null>(null);
 
+  // Live Amazon search
+  type AmazonProduct = {
+    asin: string;
+    title?: string;
+    image?: string;
+    price?: number;
+    currency?: string;
+    sales_rank?: number;
+    category?: string;
+    rating?: number;
+    reviews?: number;
+  };
+  const [keywords, setKeywords] = useState("trending");
+  const [searching, setSearching] = useState(false);
+  const [products, setProducts] = useState<AmazonProduct[]>([]);
+  const [shortlisted, setShortlisted] = useState<Set<string>>(new Set());
+  const [addingAsin, setAddingAsin] = useState<string | null>(null);
+
+  const normalizeProducts = (raw: any): AmazonProduct[] => {
+    const list =
+      (Array.isArray(raw) && raw) ||
+      raw?.products ||
+      raw?.items ||
+      raw?.results ||
+      raw?.data ||
+      raw?.payload?.products ||
+      [];
+    return (list as any[])
+      .map((p) => {
+        const asin = p.asin ?? p.ASIN ?? p.id ?? p.productId;
+        if (!asin) return null;
+        const price =
+          typeof p.price === "number"
+            ? p.price
+            : Number(p.price?.amount ?? p.price?.value ?? p.listing_price ?? p.sale_price ?? 0) || undefined;
+        return {
+          asin: String(asin),
+          title: p.title ?? p.name ?? p.product_name ?? null,
+          image: p.image ?? p.image_url ?? p.thumbnail ?? p.images?.[0] ?? null,
+          price,
+          currency: p.currency ?? p.price?.currency ?? "ZAR",
+          sales_rank: Number(p.sales_rank ?? p.rank ?? p.bsr) || undefined,
+          category: p.category ?? p.category_name ?? null,
+          rating: Number(p.rating ?? p.stars) || undefined,
+          reviews: Number(p.reviews ?? p.review_count) || undefined,
+        } as AmazonProduct;
+      })
+      .filter(Boolean) as AmazonProduct[];
+  };
+
+  const searchAmazon = async () => {
+    setSearching(true);
+    try {
+      const { data, error } = await supabase.functions.invoke("amazon-sp", {
+        body: { action: "search", keywords: keywords || "trending" },
+      });
+      if (error) throw error;
+      const list = normalizeProducts(data);
+      setProducts(list);
+      if (!list.length) toast.message("No products returned for that search.");
+    } catch (e: any) {
+      console.error(e);
+      toast.error(e?.message ?? "Failed to fetch Amazon products");
+    } finally {
+      setSearching(false);
+    }
+  };
+
+  const addToShortlist = async (p: AmazonProduct) => {
+    setAddingAsin(p.asin);
+    const { error } = await supabase.from("spark_trade_shortlist").insert({
+      asin: p.asin,
+      product_name: p.title ?? null,
+      category: p.category ?? null,
+      sale_price: p.price ?? null,
+      target_slots: 10,
+      moq: 1,
+      status: "open",
+    });
+    setAddingAsin(null);
+    if (error) {
+      toast.error(error.message);
+      return;
+    }
+    setShortlisted((s) => new Set(s).add(p.asin));
+    toast.success("Added to shortlist");
+    load();
+  };
+
   const load = async () => {
     setLoading(true);
     const [sRes, oRes] = await Promise.all([
