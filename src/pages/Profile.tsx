@@ -111,10 +111,6 @@ export default function Profile() {
       </section>
 
       <section className="px-5 pt-8">
-        <div className="mx-auto max-w-md"></div></section>
-      <div style={{ display: "none" }}>
-
-      <section className="px-5 pt-8">
         <div className="mx-auto max-w-md">
           <h2 className="font-display text-xl flex items-center gap-2"><Sparkles className="h-4 w-4 text-accent" /> Sparks history</h2>
           {loading ? <Loader2 className="mt-4 h-5 w-5 animate-spin text-primary" /> : sparkTxns.length === 0 ? (
