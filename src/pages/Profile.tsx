@@ -1,14 +1,16 @@
 import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
-import { ArrowLeft, Loader2, Sparkles, Users } from "lucide-react";
+import { ArrowLeft, Loader2, Sparkles, Users, Mail } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { Logo } from "@/components/umoja/Logo";
 import { BottomNav } from "@/components/umoja/BottomNav";
 import { Button } from "@/components/ui/button";
+import { Switch } from "@/components/ui/switch";
 import {
   Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription,
 } from "@/components/ui/dialog";
+import { toast } from "sonner";
 
 type Bid = {
   id: string;
@@ -31,18 +33,32 @@ export default function Profile() {
   const [bids, setBids] = useState<Bid[]>([]);
   const [balance, setBalance] = useState(0);
   const [openBid, setOpenBid] = useState<Bid | null>(null);
+  const [prefs, setPrefs] = useState({ circle: true, spark_trade: true, marketing: true, weekly_digest: true });
+  const [savingPref, setSavingPref] = useState<string | null>(null);
+
+  const togglePref = async (key: keyof typeof prefs) => {
+    if (!user) return;
+    const next = { ...prefs, [key]: !prefs[key] };
+    setPrefs(next); setSavingPref(key);
+    const { error } = await supabase.from("members").update({ email_preferences: next }).eq("id", user.id);
+    setSavingPref(null);
+    if (error) { setPrefs(prefs); toast.error("Could not save"); }
+  };
 
   useEffect(() => {
     if (!user) return;
     (async () => {
-      const [s, b, w] = await Promise.all([
+      const [s, b, w, m] = await Promise.all([
         supabase.from("spark_transactions").select("id, tx_type, amount, created_at").or(`from_member.eq.${user.id},to_member.eq.${user.id}`).order("created_at", { ascending: false }).limit(50),
         supabase.from("circle_bids").select("id, tier, fiat_amount, net_amount, payout_amount, status, created_at, vault_start, vault_end").eq("member_id", user.id).order("created_at", { ascending: false }).limit(50),
         supabase.from("spark_wallets").select("balance").eq("member_id", user.id).maybeSingle(),
+        supabase.from("members").select("email_preferences").eq("id", user.id).maybeSingle(),
       ]);
       setSparkTxns((s.data ?? []) as typeof sparkTxns);
       setBids((b.data ?? []) as typeof bids);
       setBalance(Number(w.data?.balance ?? 0));
+      const p = (m.data?.email_preferences ?? {}) as Partial<typeof prefs>;
+      setPrefs({ circle: p.circle ?? true, spark_trade: p.spark_trade ?? true, marketing: p.marketing ?? true, weekly_digest: p.weekly_digest ?? true });
       setLoading(false);
     })();
   }, [user]);
@@ -73,6 +89,24 @@ export default function Profile() {
             <div className="flex justify-between"><span className="text-muted-foreground">Sparks balance</span><span className="text-accent-soft font-display">{Math.round(balance)} SP</span></div>
           </div>
           <Button variant="outline" className="mt-4 w-full rounded-2xl" onClick={signOut}>Sign out</Button>
+
+          <div className="mt-6 rounded-3xl glass p-5">
+            <h3 className="font-display text-lg flex items-center gap-2"><Mail className="h-4 w-4 text-accent" /> Email preferences</h3>
+            <p className="text-xs text-muted-foreground mt-1">Critical notifications (payments, KYC, payouts) are always sent.</p>
+            <ul className="mt-4 space-y-3 text-sm">
+              {([
+                ["circle", "Circle notifications"],
+                ["spark_trade", "Spark Trade updates"],
+                ["marketing", "Marketing emails"],
+                ["weekly_digest", "Weekly digest"],
+              ] as const).map(([key, label]) => (
+                <li key={key} className="flex items-center justify-between">
+                  <span>{label}</span>
+                  <Switch checked={prefs[key]} disabled={savingPref === key} onCheckedChange={() => togglePref(key)} />
+                </li>
+              ))}
+            </ul>
+          </div>
         </div>
       </section>
 

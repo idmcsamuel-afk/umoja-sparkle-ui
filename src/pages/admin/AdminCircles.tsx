@@ -98,6 +98,33 @@ export default function AdminCircles() {
       kind: "payment",
       link: "/circle",
     });
+    if (bid.member_email) {
+      // Compute current rank in tier (active bids ordered by priority_score desc)
+      const { data: tierBids } = await supabase
+        .from("circle_bids")
+        .select("id, priority_score")
+        .eq("tier", bid.tier)
+        .eq("status", "active")
+        .order("priority_score", { ascending: false });
+      const list = (tierBids ?? []) as Array<{ id: string; priority_score: number | null }>;
+      const idx = list.findIndex((x) => x.id === bid.id);
+      const rank = idx >= 0 ? idx + 1 : "—";
+      const score = idx >= 0 ? Math.round(Number(list[idx].priority_score ?? 0)) : "—";
+      supabase.functions.invoke("send-email", {
+        body: {
+          template: "payment_verified",
+          to: bid.member_email,
+          member_id: bid.member_id,
+          bypass_prefs: true,
+          data: {
+            name: bid.member_name,
+            amount: Math.round(Number(bid.fiat_amount)).toLocaleString("en-ZA"),
+            circle_name: `${bid.tier} Circle`,
+            score, rank, total: list.length,
+          },
+        },
+      }).catch(() => {});
+    }
     toast.success("Payment confirmed");
     setBusy(null);
     load();

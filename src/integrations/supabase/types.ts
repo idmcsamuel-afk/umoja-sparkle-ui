@@ -704,6 +704,110 @@ export type Database = {
         }
         Relationships: []
       }
+      email_blasts: {
+        Row: {
+          audience: string
+          audience_filter: Json | null
+          body_html: string
+          completed_at: string | null
+          created_at: string
+          created_by: string | null
+          failed_count: number
+          id: string
+          recipient_count: number
+          sent_count: number
+          status: string
+          subject: string
+        }
+        Insert: {
+          audience: string
+          audience_filter?: Json | null
+          body_html: string
+          completed_at?: string | null
+          created_at?: string
+          created_by?: string | null
+          failed_count?: number
+          id?: string
+          recipient_count?: number
+          sent_count?: number
+          status?: string
+          subject: string
+        }
+        Update: {
+          audience?: string
+          audience_filter?: Json | null
+          body_html?: string
+          completed_at?: string | null
+          created_at?: string
+          created_by?: string | null
+          failed_count?: number
+          id?: string
+          recipient_count?: number
+          sent_count?: number
+          status?: string
+          subject?: string
+        }
+        Relationships: []
+      }
+      email_log: {
+        Row: {
+          blast_id: string | null
+          created_at: string
+          error: string | null
+          id: string
+          metadata: Json | null
+          recipient_email: string
+          recipient_member: string | null
+          resend_id: string | null
+          retried_at: string | null
+          retry_count: number
+          sent_by: string | null
+          status: string
+          subject: string
+          template: string
+        }
+        Insert: {
+          blast_id?: string | null
+          created_at?: string
+          error?: string | null
+          id?: string
+          metadata?: Json | null
+          recipient_email: string
+          recipient_member?: string | null
+          resend_id?: string | null
+          retried_at?: string | null
+          retry_count?: number
+          sent_by?: string | null
+          status?: string
+          subject: string
+          template: string
+        }
+        Update: {
+          blast_id?: string | null
+          created_at?: string
+          error?: string | null
+          id?: string
+          metadata?: Json | null
+          recipient_email?: string
+          recipient_member?: string | null
+          resend_id?: string | null
+          retried_at?: string | null
+          retry_count?: number
+          sent_by?: string | null
+          status?: string
+          subject?: string
+          template?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "email_log_recipient_member_fkey"
+            columns: ["recipient_member"]
+            isOneToOne: false
+            referencedRelation: "members"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       finzite_scores: {
         Row: {
           avg_net_margin: number | null
@@ -995,6 +1099,7 @@ export type Database = {
           document_type: string | null
           dream_goal: string | null
           email: string | null
+          email_preferences: Json
           full_name: string
           has_buyers_club_access: boolean
           id: string
@@ -1034,6 +1139,7 @@ export type Database = {
           document_type?: string | null
           dream_goal?: string | null
           email?: string | null
+          email_preferences?: Json
           full_name: string
           has_buyers_club_access?: boolean
           id?: string
@@ -1073,6 +1179,7 @@ export type Database = {
           document_type?: string | null
           dream_goal?: string | null
           email?: string | null
+          email_preferences?: Json
           full_name?: string
           has_buyers_club_access?: boolean
           id?: string
@@ -1992,6 +2099,14 @@ export type Database = {
         }[]
       }
       gen_referral_code: { Args: { _seed?: string }; Returns: string }
+      get_email_recipients: {
+        Args: { _audience: string; _ids?: string[]; _tier?: string }
+        Returns: {
+          email: string
+          full_name: string
+          id: string
+        }[]
+      }
       get_member_platform_settings: {
         Args: never
         Returns: {

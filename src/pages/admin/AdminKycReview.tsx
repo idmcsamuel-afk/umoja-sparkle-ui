@@ -69,6 +69,17 @@ export default function AdminKycReview() {
         link: "/profile",
       });
       await supabase.rpc("award_kyc_referral_bonus", { _member: r.id });
+      if (r.email) {
+        supabase.functions.invoke("send-email", {
+          body: {
+            template: "kyc_approved",
+            to: r.email,
+            member_id: r.id,
+            bypass_prefs: true,
+            data: { name: r.full_name },
+          },
+        }).catch(() => {});
+      }
     }
     setBusyId(null);
     if (error) return toast.error(error.message);
@@ -92,6 +103,17 @@ export default function AdminKycReview() {
         kind: "kyc",
         link: "/kyc",
       });
+      if (reject.email) {
+        supabase.functions.invoke("send-email", {
+          body: {
+            template: "kyc_rejected",
+            to: reject.email,
+            member_id: reject.id,
+            bypass_prefs: true,
+            data: { name: reject.full_name, reason: reason.trim() },
+          },
+        }).catch(() => {});
+      }
     }
     setBusyId(null);
     if (error) return toast.error(error.message);

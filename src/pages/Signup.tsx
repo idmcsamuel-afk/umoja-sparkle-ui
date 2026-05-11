@@ -117,14 +117,43 @@ const Signup = () => {
 
     await supabase.rpc("claim_signup_bonus");
 
+    // Fetch member referral code for the welcome email
+    const { data: meRow } = await supabase.from("members").select("referral_code").eq("id", uid).maybeSingle();
+    supabase.functions.invoke("send-email", {
+      body: {
+        template: "welcome",
+        to: parsed.data.email,
+        member_id: uid,
+        bypass_prefs: true,
+        data: { name: parsed.data.full_name, referral_code: meRow?.referral_code ?? "" },
+      },
+    }).catch(() => {});
+
     let refMsg = "";
     if (refParam && refStatus !== "invalid") {
       const { data: res, error: refErr } = await supabase.rpc("apply_referral_signup", { _code: refParam });
-      const r = res as { ok?: boolean; reason?: string; referrer_name?: string } | null;
+      const r = res as { ok?: boolean; reason?: string; referrer_name?: string; referrer_id?: string } | null;
       if (refErr || !r?.ok) {
         toast.warning("Referral code couldn't be applied, but your account was created.");
       } else {
         refMsg = ` Your referrer ${r.referrer_name ?? ""} earned 200 Sparks too 🎁`;
+        // Notify referrer by email
+        if (r.referrer_id) {
+          const { data: refRow } = await supabase.from("members")
+            .select("email, full_name").eq("id", r.referrer_id).maybeSingle();
+          const { count } = await supabase.from("members")
+            .select("id", { count: "exact", head: true }).eq("referred_by", r.referrer_id);
+          if (refRow?.email) {
+            supabase.functions.invoke("send-email", {
+              body: {
+                template: "referral_success",
+                to: refRow.email,
+                member_id: r.referrer_id,
+                data: { name: parsed.data.full_name, total_referrals: count ?? 0 },
+              },
+            }).catch(() => {});
+          }
+        }
       }
     } else if (refParam && refStatus === "invalid") {
       toast.warning("Invalid referral code — signup allowed without referral bonus.");

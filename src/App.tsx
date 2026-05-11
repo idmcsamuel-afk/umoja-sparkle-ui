@@ -44,6 +44,7 @@ import AdminInvites from "./pages/admin/AdminInvites";
 import AdminReferrals from "./pages/admin/AdminReferrals";
 import AdminSettings from "./pages/admin/AdminSettings";
 import AdminAllocations from "./pages/admin/AdminAllocations";
+import AdminNotifications from "./pages/admin/AdminNotifications";
 
 const queryClient = new QueryClient();
 
@@ -92,6 +93,7 @@ const App = () => (
                 <Route path="referrals" element={<AdminReferrals />} />
                 <Route path="settings" element={<AdminSettings />} />
                 <Route path="allocations" element={<AdminAllocations />} />
+                <Route path="notifications" element={<AdminNotifications />} />
               </Route>
 
               <Route path="*" element={<NotFound />} />
