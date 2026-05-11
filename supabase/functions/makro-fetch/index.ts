@@ -106,7 +106,7 @@ Deno.serve(async (req) => {
         margin_pct: Number(marginPct.toFixed(2)),
         estimated_monthly_sales: monthly,
         sales_velocity: Math.max(1, Math.round(monthly / 30)),
-        data_source: "makro",
+        data_source: LAST_REAL ? "makro" : "makro_seed",
         status: "open",
         target_slots: 50,
         moq: 5,
