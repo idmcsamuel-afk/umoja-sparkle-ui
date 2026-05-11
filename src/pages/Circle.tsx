@@ -92,6 +92,25 @@ const Circle = () => {
   const [proofFile, setProofFile] = useState<File | null>(null);
   const [copied, setCopied] = useState<string | null>(null);
   const [leaders, setLeaders] = useState<Array<{ member_id: string; full_name: string; priority_score: number }>>([]);
+  const [leadersLoading, setLeadersLoading] = useState(false);
+  const [leadersError, setLeadersError] = useState<string | null>(null);
+
+  const loadLeaders = async (tier: string) => {
+    setLeadersLoading(true);
+    setLeadersError(null);
+    const { data, error } = await supabase.rpc("compute_session_scores", { _tier: tier });
+    if (error) {
+      setLeadersError(error.message || "Could not load leaders");
+      setLeaders([]);
+    } else {
+      const top = ((data ?? []) as Array<{ member_id: string; full_name: string; priority_score: number; eligible: boolean }>)
+        .filter((s) => s.eligible)
+        .slice(0, 2)
+        .map((s) => ({ member_id: s.member_id, full_name: s.full_name, priority_score: Number(s.priority_score) }));
+      setLeaders(top);
+    }
+    setLeadersLoading(false);
+  };
 
   // Tick for closed-session countdowns on buttons
   const [now, setNow] = useState(() => Date.now());
@@ -216,13 +235,7 @@ const Circle = () => {
     setPendingBid({ id: data.id, amount: amt, ref });
     setStep("pay");
     // Load top 2 leaders for this tier (privacy: only initials + masked code)
-    supabase.rpc("compute_session_scores", { _tier: open.tier }).then(({ data: scores }) => {
-      const top = ((scores ?? []) as Array<{ member_id: string; full_name: string; priority_score: number; eligible: boolean }>)
-        .filter((s) => s.eligible)
-        .slice(0, 2)
-        .map((s) => ({ member_id: s.member_id, full_name: s.full_name, priority_score: Number(s.priority_score) }));
-      setLeaders(top);
-    });
+    loadLeaders(open.tier);
   };
 
   const initials = (name: string) =>
@@ -541,10 +554,33 @@ const Circle = () => {
 
               {/* Leaderboard preview */}
               <div className="rounded-2xl border border-primary/30 bg-primary/5 p-3 space-y-2">
-                <p className="text-xs font-medium text-primary inline-flex items-center gap-1">
-                  🏆 Next Payout Recipients (Current Leaders)
-                </p>
-                {leaders.length === 0 ? (
+                <div className="flex items-center justify-between gap-2">
+                  <p className="text-xs font-medium text-primary inline-flex items-center gap-1">
+                    🏆 Next Payout Recipients (Current Leaders)
+                  </p>
+                  {leadersLoading && <Loader2 className="h-3 w-3 animate-spin text-primary" />}
+                </div>
+                {leadersLoading ? (
+                  <ol className="space-y-1.5" aria-label="Loading leaders">
+                    {[0, 1].map((i) => (
+                      <li key={i} className="flex items-center justify-between gap-3">
+                        <span className="h-3 w-40 rounded bg-primary/15 animate-pulse" />
+                        <span className="h-3 w-12 rounded bg-primary/15 animate-pulse" />
+                      </li>
+                    ))}
+                  </ol>
+                ) : leadersError ? (
+                  <div className="flex items-center justify-between gap-2">
+                    <p className="text-xs text-destructive">Couldn't load leaders.</p>
+                    <button
+                      type="button"
+                      onClick={() => open && loadLeaders(open.tier)}
+                      className="text-xs rounded-lg border border-border bg-background/60 px-2 py-1 hover:bg-background transition-smooth"
+                    >
+                      Retry
+                    </button>
+                  </div>
+                ) : leaders.length === 0 ? (
                   <p className="text-xs text-muted-foreground">No eligible members in queue yet — you could be first in line.</p>
                 ) : (
                   <ol className="space-y-1">
