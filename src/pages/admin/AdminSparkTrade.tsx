@@ -102,7 +102,8 @@ export default function AdminSparkTrade() {
 
   const sourceBadge = (s: string | null) => {
     const map: Record<string, { label: string; tone: string }> = {
-      makro: { label: "Makro", tone: "bg-accent/20 text-accent" },
+      makro: { label: "Makro · Live", tone: "bg-accent/20 text-accent" },
+      makro_seed: { label: "Makro · Seed", tone: "bg-amber-500/20 text-amber-400" },
       amazon: { label: "Amazon", tone: "bg-primary/20 text-primary" },
       serpapi: { label: "🌍 Buy Soon", tone: "bg-emerald-700/30 text-amber-300" },
     };
@@ -162,7 +163,16 @@ export default function AdminSparkTrade() {
                   <td className="p-4 text-xs">{r.asin}</td>
                   <td className="p-4 text-xs">R{Number(r.sale_price ?? 0).toFixed(0)}</td>
                   <td className="p-4 text-xs whitespace-nowrap">
-                    {r.estimated_monthly_sales ? `~${r.estimated_monthly_sales.toLocaleString()}` : "—"}
+                    {r.estimated_monthly_sales ? (
+                      <span className="inline-flex items-center gap-1">
+                        ~{r.estimated_monthly_sales.toLocaleString()}
+                        {r.data_source === "makro" ? (
+                          <span className="text-emerald-400" title="Live data">✓</span>
+                        ) : r.data_source === "makro_seed" ? (
+                          <span className="text-amber-400" title="Estimated (no live API)">⚠️</span>
+                        ) : null}
+                      </span>
+                    ) : "—"}
                   </td>
                   <td className="p-4">
                     <Input type="number" defaultValue={r.moq ?? 0} className="w-20 h-9" onBlur={(e) => {
