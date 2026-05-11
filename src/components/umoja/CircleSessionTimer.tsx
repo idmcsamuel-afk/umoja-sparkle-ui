@@ -117,7 +117,12 @@ function nextSessions(tier: TierKey, now: number, count = 3): number[] {
   return out;
 }
 
-export function getSessionState(tier: TierKey, now: number): SessionState & { upcoming: number[] } {
+export function getSessionState(tier: TierKey, now: number): SessionState & { upcoming: number[]; overridden?: boolean } {
+  // Manual override wins when active and unexpired
+  const ovEnd = overrideOpenFor(tier, now);
+  if (ovEnd) {
+    return { status: "open", target: ovEnd, upcoming: [], overridden: true };
+  }
   const upcoming = nextSessions(tier, now, 3);
   if (upcoming.length === 0) {
     return { status: "closed", target: now + 24 * 3600_000, upcoming: [] };
