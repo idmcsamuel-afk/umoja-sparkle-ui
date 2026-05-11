@@ -2,7 +2,9 @@ import { useEffect, useMemo, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import { Loader2, Search, Ban, Pause, Trash2, RotateCcw, UserPlus, Crown } from "lucide-react";
+import { Label } from "@/components/ui/label";
+import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
+import { Loader2, Search, Ban, Pause, Trash2, RotateCcw, UserPlus, Crown, Copy, Check, Sparkles } from "lucide-react";
 import { toast } from "sonner";
 import {
   AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
@@ -23,9 +25,21 @@ interface Row {
   created_at: string | null;
   referred_by: string | null;
   referred_by_code: string | null;
+  referral_code: string | null;
   has_buyers_club_access: boolean | null;
   balance?: number;
   referrer_name?: string | null;
+}
+
+interface TxRow {
+  id: string;
+  created_at: string;
+  amount: number;
+  tx_type: string;
+  status: string | null;
+  description: string | null;
+  from_member: string | null;
+  to_member: string | null;
 }
 
 type Action = "banned" | "suspended" | "deleted" | "active";
@@ -45,11 +59,27 @@ export default function AdminMembers() {
   const [assignFor, setAssignFor] = useState<Row | null>(null);
   const [assignSearch, setAssignSearch] = useState("");
   const [assignBusy, setAssignBusy] = useState(false);
+  const [copiedId, setCopiedId] = useState<string | null>(null);
+
+  // Sparks adjust modal
+  const [adjustFor, setAdjustFor] = useState<Row | null>(null);
+  const [adjustDir, setAdjustDir] = useState<"add" | "remove">("add");
+  const [adjustAmt, setAdjustAmt] = useState("");
+  const [adjustReason, setAdjustReason] = useState("");
+  const [adjustBusy, setAdjustBusy] = useState(false);
+  const [txs, setTxs] = useState<TxRow[]>([]);
+  const [txsLoading, setTxsLoading] = useState(false);
+
+  const refCounts = useMemo(() => {
+    const c = new Map<string, number>();
+    for (const r of rows) if (r.referred_by) c.set(r.referred_by, (c.get(r.referred_by) ?? 0) + 1);
+    return c;
+  }, [rows]);
 
   const load = async () => {
     setLoading(true);
     const [m, w] = await Promise.all([
-      supabase.from("members").select("id, full_name, email, phone, rank, status, is_active, created_at, referred_by, referred_by_code, has_buyers_club_access").order("created_at", { ascending: false }).limit(2000),
+      supabase.from("members").select("id, full_name, email, phone, rank, status, is_active, created_at, referred_by, referred_by_code, referral_code, has_buyers_club_access").order("created_at", { ascending: false }).limit(2000),
       supabase.from("spark_wallets").select("member_id, balance"),
     ]);
     const wmap = new Map<string, number>();
@@ -71,7 +101,7 @@ export default function AdminMembers() {
     const term = q.toLowerCase().trim();
     if (!term) return rows;
     return rows.filter((r) =>
-      [r.full_name, r.email, r.phone, r.rank, r.status, r.referrer_name].some((v) => v?.toLowerCase().includes(term))
+      [r.id, r.full_name, r.email, r.phone, r.rank, r.status, r.referrer_name].some((v) => v?.toLowerCase().includes(term))
     );
   }, [rows, q]);
 
@@ -80,7 +110,7 @@ export default function AdminMembers() {
     const term = assignSearch.toLowerCase().trim();
     return rows
       .filter((r) => r.id !== assignFor.id)
-      .filter((r) => !term || [r.full_name, r.email, r.phone].some((v) => v?.toLowerCase().includes(term)))
+      .filter((r) => !term || [r.full_name, r.email, r.phone, r.referral_code].some((v) => v?.toLowerCase().includes(term)))
       .slice(0, 10);
   }, [assignFor, assignSearch, rows]);
 
@@ -113,9 +143,50 @@ export default function AdminMembers() {
     setAssignBusy(false);
     if (error) return toast.error(error.message);
     const r = data as { ok?: boolean; credited?: boolean } | null;
-    toast.success(r?.credited ? "Referrer assigned · 200 Sparks credited" : "Referrer assigned (already credited)");
+    toast.success(r?.credited ? "Referral assigned! Sparks credited." : "Referrer assigned (already credited)");
     setAssignFor(null);
     setAssignSearch("");
+    load();
+  };
+
+  const copyId = async (id: string) => {
+    try {
+      await navigator.clipboard.writeText(id);
+      setCopiedId(id);
+      window.setTimeout(() => setCopiedId(null), 1500);
+    } catch { toast.error("Could not copy"); }
+  };
+
+  const openAdjust = async (r: Row) => {
+    setAdjustFor(r);
+    setAdjustDir("add");
+    setAdjustAmt("");
+    setAdjustReason("");
+    setTxs([]);
+    setTxsLoading(true);
+    const { data } = await supabase.rpc("admin_member_transactions", { _member: r.id, _limit: 50 });
+    setTxs((data as TxRow[]) ?? []);
+    setTxsLoading(false);
+  };
+
+  const submitAdjust = async () => {
+    if (!adjustFor) return;
+    const amt = Number(adjustAmt);
+    if (!Number.isFinite(amt) || amt <= 0) return toast.error("Enter a positive amount");
+    if (!adjustReason.trim()) return toast.error("Reason is required");
+    const delta = adjustDir === "add" ? amt : -amt;
+    setAdjustBusy(true);
+    const { data, error } = await supabase.rpc("admin_adjust_sparks", {
+      _member: adjustFor.id, _delta: delta, _reason: adjustReason.trim(),
+    });
+    setAdjustBusy(false);
+    if (error) return toast.error(error.message);
+    toast.success(`Balance: ${Math.round(Number(data ?? 0)).toLocaleString()} ✨`);
+    setAdjustAmt("");
+    setAdjustReason("");
+    // refresh tx log + rows
+    const { data: log } = await supabase.rpc("admin_member_transactions", { _member: adjustFor.id, _limit: 50 });
+    setTxs((log as TxRow[]) ?? []);
     load();
   };
 
@@ -143,7 +214,7 @@ export default function AdminMembers() {
         </div>
         <div className="relative w-full sm:w-72">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-          <Input value={q} onChange={(e) => setQ(e.target.value)} placeholder="Search name, email, referrer…" className="pl-9 h-11 rounded-2xl bg-secondary/60 border-border" />
+          <Input value={q} onChange={(e) => setQ(e.target.value)} placeholder="Search id, name, email, referrer…" className="pl-9 h-11 rounded-2xl bg-secondary/60 border-border" />
         </div>
       </div>
 
@@ -154,6 +225,7 @@ export default function AdminMembers() {
           <table className="w-full text-sm">
             <thead>
               <tr className="text-[10px] uppercase tracking-[0.18em] text-muted-foreground border-b border-border">
+                <th className="text-left p-4">ID</th>
                 <th className="text-left p-4">Name</th>
                 <th className="text-left p-4">Contact</th>
                 <th className="text-right p-4">Sparks</th>
@@ -169,6 +241,16 @@ export default function AdminMembers() {
                 const s = r.status ?? "active";
                 return (
                   <tr key={r.id} className={`border-b border-border/50 last:border-0 hover:bg-secondary/30 ${rowTone(s)}`}>
+                    <td className="p-4">
+                      <button
+                        onClick={() => copyId(r.id)}
+                        title="Click to copy member ID"
+                        className="font-mono text-[11px] text-muted-foreground hover:text-accent inline-flex items-center gap-1.5"
+                      >
+                        {r.id.slice(0, 8)}…
+                        {copiedId === r.id ? <Check className="h-3 w-3 text-accent" /> : <Copy className="h-3 w-3 opacity-60" />}
+                      </button>
+                    </td>
                     <td className="p-4 font-medium">{r.full_name}</td>
                     <td className="p-4 text-xs text-muted-foreground">
                       <div>{r.email}</div>
@@ -178,11 +260,11 @@ export default function AdminMembers() {
                     <td className="p-4 text-xs">
                       {r.referrer_name ? (
                         <div>
-                          <div className="text-foreground">{r.referrer_name}</div>
+                          <div className="text-foreground">Referred by {r.referrer_name}</div>
                           <div className="text-muted-foreground font-mono">{r.referred_by_code}</div>
                         </div>
                       ) : (
-                        <span className="text-muted-foreground">—</span>
+                        <span className="text-muted-foreground">No referrer</span>
                       )}
                     </td>
                     <td className="p-4">
@@ -201,6 +283,9 @@ export default function AdminMembers() {
                     <td className="p-4 text-xs text-muted-foreground">{r.created_at ? new Date(r.created_at).toLocaleDateString() : "—"}</td>
                     <td className="p-4">
                       <div className="flex justify-end gap-1 flex-wrap">
+                        <Button size="sm" variant="outline" className="h-8 px-2" title="Adjust Sparks" onClick={() => openAdjust(r)}>
+                          <Sparkles className="h-3.5 w-3.5 text-accent" />
+                        </Button>
                         <Button size="sm" variant="outline" className="h-8 px-2" title="Assign referrer" onClick={() => setAssignFor(r)}>
                           <UserPlus className="h-3.5 w-3.5" />
                         </Button>
@@ -230,7 +315,7 @@ export default function AdminMembers() {
                 );
               })}
               {filtered.length === 0 && (
-                <tr><td colSpan={8} className="p-8 text-center text-sm text-muted-foreground">No members found.</td></tr>
+                <tr><td colSpan={9} className="p-8 text-center text-sm text-muted-foreground">No members found.</td></tr>
               )}
             </tbody>
           </table>
@@ -267,7 +352,7 @@ export default function AdminMembers() {
           <Input
             value={assignSearch}
             onChange={(e) => setAssignSearch(e.target.value)}
-            placeholder="Search by name, email or phone…"
+            placeholder="Search by name, email, phone or code…"
             className="h-11 rounded-2xl bg-secondary/60 border-border"
           />
           <div className="mt-2 max-h-72 overflow-y-auto divide-y divide-border rounded-2xl border border-border">
@@ -282,11 +367,71 @@ export default function AdminMembers() {
               >
                 <div className="min-w-0">
                   <div className="text-sm font-medium truncate">{c.full_name}</div>
-                  <div className="text-xs text-muted-foreground truncate">{c.email ?? c.phone}</div>
+                  <div className="text-xs text-muted-foreground truncate">
+                    <span className="font-mono">{c.referral_code ?? "—"}</span> · {refCounts.get(c.id) ?? 0} refs
+                  </div>
                 </div>
                 {assignBusy ? <Loader2 className="h-4 w-4 animate-spin" /> : <UserPlus className="h-4 w-4 text-accent" />}
               </button>
             ))}
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Adjust Sparks */}
+      <Dialog open={!!adjustFor} onOpenChange={(o) => { if (!o) setAdjustFor(null); }}>
+        <DialogContent className="max-w-lg">
+          <DialogHeader>
+            <DialogTitle>Adjust Sparks · {adjustFor?.full_name}</DialogTitle>
+            <DialogDescription>
+              Current balance: <b className="text-accent">{Math.round(adjustFor?.balance ?? 0).toLocaleString()} ✨</b>
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="space-y-3">
+            <RadioGroup value={adjustDir} onValueChange={(v) => setAdjustDir(v as "add" | "remove")} className="flex gap-4">
+              <div className="flex items-center gap-2"><RadioGroupItem value="add" id="adj-add" /><Label htmlFor="adj-add">Add</Label></div>
+              <div className="flex items-center gap-2"><RadioGroupItem value="remove" id="adj-rem" /><Label htmlFor="adj-rem">Remove</Label></div>
+            </RadioGroup>
+
+            <div>
+              <Label className="text-xs">Amount</Label>
+              <Input type="number" min="1" value={adjustAmt} onChange={(e) => setAdjustAmt(e.target.value)} placeholder="e.g. 200" className="mt-1 h-11 rounded-2xl bg-secondary/60" />
+            </div>
+
+            <div>
+              <Label className="text-xs">Reason (required)</Label>
+              <Input value={adjustReason} onChange={(e) => setAdjustReason(e.target.value)} placeholder="Why is this adjustment being made?" className="mt-1 h-11 rounded-2xl bg-secondary/60" />
+            </div>
+
+            <Button onClick={submitAdjust} disabled={adjustBusy} className="w-full h-11 rounded-2xl bg-gradient-primary text-primary-foreground">
+              {adjustBusy ? <Loader2 className="h-4 w-4 animate-spin" /> : "Confirm Adjustment"}
+            </Button>
+          </div>
+
+          <div className="mt-4">
+            <p className="text-[10px] uppercase tracking-[0.18em] text-muted-foreground mb-2">Recent transactions</p>
+            <div className="max-h-60 overflow-y-auto rounded-2xl border border-border divide-y divide-border">
+              {txsLoading ? (
+                <div className="p-4 grid place-items-center"><Loader2 className="h-4 w-4 animate-spin" /></div>
+              ) : txs.length === 0 ? (
+                <p className="p-4 text-xs text-muted-foreground text-center">No transactions yet.</p>
+              ) : txs.map((t) => {
+                const incoming = t.to_member === adjustFor?.id;
+                const signed = incoming ? Number(t.amount) : -Number(t.amount);
+                return (
+                  <div key={t.id} className="p-3 text-xs flex items-center justify-between gap-3">
+                    <div className="min-w-0">
+                      <div className="font-medium">{t.tx_type}{t.description ? ` · ${t.description}` : ""}</div>
+                      <div className="text-muted-foreground">{new Date(t.created_at).toLocaleString()}</div>
+                    </div>
+                    <div className={`font-mono ${signed >= 0 ? "text-accent" : "text-destructive"}`}>
+                      {signed >= 0 ? "+" : ""}{Math.round(signed).toLocaleString()} ✨
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
           </div>
         </DialogContent>
       </Dialog>
