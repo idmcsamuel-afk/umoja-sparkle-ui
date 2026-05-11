@@ -91,9 +91,87 @@ export type Database = {
           },
         ]
       }
+      circle_allocation_overrides: {
+        Row: {
+          applied_to_allocation: string | null
+          bid_id: string
+          boost_value: number
+          consumed: boolean
+          created_at: string
+          created_by: string | null
+          id: string
+          override_type: string
+          reason: string | null
+          tier: string
+        }
+        Insert: {
+          applied_to_allocation?: string | null
+          bid_id: string
+          boost_value?: number
+          consumed?: boolean
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          override_type: string
+          reason?: string | null
+          tier: string
+        }
+        Update: {
+          applied_to_allocation?: string | null
+          bid_id?: string
+          boost_value?: number
+          consumed?: boolean
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          override_type?: string
+          reason?: string | null
+          tier?: string
+        }
+        Relationships: []
+      }
+      circle_allocations: {
+        Row: {
+          breakdown: Json | null
+          created_at: string
+          created_by: string | null
+          id: string
+          payout_per_winner: number
+          pool_total: number
+          session_at: string
+          tier: string
+          winners_count: number
+        }
+        Insert: {
+          breakdown?: Json | null
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          payout_per_winner?: number
+          pool_total?: number
+          session_at?: string
+          tier: string
+          winners_count?: number
+        }
+        Update: {
+          breakdown?: Json | null
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          payout_per_winner?: number
+          pool_total?: number
+          session_at?: string
+          tier?: string
+          winners_count?: number
+        }
+        Relationships: []
+      }
       circle_bids: {
         Row: {
+          allocated_at: string | null
+          consistency_percentage: number | null
           created_at: string | null
+          days_waiting: number | null
           fiat_amount: number
           id: string
           matched_to: string | null
@@ -107,8 +185,11 @@ export type Database = {
           payment_submitted_at: string | null
           payout_amount: number | null
           payout_date: string | null
+          payout_rank: number | null
           platform_fee: number
+          priority_score: number | null
           priority_slot: boolean | null
+          score_breakdown: Json | null
           spark_amount: number
           status: string | null
           streak_bonus: number | null
@@ -119,7 +200,10 @@ export type Database = {
           vault_start: string | null
         }
         Insert: {
+          allocated_at?: string | null
+          consistency_percentage?: number | null
           created_at?: string | null
+          days_waiting?: number | null
           fiat_amount: number
           id?: string
           matched_to?: string | null
@@ -133,8 +217,11 @@ export type Database = {
           payment_submitted_at?: string | null
           payout_amount?: number | null
           payout_date?: string | null
+          payout_rank?: number | null
           platform_fee: number
+          priority_score?: number | null
           priority_slot?: boolean | null
+          score_breakdown?: Json | null
           spark_amount: number
           status?: string | null
           streak_bonus?: number | null
@@ -145,7 +232,10 @@ export type Database = {
           vault_start?: string | null
         }
         Update: {
+          allocated_at?: string | null
+          consistency_percentage?: number | null
           created_at?: string | null
+          days_waiting?: number | null
           fiat_amount?: number
           id?: string
           matched_to?: string | null
@@ -159,8 +249,11 @@ export type Database = {
           payment_submitted_at?: string | null
           payout_amount?: number | null
           payout_date?: string | null
+          payout_rank?: number | null
           platform_fee?: number
+          priority_score?: number | null
           priority_slot?: boolean | null
+          score_breakdown?: Json | null
           spark_amount?: number
           status?: string | null
           streak_bonus?: number | null
@@ -786,6 +879,10 @@ export type Database = {
           bank_account: string | null
           bank_branch: string | null
           bank_name: string | null
+          bid_boost_score: number
+          community_score: number
+          consistency_score: number
+          contribution_volume_score: number
           created_at: string | null
           document_number: string | null
           document_type: string | null
@@ -805,6 +902,7 @@ export type Database = {
           kyc_verified_at: string | null
           phone: string
           phone_verified: boolean
+          priority_score: number
           rank: string | null
           referral_code: string | null
           referred_by: string | null
@@ -812,12 +910,17 @@ export type Database = {
           spark_link_code: string | null
           status: string
           streak_count: number | null
+          time_waiting_score: number
           total_cycles: number | null
         }
         Insert: {
           bank_account?: string | null
           bank_branch?: string | null
           bank_name?: string | null
+          bid_boost_score?: number
+          community_score?: number
+          consistency_score?: number
+          contribution_volume_score?: number
           created_at?: string | null
           document_number?: string | null
           document_type?: string | null
@@ -837,6 +940,7 @@ export type Database = {
           kyc_verified_at?: string | null
           phone: string
           phone_verified?: boolean
+          priority_score?: number
           rank?: string | null
           referral_code?: string | null
           referred_by?: string | null
@@ -844,12 +948,17 @@ export type Database = {
           spark_link_code?: string | null
           status?: string
           streak_count?: number | null
+          time_waiting_score?: number
           total_cycles?: number | null
         }
         Update: {
           bank_account?: string | null
           bank_branch?: string | null
           bank_name?: string | null
+          bid_boost_score?: number
+          community_score?: number
+          consistency_score?: number
+          contribution_volume_score?: number
           created_at?: string | null
           document_number?: string | null
           document_type?: string | null
@@ -869,6 +978,7 @@ export type Database = {
           kyc_verified_at?: string | null
           phone?: string
           phone_verified?: boolean
+          priority_score?: number
           rank?: string | null
           referral_code?: string | null
           referred_by?: string | null
@@ -876,6 +986,7 @@ export type Database = {
           spark_link_code?: string | null
           status?: string
           streak_count?: number | null
+          time_waiting_score?: number
           total_cycles?: number | null
         }
         Relationships: [
@@ -930,6 +1041,9 @@ export type Database = {
           created_at: string
           id: string
           payment_instructions: string | null
+          payouts_growth: number
+          payouts_harvest: number
+          payouts_seed: number
           updated_at: string
           updated_by: string | null
         }
@@ -941,6 +1055,9 @@ export type Database = {
           created_at?: string
           id?: string
           payment_instructions?: string | null
+          payouts_growth?: number
+          payouts_harvest?: number
+          payouts_seed?: number
           updated_at?: string
           updated_by?: string | null
         }
@@ -952,6 +1069,9 @@ export type Database = {
           created_at?: string
           id?: string
           payment_instructions?: string | null
+          payouts_growth?: number
+          payouts_harvest?: number
+          payouts_seed?: number
           updated_at?: string
           updated_by?: string | null
         }
@@ -1700,9 +1820,39 @@ export type Database = {
           refs_this_month: number
         }[]
       }
+      apply_allocation: {
+        Args: {
+          _breakdown: Json
+          _pool_total: number
+          _tier: string
+          _winner_bid_ids: string[]
+        }
+        Returns: string
+      }
       apply_referral_signup: { Args: { _code: string }; Returns: Json }
       award_kyc_referral_bonus: { Args: { _member?: string }; Returns: boolean }
       claim_signup_bonus: { Args: never; Returns: number }
+      compute_session_scores: {
+        Args: { _tier: string }
+        Returns: {
+          bid_boost_score: number
+          bid_id: string
+          breakdown: Json
+          community_score: number
+          consistency_pct: number
+          consistency_score: number
+          days_waiting: number
+          eligible: boolean
+          fiat_amount: number
+          full_name: string
+          member_id: string
+          override_type: string
+          override_value: number
+          priority_score: number
+          time_waiting_score: number
+          volume_score: number
+        }[]
+      }
       gen_referral_code: { Args: { _seed?: string }; Returns: string }
       increment_ubuntu_fund: {
         Args: { contribution: number }
