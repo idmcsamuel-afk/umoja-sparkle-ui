@@ -41,6 +41,7 @@ import AdminKycReview from "./pages/admin/AdminKycReview";
 import AdminPayouts from "./pages/admin/AdminPayouts";
 import AdminInvites from "./pages/admin/AdminInvites";
 import AdminReferrals from "./pages/admin/AdminReferrals";
+import AdminSettings from "./pages/admin/AdminSettings";
 
 const queryClient = new QueryClient();
 
@@ -86,6 +87,7 @@ const App = () => (
                 <Route path="payouts" element={<AdminPayouts />} />
                 <Route path="invites" element={<AdminInvites />} />
                 <Route path="referrals" element={<AdminReferrals />} />
+                <Route path="settings" element={<AdminSettings />} />
               </Route>
 
               <Route path="*" element={<NotFound />} />
