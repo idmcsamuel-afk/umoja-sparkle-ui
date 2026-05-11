@@ -68,6 +68,7 @@ export default function AdminKycReview() {
         kind: "kyc",
         link: "/profile",
       });
+      await supabase.rpc("award_kyc_referral_bonus", { _member: r.id });
     }
     setBusyId(null);
     if (error) return toast.error(error.message);
