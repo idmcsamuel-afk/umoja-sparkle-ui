@@ -1,5 +1,48 @@
 import { useEffect, useState } from "react";
 import { useTimezone, formatTime, tzAbbrev } from "@/hooks/useTimezone";
+import { supabase } from "@/integrations/supabase/client";
+
+// Module-level override cache (refreshed periodically)
+interface OverrideState {
+  seed: boolean;
+  growth: boolean;
+  harvest: boolean;
+  expiresAt: number | null; // ms
+}
+let __overrides: OverrideState = { seed: false, growth: false, harvest: false, expiresAt: null };
+let __overridesLastFetch = 0;
+let __overridesPromise: Promise<void> | null = null;
+
+export async function refreshOverrides(force = false): Promise<void> {
+  const now = Date.now();
+  if (!force && now - __overridesLastFetch < 15000) return;
+  if (__overridesPromise) return __overridesPromise;
+  __overridesPromise = (async () => {
+    const { data } = await supabase
+      .from("platform_settings")
+      .select("seed_override_open, growth_override_open, harvest_override_open, override_expires_at")
+      .order("created_at", { ascending: false })
+      .limit(1)
+      .maybeSingle();
+    if (data) {
+      __overrides = {
+        seed: !!data.seed_override_open,
+        growth: !!data.growth_override_open,
+        harvest: !!data.harvest_override_open,
+        expiresAt: data.override_expires_at ? new Date(data.override_expires_at).getTime() : null,
+      };
+    }
+    __overridesLastFetch = Date.now();
+    __overridesPromise = null;
+  })();
+  return __overridesPromise;
+}
+
+function overrideOpenFor(tier: "seed" | "growth" | "harvest", now: number): number | null {
+  if (!__overrides[tier]) return null;
+  if (!__overrides.expiresAt || __overrides.expiresAt <= now) return null;
+  return __overrides.expiresAt;
+}
 
 const SAST_TZ = "Africa/Johannesburg";
 function timeStamp(ts: number, tz: string) {
