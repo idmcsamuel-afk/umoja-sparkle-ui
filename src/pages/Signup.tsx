@@ -76,9 +76,11 @@ const Signup = () => {
       inviteRedeemed = true;
     }
 
-    if (!phoneSA && !inviteRedeemed) {
+    const hasValidReferral = !!refParam && refStatus === "valid";
+
+    if (!phoneSA && !inviteRedeemed && !hasValidReferral) {
       setBusy(false);
-      toast.error("UMOJA is currently invite-only outside South Africa. Enter a valid invite code or join the waitlist.");
+      toast.error("UMOJA is currently invite-only outside South Africa. Use a referral link, enter a valid invite code, or join the waitlist.");
       return;
     }
 
