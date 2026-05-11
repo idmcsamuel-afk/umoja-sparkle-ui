@@ -215,7 +215,24 @@ const Circle = () => {
     await supabase.from("circle_bids").update({ payment_reference: ref }).eq("id", data.id);
     setPendingBid({ id: data.id, amount: amt, ref });
     setStep("pay");
+    // Load top 2 leaders for this tier (privacy: only initials + masked code)
+    supabase.rpc("compute_session_scores", { _tier: open.tier }).then(({ data: scores }) => {
+      const top = ((scores ?? []) as Array<{ member_id: string; full_name: string; priority_score: number; eligible: boolean }>)
+        .filter((s) => s.eligible)
+        .slice(0, 2)
+        .map((s) => ({ member_id: s.member_id, full_name: s.full_name, priority_score: Number(s.priority_score) }));
+      setLeaders(top);
+    });
   };
+
+  const initials = (name: string) =>
+    name
+      .split(/\s+/)
+      .filter(Boolean)
+      .slice(0, 2)
+      .map((p) => p[0]?.toUpperCase() ?? "")
+      .join(".") + ".";
+  const memberCode = (id: string) => id.slice(0, 6).toUpperCase();
 
   // Step 2 → upload proof, mark payment_pending, notify admins
   const submitPayment = async () => {
