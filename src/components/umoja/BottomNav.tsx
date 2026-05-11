@@ -1,11 +1,12 @@
 import { Link, useLocation } from "react-router-dom";
-import { Home, Users, Sparkles, Car, Store, ArrowLeftRight, Gamepad2, Gift } from "lucide-react";
+import { Home, Users, Sparkles, Car, Store, ArrowLeftRight, Gamepad2, Gift, Palette } from "lucide-react";
 
 const items = [
   { to: "/dashboard", label: "Home", icon: Home },
   { to: "/circle", label: "Circle", icon: Users },
   { to: "/spark", label: "Spark", icon: Sparkles },
   { to: "/market", label: "Market", icon: Store },
+  { to: "/flame-marketing", label: "Create 🎨", icon: Palette },
   { to: "/exchange", label: "Swap", icon: ArrowLeftRight },
   { to: "/drive", label: "Drive", icon: Car },
   { to: "/spark-pit", label: "Pit", icon: Gamepad2 },
