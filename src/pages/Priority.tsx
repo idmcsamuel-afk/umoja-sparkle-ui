@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { Link } from "react-router-dom";
-import { ArrowLeft, Loader2, Trophy, TrendingUp, Users, Award, Calendar, Target, Sparkles } from "lucide-react";
+import { ArrowLeft, Loader2, Trophy, TrendingUp, Users, Award, Calendar, Target, Sparkles, ArrowUp, ArrowDown, Minus } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { Logo } from "@/components/umoja/Logo";
@@ -40,6 +40,7 @@ export default function Priority() {
   const [rows, setRows] = useState<ScoreRow[]>([]);
   const [loading, setLoading] = useState(true);
   const [payouts, setPayouts] = useState<Record<TierKey, number>>(PAYOUTS_PER_SESSION);
+  const [lastSnapshot, setLastSnapshot] = useState<{ priority_score: number; rank: number | null; session_at: string } | null>(null);
 
   useEffect(() => {
     (async () => {
@@ -64,9 +65,23 @@ export default function Priority() {
       const { data, error } = await supabase.rpc("compute_session_scores", { _tier: tier });
       if (error) console.error(error);
       setRows((data ?? []) as ScoreRow[]);
+
+      if (user?.id) {
+        const { data: snap } = await supabase
+          .from("circle_score_snapshots")
+          .select("priority_score, rank, session_at")
+          .eq("member_id", user.id)
+          .eq("tier", tier)
+          .order("session_at", { ascending: false })
+          .limit(1)
+          .maybeSingle();
+        setLastSnapshot(snap ?? null);
+      } else {
+        setLastSnapshot(null);
+      }
       setLoading(false);
     })();
-  }, [tier]);
+  }, [tier, user?.id]);
 
   const me = useMemo(() => rows.find((r) => r.member_id === user?.id), [rows, user?.id]);
   const eligibleRows = useMemo(() => rows.filter((r) => r.eligible), [rows]);
@@ -81,6 +96,17 @@ export default function Priority() {
     const perWeek = payouts[tier] * SESSIONS_PER_WEEK[tier];
     return Math.max(1, Math.ceil(myRank / Math.max(1, perWeek)));
   }, [myRank, payouts, tier]);
+
+  const scoreDelta = useMemo(() => {
+    if (!me || !lastSnapshot) return null;
+    return Number(me.priority_score) - Number(lastSnapshot.priority_score);
+  }, [me, lastSnapshot]);
+
+  const rankDelta = useMemo(() => {
+    if (!myRank || !lastSnapshot?.rank) return null;
+    // positive = moved up the queue (lower number is better)
+    return Number(lastSnapshot.rank) - myRank;
+  }, [myRank, lastSnapshot]);
 
   return (
     <main className="relative min-h-screen pb-32">
@@ -149,6 +175,12 @@ export default function Priority() {
               <p className="mt-3 text-[10px] uppercase tracking-[0.22em] text-accent">Your priority score</p>
               <p className="mt-1 font-display text-5xl text-gradient-gold">{fmt(me.priority_score)}</p>
               <p className="mt-2 text-xs text-muted-foreground">out of 100 possible</p>
+              {scoreDelta !== null && (
+                <div className={`mt-2 inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-[11px] ${scoreDelta > 0.05 ? "bg-emerald-500/15 text-emerald-400" : scoreDelta < -0.05 ? "bg-destructive/15 text-destructive" : "bg-secondary text-muted-foreground"}`}>
+                  {scoreDelta > 0.05 ? <ArrowUp className="h-3 w-3" /> : scoreDelta < -0.05 ? <ArrowDown className="h-3 w-3" /> : <Minus className="h-3 w-3" />}
+                  {scoreDelta > 0 ? "+" : ""}{fmt(scoreDelta, 1)} since last session
+                </div>
+              )}
               <div className="mt-5 grid grid-cols-2 gap-3">
                 <div className="rounded-2xl bg-secondary/40 p-3">
                   <p className="text-[10px] uppercase text-muted-foreground">Rank in queue</p>
@@ -156,6 +188,17 @@ export default function Priority() {
                     {myRank ? `#${myRank}` : <span className="text-destructive text-base">Disqualified</span>}
                   </p>
                   <p className="text-[10px] text-muted-foreground">of {eligibleRows.length}</p>
+                  {rankDelta !== null && rankDelta !== 0 && (
+                    <p className={`mt-1 inline-flex items-center gap-0.5 text-[10px] ${rankDelta > 0 ? "text-emerald-400" : "text-destructive"}`}>
+                      {rankDelta > 0 ? <ArrowUp className="h-3 w-3" /> : <ArrowDown className="h-3 w-3" />}
+                      {Math.abs(rankDelta)} {rankDelta > 0 ? "up" : "down"}
+                    </p>
+                  )}
+                  {rankDelta === 0 && (
+                    <p className="mt-1 inline-flex items-center gap-0.5 text-[10px] text-muted-foreground">
+                      <Minus className="h-3 w-3" /> no change
+                    </p>
+                  )}
                 </div>
                 <div className="rounded-2xl bg-secondary/40 p-3">
                   <p className="text-[10px] uppercase text-muted-foreground">Estimated payout</p>
@@ -163,6 +206,11 @@ export default function Priority() {
                   <p className="text-[10px] text-muted-foreground">{payouts[tier]} winner{payouts[tier] === 1 ? "" : "s"}/session</p>
                 </div>
               </div>
+              {lastSnapshot && (
+                <p className="mt-3 text-[10px] text-muted-foreground">
+                  Last session: {new Date(lastSnapshot.session_at).toLocaleDateString("en-ZA", { day: "numeric", month: "short" })}
+                </p>
+              )}
               {!me.eligible && (
                 <p className="mt-4 rounded-2xl border border-destructive/40 bg-destructive/10 p-3 text-xs text-destructive">
                   Not currently eligible. Reach 80% payment consistency and KYC level 2+ to enter the queue.
