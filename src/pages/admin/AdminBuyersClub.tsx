@@ -11,6 +11,7 @@ interface Row {
   buyers_club_tier: string | null; buyers_club_amount: number | null;
   buyers_club_status: string | null; buyers_club_proof_url: string | null;
   buyers_club_submitted_at: string | null;
+  buyers_club_renewal_at: string | null;
   has_buyers_club_access: boolean | null;
 }
 
@@ -24,7 +25,7 @@ export default function AdminBuyersClub() {
   const load = async () => {
     setLoading(true);
     const { data } = await supabase.from("members")
-      .select("id, full_name, email, buyers_club_tier, buyers_club_amount, buyers_club_status, buyers_club_proof_url, buyers_club_submitted_at, has_buyers_club_access")
+      .select("id, full_name, email, buyers_club_tier, buyers_club_amount, buyers_club_status, buyers_club_proof_url, buyers_club_submitted_at, buyers_club_renewal_at, has_buyers_club_access")
       .not("buyers_club_status", "is", null)
       .order("buyers_club_submitted_at", { ascending: false })
       .limit(500);
@@ -45,6 +46,14 @@ export default function AdminBuyersClub() {
     setBusy(null);
     if (error) return toast.error(error.message);
     toast.success("Approved"); load();
+  };
+
+  const extend = async (id: string) => {
+    setBusy(id);
+    const { error } = await supabase.rpc("admin_extend_buyers_club", { _member: id, _months: 1 });
+    setBusy(null);
+    if (error) return toast.error(error.message);
+    toast.success("Extended +1 month"); load();
   };
 
   const submitReject = async () => {
@@ -88,20 +97,28 @@ export default function AdminBuyersClub() {
                 <th className="text-left p-4">Tier</th>
                 <th className="text-left p-4">Amount</th>
                 <th className="text-left p-4">Submitted</th>
+                <th className="text-left p-4">Renews</th>
                 <th className="text-left p-4">Status</th>
                 <th className="text-right p-4">Actions</th>
               </tr>
             </thead>
             <tbody>
-              {rows.map((r) => (
+              {rows.map((r) => {
+                const renew = r.buyers_club_renewal_at ? new Date(r.buyers_club_renewal_at) : null;
+                const expired = renew ? renew.getTime() < Date.now() : false;
+                return (
                 <tr key={r.id} className="border-b border-border/50 last:border-0">
                   <td className="p-4">
                     <div className="font-medium">{r.full_name}</div>
                     <div className="text-xs text-muted-foreground">{r.email}</div>
                   </td>
                   <td className="p-4">{tierBadge(r.buyers_club_tier)}</td>
-                  <td className="p-4 text-xs">R{Number(r.buyers_club_amount ?? 0).toLocaleString()}</td>
-                  <td className="p-4 text-xs text-muted-foreground">{r.buyers_club_submitted_at ? new Date(r.buyers_club_submitted_at).toLocaleString() : "—"}</td>
+                  <td className="p-4 text-xs">R{Number(r.buyers_club_amount ?? 0).toLocaleString()}<span className="text-muted-foreground">/mo</span></td>
+                  <td className="p-4 text-xs text-muted-foreground">{r.buyers_club_submitted_at ? new Date(r.buyers_club_submitted_at).toLocaleDateString() : "—"}</td>
+                  <td className={`p-4 text-xs ${expired ? "text-destructive" : "text-muted-foreground"}`}>
+                    {renew ? renew.toLocaleDateString() : "—"}
+                    {expired && <span className="block text-[10px]">expired</span>}
+                  </td>
                   <td className="p-4">{statusBadge(r.buyers_club_status, r.has_buyers_club_access)}</td>
                   <td className="p-4">
                     <div className="flex justify-end gap-2 flex-wrap">
@@ -120,12 +137,18 @@ export default function AdminBuyersClub() {
                           </Button>
                         </>
                       )}
+                      {r.has_buyers_club_access && (
+                        <Button size="sm" variant="outline" disabled={busy === r.id} onClick={() => extend(r.id)}>
+                          {busy === r.id ? <Loader2 className="h-3 w-3 animate-spin" /> : "+1 month"}
+                        </Button>
+                      )}
                     </div>
                   </td>
                 </tr>
-              ))}
+                );
+              })}
               {rows.length === 0 && (
-                <tr><td colSpan={6} className="p-8 text-center text-sm text-muted-foreground">No Buyers Club submissions yet.</td></tr>
+                <tr><td colSpan={7} className="p-8 text-center text-sm text-muted-foreground">No Buyers Club submissions yet.</td></tr>
               )}
             </tbody>
           </table>

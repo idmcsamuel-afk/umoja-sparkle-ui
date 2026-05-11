@@ -1095,6 +1095,8 @@ export type Database = {
           buyers_club_approved_at: string | null
           buyers_club_proof_url: string | null
           buyers_club_rejection_reason: string | null
+          buyers_club_renewal_at: string | null
+          buyers_club_started_at: string | null
           buyers_club_status: string | null
           buyers_club_submitted_at: string | null
           buyers_club_tier: string | null
@@ -1142,6 +1144,8 @@ export type Database = {
           buyers_club_approved_at?: string | null
           buyers_club_proof_url?: string | null
           buyers_club_rejection_reason?: string | null
+          buyers_club_renewal_at?: string | null
+          buyers_club_started_at?: string | null
           buyers_club_status?: string | null
           buyers_club_submitted_at?: string | null
           buyers_club_tier?: string | null
@@ -1189,6 +1193,8 @@ export type Database = {
           buyers_club_approved_at?: string | null
           buyers_club_proof_url?: string | null
           buyers_club_rejection_reason?: string | null
+          buyers_club_renewal_at?: string | null
+          buyers_club_started_at?: string | null
           buyers_club_status?: string | null
           buyers_club_submitted_at?: string | null
           buyers_club_tier?: string | null
@@ -2062,6 +2068,10 @@ export type Database = {
       admin_award_referral_bonus: {
         Args: { _amount: number; _member: string; _note?: string }
         Returns: number
+      }
+      admin_extend_buyers_club: {
+        Args: { _member: string; _months?: number }
+        Returns: string
       }
       admin_list_predictor_questions: {
         Args: never

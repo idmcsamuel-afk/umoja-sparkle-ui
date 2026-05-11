@@ -68,6 +68,7 @@ const Dashboard = () => {
     tier: string | null;
     has_access: boolean;
     rejection_reason: string | null;
+    renewal_at: string | null;
   } | null>(null);
 
   useEffect(() => {
@@ -92,7 +93,7 @@ const Dashboard = () => {
     const uid = user.id;
     const fetchBc = async () => {
       const { data } = await supabase.from("members")
-        .select("kyc_level, buyers_club_status, buyers_club_tier, has_buyers_club_access, buyers_club_rejection_reason")
+        .select("kyc_level, buyers_club_status, buyers_club_tier, has_buyers_club_access, buyers_club_rejection_reason, buyers_club_renewal_at")
         .eq("id", uid).maybeSingle();
       setKycLevel(data?.kyc_level ?? 0);
       setBc({
@@ -100,6 +101,7 @@ const Dashboard = () => {
         tier: data?.buyers_club_tier ?? null,
         has_access: !!data?.has_buyers_club_access,
         rejection_reason: data?.buyers_club_rejection_reason ?? null,
+        renewal_at: (data as any)?.buyers_club_renewal_at ?? null,
       });
     };
     fetchBc();
@@ -346,7 +348,11 @@ const Dashboard = () => {
                   <p className="text-sm font-medium">
                     Buyers Club <span className="capitalize text-accent">{bc.tier ?? "active"}</span> ✓
                   </p>
-                  <p className="text-[11px] text-muted-foreground">Member benefits unlocked — browse buying groups</p>
+                  <p className="text-[11px] text-muted-foreground">
+                    {bc.renewal_at
+                      ? `Renews ${new Date(bc.renewal_at).toLocaleDateString()} — browse buying groups`
+                      : "Member benefits unlocked — browse buying groups"}
+                  </p>
                 </div>
                 <ChevronRight className="h-4 w-4 text-muted-foreground" />
               </Link>

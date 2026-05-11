@@ -11,12 +11,31 @@ type Tier = "bronze" | "silver" | "gold";
 const TIERS: Array<{
   id: Tier; name: string; price: number; benefits: string[]; ring: string;
 }> = [
-  { id: "bronze", name: "BRONZE CLUB", price: 200, ring: "ring-amber-700/50",
-    benefits: ["Access to real products", "Join buying groups", "Standard margins"] },
-  { id: "silver", name: "SILVER CLUB", price: 500, ring: "ring-zinc-300/50",
-    benefits: ["All Bronze benefits", "Priority group placement", "5% better margins", "Early access to Buy Soon"] },
-  { id: "gold", name: "GOLD CLUB", price: 1200, ring: "ring-accent/60",
-    benefits: ["All Silver benefits", "10% better margins", "Exclusive products", "Direct import assistance"] },
+  { id: "bronze", name: "BRONZE CLUB", price: 199, ring: "ring-amber-700/50",
+    benefits: [
+      "Access to all real products",
+      "Join buying groups (MOQ pooling)",
+      "Standard delivery (6–8 weeks)",
+      "2 concurrent orders",
+      "Baseline profit margins",
+    ] },
+  { id: "silver", name: "SILVER CLUB", price: 399, ring: "ring-zinc-300/50",
+    benefits: [
+      "All Bronze benefits",
+      "+5% better margins on every product",
+      "Priority placement when MOQ fills",
+      "Early access to Buy Soon",
+      "3 concurrent orders",
+    ] },
+  { id: "gold", name: "GOLD CLUB", price: 799, ring: "ring-accent/60",
+    benefits: [
+      "All Silver benefits",
+      "+10% better margins (15% vs Bronze)",
+      "VIP queue — first when MOQ hits",
+      "5 concurrent orders",
+      "Dedicated account manager",
+      "Member storefront page",
+    ] },
 ];
 
 interface Bank { bank_name?: string; account_name?: string; account_number?: string; branch_code?: string; payment_instructions?: string; }
@@ -78,7 +97,7 @@ export function BuyersClubModal({ open, onOpenChange, onSuccess }: { open: boole
               <div key={t.id} className={`rounded-2xl p-4 border border-border bg-secondary/40 ring-1 ${t.ring}`}>
                 <div className="flex items-baseline justify-between gap-3">
                   <p className="font-display text-lg">{t.name}</p>
-                  <p className="text-gradient-gold font-display">R{t.price.toLocaleString()}</p>
+                  <p className="text-gradient-gold font-display">R{t.price.toLocaleString()}<span className="text-xs text-muted-foreground font-sans"> / month</span></p>
                 </div>
                 <ul className="mt-2 space-y-1 text-xs text-muted-foreground">
                   {t.benefits.map((b) => (
@@ -103,7 +122,7 @@ export function BuyersClubModal({ open, onOpenChange, onSuccess }: { open: boole
                 ["Account", bank.account_number ?? "—"],
                 ["Branch", bank.branch_code ?? "—"],
                 ["Reference", reference],
-                ["Amount", `R${selected.price.toLocaleString()}`],
+                ["Amount", `R${selected.price.toLocaleString()} (1 month)`],
               ].map(([k, v]) => (
                 <div key={k} className="flex items-center justify-between gap-2 border-b border-border/40 pb-1.5 last:border-0 last:pb-0">
                   <span className="text-muted-foreground text-xs">{k}</span>
