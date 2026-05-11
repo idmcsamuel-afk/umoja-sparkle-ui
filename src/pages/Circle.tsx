@@ -134,7 +134,7 @@ const Circle = () => {
         .from("circle_bids")
         .select("tier, net_amount, member_id, status")
         .in("status", ["pending", "payment_pending", "active", "matched"]),
-      supabase.from("platform_settings").select("bank_name, account_name, account_number, branch_code, payment_instructions").limit(1).maybeSingle(),
+      supabase.rpc("get_member_platform_settings"),
     ]);
 
     if (tiersRes.error) console.error(tiersRes.error);
