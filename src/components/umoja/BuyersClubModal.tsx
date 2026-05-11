@@ -11,12 +11,31 @@ type Tier = "bronze" | "silver" | "gold";
 const TIERS: Array<{
   id: Tier; name: string; price: number; benefits: string[]; ring: string;
 }> = [
-  { id: "bronze", name: "BRONZE CLUB", price: 200, ring: "ring-amber-700/50",
-    benefits: ["Access to real products", "Join buying groups", "Standard margins"] },
-  { id: "silver", name: "SILVER CLUB", price: 500, ring: "ring-zinc-300/50",
-    benefits: ["All Bronze benefits", "Priority group placement", "5% better margins", "Early access to Buy Soon"] },
-  { id: "gold", name: "GOLD CLUB", price: 1200, ring: "ring-accent/60",
-    benefits: ["All Silver benefits", "10% better margins", "Exclusive products", "Direct import assistance"] },
+  { id: "bronze", name: "BRONZE CLUB", price: 199, ring: "ring-amber-700/50",
+    benefits: [
+      "Access to all real products",
+      "Join buying groups (MOQ pooling)",
+      "Standard delivery (6–8 weeks)",
+      "2 concurrent orders",
+      "Baseline profit margins",
+    ] },
+  { id: "silver", name: "SILVER CLUB", price: 399, ring: "ring-zinc-300/50",
+    benefits: [
+      "All Bronze benefits",
+      "+5% better margins on every product",
+      "Priority placement when MOQ fills",
+      "Early access to Buy Soon",
+      "3 concurrent orders",
+    ] },
+  { id: "gold", name: "GOLD CLUB", price: 799, ring: "ring-accent/60",
+    benefits: [
+      "All Silver benefits",
+      "+10% better margins (15% vs Bronze)",
+      "VIP queue — first when MOQ hits",
+      "5 concurrent orders",
+      "Dedicated account manager",
+      "Member storefront page",
+    ] },
 ];
 
 interface Bank { bank_name?: string; account_name?: string; account_number?: string; branch_code?: string; payment_instructions?: string; }
