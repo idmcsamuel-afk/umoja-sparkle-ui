@@ -74,7 +74,7 @@ const Dashboard = () => {
         .maybeSingle();
       if (error) {
         console.error("[Dashboard] admin check failed:", error);
-        if (user.email?.toLowerCase() === "idmcsamuel@gmail.com") setIsAdmin(true);
+        setIsAdmin(false);
       } else {
         setIsAdmin(!!data);
       }
