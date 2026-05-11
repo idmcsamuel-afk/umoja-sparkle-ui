@@ -37,6 +37,7 @@ import AdminDrive from "./pages/admin/AdminDrive";
 import AdminPredictor from "./pages/admin/AdminPredictor";
 import AdminKycReview from "./pages/admin/AdminKycReview";
 import AdminPayouts from "./pages/admin/AdminPayouts";
+import AdminInvites from "./pages/admin/AdminInvites";
 
 const queryClient = new QueryClient();
 
