@@ -99,7 +99,12 @@ export type Database = {
           matched_to: string | null
           member_id: string
           net_amount: number
+          payment_confirmed_at: string | null
+          payment_confirmed_by: string | null
+          payment_proof_url: string | null
           payment_ref: string | null
+          payment_reference: string | null
+          payment_submitted_at: string | null
           payout_amount: number | null
           payout_date: string | null
           platform_fee: number
@@ -120,7 +125,12 @@ export type Database = {
           matched_to?: string | null
           member_id: string
           net_amount: number
+          payment_confirmed_at?: string | null
+          payment_confirmed_by?: string | null
+          payment_proof_url?: string | null
           payment_ref?: string | null
+          payment_reference?: string | null
+          payment_submitted_at?: string | null
           payout_amount?: number | null
           payout_date?: string | null
           platform_fee: number
@@ -141,7 +151,12 @@ export type Database = {
           matched_to?: string | null
           member_id?: string
           net_amount?: number
+          payment_confirmed_at?: string | null
+          payment_confirmed_by?: string | null
+          payment_proof_url?: string | null
           payment_ref?: string | null
+          payment_reference?: string | null
+          payment_submitted_at?: string | null
           payout_amount?: number | null
           payout_date?: string | null
           platform_fee?: number
@@ -903,6 +918,42 @@ export type Database = {
           member_id?: string
           read_at?: string | null
           title?: string
+        }
+        Relationships: []
+      }
+      platform_settings: {
+        Row: {
+          account_name: string | null
+          account_number: string | null
+          bank_name: string | null
+          branch_code: string | null
+          created_at: string
+          id: string
+          payment_instructions: string | null
+          updated_at: string
+          updated_by: string | null
+        }
+        Insert: {
+          account_name?: string | null
+          account_number?: string | null
+          bank_name?: string | null
+          branch_code?: string | null
+          created_at?: string
+          id?: string
+          payment_instructions?: string | null
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Update: {
+          account_name?: string | null
+          account_number?: string | null
+          bank_name?: string | null
+          branch_code?: string | null
+          created_at?: string
+          id?: string
+          payment_instructions?: string | null
+          updated_at?: string
+          updated_by?: string | null
         }
         Relationships: []
       }
