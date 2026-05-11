@@ -1,7 +1,7 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { Link } from "react-router-dom";
 import { QRCodeSVG } from "qrcode.react";
-import { Copy, Share2, Sparkles, Users, Trophy, Crown, Medal, Award, ArrowLeft } from "lucide-react";
+import { Copy, Share2, Sparkles, Users, Trophy, Crown, Medal, Award, ArrowLeft, Check } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Logo } from "@/components/umoja/Logo";
 import { BottomNav } from "@/components/umoja/BottomNav";
@@ -57,9 +57,18 @@ const Referrals = () => {
     })();
   }, [user]);
 
+  const linkRef = useRef<HTMLInputElement>(null);
+  const [copied, setCopied] = useState(false);
+
+  const selectAll = () => linkRef.current?.select();
+
   const copyLink = async () => {
-    try { await navigator.clipboard.writeText(link); toast.success("Link copied!"); }
-    catch { toast.error("Could not copy"); }
+    try {
+      await navigator.clipboard.writeText(link);
+      selectAll();
+      setCopied(true);
+      window.setTimeout(() => setCopied(false), 1800);
+    } catch { toast.error("Could not copy"); }
   };
 
   const shareWhatsApp = () => {
@@ -123,21 +132,46 @@ const Referrals = () => {
           <div className="glass rounded-3xl p-5 space-y-4">
             <div>
               <p className="text-xs uppercase tracking-[0.18em] text-muted-foreground">Your referral link</p>
-              <div className="mt-2 flex items-center gap-2 rounded-2xl bg-secondary/60 px-3 py-2.5 text-sm break-all">
-                <span className="flex-1 font-mono text-xs">{link || "…"}</span>
+
+              <div className="mt-3 flex flex-col sm:flex-row gap-2">
+                <div className="flex-1 relative rounded-2xl border-2 border-accent/50 bg-accent/5 focus-within:border-accent transition-smooth">
+                  <input
+                    ref={linkRef}
+                    readOnly
+                    value={link}
+                    onClick={selectAll}
+                    onFocus={selectAll}
+                    className="w-full bg-transparent px-4 py-4 text-base sm:text-lg font-medium text-accent tracking-tight outline-none cursor-text"
+                  />
+                </div>
+                <Button
+                  onClick={copyLink}
+                  className={`h-auto sm:h-14 px-5 rounded-2xl text-base font-semibold shadow-glow transition-all ${
+                    copied
+                      ? "bg-accent text-accent-foreground scale-105"
+                      : "bg-gradient-primary text-primary-foreground hover:opacity-95"
+                  }`}
+                >
+                  {copied ? (<><Check className="h-5 w-5" /> Copied!</>) : (<><Copy className="h-5 w-5" /> Copy Link</>)}
+                </Button>
               </div>
-              <div className="mt-3 flex flex-wrap gap-2">
-                <Button onClick={copyLink} className="rounded-2xl bg-gradient-primary text-primary-foreground"><Copy className="h-4 w-4" /> Copy</Button>
+
+              <p className="mt-2 text-xs text-muted-foreground">
+                Code: <span className="font-mono text-foreground">{code}</span>
+              </p>
+
+              <div className="mt-4 flex flex-wrap gap-2">
                 <Button onClick={shareWhatsApp} variant="outline" className="rounded-2xl border-accent/40 text-accent hover:bg-accent/10"><Share2 className="h-4 w-4" /> WhatsApp</Button>
                 <Button onClick={nativeShare} variant="outline" className="rounded-2xl"><Share2 className="h-4 w-4" /> Share</Button>
               </div>
             </div>
+
             {link && (
               <div className="flex flex-col items-center gap-2 pt-2">
                 <div className="rounded-2xl bg-white p-3">
                   <QRCodeSVG value={link} size={148} level="M" />
                 </div>
-                <p className="text-xs text-muted-foreground">Code: <span className="font-mono text-foreground">{code}</span></p>
+                <p className="text-[11px] text-muted-foreground">Scan to join</p>
               </div>
             )}
           </div>
