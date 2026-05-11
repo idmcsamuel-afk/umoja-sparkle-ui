@@ -91,6 +91,7 @@ const Circle = () => {
   const [pendingBid, setPendingBid] = useState<{ id: string; amount: number; ref: string } | null>(null);
   const [proofFile, setProofFile] = useState<File | null>(null);
   const [copied, setCopied] = useState<string | null>(null);
+  const [leaders, setLeaders] = useState<Array<{ member_id: string; full_name: string; priority_score: number }>>([]);
 
   // Tick for closed-session countdowns on buttons
   const [now, setNow] = useState(() => Date.now());
@@ -214,7 +215,24 @@ const Circle = () => {
     await supabase.from("circle_bids").update({ payment_reference: ref }).eq("id", data.id);
     setPendingBid({ id: data.id, amount: amt, ref });
     setStep("pay");
+    // Load top 2 leaders for this tier (privacy: only initials + masked code)
+    supabase.rpc("compute_session_scores", { _tier: open.tier }).then(({ data: scores }) => {
+      const top = ((scores ?? []) as Array<{ member_id: string; full_name: string; priority_score: number; eligible: boolean }>)
+        .filter((s) => s.eligible)
+        .slice(0, 2)
+        .map((s) => ({ member_id: s.member_id, full_name: s.full_name, priority_score: Number(s.priority_score) }));
+      setLeaders(top);
+    });
   };
+
+  const initials = (name: string) =>
+    name
+      .split(/\s+/)
+      .filter(Boolean)
+      .slice(0, 2)
+      .map((p) => p[0]?.toUpperCase() ?? "")
+      .join(".") + ".";
+  const memberCode = (id: string) => id.slice(0, 6).toUpperCase();
 
   // Step 2 → upload proof, mark payment_pending, notify admins
   const submitPayment = async () => {
@@ -514,11 +532,33 @@ const Circle = () => {
           ) : (
             <>
               <DialogHeader>
-                <DialogTitle className="font-display text-2xl">🎯 Bid Placed!</DialogTitle>
+                <DialogTitle className="font-display text-2xl">🎯 Pay via EFT to Community Pool</DialogTitle>
                 <DialogDescription>
-                  Pay via EFT using the details below, then upload your proof of payment.
+                  This payment goes into the <span className="capitalize font-medium text-foreground">{open?.tier}</span> Circle community pool.
+                  Payouts are distributed to members based on priority scoring.
                 </DialogDescription>
               </DialogHeader>
+
+              {/* Leaderboard preview */}
+              <div className="rounded-2xl border border-primary/30 bg-primary/5 p-3 space-y-2">
+                <p className="text-xs font-medium text-primary inline-flex items-center gap-1">
+                  🏆 Next Payout Recipients (Current Leaders)
+                </p>
+                {leaders.length === 0 ? (
+                  <p className="text-xs text-muted-foreground">No eligible members in queue yet — you could be first in line.</p>
+                ) : (
+                  <ol className="space-y-1">
+                    {leaders.map((l, i) => (
+                      <li key={l.member_id} className="flex items-center justify-between text-xs">
+                        <span className="font-mono">
+                          {i + 1}. Member #{memberCode(l.member_id)} — {initials(l.full_name)}
+                        </span>
+                        <span className="font-display text-gradient-gold">{Math.round(l.priority_score)} pts</span>
+                      </li>
+                    ))}
+                  </ol>
+                )}
+              </div>
 
               {!settingsReady ? (
                 <div className="rounded-2xl border border-destructive/40 bg-destructive/10 p-4 space-y-3">
@@ -547,9 +587,10 @@ const Circle = () => {
                 </div>
               ) : (
                 <div className="space-y-2 rounded-2xl border border-border bg-secondary/40 p-4 text-sm">
+                  <p className="text-[10px] uppercase tracking-wider text-muted-foreground pb-1">Your Payment Details</p>
                   {[
                     ["Bank", settings?.bank_name ?? ""],
-                    ["Account Name", settings?.account_name ?? ""],
+                    ["Account Name", "UMOJA Community Pool"],
                     ["Account Number", settings?.account_number ?? ""],
                     ["Branch Code", settings?.branch_code ?? ""],
                     ["Reference", pendingBid?.ref ?? ""],
@@ -576,8 +617,26 @@ const Circle = () => {
                       {settings.payment_instructions}
                     </p>
                   )}
+                  <ul className="pt-2 space-y-1 text-xs text-muted-foreground">
+                    <li>✓ Your contribution earns you priority points</li>
+                    <li>✓ Your payout depends on your priority score</li>
+                    <li>✓ Track your queue position at <Link to="/priority" className="text-primary underline">/priority</Link></li>
+                  </ul>
                 </div>
               )}
+
+              {/* Fund split explanation */}
+              <div className="rounded-2xl border border-accent/40 bg-gradient-to-br from-primary/10 to-accent/10 p-4 text-sm space-y-2">
+                <p className="font-medium text-accent inline-flex items-center gap-1">💡 How Your Payment is Split</p>
+                <ul className="space-y-1 text-xs">
+                  <li className="flex justify-between"><span>Community Pool (distributed to members)</span><span className="font-display text-gradient-gold">95%</span></li>
+                  <li className="flex justify-between"><span>Platform Fee (operations)</span><span className="font-mono text-muted-foreground">2%</span></li>
+                  <li className="flex justify-between"><span>Ubuntu Fund (community projects)</span><span className="font-mono text-muted-foreground">3%</span></li>
+                </ul>
+                <p className="text-[11px] text-muted-foreground pt-1 border-t border-border/40">
+                  You receive a payout based on your priority when you reach the front of the queue. UMOJA only takes a small fee — the rest goes back to members.
+                </p>
+              </div>
 
               <div className="space-y-2">
                 <Label className="text-xs uppercase tracking-[0.18em] text-muted-foreground">
