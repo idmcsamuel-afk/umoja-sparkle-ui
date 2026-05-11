@@ -69,6 +69,27 @@ export const BottomNav = () => {
         <div className="glass rounded-3xl px-1.5 py-2 shadow-soft overflow-hidden">
           <div
             ref={scrollerRef}
+            role="toolbar"
+            aria-label="Primary navigation"
+            onKeyDown={(e) => {
+              const keys = ["ArrowRight", "ArrowLeft", "Home", "End"];
+              if (!keys.includes(e.key)) return;
+              const links = Array.from(
+                scrollerRef.current?.querySelectorAll<HTMLAnchorElement>("a[data-nav-item]") ?? []
+              );
+              if (!links.length) return;
+              const currentIdx = links.findIndex((l) => l === document.activeElement);
+              let nextIdx = currentIdx;
+              if (e.key === "ArrowRight") nextIdx = currentIdx < 0 ? 0 : Math.min(links.length - 1, currentIdx + 1);
+              if (e.key === "ArrowLeft") nextIdx = currentIdx < 0 ? 0 : Math.max(0, currentIdx - 1);
+              if (e.key === "Home") nextIdx = 0;
+              if (e.key === "End") nextIdx = links.length - 1;
+              if (nextIdx === currentIdx && currentIdx >= 0) return;
+              e.preventDefault();
+              const target = links[nextIdx < 0 ? 0 : nextIdx];
+              target.focus();
+              target.scrollIntoView({ behavior: "smooth", inline: "center", block: "nearest" });
+            }}
             className="overflow-x-auto no-scrollbar"
             style={{ scrollSnapType: "x mandatory" }}
           >
@@ -81,7 +102,13 @@ export const BottomNav = () => {
                     className="flex-1 min-w-[56px]"
                     style={{ scrollSnapAlign: "start" }}
                   >
-                    <Link to={to} className="group flex flex-col items-center gap-1 py-2 transition-smooth">
+                    <Link
+                      to={to}
+                      data-nav-item
+                      aria-label={label}
+                      aria-current={active ? "page" : undefined}
+                      className="group flex flex-col items-center gap-1 py-2 transition-smooth rounded-2xl focus:outline-none focus-visible:ring-2 focus-visible:ring-accent"
+                    >
                       <span
                         className={`grid h-9 w-9 place-items-center rounded-2xl transition-smooth ${
                           active
