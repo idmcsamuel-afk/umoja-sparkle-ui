@@ -81,6 +81,7 @@ const CRITICAL: TemplateName[] = [
   "allocation_winner",
   "kyc_approved",
   "kyc_rejected",
+  "kyc_reminder",
   "contact_form",
 ];
 
