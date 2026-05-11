@@ -166,6 +166,36 @@ export type Database = {
         }
         Relationships: []
       }
+      circle_bid_status_events: {
+        Row: {
+          actor_id: string | null
+          bid_id: string
+          created_at: string
+          from_status: string | null
+          id: string
+          note: string | null
+          to_status: string
+        }
+        Insert: {
+          actor_id?: string | null
+          bid_id: string
+          created_at?: string
+          from_status?: string | null
+          id?: string
+          note?: string | null
+          to_status: string
+        }
+        Update: {
+          actor_id?: string | null
+          bid_id?: string
+          created_at?: string
+          from_status?: string | null
+          id?: string
+          note?: string | null
+          to_status?: string
+        }
+        Relationships: []
+      }
       circle_bids: {
         Row: {
           allocated_at: string | null

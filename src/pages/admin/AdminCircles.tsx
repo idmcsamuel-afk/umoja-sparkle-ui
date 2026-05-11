@@ -1,8 +1,9 @@
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
-import { Loader2, Check, X, ExternalLink } from "lucide-react";
+import { Loader2, Check, X, ExternalLink, History } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
+import { BidStatusHistory } from "@/components/umoja/BidStatusHistory";
 
 const fmtR = (n: number) => "R" + Math.round(n).toLocaleString("en-ZA");
 
@@ -30,6 +31,7 @@ export default function AdminCircles() {
   const [rows, setRows] = useState<TierRow[]>([]);
   const [pending, setPending] = useState<PendingBid[]>([]);
   const [busy, setBusy] = useState<string | null>(null);
+  const [openHistory, setOpenHistory] = useState<string | null>(null);
 
   const load = async () => {
     setLoading(true);
@@ -218,7 +220,20 @@ export default function AdminCircles() {
                     >
                       <X className="h-4 w-4 mr-1" /> Reject
                     </Button>
+                    <Button
+                      variant="ghost"
+                      onClick={() => setOpenHistory((cur) => (cur === bid.id ? null : bid.id))}
+                      className="rounded-2xl"
+                    >
+                      <History className="h-4 w-4 mr-1" />
+                      {openHistory === bid.id ? "Hide history" : "History"}
+                    </Button>
                   </div>
+                  {openHistory === bid.id && (
+                    <div className="mt-4 rounded-2xl border border-border bg-secondary/30 p-3">
+                      <BidStatusHistory bidId={bid.id} />
+                    </div>
+                  )}
                 </li>
               ))}
             </ul>
