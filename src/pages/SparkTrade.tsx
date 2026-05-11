@@ -204,8 +204,13 @@ const SparkTrade = () => {
             <p className="text-[10px] uppercase tracking-[0.18em] text-accent">{p.category ?? "Product"}</p>
             <p className="mt-1 font-display text-lg leading-tight truncate">{p.product_name ?? p.asin}</p>
             <p className="mt-1 text-xs text-muted-foreground inline-flex items-center gap-2">
-              <Package className="h-3 w-3" /> ASIN {p.asin} · MOQ {p.moq ?? 1}
+              <Package className="h-3 w-3" /> {(p as any).data_source === "makro" ? "SKU" : "ASIN"} {p.asin} · MOQ {p.moq ?? 1}
             </p>
+            {(p as any).data_source && (
+              <span className="mt-2 inline-block text-[10px] uppercase tracking-[0.18em] rounded-full bg-secondary px-2 py-0.5 text-muted-foreground">
+                Sourced from {(p as any).data_source === "makro" ? "Makro" : (p as any).data_source === "amazon" ? "Amazon" : (p as any).data_source}
+              </span>
+            )}
           </div>
           <div className="text-right shrink-0">
             <p className="text-[10px] uppercase tracking-[0.18em] text-muted-foreground">Sell at</p>
