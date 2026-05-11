@@ -187,6 +187,16 @@ function buildEmail(template: TemplateName, data: Record<string, any>) {
       );
       return { subject, html };
     }
+    case "contact_form": {
+      const subject = `Contact form: ${esc(data.subject ?? "New message")}`;
+      const html = shell(
+        "New contact form submission",
+        `<p><strong>From:</strong> ${esc(data.from_name)} &lt;${esc(data.from_email)}&gt;</p>
+         <p><strong>Message:</strong></p>
+         <p style="background:#f6efdc;border-left:4px solid ${GOLD};padding:12px 14px;border-radius:8px;white-space:pre-wrap;">${esc(data.message)}</p>`,
+      );
+      return { subject, html };
+    }
     case "custom": {
       const subject = String(data.subject ?? "A message from UMOJA");
       const body = String(data.body_html ?? "");
