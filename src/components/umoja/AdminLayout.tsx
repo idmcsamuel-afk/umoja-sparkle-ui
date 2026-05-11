@@ -14,6 +14,7 @@ const items = [
   { to: "/admin/predictor", label: "Predictor", icon: TrendingUp },
   { to: "/admin/kyc-review", label: "KYC review", icon: ShieldCheck },
   { to: "/admin/payouts", label: "Payouts", icon: Wallet },
+  { to: "/admin/invites", label: "Invites", icon: Ticket },
 ];
 
 export default function AdminLayout() {
