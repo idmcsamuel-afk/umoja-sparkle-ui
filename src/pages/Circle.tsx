@@ -17,6 +17,7 @@ import { CircleSessionTimer, getSessionState } from "@/components/umoja/CircleSe
 import { SparksDisclaimer } from "@/components/umoja/SparksDisclaimer";
 import { CircleStatusBanner } from "@/components/umoja/CircleStatusBanner";
 import { TimezoneSelector } from "@/components/umoja/TimezoneSelector";
+import { cn } from "@/lib/utils";
 
 interface Tier {
   tier: string;
