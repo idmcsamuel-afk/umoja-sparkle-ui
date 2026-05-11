@@ -6,7 +6,7 @@ import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { toast } from "sonner";
-import { getSessionState, refreshOverrides } from "@/components/umoja/CircleSessionTimer";
+import { CircleSessionTimer, getSessionState, refreshOverrides } from "@/components/umoja/CircleSessionTimer";
 
 interface Settings {
   id?: string;
