@@ -305,6 +305,78 @@ const Dashboard = () => {
         </section>
       )}
 
+      {/* Buyers Club status card */}
+      {bc && (
+        <section className="px-5 pt-4">
+          <div className="mx-auto max-w-md animate-fade-in">
+            {bc.has_access ? (
+              <Link
+                to="/spark"
+                className="flex items-center gap-3 rounded-2xl border border-primary/40 bg-gradient-to-r from-primary/15 to-accent/10 p-4 transition-smooth hover:border-primary/70"
+              >
+                <div className="grid h-10 w-10 shrink-0 place-items-center rounded-2xl bg-primary/20 text-primary">
+                  <CheckCircle2 className="h-5 w-5" />
+                </div>
+                <div className="min-w-0 flex-1">
+                  <p className="text-sm font-medium">
+                    Buyers Club <span className="capitalize text-accent">{bc.tier ?? "active"}</span> ✓
+                  </p>
+                  <p className="text-[11px] text-muted-foreground">Member benefits unlocked — browse buying groups</p>
+                </div>
+                <ChevronRight className="h-4 w-4 text-muted-foreground" />
+              </Link>
+            ) : bc.status === "payment_pending" ? (
+              <div className="flex items-center gap-3 rounded-2xl border border-accent/40 bg-gradient-to-r from-accent/15 to-primary/10 p-4">
+                <div className="grid h-10 w-10 shrink-0 place-items-center rounded-2xl bg-accent/20 text-accent">
+                  <Clock className="h-5 w-5" />
+                </div>
+                <div className="min-w-0 flex-1">
+                  <p className="text-sm font-medium">Buyers Club payment under review</p>
+                  <p className="text-[11px] text-muted-foreground">
+                    {bc.tier ? `${bc.tier.charAt(0).toUpperCase() + bc.tier.slice(1)} tier · ` : ""}
+                    We'll confirm within 24 hours
+                  </p>
+                </div>
+              </div>
+            ) : bc.status === "rejected" ? (
+              <Link
+                to="/spark"
+                className="flex items-center gap-3 rounded-2xl border border-destructive/40 bg-destructive/10 p-4 transition-smooth hover:border-destructive/70"
+              >
+                <div className="grid h-10 w-10 shrink-0 place-items-center rounded-2xl bg-destructive/20 text-destructive">
+                  <XCircle className="h-5 w-5" />
+                </div>
+                <div className="min-w-0 flex-1">
+                  <p className="text-sm font-medium">Buyers Club payment rejected</p>
+                  <p className="text-[11px] text-muted-foreground line-clamp-1">
+                    {bc.rejection_reason ?? "Tap to resubmit your proof of payment"}
+                  </p>
+                </div>
+                <span className="shrink-0 rounded-full bg-gradient-gold px-3 py-1.5 text-[11px] font-medium text-amber-950">
+                  Retry →
+                </span>
+              </Link>
+            ) : (
+              <Link
+                to="/spark"
+                className="flex items-center gap-3 rounded-2xl border border-accent/40 bg-gradient-to-r from-primary/10 to-accent/15 p-4 transition-smooth hover:border-accent/70"
+              >
+                <div className="grid h-10 w-10 shrink-0 place-items-center rounded-2xl bg-accent/20 text-accent">
+                  <ShoppingCart className="h-5 w-5" />
+                </div>
+                <div className="min-w-0 flex-1">
+                  <p className="text-sm font-medium">Join the Buyers Club 🛒</p>
+                  <p className="text-[11px] text-muted-foreground">Unlock real products & better margins from R200</p>
+                </div>
+                <span className="shrink-0 rounded-full bg-gradient-gold px-3 py-1.5 text-[11px] font-medium text-amber-950">
+                  Join →
+                </span>
+              </Link>
+            )}
+          </div>
+        </section>
+      )}
+
       {/* Greeting */}
       <section className="px-5 pt-6">
         <div className="mx-auto max-w-md animate-fade-in">
