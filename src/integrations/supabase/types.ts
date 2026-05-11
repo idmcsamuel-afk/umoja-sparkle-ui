@@ -287,6 +287,56 @@ export type Database = {
           },
         ]
       }
+      circle_score_snapshots: {
+        Row: {
+          allocation_id: string | null
+          bid_id: string | null
+          breakdown: Json | null
+          created_at: string
+          eligible: boolean
+          id: string
+          member_id: string
+          priority_score: number
+          rank: number | null
+          session_at: string
+          tier: string
+        }
+        Insert: {
+          allocation_id?: string | null
+          bid_id?: string | null
+          breakdown?: Json | null
+          created_at?: string
+          eligible?: boolean
+          id?: string
+          member_id: string
+          priority_score?: number
+          rank?: number | null
+          session_at?: string
+          tier: string
+        }
+        Update: {
+          allocation_id?: string | null
+          bid_id?: string | null
+          breakdown?: Json | null
+          created_at?: string
+          eligible?: boolean
+          id?: string
+          member_id?: string
+          priority_score?: number
+          rank?: number | null
+          session_at?: string
+          tier?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "circle_score_snapshots_allocation_id_fkey"
+            columns: ["allocation_id"]
+            isOneToOne: false
+            referencedRelation: "circle_allocations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       circle_tiers: {
         Row: {
           daily_velocity_cap: number

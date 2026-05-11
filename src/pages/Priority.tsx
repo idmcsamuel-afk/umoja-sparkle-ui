@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { Link } from "react-router-dom";
-import { ArrowLeft, Loader2, Trophy, TrendingUp, Users, Award, Calendar, Target, Sparkles } from "lucide-react";
+import { ArrowLeft, Loader2, Trophy, TrendingUp, Users, Award, Calendar, Target, Sparkles, ArrowUp, ArrowDown, Minus } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { Logo } from "@/components/umoja/Logo";
@@ -40,6 +40,7 @@ export default function Priority() {
   const [rows, setRows] = useState<ScoreRow[]>([]);
   const [loading, setLoading] = useState(true);
   const [payouts, setPayouts] = useState<Record<TierKey, number>>(PAYOUTS_PER_SESSION);
+  const [lastSnapshot, setLastSnapshot] = useState<{ priority_score: number; rank: number | null; session_at: string } | null>(null);
 
   useEffect(() => {
     (async () => {
@@ -64,9 +65,34 @@ export default function Priority() {
       const { data, error } = await supabase.rpc("compute_session_scores", { _tier: tier });
       if (error) console.error(error);
       setRows((data ?? []) as ScoreRow[]);
+
+      if (user?.id) {
+        const { data: snap } = await supabase
+          .from("circle_score_snapshots")
+          .select("priority_score, rank, session_at")
+          .eq("member_id", user.id)
+          .eq("tier", tier)
+          .order("session_at", { ascending: false })
+          .limit(1)
+          .maybeSingle();
+        setLastSnapshot(snap ?? null);
+      } else {
+        setLastSnapshot(null);
+      }
       setLoading(false);
     })();
-  }, [tier]);
+  }, [tier, user?.id]);
+
+  const scoreDelta = useMemo(() => {
+    if (!me || !lastSnapshot) return null;
+    return Number(me.priority_score) - Number(lastSnapshot.priority_score);
+  }, [me, lastSnapshot]);
+
+  const rankDelta = useMemo(() => {
+    if (!myRank || !lastSnapshot?.rank) return null;
+    // positive = moved up the queue (lower number)
+    return Number(lastSnapshot.rank) - myRank;
+  }, [myRank, lastSnapshot]);
 
   const me = useMemo(() => rows.find((r) => r.member_id === user?.id), [rows, user?.id]);
   const eligibleRows = useMemo(() => rows.filter((r) => r.eligible), [rows]);
