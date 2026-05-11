@@ -1,6 +1,6 @@
 import { NavLink, Outlet, Link } from "react-router-dom";
 import {
-  LayoutDashboard, Users, Coins, ShoppingBag, Car, TrendingUp, Wallet, ArrowLeft, ShieldCheck, Ticket, Gift, Settings, Trophy, Mail,
+  LayoutDashboard, Users, Coins, ShoppingBag, Car, TrendingUp, Wallet, ArrowLeft, ShieldCheck, Ticket, Gift, Settings, Trophy, Mail, Crown,
 } from "lucide-react";
 import { Logo } from "@/components/umoja/Logo";
 import { ThemeToggle } from "@/components/umoja/ThemeToggle";
@@ -11,6 +11,7 @@ const items = [
   { to: "/admin/circles", label: "Circles", icon: Coins },
   { to: "/admin/allocations", label: "Allocations", icon: Trophy },
   { to: "/admin/spark-trade", label: "Spark Trade", icon: ShoppingBag },
+  { to: "/admin/buyers-club", label: "Buyers Club", icon: Crown },
   { to: "/admin/drive", label: "Drive", icon: Car },
   { to: "/admin/predictor", label: "Predictor", icon: TrendingUp },
   { to: "/admin/kyc-review", label: "KYC review", icon: ShieldCheck },
@@ -24,6 +25,12 @@ const items = [
 export default function AdminLayout() {
   return (
     <div className="min-h-screen flex flex-col md:flex-row">
+      <Link
+        to="/dashboard"
+        className="md:hidden sticky top-0 z-30 flex items-center gap-2 px-4 py-2.5 bg-background/95 backdrop-blur border-b border-border text-sm text-foreground"
+      >
+        <ArrowLeft className="h-4 w-4 text-accent" /> Back to Dashboard
+      </Link>
       <aside className="md:w-64 md:min-h-screen md:border-r border-border bg-gradient-card md:sticky md:top-0">
         <div className="flex items-center justify-between p-5">
           <Logo />
