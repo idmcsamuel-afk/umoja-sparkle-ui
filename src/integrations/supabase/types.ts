@@ -1642,6 +1642,27 @@ export type Database = {
           },
         ]
       }
+      spark_trade_joins: {
+        Row: {
+          created_at: string
+          id: string
+          member_id: string
+          shortlist_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          member_id: string
+          shortlist_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          member_id?: string
+          shortlist_id?: string
+        }
+        Relationships: []
+      }
       spark_trade_shortlist: {
         Row: {
           added_at: string | null
@@ -1973,6 +1994,69 @@ export type Database = {
         }
         Relationships: []
       }
+      storefront_reviews: {
+        Row: {
+          created_at: string
+          id: string
+          rating: number
+          review_text: string
+          reviewer_id: string
+          storefront_owner_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          rating: number
+          review_text: string
+          reviewer_id: string
+          storefront_owner_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          rating?: number
+          review_text?: string
+          reviewer_id?: string
+          storefront_owner_id?: string
+        }
+        Relationships: []
+      }
+      storefronts: {
+        Row: {
+          accent_color: string
+          banner_url: string | null
+          bio: string | null
+          created_at: string
+          display_name: string | null
+          is_active: boolean
+          member_id: string
+          updated_at: string
+          view_count: number
+        }
+        Insert: {
+          accent_color?: string
+          banner_url?: string | null
+          bio?: string | null
+          created_at?: string
+          display_name?: string | null
+          is_active?: boolean
+          member_id: string
+          updated_at?: string
+          view_count?: number
+        }
+        Update: {
+          accent_color?: string
+          banner_url?: string | null
+          bio?: string | null
+          created_at?: string
+          display_name?: string | null
+          is_active?: boolean
+          member_id?: string
+          updated_at?: string
+          view_count?: number
+        }
+        Relationships: []
+      }
       ubuntu_fund: {
         Row: {
           balance: number | null
@@ -2199,6 +2283,10 @@ export type Database = {
           payouts_seed: number
           seed_override_open: boolean
         }[]
+      }
+      increment_storefront_view: {
+        Args: { _owner: string }
+        Returns: undefined
       }
       increment_ubuntu_fund: {
         Args: { contribution: number }
