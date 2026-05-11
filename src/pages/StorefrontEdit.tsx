@@ -165,6 +165,33 @@ export default function StorefrontEdit() {
         </label>
       </section>
 
+      {/* Live Preview */}
+      <section className="mt-4 rounded-3xl border border-border bg-gradient-card p-5">
+        <div className="flex items-center justify-between">
+          <Label>Live preview</Label>
+          <span className={`text-[11px] uppercase tracking-[0.18em] ${form.is_active ? "text-accent" : "text-muted-foreground"}`}>
+            {form.is_active ? "Public" : "Hidden"}
+          </span>
+        </div>
+        <div className="mt-3 overflow-hidden rounded-2xl border border-border bg-background">
+          <div className="aspect-[4/1] w-full bg-secondary/40 grid place-items-center" style={{ backgroundColor: form.banner_url ? undefined : `${form.accent_color}22` }}>
+            {form.banner_url ? (
+              <img src={form.banner_url} alt="" className="h-full w-full object-cover" />
+            ) : (
+              <span className="text-xs text-muted-foreground">Banner preview</span>
+            )}
+          </div>
+          <div className="p-4 border-t-4" style={{ borderTopColor: form.accent_color }}>
+            <h3 className="font-display text-xl" style={{ color: form.accent_color }}>
+              {form.display_name || "Your shop"}
+            </h3>
+            <p className="text-sm text-muted-foreground mt-1 line-clamp-3">
+              {form.bio || "Your bio will appear here."}
+            </p>
+          </div>
+        </div>
+      </section>
+
       <div className="mt-6 flex flex-col-reverse sm:flex-row gap-2">
         {previewUrl && (
           <Link to={previewUrl} target="_blank" className="flex-1">
