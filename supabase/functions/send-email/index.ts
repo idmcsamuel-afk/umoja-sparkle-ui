@@ -15,7 +15,7 @@ const corsHeaders = {
 const RESEND_API_KEY = Deno.env.get("RESEND_API_KEY")!;
 const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
 const SERVICE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
-const FROM = "UMOJA <noreply@umojarise.com>";
+const FROM = "UMOJA <hello@umojarise.com>";
 const REPLY_TO = "support@umojarise.com";
 const APP_URL = "https://umoja-sparkle-ui.lovable.app";
 
