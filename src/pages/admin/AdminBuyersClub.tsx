@@ -48,6 +48,14 @@ export default function AdminBuyersClub() {
     toast.success("Approved"); load();
   };
 
+  const extend = async (id: string) => {
+    setBusy(id);
+    const { error } = await supabase.rpc("admin_extend_buyers_club", { _member: id, _months: 1 });
+    setBusy(null);
+    if (error) return toast.error(error.message);
+    toast.success("Extended +1 month"); load();
+  };
+
   const submitReject = async () => {
     if (!reject) return;
     setBusy(reject.id);
