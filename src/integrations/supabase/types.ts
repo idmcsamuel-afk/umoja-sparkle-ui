@@ -1946,6 +1946,23 @@ export type Database = {
         }[]
       }
       gen_referral_code: { Args: { _seed?: string }; Returns: string }
+      get_member_platform_settings: {
+        Args: never
+        Returns: {
+          account_name: string
+          account_number: string
+          bank_name: string
+          branch_code: string
+          growth_override_open: boolean
+          harvest_override_open: boolean
+          override_expires_at: string
+          payment_instructions: string
+          payouts_growth: number
+          payouts_harvest: number
+          payouts_seed: number
+          seed_override_open: boolean
+        }[]
+      }
       increment_ubuntu_fund: {
         Args: { contribution: number }
         Returns: undefined

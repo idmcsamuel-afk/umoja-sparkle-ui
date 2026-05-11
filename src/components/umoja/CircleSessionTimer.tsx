@@ -18,12 +18,8 @@ export async function refreshOverrides(force = false): Promise<void> {
   if (!force && now - __overridesLastFetch < 15000) return;
   if (__overridesPromise) return __overridesPromise;
   __overridesPromise = (async () => {
-    const { data } = await supabase
-      .from("platform_settings")
-      .select("seed_override_open, growth_override_open, harvest_override_open, override_expires_at")
-      .order("created_at", { ascending: false })
-      .limit(1)
-      .maybeSingle();
+    const { data: rpcData } = await supabase.rpc("get_member_platform_settings");
+    const data = Array.isArray(rpcData) ? rpcData[0] : rpcData;
     if (data) {
       __overrides = {
         seed: !!data.seed_override_open,

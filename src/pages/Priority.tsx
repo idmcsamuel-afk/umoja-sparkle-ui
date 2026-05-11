@@ -44,16 +44,13 @@ export default function Priority() {
 
   useEffect(() => {
     (async () => {
-      const { data } = await supabase
-        .from("platform_settings")
-        .select("payouts_seed, payouts_growth, payouts_harvest")
-        .limit(1)
-        .maybeSingle();
-      if (data) {
+      const { data } = await supabase.rpc("get_member_platform_settings");
+      const row = Array.isArray(data) ? data[0] : data;
+      if (row) {
         setPayouts({
-          seed: data.payouts_seed ?? 2,
-          growth: data.payouts_growth ?? 1,
-          harvest: data.payouts_harvest ?? 1,
+          seed: row.payouts_seed ?? 2,
+          growth: row.payouts_growth ?? 1,
+          harvest: row.payouts_harvest ?? 1,
         });
       }
     })();

@@ -76,18 +76,19 @@ export default function FlameMarketing() {
     }
     setLoading(true);
     setOutput("");
-    const system = [
-      `You are Flame, UMOJA's AI marketing assistant for South African micro-businesses.`,
-      `Write punchy, culturally relevant ${tone.toLowerCase()} marketing copy.`,
-      `Use SA English, Rand pricing, and local references where natural.`,
-      `Format: ${type.title}. ${type.guide}`,
-      `STRICT: total output must be at most ${type.max} characters and ideally close to ${type.target}. Output only the copy — no preamble, no quotes, no labels.`,
-    ].join(" ");
-    const user = `Business: ${trimmed}\n\nWrite the ${type.title.toLowerCase()} now.`;
+    const user = [
+      `Tone: ${tone}.`,
+      `Format: ${type.title} (${type.guide}).`,
+      `Strict: at most ${type.max} characters, ideally close to ${type.target}. Output only the copy — no preamble, quotes, or labels.`,
+      ``,
+      `Business: ${trimmed}`,
+      ``,
+      `Write the ${type.title.toLowerCase()} now.`,
+    ].join("\n");
 
     try {
       const { data, error } = await supabase.functions.invoke("flame-ai", {
-        body: { system, temperature: 0.85, messages: [{ role: "user", content: user }] },
+        body: { prompt: "marketing", temperature: 0.85, messages: [{ role: "user", content: user }] },
       });
       if (error) throw error;
       let reply: string = (data as any)?.reply ?? "";
