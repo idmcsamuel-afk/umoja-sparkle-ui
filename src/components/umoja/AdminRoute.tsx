@@ -24,27 +24,18 @@ export function AdminRoute({ children }: { children: JSX.Element }) {
         .from("admin_users")
         .select("user_id")
         .eq("user_id", user.id)
-        .maybeSingle();
+          .maybeSingle();
       if (error) {
         console.error("[AdminRoute] admin_users query failed:", error);
-        if (user.email?.toLowerCase() === FALLBACK_ADMIN_EMAIL) {
-          console.warn("[AdminRoute] granting access via email fallback");
-          setIsAdmin(true);
-        } else {
-          setIsAdmin(false);
-          setErrorMsg(error.message || "Couldn't verify admin access.");
-        }
+        setIsAdmin(false);
+        setErrorMsg(error.message || "Couldn't verify admin access.");
       } else {
         setIsAdmin(!!data);
       }
     } catch (err) {
       const msg = err instanceof Error ? err.message : "Network error";
       console.error("[AdminRoute] unexpected error:", err);
-      if (user.email?.toLowerCase() === FALLBACK_ADMIN_EMAIL) {
-        setIsAdmin(true);
-      } else {
-        setErrorMsg(msg);
-      }
+      setErrorMsg(msg);
     } finally {
       setChecking(false);
     }
