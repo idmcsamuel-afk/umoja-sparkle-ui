@@ -17,6 +17,7 @@ const items = [
   { to: "/admin/payouts", label: "Payouts", icon: Wallet },
   { to: "/admin/invites", label: "Invites", icon: Ticket },
   { to: "/admin/referrals", label: "Referrals", icon: Gift },
+  { to: "/admin/notifications", label: "Notifications", icon: Mail },
   { to: "/admin/settings", label: "Settings", icon: Settings },
 ];
 
