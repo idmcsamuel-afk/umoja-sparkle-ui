@@ -72,6 +72,7 @@ type TemplateName =
   | "allocation_winner"
   | "kyc_approved"
   | "kyc_rejected"
+  | "kyc_reminder"
   | "contact_form"
   | "custom";
 
@@ -80,6 +81,7 @@ const CRITICAL: TemplateName[] = [
   "allocation_winner",
   "kyc_approved",
   "kyc_rejected",
+  "kyc_reminder",
   "contact_form",
 ];
 
@@ -91,6 +93,7 @@ const PREF_MAP: Record<string, "circle" | "spark_trade" | "marketing" | "weekly_
   allocation_winner: null,
   kyc_approved: null,
   kyc_rejected: null,
+  kyc_reminder: null,
   contact_form: null,
 };
 
@@ -184,6 +187,23 @@ function buildEmail(template: TemplateName, data: Record<string, any>) {
          <p>Please resubmit with the correct documents.</p>`,
         "Upload Documents",
         `${APP_URL}/kyc`,
+      );
+      return { subject, html };
+    }
+    case "kyc_reminder": {
+      const subject = "Complete Your UMOJA Verification";
+      const missing: string[] = Array.isArray(data.missing) ? data.missing : [];
+      const items = missing.length
+        ? missing.map((m) => `<li style="margin:6px 0;">☐ ${esc(m)}</li>`).join("")
+        : `<li>☐ Finish your remaining KYC steps</li>`;
+      const html = shell(
+        `Hi ${name},`,
+        `<p>Your KYC verification is incomplete. Please complete these steps to unlock payouts and full platform features:</p>
+         <ul style="line-height:1.8;padding-left:18px;list-style:none;">${items}</ul>
+         <p style="margin-top:16px;">Once complete, you can receive payouts and access full platform features.</p>
+         <p style="color:#666;font-size:13px;">Questions? Reply to this email.</p>`,
+        "Complete Verification",
+        `${APP_URL}/profile?tab=kyc`,
       );
       return { subject, html };
     }
