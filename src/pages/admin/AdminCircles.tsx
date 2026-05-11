@@ -220,7 +220,20 @@ export default function AdminCircles() {
                     >
                       <X className="h-4 w-4 mr-1" /> Reject
                     </Button>
+                    <Button
+                      variant="ghost"
+                      onClick={() => setOpenHistory((cur) => (cur === bid.id ? null : bid.id))}
+                      className="rounded-2xl"
+                    >
+                      <History className="h-4 w-4 mr-1" />
+                      {openHistory === bid.id ? "Hide history" : "History"}
+                    </Button>
                   </div>
+                  {openHistory === bid.id && (
+                    <div className="mt-4 rounded-2xl border border-border bg-secondary/30 p-3">
+                      <BidStatusHistory bidId={bid.id} />
+                    </div>
+                  )}
                 </li>
               ))}
             </ul>
