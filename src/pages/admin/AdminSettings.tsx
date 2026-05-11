@@ -1,11 +1,12 @@
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
-import { Loader2, Save, Banknote, Eye, EyeOff } from "lucide-react";
+import { Loader2, Save, Banknote, Eye, EyeOff, AlertTriangle, Play, Square, Clock } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { toast } from "sonner";
+import { getSessionState, refreshOverrides } from "@/components/umoja/CircleSessionTimer";
 
 interface Settings {
   id?: string;
@@ -193,6 +194,163 @@ export default function AdminSettings() {
             </p>
           </div>
         )}
+      </div>
+
+      <SessionTestingCard settingsId={s.id} />
+    </div>
+  );
+}
+
+// ---------- Session Testing (admin manual override) ----------
+
+type TierKey = "seed" | "growth" | "harvest";
+const TIERS: { key: TierKey; label: string; col: "seed_override_open" | "growth_override_open" | "harvest_override_open" }[] = [
+  { key: "seed", label: "Seed Circle", col: "seed_override_open" },
+  { key: "growth", label: "Growth Circle", col: "growth_override_open" },
+  { key: "harvest", label: "Harvest Circle", col: "harvest_override_open" },
+];
+
+interface OverrideRow {
+  id?: string;
+  seed_override_open: boolean;
+  growth_override_open: boolean;
+  harvest_override_open: boolean;
+  override_expires_at: string | null;
+}
+
+function SessionTestingCard({ settingsId }: { settingsId?: string }) {
+  const [row, setRow] = useState<OverrideRow | null>(null);
+  const [now, setNow] = useState(Date.now());
+  const [busy, setBusy] = useState<TierKey | null>(null);
+
+  const load = async () => {
+    const { data } = await supabase
+      .from("platform_settings")
+      .select("id, seed_override_open, growth_override_open, harvest_override_open, override_expires_at")
+      .order("created_at", { ascending: false })
+      .limit(1)
+      .maybeSingle();
+    setRow(data as OverrideRow | null);
+    await refreshOverrides(true);
+  };
+
+  useEffect(() => {
+    load();
+    const t = setInterval(() => setNow(Date.now()), 1000);
+    return () => clearInterval(t);
+  }, [settingsId]);
+
+  const expiresMs = row?.override_expires_at ? new Date(row.override_expires_at).getTime() : null;
+  const overrideActive = !!(expiresMs && expiresMs > now);
+
+  const isOverriddenOpen = (t: TierKey) => overrideActive && !!row?.[`${t}_override_open` as const];
+
+  const forceOpen = async (t: TierKey) => {
+    if (!row?.id) { toast.error("Save bank settings first to create the settings row."); return; }
+    setBusy(t);
+    const patch: Partial<OverrideRow> = {
+      seed_override_open: t === "seed",
+      growth_override_open: t === "growth",
+      harvest_override_open: t === "harvest",
+      override_expires_at: new Date(Date.now() + 60 * 60 * 1000).toISOString(),
+    };
+    const { error } = await supabase.from("platform_settings").update(patch).eq("id", row.id);
+    setBusy(null);
+    if (error) return toast.error(error.message);
+    toast.success(`${t} session force-opened for 1 hour`);
+    load();
+  };
+
+  const forceClose = async () => {
+    if (!row?.id) return;
+    setBusy("seed");
+    const { error } = await supabase
+      .from("platform_settings")
+      .update({
+        seed_override_open: false,
+        growth_override_open: false,
+        harvest_override_open: false,
+        override_expires_at: null,
+      })
+      .eq("id", row.id);
+    setBusy(null);
+    if (error) return toast.error(error.message);
+    toast.success("Manual override cleared");
+    load();
+  };
+
+  return (
+    <div className="mt-8 rounded-3xl border border-destructive/30 bg-gradient-card p-6">
+      <div className="flex items-start gap-3 mb-4">
+        <div className="grid h-10 w-10 place-items-center rounded-2xl bg-destructive/15 text-destructive shrink-0">
+          <AlertTriangle className="h-5 w-5" />
+        </div>
+        <div>
+          <h2 className="font-display text-xl">Session testing</h2>
+          <p className="text-xs text-muted-foreground mt-1 max-w-md">
+            ⚠️ Manual overrides are for testing only. Members will see conflicting countdown timers while an override is active. Auto-expires after 1 hour.
+          </p>
+        </div>
+      </div>
+
+      <div className="grid gap-3">
+        {TIERS.map(({ key, label }) => {
+          const s = getSessionState(key, now);
+          const forced = isOverriddenOpen(key);
+          const open = s.status === "open";
+          return (
+            <div key={key} className="rounded-2xl border border-border bg-secondary/40 p-4">
+              <div className="flex flex-wrap items-center justify-between gap-3">
+                <div>
+                  <p className="font-display text-base">{label}</p>
+                  <p className="text-xs text-muted-foreground mt-0.5">
+                    Status:{" "}
+                    {open ? (
+                      <span className="text-primary font-medium">
+                        🟢 OPEN {forced ? "(forced)" : ""} · closes {new Date(s.target).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
+                      </span>
+                    ) : (
+                      <span className="text-destructive font-medium">
+                        🔴 CLOSED · next {new Date(s.target).toLocaleString([], { weekday: "short", hour: "2-digit", minute: "2-digit" })}
+                      </span>
+                    )}
+                  </p>
+                </div>
+                <div className="flex items-center gap-2">
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    disabled={busy === key || forced}
+                    onClick={() => forceOpen(key)}
+                    className="rounded-2xl"
+                  >
+                    <Play className="h-3.5 w-3.5 mr-1" /> Force open
+                  </Button>
+                </div>
+              </div>
+            </div>
+          );
+        })}
+      </div>
+
+      <div className="mt-4 flex items-center justify-between gap-3 rounded-2xl bg-secondary/30 p-3">
+        <p className="text-xs text-muted-foreground flex items-center gap-2">
+          <Clock className="h-3.5 w-3.5" />
+          {overrideActive && expiresMs ? (
+            <>Override active — expires in {Math.max(0, Math.ceil((expiresMs - now) / 60000))} min</>
+          ) : (
+            <>No override active</>
+          )}
+        </p>
+        <Button
+          size="sm"
+          variant="destructive"
+          disabled={!overrideActive || busy !== null}
+          onClick={forceClose}
+          className="rounded-2xl"
+        >
+          <Square className="h-3.5 w-3.5 mr-1" /> Force close / clear
+        </Button>
       </div>
     </div>
   );

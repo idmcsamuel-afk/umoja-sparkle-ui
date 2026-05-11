@@ -22,14 +22,25 @@ const Signup = () => {
   const [params] = useSearchParams();
   const refParam = (params.get("ref") ?? "").trim().toUpperCase().slice(0, 8);
   const [referrerName, setReferrerName] = useState<string | null>(null);
+  const [refStatus, setRefStatus] = useState<"none" | "checking" | "valid" | "invalid">(refParam ? "checking" : "none");
   const [form, setForm] = useState({ full_name: "", email: "", phone: "", password: "", invite_code: "" });
   const [busy, setBusy] = useState(false);
 
   useEffect(() => {
-    if (!refParam) return;
-    supabase.rpc("lookup_referrer", { _code: refParam }).then(({ data }) => {
+    if (!refParam) { setRefStatus("none"); return; }
+    setRefStatus("checking");
+    supabase.rpc("lookup_referrer", { _code: refParam }).then(({ data, error }) => {
       const row = Array.isArray(data) ? data[0] : data;
-      if (row?.full_name) setReferrerName(row.full_name);
+      if (error) {
+        setRefStatus("invalid");
+        return;
+      }
+      if (row?.full_name) {
+        setReferrerName(row.full_name);
+        setRefStatus("valid");
+      } else {
+        setRefStatus("invalid");
+      }
     });
   }, [refParam]);
 
@@ -105,10 +116,16 @@ const Signup = () => {
     await supabase.rpc("claim_signup_bonus");
 
     let refMsg = "";
-    if (refParam) {
-      const { data: res } = await supabase.rpc("apply_referral_signup", { _code: refParam });
-      const r = res as { ok?: boolean; referrer_name?: string } | null;
-      if (r?.ok) refMsg = ` You were referred by ${r.referrer_name ?? "a member"}!`;
+    if (refParam && refStatus !== "invalid") {
+      const { data: res, error: refErr } = await supabase.rpc("apply_referral_signup", { _code: refParam });
+      const r = res as { ok?: boolean; reason?: string; referrer_name?: string } | null;
+      if (refErr || !r?.ok) {
+        toast.warning("Referral code couldn't be applied, but your account was created.");
+      } else {
+        refMsg = ` Your referrer ${r.referrer_name ?? ""} earned 200 Sparks too 🎁`;
+      }
+    } else if (refParam && refStatus === "invalid") {
+      toast.warning("Invalid referral code — signup allowed without referral bonus.");
     }
 
     setBusy(false);
@@ -151,9 +168,19 @@ const Signup = () => {
             </p>
           </div>
 
-          {refParam && (
+          {refParam && refStatus === "checking" && (
+            <div className="mt-3 rounded-2xl border border-border bg-secondary/40 p-4 text-xs text-muted-foreground">
+              Checking referral code <strong className="font-mono">{refParam}</strong>…
+            </div>
+          )}
+          {refParam && refStatus === "valid" && (
             <div className="mt-3 rounded-2xl border border-accent/40 bg-accent/10 p-4 text-xs text-accent-soft">
               🎉 You were invited by <strong>{referrerName ?? refParam}</strong>. You'll both earn Sparks when you join.
+            </div>
+          )}
+          {refParam && refStatus === "invalid" && (
+            <div className="mt-3 rounded-2xl border border-destructive/40 bg-destructive/10 p-4 text-xs text-destructive">
+              ⚠️ Referral code <strong className="font-mono">{refParam}</strong> isn't valid. You can still sign up — you just won't get a referral bonus.
             </div>
           )}
 

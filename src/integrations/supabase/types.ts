@@ -1089,11 +1089,15 @@ export type Database = {
           bank_name: string | null
           branch_code: string | null
           created_at: string
+          growth_override_open: boolean
+          harvest_override_open: boolean
           id: string
+          override_expires_at: string | null
           payment_instructions: string | null
           payouts_growth: number
           payouts_harvest: number
           payouts_seed: number
+          seed_override_open: boolean
           updated_at: string
           updated_by: string | null
         }
@@ -1103,11 +1107,15 @@ export type Database = {
           bank_name?: string | null
           branch_code?: string | null
           created_at?: string
+          growth_override_open?: boolean
+          harvest_override_open?: boolean
           id?: string
+          override_expires_at?: string | null
           payment_instructions?: string | null
           payouts_growth?: number
           payouts_harvest?: number
           payouts_seed?: number
+          seed_override_open?: boolean
           updated_at?: string
           updated_by?: string | null
         }
@@ -1117,11 +1125,15 @@ export type Database = {
           bank_name?: string | null
           branch_code?: string | null
           created_at?: string
+          growth_override_open?: boolean
+          harvest_override_open?: boolean
           id?: string
+          override_expires_at?: string | null
           payment_instructions?: string | null
           payouts_growth?: number
           payouts_harvest?: number
           payouts_seed?: number
+          seed_override_open?: boolean
           updated_at?: string
           updated_by?: string | null
         }
