@@ -1695,6 +1695,7 @@ export type Database = {
           amount: number
           circle_tier: string | null
           created_at: string | null
+          description: string | null
           fiat_amount: number | null
           fiat_ref: string | null
           from_member: string | null
@@ -1707,6 +1708,7 @@ export type Database = {
           amount: number
           circle_tier?: string | null
           created_at?: string | null
+          description?: string | null
           fiat_amount?: number | null
           fiat_ref?: string | null
           from_member?: string | null
@@ -1719,6 +1721,7 @@ export type Database = {
           amount?: number
           circle_tier?: string | null
           created_at?: string | null
+          description?: string | null
           fiat_amount?: number | null
           fiat_ref?: string | null
           from_member?: string | null
@@ -2048,6 +2051,10 @@ export type Database = {
         Args: { _delta: number; _member: string; _note?: string }
         Returns: number
       }
+      admin_adjust_sparks: {
+        Args: { _delta: number; _member: string; _reason: string }
+        Returns: number
+      }
       admin_approve_buyers_club: {
         Args: { _member: string }
         Returns: undefined
@@ -2076,6 +2083,19 @@ export type Database = {
           isOneToOne: false
           isSetofReturn: true
         }
+      }
+      admin_member_transactions: {
+        Args: { _limit?: number; _member: string }
+        Returns: {
+          amount: number
+          created_at: string
+          description: string
+          from_member: string
+          id: string
+          status: string
+          to_member: string
+          tx_type: string
+        }[]
       }
       admin_referral_overview: { Args: never; Returns: Json }
       admin_reject_buyers_club: {
