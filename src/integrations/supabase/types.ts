@@ -1115,10 +1115,14 @@ export type Database = {
           id_number: string | null
           is_active: boolean | null
           kyc_document_url: string | null
+          kyc_last_reminder_at: string | null
           kyc_level: number
+          kyc_override_by: string | null
+          kyc_override_reason: string | null
           kyc_photo_url: string | null
           kyc_referral_bonus_paid: boolean
           kyc_rejection_reason: string | null
+          kyc_reminder_count: number
           kyc_status: string | null
           kyc_submitted_at: string | null
           kyc_verified_at: string | null
@@ -1164,10 +1168,14 @@ export type Database = {
           id_number?: string | null
           is_active?: boolean | null
           kyc_document_url?: string | null
+          kyc_last_reminder_at?: string | null
           kyc_level?: number
+          kyc_override_by?: string | null
+          kyc_override_reason?: string | null
           kyc_photo_url?: string | null
           kyc_referral_bonus_paid?: boolean
           kyc_rejection_reason?: string | null
+          kyc_reminder_count?: number
           kyc_status?: string | null
           kyc_submitted_at?: string | null
           kyc_verified_at?: string | null
@@ -1213,10 +1221,14 @@ export type Database = {
           id_number?: string | null
           is_active?: boolean | null
           kyc_document_url?: string | null
+          kyc_last_reminder_at?: string | null
           kyc_level?: number
+          kyc_override_by?: string | null
+          kyc_override_reason?: string | null
           kyc_photo_url?: string | null
           kyc_referral_bonus_paid?: boolean
           kyc_rejection_reason?: string | null
+          kyc_reminder_count?: number
           kyc_status?: string | null
           kyc_submitted_at?: string | null
           kyc_verified_at?: string | null
@@ -2065,6 +2077,10 @@ export type Database = {
         Args: { _member: string }
         Returns: undefined
       }
+      admin_approve_kyc: {
+        Args: { _member: string; _override_reason?: string }
+        Returns: undefined
+      }
       admin_award_referral_bonus: {
         Args: { _amount: number; _member: string; _note?: string }
         Returns: number
@@ -2107,6 +2123,7 @@ export type Database = {
           tx_type: string
         }[]
       }
+      admin_record_kyc_reminder: { Args: { _member: string }; Returns: Json }
       admin_referral_overview: { Args: never; Returns: Json }
       admin_reject_buyers_club: {
         Args: { _member: string; _reason: string }
