@@ -279,7 +279,7 @@ const Landing = () => {
                 <div className="flex items-baseline gap-2">
                   <h3 className="font-display text-xl">{tier.name}</h3>
                 </div>
-                <p className="mt-1 font-display text-3xl text-gradient-gold">{tier.price}<span className="text-base text-muted-foreground font-sans">/month</span></p>
+                <p className="mt-1 font-display text-3xl text-gradient-gold">{tier.price}<span className="text-base text-muted-foreground font-sans"> one-time</span></p>
                 <ul className="mt-4 space-y-1.5 text-sm">
                   {tier.perks.map((p) => (
                     <li key={p} className="flex gap-2 text-foreground/90">
@@ -296,7 +296,7 @@ const Landing = () => {
 
           <div className="mt-5 rounded-2xl border border-accent/30 bg-accent/5 p-4 text-center">
             <p className="text-xs text-accent-soft">
-              ⏳ Founding rates lock in at launch — price increases after first 500 members
+              ⚡ Founding rates are one-time payments. After the first 500 members, plans become monthly subscriptions at 3× the price.
             </p>
           </div>
         </div>
