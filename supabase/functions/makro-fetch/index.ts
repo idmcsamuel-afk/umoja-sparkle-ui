@@ -54,19 +54,16 @@ async function fetchFromMakro(): Promise<MakroProduct[]> {
   const base = Deno.env.get("MAKRO_API_BASE");
   const appId = Deno.env.get("MAKRO_APP_ID");
   const appSecret = Deno.env.get("MAKRO_APP_SECRET");
-  if (!base || !appId || !appSecret) return SEED;
+  if (!base || !appId || !appSecret) { LAST_REAL = false; return SEED; }
   try {
     const res = await fetch(`${base.replace(/\/$/, "")}/products?limit=20`, {
-      headers: {
-        "x-app-id": appId,
-        "x-app-secret": appSecret,
-        Accept: "application/json",
-      },
+      headers: { "x-app-id": appId, "x-app-secret": appSecret, Accept: "application/json" },
     });
-    if (!res.ok) return SEED;
+    if (!res.ok) { LAST_REAL = false; return SEED; }
     const json = await res.json();
     const list: any[] = json.products ?? json.items ?? json.data ?? [];
-    if (!list.length) return SEED;
+    if (!list.length) { LAST_REAL = false; return SEED; }
+    LAST_REAL = true;
     return list.map((p) => ({
       sku: String(p.sku ?? p.id ?? p.product_id ?? crypto.randomUUID()),
       product_name: String(p.name ?? p.title ?? p.product_name ?? "Makro Product"),
@@ -79,6 +76,7 @@ async function fetchFromMakro(): Promise<MakroProduct[]> {
       stock: Number(p.stock ?? p.inventory ?? p.qty_available ?? 0) || undefined,
     }));
   } catch {
+    LAST_REAL = false;
     return SEED;
   }
 }
@@ -108,7 +106,7 @@ Deno.serve(async (req) => {
         margin_pct: Number(marginPct.toFixed(2)),
         estimated_monthly_sales: monthly,
         sales_velocity: Math.max(1, Math.round(monthly / 30)),
-        data_source: "makro",
+        data_source: LAST_REAL ? "makro" : "makro_seed",
         status: "open",
         target_slots: 50,
         moq: 5,

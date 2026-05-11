@@ -1091,6 +1091,13 @@ export type Database = {
           bank_branch: string | null
           bank_name: string | null
           bid_boost_score: number
+          buyers_club_amount: number | null
+          buyers_club_approved_at: string | null
+          buyers_club_proof_url: string | null
+          buyers_club_rejection_reason: string | null
+          buyers_club_status: string | null
+          buyers_club_submitted_at: string | null
+          buyers_club_tier: string | null
           community_score: number
           consistency_score: number
           contribution_volume_score: number
@@ -1131,6 +1138,13 @@ export type Database = {
           bank_branch?: string | null
           bank_name?: string | null
           bid_boost_score?: number
+          buyers_club_amount?: number | null
+          buyers_club_approved_at?: string | null
+          buyers_club_proof_url?: string | null
+          buyers_club_rejection_reason?: string | null
+          buyers_club_status?: string | null
+          buyers_club_submitted_at?: string | null
+          buyers_club_tier?: string | null
           community_score?: number
           consistency_score?: number
           contribution_volume_score?: number
@@ -1171,6 +1185,13 @@ export type Database = {
           bank_branch?: string | null
           bank_name?: string | null
           bid_boost_score?: number
+          buyers_club_amount?: number | null
+          buyers_club_approved_at?: string | null
+          buyers_club_proof_url?: string | null
+          buyers_club_rejection_reason?: string | null
+          buyers_club_status?: string | null
+          buyers_club_submitted_at?: string | null
+          buyers_club_tier?: string | null
           community_score?: number
           consistency_score?: number
           contribution_volume_score?: number
@@ -2027,6 +2048,10 @@ export type Database = {
         Args: { _delta: number; _member: string; _note?: string }
         Returns: number
       }
+      admin_approve_buyers_club: {
+        Args: { _member: string }
+        Returns: undefined
+      }
       admin_award_referral_bonus: {
         Args: { _amount: number; _member: string; _note?: string }
         Returns: number
@@ -2053,6 +2078,10 @@ export type Database = {
         }
       }
       admin_referral_overview: { Args: never; Returns: Json }
+      admin_reject_buyers_club: {
+        Args: { _member: string; _reason: string }
+        Returns: undefined
+      }
       admin_top_referrers_month: {
         Args: { _limit?: number }
         Returns: {
@@ -2171,6 +2200,10 @@ export type Database = {
           sparks_earned: number
           total_refs: number
         }[]
+      }
+      submit_buyers_club_payment: {
+        Args: { _amount: number; _proof_url: string; _tier: string }
+        Returns: undefined
       }
     }
     Enums: {

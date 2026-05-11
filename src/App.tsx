@@ -45,6 +45,7 @@ import AdminReferrals from "./pages/admin/AdminReferrals";
 import AdminSettings from "./pages/admin/AdminSettings";
 import AdminAllocations from "./pages/admin/AdminAllocations";
 import AdminNotifications from "./pages/admin/AdminNotifications";
+import AdminBuyersClub from "./pages/admin/AdminBuyersClub";
 
 const queryClient = new QueryClient();
 
@@ -94,6 +95,7 @@ const App = () => (
                 <Route path="settings" element={<AdminSettings />} />
                 <Route path="allocations" element={<AdminAllocations />} />
                 <Route path="notifications" element={<AdminNotifications />} />
+                <Route path="buyers-club" element={<AdminBuyersClub />} />
               </Route>
 
               <Route path="*" element={<NotFound />} />
