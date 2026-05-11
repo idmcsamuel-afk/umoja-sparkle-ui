@@ -93,6 +93,7 @@ const App = () => (
                 <Route path="referrals" element={<AdminReferrals />} />
                 <Route path="settings" element={<AdminSettings />} />
                 <Route path="allocations" element={<AdminAllocations />} />
+                <Route path="notifications" element={<AdminNotifications />} />
               </Route>
 
               <Route path="*" element={<NotFound />} />
