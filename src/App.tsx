@@ -26,6 +26,7 @@ import SparkPit from "./pages/SparkPit.tsx";
 import DreamDraw from "./pages/DreamDraw.tsx";
 import SparkFlip from "./pages/SparkFlip.tsx";
 import Kyc from "./pages/Kyc.tsx";
+import Waitlist from "./pages/Waitlist.tsx";
 import NotFound from "./pages/NotFound.tsx";
 import AdminLayout from "./components/umoja/AdminLayout";
 import AdminDashboard from "./pages/admin/AdminDashboard";
