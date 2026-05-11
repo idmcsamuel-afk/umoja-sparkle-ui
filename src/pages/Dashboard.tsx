@@ -68,6 +68,7 @@ const Dashboard = () => {
     tier: string | null;
     has_access: boolean;
     rejection_reason: string | null;
+    renewal_at: string | null;
   } | null>(null);
 
   useEffect(() => {
