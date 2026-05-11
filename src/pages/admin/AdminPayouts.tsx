@@ -83,6 +83,22 @@ export default function AdminPayouts() {
         kind: "payout",
         link: "/circle",
       });
+      if (confirm.member?.email) {
+        supabase.functions.invoke("send-email", {
+          body: {
+            template: "allocation_winner",
+            to: confirm.member.email,
+            member_id: confirm.member_id,
+            bypass_prefs: true,
+            data: {
+              name: confirm.member.full_name,
+              circle_name: `${confirm.tier} Circle`,
+              amount: Math.round(amt).toLocaleString("en-ZA"),
+              payout_date: new Date().toLocaleDateString("en-ZA"),
+            },
+          },
+        }).catch(() => {});
+      }
     }
     setBusy(false);
     if (error) return toast.error(error.message);
