@@ -33,8 +33,17 @@ export default function Profile() {
   const [bids, setBids] = useState<Bid[]>([]);
   const [balance, setBalance] = useState(0);
   const [openBid, setOpenBid] = useState<Bid | null>(null);
+  const [prefs, setPrefs] = useState({ circle: true, spark_trade: true, marketing: true, weekly_digest: true });
+  const [savingPref, setSavingPref] = useState<string | null>(null);
 
-  useEffect(() => {
+  const togglePref = async (key: keyof typeof prefs) => {
+    if (!user) return;
+    const next = { ...prefs, [key]: !prefs[key] };
+    setPrefs(next); setSavingPref(key);
+    const { error } = await supabase.from("members").update({ email_preferences: next }).eq("id", user.id);
+    setSavingPref(null);
+    if (error) { setPrefs(prefs); toast.error("Could not save"); }
+  };
     if (!user) return;
     (async () => {
       const [s, b, w] = await Promise.all([
