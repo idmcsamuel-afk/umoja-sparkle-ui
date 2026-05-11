@@ -1,6 +1,6 @@
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { Link } from "react-router-dom";
-import { ArrowLeft, Plus, Loader2, Users, Flame, Clock, ChevronRight, Lock } from "lucide-react";
+import { ArrowLeft, Plus, Loader2, Users, Flame, Clock, ChevronRight, Lock, Upload, Copy, Check, X } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { Logo } from "@/components/umoja/Logo";
@@ -13,7 +13,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { toast } from "sonner";
 import { CircleAcceptanceModal, hasAcceptedCircle } from "@/components/umoja/CircleAcceptanceModal";
-import { CircleSessionTimer } from "@/components/umoja/CircleSessionTimer";
+import { CircleSessionTimer, getSessionState } from "@/components/umoja/CircleSessionTimer";
 import { SparksDisclaimer } from "@/components/umoja/SparksDisclaimer";
 import { CircleStatusBanner } from "@/components/umoja/CircleStatusBanner";
 import { TimezoneSelector } from "@/components/umoja/TimezoneSelector";
@@ -40,14 +40,29 @@ interface Bid {
   payout_amount: number | null;
 }
 
-interface TierStats {
-  pool: number;
-  members: number;
-  target: number;
+interface TierStats { pool: number; members: number; target: number; }
+
+interface Settings {
+  bank_name: string | null;
+  account_name: string | null;
+  account_number: string | null;
+  branch_code: string | null;
+  payment_instructions: string | null;
 }
 
-const fmtR = (n: number) =>
-  "R" + Math.round(n).toLocaleString("en-ZA");
+const fmtR = (n: number) => "R" + Math.round(n).toLocaleString("en-ZA");
+
+function fmtCountdown(ms: number) {
+  if (ms < 0) ms = 0;
+  const total = Math.floor(ms / 1000);
+  const h = Math.floor(total / 3600);
+  const m = Math.floor((total % 3600) / 60);
+  const s = total % 60;
+  const pad = (n: number) => String(n).padStart(2, "0");
+  return h > 0 ? `${pad(h)}:${pad(m)}:${pad(s)}` : `${pad(m)}:${pad(s)}`;
+}
+
+const KNOWN_TIERS = new Set(["seed", "growth", "harvest"]);
 
 const Circle = () => {
   const { user } = useAuth();
@@ -55,13 +70,27 @@ const Circle = () => {
   const [bids, setBids] = useState<Bid[]>([]);
   const [stats, setStats] = useState<Record<string, TierStats>>({});
   const [loading, setLoading] = useState(true);
+  const [settings, setSettings] = useState<Settings | null>(null);
+
+  // Bid modal flow
   const [open, setOpen] = useState<Tier | null>(null);
+  const [step, setStep] = useState<"amount" | "pay">("amount");
   const [amount, setAmount] = useState("");
   const [busy, setBusy] = useState(false);
+  const [pendingBid, setPendingBid] = useState<{ id: string; amount: number; ref: string } | null>(null);
+  const [proofFile, setProofFile] = useState<File | null>(null);
+  const [copied, setCopied] = useState<string | null>(null);
+
+  // Tick for closed-session countdowns on buttons
+  const [now, setNow] = useState(() => Date.now());
+  useEffect(() => {
+    const t = setInterval(() => setNow(Date.now()), 1000);
+    return () => clearInterval(t);
+  }, []);
 
   const load = async () => {
     setLoading(true);
-    const [tiersRes, bidsRes, allBidsRes] = await Promise.all([
+    const [tiersRes, bidsRes, allBidsRes, settingsRes] = await Promise.all([
       supabase.from("circle_tiers").select("*").order("min_entry"),
       user
         ? supabase
@@ -73,7 +102,8 @@ const Circle = () => {
       supabase
         .from("circle_bids")
         .select("tier, net_amount, member_id, status")
-        .in("status", ["pending", "active", "matched"]),
+        .in("status", ["pending", "payment_pending", "active", "matched"]),
+      supabase.from("platform_settings").select("bank_name, account_name, account_number, branch_code, payment_instructions").limit(1).maybeSingle(),
     ]);
 
     if (tiersRes.error) console.error(tiersRes.error);
@@ -82,6 +112,7 @@ const Circle = () => {
     const t = (tiersRes.data ?? []) as Tier[];
     setTiers(t);
     setBids((bidsRes.data ?? []) as Bid[]);
+    setSettings((settingsRes.data ?? null) as Settings | null);
 
     const grouped: Record<string, TierStats> = {};
     for (const tier of t) {
@@ -108,7 +139,36 @@ const Circle = () => {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [user?.id]);
 
-  const contribute = async () => {
+  const sessionFor = (tierKey: string) => {
+    const k = tierKey?.toLowerCase();
+    if (!KNOWN_TIERS.has(k)) return null;
+    return getSessionState(k as "seed" | "growth" | "harvest", now);
+  };
+
+  const startBid = (t: Tier, defaultAmt: number) => {
+    if (!t.is_active) return;
+    if (!hasAcceptedCircle()) { toast.info("Please accept the Circle terms first."); return; }
+    const sess = sessionFor(t.tier);
+    if (sess && sess.status !== "open") {
+      toast.error("Session closed. Please wait for the next session to bid.");
+      return;
+    }
+    setOpen(t);
+    setStep("amount");
+    setAmount(String(defaultAmt));
+    setPendingBid(null);
+    setProofFile(null);
+  };
+
+  const closeModal = () => {
+    setOpen(null);
+    setStep("amount");
+    setPendingBid(null);
+    setProofFile(null);
+  };
+
+  // Step 1 → create the bid as 'pending', advance to step 2
+  const confirmBid = async () => {
     if (!open || !user) return;
     const amt = Number(amount);
     if (!Number.isFinite(amt) || amt < open.min_entry || amt > open.max_entry) {
@@ -120,26 +180,104 @@ const Circle = () => {
     const ubuntu_fund_cut = +(amt * 0.03).toFixed(2);
     const net_amount = +(amt - platform_fee - ubuntu_fund_cut).toFixed(2);
 
-    const { error } = await supabase.from("circle_bids").insert({
-      member_id: user.id,
-      tier: open.tier,
-      fiat_amount: amt,
-      spark_amount: 0,
-      platform_fee,
-      ubuntu_fund_cut,
-      net_amount,
-      status: "pending",
-    });
+    const { data, error } = await supabase
+      .from("circle_bids")
+      .insert({
+        member_id: user.id,
+        tier: open.tier,
+        fiat_amount: amt,
+        spark_amount: 0,
+        platform_fee,
+        ubuntu_fund_cut,
+        net_amount,
+        status: "pending",
+      })
+      .select("id")
+      .single();
     setBusy(false);
-    if (error) {
-      toast.error(error.message);
+    if (error || !data) {
+      toast.error(error?.message ?? "Could not place bid");
       return;
     }
-    toast.success(`Contributed ${fmtR(amt)} to ${open.tier}`);
-    setOpen(null);
-    setAmount("");
+    const ref = `BID-${data.id.slice(0, 8).toUpperCase()}-${user.id.slice(0, 4).toUpperCase()}`;
+    await supabase.from("circle_bids").update({ payment_reference: ref }).eq("id", data.id);
+    setPendingBid({ id: data.id, amount: amt, ref });
+    setStep("pay");
+  };
+
+  // Step 2 → upload proof, mark payment_pending, notify admins
+  const submitPayment = async () => {
+    if (!pendingBid || !user) return;
+    if (!proofFile) {
+      toast.error("Please attach proof of payment");
+      return;
+    }
+    setBusy(true);
+    const ext = proofFile.name.split(".").pop()?.toLowerCase() || "jpg";
+    const path = `${user.id}/${pendingBid.id}.${ext}`;
+    const up = await supabase.storage
+      .from("payment-proofs")
+      .upload(path, proofFile, { upsert: true, contentType: proofFile.type || undefined });
+    if (up.error) {
+      setBusy(false);
+      toast.error(up.error.message);
+      return;
+    }
+    const { error: updErr } = await supabase
+      .from("circle_bids")
+      .update({
+        status: "payment_pending",
+        payment_proof_url: path,
+        payment_submitted_at: new Date().toISOString(),
+      })
+      .eq("id", pendingBid.id);
+    if (updErr) {
+      setBusy(false);
+      toast.error(updErr.message);
+      return;
+    }
+    // Notify all admins
+    const { data: admins } = await supabase.from("admin_users").select("user_id");
+    if (admins?.length) {
+      const memberName = user.email ?? "Member";
+      await supabase.from("notifications").insert(
+        admins.map((a) => ({
+          member_id: a.user_id,
+          title: "💰 New EFT to verify",
+          body: `${memberName} submitted ${fmtR(pendingBid.amount)} for ${open?.tier} (ref ${pendingBid.ref})`,
+          kind: "payment",
+          link: "/admin/circles",
+        })),
+      );
+    }
+    setBusy(false);
+    toast.success("Payment submitted — awaiting admin confirmation");
+    closeModal();
     load();
   };
+
+  const cancelBid = async () => {
+    if (!pendingBid) { closeModal(); return; }
+    setBusy(true);
+    await supabase.from("circle_bids").delete().eq("id", pendingBid.id);
+    setBusy(false);
+    toast("Bid cancelled");
+    closeModal();
+    load();
+  };
+
+  const copy = async (label: string, text: string) => {
+    try {
+      await navigator.clipboard.writeText(text);
+      setCopied(label);
+      setTimeout(() => setCopied(null), 1200);
+    } catch { /* no-op */ }
+  };
+
+  const settingsReady = useMemo(
+    () => !!(settings?.bank_name && settings?.account_number),
+    [settings],
+  );
 
   return (
     <main className="relative min-h-screen pb-32">
@@ -232,8 +370,16 @@ const Circle = () => {
                 const locked = !t.is_active;
                 const myBids = bids.filter((b) => b.tier === t.tier);
                 const myTotal = myBids.reduce((sum, b) => sum + Number(b.fiat_amount ?? 0), 0);
-                
                 const niceName = `${t.tier.charAt(0).toUpperCase() + t.tier.slice(1)} Circle`;
+                const sess = sessionFor(t.tier);
+                const sessionOpen = !sess || sess.status === "open";
+                const disabled = locked || !sessionOpen;
+                const sessionLabel = sess
+                  ? sess.status === "open"
+                    ? `🟢 Session open — closes in ${fmtCountdown(sess.target - now)}`
+                    : `🔴 Session closed — opens in ${fmtCountdown(sess.target - now)}`
+                  : null;
+
                 return (
                   <article
                     key={t.tier}
@@ -266,10 +412,7 @@ const Circle = () => {
                         <span>{pct}% of {fmtR(s.target)}</span>
                       </div>
                       <div className="mt-2 h-2 w-full rounded-full bg-secondary overflow-hidden">
-                        <div
-                          className="h-full rounded-full bg-gradient-gold transition-all"
-                          style={{ width: `${pct}%` }}
-                        />
+                        <div className="h-full rounded-full bg-gradient-gold transition-all" style={{ width: `${pct}%` }} />
                       </div>
                     </div>
 
@@ -284,25 +427,33 @@ const Circle = () => {
                       </div>
                     )}
 
-                    <div className="mt-5 flex gap-2">
+                    {sessionLabel && !locked && (
+                      <p className={`mt-3 text-[11px] text-center font-medium ${sessionOpen ? "text-primary" : "text-destructive"}`}>
+                        {sessionLabel}
+                      </p>
+                    )}
+
+                    <div className="mt-4 flex gap-2">
                       <button
-                        disabled={locked}
-                        onClick={() => {
-                          if (locked) return;
-                          if (!hasAcceptedCircle()) { toast.info("Please accept the Circle terms first."); return; }
-                          setOpen(t); setAmount(String(t.min_entry));
-                        }}
-                        className="flex-1 h-11 rounded-2xl bg-gradient-primary text-primary-foreground text-sm font-medium shadow-glow inline-flex items-center justify-center gap-1.5 disabled:opacity-50 disabled:cursor-not-allowed"
+                        disabled={disabled}
+                        onClick={() => startBid(t, t.min_entry)}
+                        className={`flex-1 h-11 rounded-2xl text-sm font-medium inline-flex items-center justify-center gap-1.5 disabled:opacity-50 disabled:cursor-not-allowed ${
+                          disabled
+                            ? "bg-secondary text-muted-foreground border border-border"
+                            : "bg-gradient-primary text-primary-foreground shadow-glow"
+                        }`}
                       >
-                        {locked ? <><Lock className="h-4 w-4" /> Locked</> : <><Plus className="h-4 w-4" /> Enter {niceName}</>}
+                        {locked ? (
+                          <><Lock className="h-4 w-4" /> Locked</>
+                        ) : !sessionOpen ? (
+                          <><Lock className="h-4 w-4" /> Session closed</>
+                        ) : (
+                          <><Plus className="h-4 w-4" /> Enter {niceName}</>
+                        )}
                       </button>
                       <button
-                        disabled={locked}
-                        onClick={() => {
-                          if (locked) return;
-                          if (!hasAcceptedCircle()) { toast.info("Please accept the Circle terms first."); return; }
-                          setOpen(t); setAmount(String(t.max_entry));
-                        }}
+                        disabled={disabled}
+                        onClick={() => startBid(t, t.max_entry)}
                         className="h-11 px-5 rounded-2xl border border-border text-sm font-medium hover:bg-secondary transition-smooth inline-flex items-center gap-1 disabled:opacity-50 disabled:cursor-not-allowed"
                       >
                         Bid <ChevronRight className="h-3 w-3" />
@@ -316,35 +467,123 @@ const Circle = () => {
         </div>
       </section>
 
-      <Dialog open={!!open} onOpenChange={(v) => !v && setOpen(null)}>
-        <DialogContent className="rounded-3xl border border-border bg-gradient-card">
-          <DialogHeader>
-            <DialogTitle className="font-display text-2xl capitalize">{open?.tier}</DialogTitle>
-            <DialogDescription>
-              Contribute between {open && fmtR(open.min_entry)} and {open && fmtR(open.max_entry)}.
-              A 2% platform fee and 3% Ubuntu fund cut apply.
-            </DialogDescription>
-          </DialogHeader>
-          <div className="space-y-2">
-            <Label className="text-xs uppercase tracking-[0.18em] text-muted-foreground">Amount (R)</Label>
-            <Input
-              type="number"
-              inputMode="numeric"
-              value={amount}
-              onChange={(e) => setAmount(e.target.value)}
-              className="h-12 rounded-2xl bg-secondary/60 border-border"
-            />
-          </div>
-          <DialogFooter>
-            <Button variant="ghost" onClick={() => setOpen(null)}>Cancel</Button>
-            <Button
-              onClick={contribute}
-              disabled={busy}
-              className="rounded-2xl bg-gradient-primary text-primary-foreground shadow-glow"
-            >
-              {busy ? <Loader2 className="h-4 w-4 animate-spin" /> : "Confirm"}
-            </Button>
-          </DialogFooter>
+      {/* Bid + EFT modal */}
+      <Dialog open={!!open} onOpenChange={(v) => { if (!v) closeModal(); }}>
+        <DialogContent className="rounded-3xl border border-border bg-gradient-card max-w-md">
+          {step === "amount" ? (
+            <>
+              <DialogHeader>
+                <DialogTitle className="font-display text-2xl capitalize">{open?.tier} Circle</DialogTitle>
+                <DialogDescription>
+                  Bid between {open && fmtR(open.min_entry)} and {open && fmtR(open.max_entry)}.
+                  A 2% platform fee and 3% Ubuntu fund cut apply.
+                </DialogDescription>
+              </DialogHeader>
+              <div className="space-y-2">
+                <Label className="text-xs uppercase tracking-[0.18em] text-muted-foreground">Bid amount (R)</Label>
+                <Input
+                  type="number"
+                  inputMode="numeric"
+                  value={amount}
+                  onChange={(e) => setAmount(e.target.value)}
+                  className="h-12 rounded-2xl bg-secondary/60 border-border text-lg"
+                />
+              </div>
+              <DialogFooter>
+                <Button variant="ghost" onClick={closeModal}>Cancel</Button>
+                <Button
+                  onClick={confirmBid}
+                  disabled={busy}
+                  className="rounded-2xl bg-gradient-primary text-primary-foreground shadow-glow"
+                >
+                  {busy ? <Loader2 className="h-4 w-4 animate-spin" /> : "Confirm Bid"}
+                </Button>
+              </DialogFooter>
+            </>
+          ) : (
+            <>
+              <DialogHeader>
+                <DialogTitle className="font-display text-2xl">🎯 Bid Placed!</DialogTitle>
+                <DialogDescription>
+                  Pay via EFT using the details below, then upload your proof of payment.
+                </DialogDescription>
+              </DialogHeader>
+
+              {!settingsReady ? (
+                <div className="rounded-2xl border border-destructive/40 bg-destructive/10 p-4 text-sm">
+                  Bank details are not configured yet. Please contact an admin.
+                </div>
+              ) : (
+                <div className="space-y-2 rounded-2xl border border-border bg-secondary/40 p-4 text-sm">
+                  {[
+                    ["Bank", settings?.bank_name ?? ""],
+                    ["Account Name", settings?.account_name ?? ""],
+                    ["Account Number", settings?.account_number ?? ""],
+                    ["Branch Code", settings?.branch_code ?? ""],
+                    ["Reference", pendingBid?.ref ?? ""],
+                    ["Amount", pendingBid ? fmtR(pendingBid.amount) : ""],
+                  ].map(([label, value]) => (
+                    <div key={label} className="flex items-center justify-between gap-3 py-1 border-b border-border/40 last:border-b-0">
+                      <span className="text-xs uppercase tracking-wider text-muted-foreground">{label}</span>
+                      <div className="flex items-center gap-2 min-w-0">
+                        <span className="font-mono text-sm truncate">{value}</span>
+                        {value && (
+                          <button
+                            onClick={() => copy(label, String(value))}
+                            className="grid h-7 w-7 place-items-center rounded-lg bg-background/60 hover:bg-background text-muted-foreground hover:text-foreground transition-smooth"
+                            aria-label={`Copy ${label}`}
+                          >
+                            {copied === label ? <Check className="h-3 w-3 text-primary" /> : <Copy className="h-3 w-3" />}
+                          </button>
+                        )}
+                      </div>
+                    </div>
+                  ))}
+                  {settings?.payment_instructions && (
+                    <p className="pt-2 text-xs text-muted-foreground whitespace-pre-line">
+                      {settings.payment_instructions}
+                    </p>
+                  )}
+                </div>
+              )}
+
+              <div className="space-y-2">
+                <Label className="text-xs uppercase tracking-[0.18em] text-muted-foreground">
+                  Proof of payment (required)
+                </Label>
+                <label className="flex items-center gap-3 rounded-2xl border border-dashed border-border bg-secondary/30 p-3 cursor-pointer hover:bg-secondary/50 transition-smooth">
+                  <Upload className="h-4 w-4 text-accent" />
+                  <span className="text-sm truncate flex-1">
+                    {proofFile ? proofFile.name : "Tap to attach screenshot or PDF"}
+                  </span>
+                  <input
+                    type="file"
+                    accept="image/*,application/pdf"
+                    className="hidden"
+                    onChange={(e) => setProofFile(e.target.files?.[0] ?? null)}
+                  />
+                </label>
+              </div>
+
+              <DialogFooter className="flex-col-reverse sm:flex-row gap-2">
+                <Button
+                  variant="outline"
+                  onClick={cancelBid}
+                  disabled={busy}
+                  className="rounded-2xl"
+                >
+                  <X className="h-4 w-4 mr-1" /> Cancel Bid
+                </Button>
+                <Button
+                  onClick={submitPayment}
+                  disabled={busy || !proofFile || !settingsReady}
+                  className="rounded-2xl bg-gradient-primary text-primary-foreground shadow-glow"
+                >
+                  {busy ? <Loader2 className="h-4 w-4 animate-spin" /> : "I've Made Payment"}
+                </Button>
+              </DialogFooter>
+            </>
+          )}
         </DialogContent>
       </Dialog>
 
@@ -359,6 +598,5 @@ const Circle = () => {
     </main>
   );
 };
-
 
 export default Circle;
