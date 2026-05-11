@@ -29,6 +29,7 @@ import SparkFlip from "./pages/SparkFlip.tsx";
 import Kyc from "./pages/Kyc.tsx";
 import Waitlist from "./pages/Waitlist.tsx";
 import Referrals from "./pages/Referrals.tsx";
+import Priority from "./pages/Priority.tsx";
 import NotFound from "./pages/NotFound.tsx";
 import AdminLayout from "./components/umoja/AdminLayout";
 import AdminDashboard from "./pages/admin/AdminDashboard";
@@ -42,6 +43,7 @@ import AdminPayouts from "./pages/admin/AdminPayouts";
 import AdminInvites from "./pages/admin/AdminInvites";
 import AdminReferrals from "./pages/admin/AdminReferrals";
 import AdminSettings from "./pages/admin/AdminSettings";
+import AdminAllocations from "./pages/admin/AdminAllocations";
 
 const queryClient = new QueryClient();
 
@@ -75,6 +77,7 @@ const App = () => (
               <Route path="/spark-pit/spark-flip" element={<ProtectedRoute><SparkFlip /></ProtectedRoute>} />
               <Route path="/kyc" element={<ProtectedRoute><Kyc /></ProtectedRoute>} />
               <Route path="/referrals" element={<ProtectedRoute><Referrals /></ProtectedRoute>} />
+              <Route path="/priority" element={<ProtectedRoute><Priority /></ProtectedRoute>} />
 
               <Route path="/admin" element={<AdminRoute><AdminLayout /></AdminRoute>}>
                 <Route index element={<AdminDashboard />} />
@@ -88,6 +91,7 @@ const App = () => (
                 <Route path="invites" element={<AdminInvites />} />
                 <Route path="referrals" element={<AdminReferrals />} />
                 <Route path="settings" element={<AdminSettings />} />
+                <Route path="allocations" element={<AdminAllocations />} />
               </Route>
 
               <Route path="*" element={<NotFound />} />
