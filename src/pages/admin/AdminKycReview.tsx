@@ -69,6 +69,17 @@ export default function AdminKycReview() {
         link: "/profile",
       });
       await supabase.rpc("award_kyc_referral_bonus", { _member: r.id });
+      if (r.email) {
+        supabase.functions.invoke("send-email", {
+          body: {
+            template: "kyc_approved",
+            to: r.email,
+            member_id: r.id,
+            bypass_prefs: true,
+            data: { name: r.full_name },
+          },
+        }).catch(() => {});
+      }
     }
     setBusyId(null);
     if (error) return toast.error(error.message);
