@@ -63,6 +63,12 @@ const Dashboard = () => {
   const [teaser, setTeaser] = useState<PredictorTeaser | null>(null);
   const [isAdmin, setIsAdmin] = useState(false);
   const [kycLevel, setKycLevel] = useState<number | null>(null);
+  const [bc, setBc] = useState<{
+    status: string | null;
+    tier: string | null;
+    has_access: boolean;
+    rejection_reason: string | null;
+  } | null>(null);
 
   useEffect(() => {
     if (!user) { setIsAdmin(false); return; }
@@ -82,9 +88,19 @@ const Dashboard = () => {
   }, [user]);
 
   useEffect(() => {
-    if (!user) { setKycLevel(null); return; }
-    supabase.from("members").select("kyc_level").eq("id", user.id).maybeSingle()
-      .then(({ data }) => setKycLevel(data?.kyc_level ?? 0));
+    if (!user) { setKycLevel(null); setBc(null); return; }
+    supabase.from("members")
+      .select("kyc_level, buyers_club_status, buyers_club_tier, has_buyers_club_access, buyers_club_rejection_reason")
+      .eq("id", user.id).maybeSingle()
+      .then(({ data }) => {
+        setKycLevel(data?.kyc_level ?? 0);
+        setBc({
+          status: data?.buyers_club_status ?? null,
+          tier: data?.buyers_club_tier ?? null,
+          has_access: !!data?.has_buyers_club_access,
+          rejection_reason: data?.buyers_club_rejection_reason ?? null,
+        });
+      });
   }, [user]);
 
   useEffect(() => {
