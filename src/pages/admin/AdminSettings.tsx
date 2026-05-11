@@ -28,6 +28,19 @@ export default function AdminSettings() {
   const [s, setS] = useState<Settings>(empty);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
+  const [unmask, setUnmask] = useState(false);
+
+  const maskAccount = (v: string) => {
+    if (!v) return "";
+    if (unmask) return v;
+    const digits = v.replace(/\s+/g, "");
+    if (digits.length <= 4) return "•".repeat(digits.length);
+    return "•".repeat(Math.max(0, digits.length - 4)) + digits.slice(-4);
+  };
+
+  const previewReady = !!(s.bank_name && s.account_number);
+  const sampleRef = "BID-PREVIEW-0001";
+  const sampleAmount = "R2,500";
 
   useEffect(() => {
     (async () => {
