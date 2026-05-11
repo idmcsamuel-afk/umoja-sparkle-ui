@@ -152,17 +152,25 @@ const Referrals = () => {
               <p className="text-sm text-muted-foreground">No referrals yet. Share your link to start earning.</p>
             ) : (
               <ul className="divide-y divide-border">
-                {referred.map((r) => (
-                  <li key={r.id} className="py-2.5 flex items-center justify-between">
-                    <div>
-                      <p className="text-sm">{r.full_name}</p>
-                      <p className="text-[11px] text-muted-foreground">{new Date(r.joined_at).toLocaleDateString()}</p>
-                    </div>
-                    <span className={`text-[10px] uppercase tracking-wider px-2 py-1 rounded-full ${r.kyc_level >= 3 ? "bg-accent/15 text-accent" : "bg-secondary text-muted-foreground"}`}>
-                      KYC {r.kyc_level}/3
-                    </span>
-                  </li>
-                ))}
+                {referred.map((r) => {
+                  const approved = r.kyc_level >= 3;
+                  return (
+                    <li key={r.id} className="py-2.5 flex items-center justify-between gap-3">
+                      <div className="min-w-0">
+                        <p className="text-sm truncate">{r.full_name}</p>
+                        <p className="text-[11px] text-muted-foreground">
+                          Joined {new Date(r.joined_at).toLocaleDateString()} · +200 ✨ {approved ? "· +300 bonus ✨" : ""}
+                        </p>
+                      </div>
+                      <div className="flex flex-col items-end gap-1 shrink-0">
+                        <span className={`text-[10px] uppercase tracking-wider px-2 py-0.5 rounded-full ${approved ? "bg-accent/15 text-accent" : "bg-amber-500/10 text-amber-500"}`}>
+                          {approved ? "Approved" : "Pending"}
+                        </span>
+                        <span className="text-[10px] text-muted-foreground">KYC {r.kyc_level}/3</span>
+                      </div>
+                    </li>
+                  );
+                })}
               </ul>
             )}
           </div>
