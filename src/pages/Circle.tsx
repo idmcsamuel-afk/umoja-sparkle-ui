@@ -17,6 +17,7 @@ import { CircleSessionTimer, getSessionState } from "@/components/umoja/CircleSe
 import { SparksDisclaimer } from "@/components/umoja/SparksDisclaimer";
 import { CircleStatusBanner } from "@/components/umoja/CircleStatusBanner";
 import { TimezoneSelector } from "@/components/umoja/TimezoneSelector";
+import { cn } from "@/lib/utils";
 
 interface Tier {
   tier: string;
@@ -512,90 +513,59 @@ const Circle = () => {
 
       {/* Bid + EFT modal */}
       <Dialog open={!!open} onOpenChange={(v) => { if (!v) closeModal(); }}>
-        <DialogContent className="rounded-3xl border border-border bg-gradient-card max-w-md">
+        <DialogContent
+          className={cn(
+            "border border-border bg-gradient-card p-0 gap-0",
+            // Mobile: bottom sheet
+            "fixed left-0 right-0 bottom-0 top-auto w-full max-w-full translate-x-0 translate-y-0",
+            "rounded-t-3xl rounded-b-none max-h-[90vh] flex flex-col",
+            // Desktop: centered card
+            "sm:left-[50%] sm:top-[50%] sm:bottom-auto sm:right-auto sm:translate-x-[-50%] sm:translate-y-[-50%]",
+            "sm:rounded-3xl sm:max-w-md sm:max-h-[85vh]"
+          )}
+        >
           {step === "amount" ? (
             <>
-              <DialogHeader>
-                <DialogTitle className="font-display text-2xl capitalize">{open?.tier} Circle</DialogTitle>
-                <DialogDescription>
-                  Bid between {open && fmtR(open.min_entry)} and {open && fmtR(open.max_entry)}.
-                  A 2% platform fee and 3% Ubuntu fund cut apply.
-                </DialogDescription>
-              </DialogHeader>
-              <div className="space-y-2">
-                <Label className="text-xs uppercase tracking-[0.18em] text-muted-foreground">Bid amount (R)</Label>
-                <Input
-                  type="number"
-                  inputMode="numeric"
-                  value={amount}
-                  onChange={(e) => setAmount(e.target.value)}
-                  className="h-12 rounded-2xl bg-secondary/60 border-border text-lg"
-                />
+              <div className="flex-1 overflow-y-auto p-6 space-y-4">
+                <DialogHeader>
+                  <DialogTitle className="font-display text-2xl capitalize">{open?.tier} Circle</DialogTitle>
+                  <DialogDescription>
+                    Bid between {open && fmtR(open.min_entry)} and {open && fmtR(open.max_entry)}.
+                    A 2% platform fee and 3% Ubuntu fund cut apply.
+                  </DialogDescription>
+                </DialogHeader>
+                <div className="space-y-2">
+                  <Label className="text-xs uppercase tracking-[0.18em] text-muted-foreground">Bid amount (R)</Label>
+                  <Input
+                    type="number"
+                    inputMode="numeric"
+                    value={amount}
+                    onChange={(e) => setAmount(e.target.value)}
+                    className="h-12 rounded-2xl bg-secondary/60 border-border text-lg"
+                  />
+                </div>
               </div>
-              <DialogFooter>
-                <Button variant="ghost" onClick={closeModal}>Cancel</Button>
+              <div className="sticky bottom-0 z-10 flex gap-3 border-t border-border bg-background/95 backdrop-blur p-4">
+                <Button variant="ghost" onClick={closeModal} className="flex-1 min-h-12 rounded-2xl">Cancel</Button>
                 <Button
                   onClick={confirmBid}
                   disabled={busy}
-                  className="rounded-2xl bg-gradient-primary text-primary-foreground shadow-glow"
+                  className="flex-1 min-h-12 rounded-2xl bg-gradient-primary text-primary-foreground shadow-glow"
                 >
                   {busy ? <Loader2 className="h-4 w-4 animate-spin" /> : "Confirm Bid"}
                 </Button>
-              </DialogFooter>
+              </div>
             </>
           ) : (
             <>
-              <DialogHeader>
-                <DialogTitle className="font-display text-2xl">🎯 Pay via EFT to Community Pool</DialogTitle>
-                <DialogDescription>
-                  This payment goes into the <span className="capitalize font-medium text-foreground">{open?.tier}</span> Circle community pool.
-                  Payouts are distributed to members based on priority scoring.
-                </DialogDescription>
-              </DialogHeader>
-
-              {/* Leaderboard preview */}
-              <div className="rounded-2xl border border-primary/30 bg-primary/5 p-3 space-y-2">
-                <div className="flex items-center justify-between gap-2">
-                  <p className="text-xs font-medium text-primary inline-flex items-center gap-1">
-                    🏆 Next Payout Recipients (Current Leaders)
-                  </p>
-                  {leadersLoading && <Loader2 className="h-3 w-3 animate-spin text-primary" />}
-                </div>
-                {leadersLoading ? (
-                  <ol className="space-y-1.5" aria-label="Loading leaders">
-                    {[0, 1].map((i) => (
-                      <li key={i} className="flex items-center justify-between gap-3">
-                        <span className="h-3 w-40 rounded bg-primary/15 animate-pulse" />
-                        <span className="h-3 w-12 rounded bg-primary/15 animate-pulse" />
-                      </li>
-                    ))}
-                  </ol>
-                ) : leadersError ? (
-                  <div className="flex items-center justify-between gap-2">
-                    <p className="text-xs text-destructive">Couldn't load leaders.</p>
-                    <button
-                      type="button"
-                      onClick={() => open && loadLeaders(open.tier)}
-                      className="text-xs rounded-lg border border-border bg-background/60 px-2 py-1 hover:bg-background transition-smooth"
-                    >
-                      Retry
-                    </button>
-                  </div>
-                ) : leaders.length === 0 ? (
-                  <p className="text-xs text-muted-foreground">No eligible members in queue yet — you could be first in line.</p>
-                ) : (
-                  <ol className="space-y-1">
-                    {leaders.map((l, i) => (
-                      <li key={l.member_id} className="flex items-center justify-between text-xs">
-                        <span className="font-mono">
-                          {i + 1}. Member #{memberCode(l.member_id)} — {initials(l.full_name)}
-                        </span>
-                        <span className="font-display text-gradient-gold">{Math.round(l.priority_score)} pts</span>
-                      </li>
-                    ))}
-                  </ol>
-                )}
-              </div>
+              <div className="flex-1 overflow-y-auto p-6 space-y-4">
+                <DialogHeader>
+                  <DialogTitle className="font-display text-2xl">🎯 Pay via EFT to Community Pool</DialogTitle>
+                  <DialogDescription>
+                    This payment joins the <span className="capitalize font-medium text-foreground">{open?.tier}</span> Circle pool.
+                    Payouts distributed based on priority scoring.
+                  </DialogDescription>
+                </DialogHeader>
 
               {!settingsReady ? (
                 <div className="rounded-2xl border border-destructive/40 bg-destructive/10 p-4 space-y-3">
@@ -692,24 +662,25 @@ const Circle = () => {
                   />
                 </label>
               </div>
+              </div>
 
-              <DialogFooter className="flex-col-reverse sm:flex-row gap-2">
+              <div className="sticky bottom-0 z-10 flex gap-3 border-t border-border bg-background/95 backdrop-blur p-4">
                 <Button
                   variant="outline"
                   onClick={cancelBid}
                   disabled={busy}
-                  className="rounded-2xl"
+                  className="flex-1 min-h-12 rounded-2xl"
                 >
-                  <X className="h-4 w-4 mr-1" /> Cancel Bid
+                  <X className="h-4 w-4 mr-1" /> Cancel
                 </Button>
                 <Button
                   onClick={submitPayment}
                   disabled={busy || !proofFile || !settingsReady}
-                  className="rounded-2xl bg-gradient-primary text-primary-foreground shadow-glow"
+                  className="flex-1 min-h-12 rounded-2xl bg-gradient-primary text-primary-foreground shadow-glow"
                 >
                   {busy ? <Loader2 className="h-4 w-4 animate-spin" /> : "I've Made Payment"}
                 </Button>
-              </DialogFooter>
+              </div>
             </>
           )}
         </DialogContent>
