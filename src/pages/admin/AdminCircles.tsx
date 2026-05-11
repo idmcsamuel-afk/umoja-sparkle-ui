@@ -31,6 +31,7 @@ export default function AdminCircles() {
   const [rows, setRows] = useState<TierRow[]>([]);
   const [pending, setPending] = useState<PendingBid[]>([]);
   const [busy, setBusy] = useState<string | null>(null);
+  const [openHistory, setOpenHistory] = useState<string | null>(null);
 
   const load = async () => {
     setLoading(true);
