@@ -143,7 +143,8 @@ const Circle = () => {
     const t = (tiersRes.data ?? []) as Tier[];
     setTiers(t);
     setBids((bidsRes.data ?? []) as Bid[]);
-    setSettings((settingsRes.data ?? null) as Settings | null);
+    const settingsRow = Array.isArray(settingsRes.data) ? settingsRes.data[0] : settingsRes.data;
+    setSettings((settingsRow ?? null) as Settings | null);
 
     const grouped: Record<string, TierStats> = {};
     for (const tier of t) {
