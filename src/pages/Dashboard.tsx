@@ -358,6 +358,23 @@ const Dashboard = () => {
                 </div>
                 <ChevronRight className="h-4 w-4 text-muted-foreground" />
               </Link>
+              {bc.tier?.toLowerCase() === "gold" && bc.referral_code && (
+                <Link
+                  to="/storefront/edit"
+                  className="mt-2 flex items-center gap-3 rounded-2xl border border-accent/40 bg-gradient-to-r from-accent/15 to-primary/10 p-4 transition-smooth hover:border-accent/70"
+                >
+                  <div className="grid h-10 w-10 shrink-0 place-items-center rounded-2xl bg-accent/20 text-accent">
+                    🛍️
+                  </div>
+                  <div className="min-w-0 flex-1">
+                    <p className="text-sm font-medium">Your Storefront is live</p>
+                    <p className="text-[11px] text-muted-foreground truncate">
+                      umojarise.com/shop/{bc.referral_code} · tap to edit
+                    </p>
+                  </div>
+                  <ChevronRight className="h-4 w-4 text-muted-foreground" />
+                </Link>
+              )}
             ) : bc.status === "payment_pending" ? (
               <div className="flex items-center gap-3 rounded-2xl border border-accent/40 bg-gradient-to-r from-accent/15 to-primary/10 p-4">
                 <div className="grid h-10 w-10 shrink-0 place-items-center rounded-2xl bg-accent/20 text-accent">
