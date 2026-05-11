@@ -366,12 +366,33 @@ function SessionTestingCard({ settingsId }: { settingsId?: string }) {
           </span>
         </div>
         <div className="grid gap-3 md:grid-cols-3">
-          {TIERS.map(({ key, label }) => (
-            <div key={key} className="space-y-2">
-              <p className="text-[10px] uppercase tracking-wider text-muted-foreground">{label}</p>
-              <CircleSessionTimer tier={key} />
-            </div>
-          ))}
+          {TIERS.map(({ key, label }) => {
+            const forced = isOverriddenOpen(key);
+            const mode: "forced-open" | "forced-closed" | "normal" =
+              forced ? "forced-open" : overrideActive ? "forced-closed" : "normal";
+            const badge =
+              mode === "forced-open"
+                ? { cls: "bg-primary/15 text-primary border-primary/40", icon: "🟢", text: "Forced open" }
+                : mode === "forced-closed"
+                ? { cls: "bg-destructive/15 text-destructive border-destructive/40", icon: "🔴", text: "Forced closed" }
+                : { cls: "bg-secondary text-muted-foreground border-border", icon: "⚙️", text: "Normal schedule" };
+            return (
+              <div key={key} className="space-y-2">
+                <div className="flex items-center justify-between gap-2">
+                  <p className="text-[10px] uppercase tracking-wider text-muted-foreground">{label}</p>
+                  <span className={`inline-flex items-center gap-1 rounded-full border px-2 py-0.5 text-[10px] font-medium ${badge.cls}`}>
+                    <span>{badge.icon}</span> {badge.text}
+                  </span>
+                </div>
+                <p className="font-mono text-[10px] text-muted-foreground">
+                  mode=<span className="text-foreground">{mode}</span>
+                  {" · "}override_active=<span className="text-foreground">{String(overrideActive)}</span>
+                  {" · "}flag=<span className="text-foreground">{String(!!row?.[`${key}_override_open` as const])}</span>
+                </p>
+                <CircleSessionTimer tier={key} />
+              </div>
+            );
+          })}
         </div>
       </div>
     </div>
