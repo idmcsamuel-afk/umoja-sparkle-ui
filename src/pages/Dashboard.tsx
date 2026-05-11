@@ -376,6 +376,7 @@ const Dashboard = () => {
                   <ChevronRight className="h-4 w-4 text-muted-foreground" />
                 </Link>
               )}
+              </>
             ) : bc.status === "payment_pending" ? (
               <div className="flex items-center gap-3 rounded-2xl border border-accent/40 bg-gradient-to-r from-accent/15 to-primary/10 p-4">
                 <div className="grid h-10 w-10 shrink-0 place-items-center rounded-2xl bg-accent/20 text-accent">
