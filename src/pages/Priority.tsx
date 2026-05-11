@@ -83,17 +83,6 @@ export default function Priority() {
     })();
   }, [tier, user?.id]);
 
-  const scoreDelta = useMemo(() => {
-    if (!me || !lastSnapshot) return null;
-    return Number(me.priority_score) - Number(lastSnapshot.priority_score);
-  }, [me, lastSnapshot]);
-
-  const rankDelta = useMemo(() => {
-    if (!myRank || !lastSnapshot?.rank) return null;
-    // positive = moved up the queue (lower number)
-    return Number(lastSnapshot.rank) - myRank;
-  }, [myRank, lastSnapshot]);
-
   const me = useMemo(() => rows.find((r) => r.member_id === user?.id), [rows, user?.id]);
   const eligibleRows = useMemo(() => rows.filter((r) => r.eligible), [rows]);
   const myRank = useMemo(() => {
@@ -107,6 +96,17 @@ export default function Priority() {
     const perWeek = payouts[tier] * SESSIONS_PER_WEEK[tier];
     return Math.max(1, Math.ceil(myRank / Math.max(1, perWeek)));
   }, [myRank, payouts, tier]);
+
+  const scoreDelta = useMemo(() => {
+    if (!me || !lastSnapshot) return null;
+    return Number(me.priority_score) - Number(lastSnapshot.priority_score);
+  }, [me, lastSnapshot]);
+
+  const rankDelta = useMemo(() => {
+    if (!myRank || !lastSnapshot?.rank) return null;
+    // positive = moved up the queue (lower number is better)
+    return Number(lastSnapshot.rank) - myRank;
+  }, [myRank, lastSnapshot]);
 
   return (
     <main className="relative min-h-screen pb-32">
