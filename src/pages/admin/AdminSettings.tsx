@@ -202,8 +202,6 @@ export default function AdminSettings() {
 }
 
 // ---------- Session Testing (admin manual override) ----------
-import { getSessionState, refreshOverrides } from "@/components/umoja/CircleSessionTimer";
-import { AlertTriangle, Play, Square, Clock } from "lucide-react";
 
 type TierKey = "seed" | "growth" | "harvest";
 const TIERS: { key: TierKey; label: string; col: "seed_override_open" | "growth_override_open" | "harvest_override_open" }[] = [
