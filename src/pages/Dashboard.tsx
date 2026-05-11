@@ -89,18 +89,43 @@ const Dashboard = () => {
 
   useEffect(() => {
     if (!user) { setKycLevel(null); setBc(null); return; }
-    supabase.from("members")
-      .select("kyc_level, buyers_club_status, buyers_club_tier, has_buyers_club_access, buyers_club_rejection_reason")
-      .eq("id", user.id).maybeSingle()
-      .then(({ data }) => {
-        setKycLevel(data?.kyc_level ?? 0);
-        setBc({
-          status: data?.buyers_club_status ?? null,
-          tier: data?.buyers_club_tier ?? null,
-          has_access: !!data?.has_buyers_club_access,
-          rejection_reason: data?.buyers_club_rejection_reason ?? null,
-        });
+    const uid = user.id;
+    const fetchBc = async () => {
+      const { data } = await supabase.from("members")
+        .select("kyc_level, buyers_club_status, buyers_club_tier, has_buyers_club_access, buyers_club_rejection_reason")
+        .eq("id", uid).maybeSingle();
+      setKycLevel(data?.kyc_level ?? 0);
+      setBc({
+        status: data?.buyers_club_status ?? null,
+        tier: data?.buyers_club_tier ?? null,
+        has_access: !!data?.has_buyers_club_access,
+        rejection_reason: data?.buyers_club_rejection_reason ?? null,
       });
+    };
+    fetchBc();
+
+    // Realtime: refresh when this member row changes (e.g. proof submitted, admin approves)
+    const channel = supabase
+      .channel(`members-bc-${uid}`)
+      .on("postgres_changes", { event: "UPDATE", schema: "public", table: "members", filter: `id=eq.${uid}` }, () => {
+        fetchBc();
+      })
+      .subscribe();
+
+    // Refresh on tab focus (covers cases where realtime is disabled)
+    const onFocus = () => { if (document.visibilityState === "visible") fetchBc(); };
+    document.addEventListener("visibilitychange", onFocus);
+    window.addEventListener("focus", onFocus);
+
+    // Lightweight poll every 20s while card is in pending state
+    const poll = window.setInterval(fetchBc, 20000);
+
+    return () => {
+      supabase.removeChannel(channel);
+      document.removeEventListener("visibilitychange", onFocus);
+      window.removeEventListener("focus", onFocus);
+      window.clearInterval(poll);
+    };
   }, [user]);
 
   useEffect(() => {
