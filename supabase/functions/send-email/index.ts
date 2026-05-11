@@ -93,6 +93,7 @@ const PREF_MAP: Record<string, "circle" | "spark_trade" | "marketing" | "weekly_
   allocation_winner: null,
   kyc_approved: null,
   kyc_rejected: null,
+  kyc_reminder: null,
   contact_form: null,
 };
 
