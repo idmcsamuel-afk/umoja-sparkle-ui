@@ -19,8 +19,19 @@ const schema = z.object({
 
 const Signup = () => {
   const nav = useNavigate();
+  const [params] = useSearchParams();
+  const refParam = (params.get("ref") ?? "").trim().toUpperCase().slice(0, 8);
+  const [referrerName, setReferrerName] = useState<string | null>(null);
   const [form, setForm] = useState({ full_name: "", email: "", phone: "", password: "", invite_code: "" });
   const [busy, setBusy] = useState(false);
+
+  useEffect(() => {
+    if (!refParam) return;
+    supabase.rpc("lookup_referrer", { _code: refParam }).then(({ data }) => {
+      const row = Array.isArray(data) ? data[0] : data;
+      if (row?.full_name) setReferrerName(row.full_name);
+    });
+  }, [refParam]);
 
   const update = (k: keyof typeof form) => (e: React.ChangeEvent<HTMLInputElement>) =>
     setForm((f) => ({ ...f, [k]: e.target.value }));
@@ -93,8 +104,15 @@ const Signup = () => {
 
     await supabase.rpc("claim_signup_bonus");
 
+    let refMsg = "";
+    if (refParam) {
+      const { data: res } = await supabase.rpc("apply_referral_signup", { _code: refParam });
+      const r = res as { ok?: boolean; referrer_name?: string } | null;
+      if (r?.ok) refMsg = ` You were referred by ${r.referrer_name ?? "a member"}!`;
+    }
+
     setBusy(false);
-    toast.success("You've earned 100 welcome Sparks! ✨", { duration: 5000 });
+    toast.success(`You've earned 100 welcome Sparks! ✨${refMsg}`, { duration: 6000 });
 
     if (data.session) nav("/dashboard", { replace: true });
     else nav("/login", { replace: true });
