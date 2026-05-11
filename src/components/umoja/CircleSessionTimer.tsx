@@ -162,8 +162,10 @@ export function CircleSessionTimer({ tier }: { tier: string }) {
   const [now, setNow] = useState(() => Date.now());
   const [tz] = useTimezone();
   useEffect(() => {
+    refreshOverrides();
     const t = setInterval(() => setNow(Date.now()), 1000);
-    return () => clearInterval(t);
+    const o = setInterval(() => refreshOverrides(), 30000);
+    return () => { clearInterval(t); clearInterval(o); };
   }, []);
 
   if (!isKnown) return null;
