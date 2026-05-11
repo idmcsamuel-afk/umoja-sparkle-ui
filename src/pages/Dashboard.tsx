@@ -348,7 +348,11 @@ const Dashboard = () => {
                   <p className="text-sm font-medium">
                     Buyers Club <span className="capitalize text-accent">{bc.tier ?? "active"}</span> ✓
                   </p>
-                  <p className="text-[11px] text-muted-foreground">Member benefits unlocked — browse buying groups</p>
+                  <p className="text-[11px] text-muted-foreground">
+                    {bc.renewal_at
+                      ? `Renews ${new Date(bc.renewal_at).toLocaleDateString()} — browse buying groups`
+                      : "Member benefits unlocked — browse buying groups"}
+                  </p>
                 </div>
                 <ChevronRight className="h-4 w-4 text-muted-foreground" />
               </Link>
