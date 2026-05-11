@@ -1,4 +1,5 @@
 import { Link } from "react-router-dom";
+import { ContactModal } from "@/components/umoja/ContactModal";
 
 export const SiteFooter = () => (
   <footer className="border-t border-border/60 mt-12 px-5 py-8">
@@ -7,7 +8,13 @@ export const SiteFooter = () => (
       <nav className="flex items-center gap-5">
         <Link to="/terms" className="hover:text-foreground transition-smooth">Terms</Link>
         <Link to="/privacy" className="hover:text-foreground transition-smooth">Privacy</Link>
-        <Link to="/contact" className="hover:text-foreground transition-smooth">Contact</Link>
+        <ContactModal
+          trigger={
+            <button type="button" className="hover:text-foreground transition-smooth">
+              Contact Us
+            </button>
+          }
+        />
       </nav>
     </div>
   </footer>

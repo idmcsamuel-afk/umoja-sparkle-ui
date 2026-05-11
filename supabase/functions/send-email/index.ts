@@ -15,7 +15,7 @@ const corsHeaders = {
 const RESEND_API_KEY = Deno.env.get("RESEND_API_KEY")!;
 const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
 const SERVICE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
-const FROM = "UMOJA <noreply@umojarise.com>";
+const FROM = "UMOJA <hello@umojarise.com>";
 const REPLY_TO = "support@umojarise.com";
 const APP_URL = "https://umoja-sparkle-ui.lovable.app";
 
@@ -48,9 +48,11 @@ function shell(title: string, inner: string, ctaLabel?: string, ctaUrl?: string)
             <div style="font-size:15px;line-height:1.55;color:${TEXT};">${inner}</div>
             ${button}
           </td></tr>
-          <tr><td style="padding:24px 28px 28px;border-top:1px solid #eee;color:#888;font-size:12px;">
-            Questions? Reply to this email or reach <a href="mailto:${REPLY_TO}" style="color:${GREEN};">${REPLY_TO}</a>.<br>
-            © UMOJA Rise · You are receiving this because you have an account at UMOJA.
+          <tr><td style="padding:24px 28px 28px;border-top:1px solid #eee;color:#888;font-size:12px;line-height:1.6;">
+            Have questions? Reply to this email or contact us at
+            <a href="mailto:${REPLY_TO}" style="color:${GREEN};">${REPLY_TO}</a>.<br><br>
+            <strong style="color:${GREEN};">UMOJA</strong> — Community Wealth Platform<br>
+            <a href="https://umojarise.com" style="color:${GREEN};">umojarise.com</a>
           </td></tr>
         </table>
       </td></tr>
@@ -70,6 +72,7 @@ type TemplateName =
   | "allocation_winner"
   | "kyc_approved"
   | "kyc_rejected"
+  | "contact_form"
   | "custom";
 
 const CRITICAL: TemplateName[] = [
@@ -77,16 +80,18 @@ const CRITICAL: TemplateName[] = [
   "allocation_winner",
   "kyc_approved",
   "kyc_rejected",
+  "contact_form",
 ];
 
 const PREF_MAP: Record<string, "circle" | "spark_trade" | "marketing" | "weekly_digest" | null> = {
-  welcome: null, // always send
+  welcome: null,
   referral_success: "marketing",
   custom: "marketing",
   payment_verified: null,
   allocation_winner: null,
   kyc_approved: null,
   kyc_rejected: null,
+  contact_form: null,
 };
 
 function buildEmail(template: TemplateName, data: Record<string, any>) {
@@ -179,6 +184,16 @@ function buildEmail(template: TemplateName, data: Record<string, any>) {
          <p>Please resubmit with the correct documents.</p>`,
         "Upload Documents",
         `${APP_URL}/kyc`,
+      );
+      return { subject, html };
+    }
+    case "contact_form": {
+      const subject = `Contact form: ${esc(data.subject ?? "New message")}`;
+      const html = shell(
+        "New contact form submission",
+        `<p><strong>From:</strong> ${esc(data.from_name)} &lt;${esc(data.from_email)}&gt;</p>
+         <p><strong>Message:</strong></p>
+         <p style="background:#f6efdc;border-left:4px solid ${GOLD};padding:12px 14px;border-radius:8px;white-space:pre-wrap;">${esc(data.message)}</p>`,
       );
       return { subject, html };
     }
