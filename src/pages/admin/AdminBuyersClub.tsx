@@ -25,7 +25,7 @@ export default function AdminBuyersClub() {
   const load = async () => {
     setLoading(true);
     const { data } = await supabase.from("members")
-      .select("id, full_name, email, buyers_club_tier, buyers_club_amount, buyers_club_status, buyers_club_proof_url, buyers_club_submitted_at, has_buyers_club_access")
+      .select("id, full_name, email, buyers_club_tier, buyers_club_amount, buyers_club_status, buyers_club_proof_url, buyers_club_submitted_at, buyers_club_renewal_at, has_buyers_club_access")
       .not("buyers_club_status", "is", null)
       .order("buyers_club_submitted_at", { ascending: false })
       .limit(500);
