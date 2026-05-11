@@ -48,9 +48,11 @@ function shell(title: string, inner: string, ctaLabel?: string, ctaUrl?: string)
             <div style="font-size:15px;line-height:1.55;color:${TEXT};">${inner}</div>
             ${button}
           </td></tr>
-          <tr><td style="padding:24px 28px 28px;border-top:1px solid #eee;color:#888;font-size:12px;">
-            Questions? Reply to this email or reach <a href="mailto:${REPLY_TO}" style="color:${GREEN};">${REPLY_TO}</a>.<br>
-            © UMOJA Rise · You are receiving this because you have an account at UMOJA.
+          <tr><td style="padding:24px 28px 28px;border-top:1px solid #eee;color:#888;font-size:12px;line-height:1.6;">
+            Have questions? Reply to this email or contact us at
+            <a href="mailto:${REPLY_TO}" style="color:${GREEN};">${REPLY_TO}</a>.<br><br>
+            <strong style="color:${GREEN};">UMOJA</strong> — Community Wealth Platform<br>
+            <a href="https://umojarise.com" style="color:${GREEN};">umojarise.com</a>
           </td></tr>
         </table>
       </td></tr>
