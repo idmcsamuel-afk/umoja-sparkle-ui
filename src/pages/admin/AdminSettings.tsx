@@ -6,7 +6,7 @@ import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { toast } from "sonner";
-import { getSessionState, refreshOverrides } from "@/components/umoja/CircleSessionTimer";
+import { CircleSessionTimer, getSessionState, refreshOverrides } from "@/components/umoja/CircleSessionTimer";
 
 interface Settings {
   id?: string;
@@ -351,6 +351,28 @@ function SessionTestingCard({ settingsId }: { settingsId?: string }) {
         >
           <Square className="h-3.5 w-3.5 mr-1" /> Force close / clear
         </Button>
+      </div>
+
+      <div className="mt-6 rounded-2xl border border-dashed border-accent/40 bg-secondary/20 p-4">
+        <div className="flex items-center justify-between mb-3 gap-3">
+          <div>
+            <p className="text-[10px] uppercase tracking-[0.22em] text-accent">Live member preview</p>
+            <p className="text-xs text-muted-foreground mt-1">
+              Exactly what members see — updates instantly when you force open or close.
+            </p>
+          </div>
+          <span className="text-[10px] uppercase tracking-wider text-muted-foreground font-mono shrink-0">
+            {new Date(now).toLocaleTimeString()}
+          </span>
+        </div>
+        <div className="grid gap-3 md:grid-cols-3">
+          {TIERS.map(({ key, label }) => (
+            <div key={key} className="space-y-2">
+              <p className="text-[10px] uppercase tracking-wider text-muted-foreground">{label}</p>
+              <CircleSessionTimer tier={key} />
+            </div>
+          ))}
+        </div>
       </div>
     </div>
   );
