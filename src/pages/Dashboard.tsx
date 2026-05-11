@@ -69,6 +69,7 @@ const Dashboard = () => {
     has_access: boolean;
     rejection_reason: string | null;
     renewal_at: string | null;
+    referral_code: string | null;
   } | null>(null);
 
   useEffect(() => {
