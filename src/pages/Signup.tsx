@@ -22,14 +22,25 @@ const Signup = () => {
   const [params] = useSearchParams();
   const refParam = (params.get("ref") ?? "").trim().toUpperCase().slice(0, 8);
   const [referrerName, setReferrerName] = useState<string | null>(null);
+  const [refStatus, setRefStatus] = useState<"none" | "checking" | "valid" | "invalid">(refParam ? "checking" : "none");
   const [form, setForm] = useState({ full_name: "", email: "", phone: "", password: "", invite_code: "" });
   const [busy, setBusy] = useState(false);
 
   useEffect(() => {
-    if (!refParam) return;
-    supabase.rpc("lookup_referrer", { _code: refParam }).then(({ data }) => {
+    if (!refParam) { setRefStatus("none"); return; }
+    setRefStatus("checking");
+    supabase.rpc("lookup_referrer", { _code: refParam }).then(({ data, error }) => {
       const row = Array.isArray(data) ? data[0] : data;
-      if (row?.full_name) setReferrerName(row.full_name);
+      if (error) {
+        setRefStatus("invalid");
+        return;
+      }
+      if (row?.full_name) {
+        setReferrerName(row.full_name);
+        setRefStatus("valid");
+      } else {
+        setRefStatus("invalid");
+      }
     });
   }, [refParam]);
 
