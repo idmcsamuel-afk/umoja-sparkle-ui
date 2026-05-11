@@ -1,14 +1,16 @@
 import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
-import { ArrowLeft, Loader2, Sparkles, Users } from "lucide-react";
+import { ArrowLeft, Loader2, Sparkles, Users, Mail } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { Logo } from "@/components/umoja/Logo";
 import { BottomNav } from "@/components/umoja/BottomNav";
 import { Button } from "@/components/ui/button";
+import { Switch } from "@/components/ui/switch";
 import {
   Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription,
 } from "@/components/ui/dialog";
+import { toast } from "sonner";
 
 type Bid = {
   id: string;
