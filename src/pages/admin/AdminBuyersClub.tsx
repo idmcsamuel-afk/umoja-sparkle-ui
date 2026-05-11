@@ -11,6 +11,7 @@ interface Row {
   buyers_club_tier: string | null; buyers_club_amount: number | null;
   buyers_club_status: string | null; buyers_club_proof_url: string | null;
   buyers_club_submitted_at: string | null;
+  buyers_club_renewal_at: string | null;
   has_buyers_club_access: boolean | null;
 }
 
