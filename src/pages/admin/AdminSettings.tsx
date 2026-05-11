@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
-import { Loader2, Save, Banknote } from "lucide-react";
+import { Loader2, Save, Banknote, Eye, EyeOff } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
@@ -28,6 +28,19 @@ export default function AdminSettings() {
   const [s, setS] = useState<Settings>(empty);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
+  const [unmask, setUnmask] = useState(false);
+
+  const maskAccount = (v: string) => {
+    if (!v) return "";
+    if (unmask) return v;
+    const digits = v.replace(/\s+/g, "");
+    if (digits.length <= 4) return "•".repeat(digits.length);
+    return "•".repeat(Math.max(0, digits.length - 4)) + digits.slice(-4);
+  };
+
+  const previewReady = !!(s.bank_name && s.account_number);
+  const sampleRef = "BID-PREVIEW-0001";
+  const sampleAmount = "R2,500";
 
   useEffect(() => {
     (async () => {
@@ -124,6 +137,62 @@ export default function AdminSettings() {
             {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : <><Save className="h-4 w-4 mr-1" /> Save</>}
           </Button>
         </div>
+      </div>
+
+      <div className="mt-8 rounded-3xl border border-border bg-gradient-card p-6">
+        <div className="flex items-center justify-between gap-3 mb-4">
+          <div>
+            <h2 className="font-display text-xl">Member EFT preview</h2>
+            <p className="text-xs text-muted-foreground mt-1">
+              Exactly what members see in the bid modal. Account number is masked by default.
+            </p>
+          </div>
+          <Button
+            type="button"
+            variant="outline"
+            size="sm"
+            onClick={() => setUnmask((v) => !v)}
+            className="rounded-2xl"
+          >
+            {unmask ? <><EyeOff className="h-4 w-4 mr-1" /> Mask</> : <><Eye className="h-4 w-4 mr-1" /> Reveal</>}
+          </Button>
+        </div>
+
+        {!previewReady ? (
+          <div className="rounded-2xl border border-dashed border-border bg-secondary/30 p-4 text-sm text-muted-foreground">
+            Fill in at least the bank name and account number above to preview the modal.
+          </div>
+        ) : (
+          <div className="space-y-2 rounded-2xl border border-border bg-secondary/40 p-4 text-sm">
+            <p className="text-xs uppercase tracking-[0.18em] text-accent pb-2 border-b border-border/40">
+              Pay via EFT
+            </p>
+            {[
+              ["Bank", s.bank_name],
+              ["Account Name", s.account_name],
+              ["Account Number", maskAccount(s.account_number)],
+              ["Branch Code", s.branch_code],
+              ["Reference", sampleRef],
+              ["Amount", sampleAmount],
+            ].map(([label, value]) => (
+              <div
+                key={label}
+                className="flex items-center justify-between gap-3 py-1 border-b border-border/40 last:border-b-0"
+              >
+                <span className="text-xs uppercase tracking-wider text-muted-foreground">{label}</span>
+                <span className="font-mono text-sm truncate">{value || "—"}</span>
+              </div>
+            ))}
+            {s.payment_instructions && (
+              <p className="pt-2 text-xs text-muted-foreground whitespace-pre-line">
+                {s.payment_instructions}
+              </p>
+            )}
+            <p className="pt-3 text-[11px] uppercase tracking-[0.18em] text-muted-foreground">
+              Sample reference & amount — actual values are generated per bid.
+            </p>
+          </div>
+        )}
       </div>
     </div>
   );
