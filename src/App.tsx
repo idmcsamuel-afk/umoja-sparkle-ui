@@ -46,6 +46,8 @@ import AdminSettings from "./pages/admin/AdminSettings";
 import AdminAllocations from "./pages/admin/AdminAllocations";
 import AdminNotifications from "./pages/admin/AdminNotifications";
 import AdminBuyersClub from "./pages/admin/AdminBuyersClub";
+import StorefrontEdit from "./pages/StorefrontEdit";
+import StorefrontPublic from "./pages/StorefrontPublic";
 
 const queryClient = new QueryClient();
 
