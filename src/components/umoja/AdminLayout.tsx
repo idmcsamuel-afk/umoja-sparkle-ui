@@ -1,6 +1,6 @@
 import { NavLink, Outlet, Link } from "react-router-dom";
 import {
-  LayoutDashboard, Users, Coins, ShoppingBag, Car, TrendingUp, Wallet, ArrowLeft, ShieldCheck, Ticket,
+  LayoutDashboard, Users, Coins, ShoppingBag, Car, TrendingUp, Wallet, ArrowLeft, ShieldCheck, Ticket, Gift,
 } from "lucide-react";
 import { Logo } from "@/components/umoja/Logo";
 import { ThemeToggle } from "@/components/umoja/ThemeToggle";
@@ -15,6 +15,7 @@ const items = [
   { to: "/admin/kyc-review", label: "KYC review", icon: ShieldCheck },
   { to: "/admin/payouts", label: "Payouts", icon: Wallet },
   { to: "/admin/invites", label: "Invites", icon: Ticket },
+  { to: "/admin/referrals", label: "Referrals", icon: Gift },
 ];
 
 export default function AdminLayout() {

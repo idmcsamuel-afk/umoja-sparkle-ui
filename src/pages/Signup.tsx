@@ -151,6 +151,12 @@ const Signup = () => {
             </p>
           </div>
 
+          {refParam && (
+            <div className="mt-3 rounded-2xl border border-accent/40 bg-accent/10 p-4 text-xs text-accent-soft">
+              🎉 You were invited by <strong>{referrerName ?? refParam}</strong>. You'll both earn Sparks when you join.
+            </div>
+          )}
+
           <form onSubmit={onSubmit} className="mt-8 space-y-5">
             <div className="space-y-2">
               <Label className="text-xs uppercase tracking-[0.18em] text-muted-foreground">Full name</Label>
