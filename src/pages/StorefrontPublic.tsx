@@ -70,7 +70,7 @@ export default function StorefrontPublic() {
       setSf(s as Storefront | null);
 
       // Increment view count (fire and forget)
-      supabase.rpc("increment_storefront_view" as any, { _owner: m.id }).catch(() => {});
+      void supabase.rpc("increment_storefront_view" as any, { _owner: m.id });
 
       // Products from spark trade joins
       const { data: joins } = await supabase.from("spark_trade_joins")
