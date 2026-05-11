@@ -2,6 +2,7 @@ import { Link } from "react-router-dom";
 import { ArrowRight, Users, Sparkles, Car, TrendingUp, ShieldCheck, Globe2, Crown, Coins, Dice5, Gamepad2, Star, Lock, BadgeCheck, PlayCircle, Check, LineChart, Package, Activity } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Logo } from "@/components/umoja/Logo";
+import { SiteFooter } from "@/components/umoja/SiteFooter";
 import hero from "@/assets/hero.jpg";
 import pattern from "@/assets/pattern.jpg";
 
@@ -475,9 +476,7 @@ const Landing = () => {
               </Link>
             </Button>
           </div>
-          <p className="mt-8 text-center text-xs text-muted-foreground">
-            © {new Date().getFullYear()} UMOJA. Built with the continent.
-          </p>
+          <SiteFooter />
         </div>
       </section>
     </main>
