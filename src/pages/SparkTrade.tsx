@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { Link, useLocation } from "react-router-dom";
-import { ArrowLeft, Sparkles, Loader2, TrendingUp, Users, Package, Flame, Clock, Search, Star, Plus, Check } from "lucide-react";
+import { ArrowLeft, Sparkles, Loader2, TrendingUp, Users, Package, Flame, Clock, Lock, Crown } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { Logo } from "@/components/umoja/Logo";
@@ -18,11 +18,14 @@ interface Shortlist {
   estimated_margin: number | null;
   margin_pct: number | null;
   sales_velocity: number | null;
+  estimated_monthly_sales: number | null;
   target_slots: number | null;
   joined_count: number | null;
   moq: number | null;
   status: string | null;
   added_at: string | null;
+  data_source: string | null;
+  is_demo: boolean | null;
 }
 
 interface Order {
@@ -37,104 +40,13 @@ interface Order {
 const fmtR = (n: number | null | undefined) =>
   "R" + Math.round(Number(n ?? 0)).toLocaleString("en-ZA");
 
-// Show every shortlisted product in every bucket — copy on the tabs differentiates them
-// until enough products exist to split into distinct phases.
-
 const SparkTrade = () => {
-  const { user } = useAuth();
+  const { user, member } = useAuth();
+  const hasAccess = !!member?.has_buyers_club_access;
   const [items, setItems] = useState<Shortlist[]>([]);
   const [orders, setOrders] = useState<Order[]>([]);
   const [loading, setLoading] = useState(true);
   const [joining, setJoining] = useState<string | null>(null);
-
-  // Live Amazon search
-  type AmazonProduct = {
-    asin: string;
-    title?: string;
-    image?: string;
-    price?: number;
-    currency?: string;
-    sales_rank?: number;
-    category?: string;
-    rating?: number;
-    reviews?: number;
-  };
-  const [keywords, setKeywords] = useState("trending");
-  const [searching, setSearching] = useState(false);
-  const [products, setProducts] = useState<AmazonProduct[]>([]);
-  const [shortlisted, setShortlisted] = useState<Set<string>>(new Set());
-  const [addingAsin, setAddingAsin] = useState<string | null>(null);
-
-  const normalizeProducts = (raw: any): AmazonProduct[] => {
-    const list =
-      (Array.isArray(raw) && raw) ||
-      raw?.products ||
-      raw?.items ||
-      raw?.results ||
-      raw?.data ||
-      raw?.payload?.products ||
-      [];
-    return (list as any[])
-      .map((p) => {
-        const asin = p.asin ?? p.ASIN ?? p.id ?? p.productId;
-        if (!asin) return null;
-        const price =
-          typeof p.price === "number"
-            ? p.price
-            : Number(p.price?.amount ?? p.price?.value ?? p.listing_price ?? p.sale_price ?? 0) || undefined;
-        return {
-          asin: String(asin),
-          title: p.title ?? p.name ?? p.product_name ?? null,
-          image: p.image ?? p.image_url ?? p.thumbnail ?? p.images?.[0] ?? null,
-          price,
-          currency: p.currency ?? p.price?.currency ?? "ZAR",
-          sales_rank: Number(p.sales_rank ?? p.rank ?? p.bsr) || undefined,
-          category: p.category ?? p.category_name ?? null,
-          rating: Number(p.rating ?? p.stars) || undefined,
-          reviews: Number(p.reviews ?? p.review_count) || undefined,
-        } as AmazonProduct;
-      })
-      .filter(Boolean) as AmazonProduct[];
-  };
-
-  const searchAmazon = async () => {
-    setSearching(true);
-    try {
-      const { data, error } = await supabase.functions.invoke("amazon-sp", {
-        body: { action: "search", keywords: keywords || "trending" },
-      });
-      if (error) throw error;
-      const list = normalizeProducts(data);
-      setProducts(list);
-      if (!list.length) toast.message("No products returned for that search.");
-    } catch (e: any) {
-      console.error(e);
-      toast.error(e?.message ?? "Failed to fetch Amazon products");
-    } finally {
-      setSearching(false);
-    }
-  };
-
-  const addToShortlist = async (p: AmazonProduct) => {
-    setAddingAsin(p.asin);
-    const { error } = await supabase.from("spark_trade_shortlist").insert({
-      asin: p.asin,
-      product_name: p.title ?? null,
-      category: p.category ?? null,
-      sale_price: p.price ?? null,
-      target_slots: 10,
-      moq: 1,
-      status: "open",
-    });
-    setAddingAsin(null);
-    if (error) {
-      toast.error(error.message);
-      return;
-    }
-    setShortlisted((s) => new Set(s).add(p.asin));
-    toast.success("Added to shortlist");
-    load();
-  };
 
   const load = async () => {
     setLoading(true);
@@ -142,7 +54,7 @@ const SparkTrade = () => {
       supabase
         .from("spark_trade_shortlist")
         .select("*")
-        .or("status.eq.open,status.eq.approved,status.is.null")
+        .or("status.eq.open,status.eq.approved,status.eq.buy_now,status.eq.buy_soon,status.is.null")
         .order("added_at", { ascending: false }),
       user
         ? supabase
@@ -170,20 +82,30 @@ const SparkTrade = () => {
     if (loading) return;
     const id = location.hash.replace("#", "");
     if (!id) return;
-    // Wait a tick for layout, then smooth scroll
     const t = window.setTimeout(() => {
       document.getElementById(id)?.scrollIntoView({ behavior: "smooth", block: "start" });
     }, 80);
     return () => window.clearTimeout(t);
   }, [location.hash, loading]);
 
+  // Members without club access only see demo products
+  const visible = useMemo(
+    () => (hasAccess ? items.filter((p) => !p.is_demo) : items.filter((p) => p.is_demo).slice(0, 3)),
+    [items, hasAccess],
+  );
+
   const buckets = useMemo(
-    () => ({ now: items, soon: items, wave: items }),
-    [items]
+    () => ({
+      now: visible.filter((p) => p.status !== "buy_soon"),
+      soon: visible.filter((p) => p.status === "buy_soon" || (p as any).data_source === "serpapi"),
+      wave: visible,
+    }),
+    [visible],
   );
 
   const join = async (p: Shortlist) => {
     if (!user) return toast.error("Sign in to join");
+    if (p.is_demo) return toast.message("Demo product — join Buyers Club to unlock real buys.");
     setJoining(p.id);
     const next = Number(p.joined_count ?? 0) + 1;
     const { error } = await supabase.rpc("join_spark_trade", { _id: p.id });
@@ -197,16 +119,22 @@ const SparkTrade = () => {
     const target = Number(p.target_slots ?? 0) || 1;
     const joined = Number(p.joined_count ?? 0);
     const pct = Math.min(100, Math.round((joined / target) * 100));
+    const isDemo = !!p.is_demo;
     return (
-      <article className="group relative overflow-hidden rounded-3xl glass p-5 animate-slide-up">
+      <article className={`group relative overflow-hidden rounded-3xl glass p-5 animate-slide-up ${isDemo ? "ring-1 ring-amber-500/40" : ""}`}>
+        {isDemo && (
+          <div className="absolute right-3 top-3 text-[10px] uppercase tracking-[0.18em] rounded-full bg-amber-500/20 text-amber-400 px-2 py-0.5">
+            Demo Product
+          </div>
+        )}
         <div className="flex items-start justify-between gap-3">
           <div className="min-w-0">
             <p className="text-[10px] uppercase tracking-[0.18em] text-accent">{p.category ?? "Product"}</p>
             <p className="mt-1 font-display text-lg leading-tight truncate">{p.product_name ?? p.asin}</p>
             <p className="mt-1 text-xs text-muted-foreground inline-flex items-center gap-2">
-              <Package className="h-3 w-3" /> {(p as any).data_source === "makro" ? "SKU" : "ASIN"} {p.asin} · MOQ {p.moq ?? 1}
+              <Package className="h-3 w-3" /> {p.data_source === "makro" ? "SKU" : "ASIN"} {p.asin} · MOQ {p.moq ?? 1}
             </p>
-            {(p as any).data_source === "serpapi" ? (
+            {p.data_source === "serpapi" ? (
               <div className="mt-2 flex flex-wrap gap-1.5">
                 <span className="text-[10px] uppercase tracking-[0.18em] rounded-full bg-emerald-700/30 text-amber-300 px-2 py-0.5">
                   🌍 International Opportunity
@@ -215,9 +143,9 @@ const SparkTrade = () => {
                   Popular in US/UK
                 </span>
               </div>
-            ) : (p as any).data_source && (
+            ) : p.data_source && !isDemo && (
               <span className="mt-2 inline-block text-[10px] uppercase tracking-[0.18em] rounded-full bg-secondary px-2 py-0.5 text-muted-foreground">
-                Sourced from {(p as any).data_source === "makro" ? "Makro" : (p as any).data_source === "amazon" ? "Amazon" : (p as any).data_source}
+                Sourced from {p.data_source === "makro" ? "Makro" : p.data_source === "amazon" ? "Amazon" : p.data_source}
               </span>
             )}
           </div>
@@ -237,9 +165,10 @@ const SparkTrade = () => {
             <p className="mt-1 font-display text-sm">{fmtR(p.estimated_margin)}</p>
           </div>
           <div className="rounded-2xl bg-secondary/60 p-3">
-            <p className="text-[10px] uppercase tracking-wider text-muted-foreground">Velocity</p>
+            <p className="text-[10px] uppercase tracking-wider text-muted-foreground">Sold/mo</p>
             <p className="mt-1 font-display text-sm inline-flex items-center gap-1">
-              <TrendingUp className="h-3 w-3 text-accent" /> {p.sales_velocity ?? 0}/d
+              <TrendingUp className="h-3 w-3 text-accent" />
+              ~{Number(p.estimated_monthly_sales ?? p.sales_velocity ?? 0).toLocaleString()}
             </p>
           </div>
         </div>
@@ -258,17 +187,17 @@ const SparkTrade = () => {
 
         <button
           onClick={() => join(p)}
-          disabled={joining === p.id || joined >= target}
+          disabled={isDemo || joining === p.id || joined >= target}
           className="mt-5 w-full h-11 rounded-2xl bg-gradient-primary text-primary-foreground text-sm font-medium shadow-glow inline-flex items-center justify-center gap-1.5 disabled:opacity-60"
         >
           {joining === p.id ? (
             <Loader2 className="h-4 w-4 animate-spin" />
+          ) : isDemo ? (
+            <><Lock className="h-4 w-4" /> Demo only</>
           ) : joined >= target ? (
             "Slots full"
           ) : (
-            <>
-              <Sparkles className="h-4 w-4" /> Join the buy
-            </>
+            <><Sparkles className="h-4 w-4" /> Join the buy</>
           )}
         </button>
       </article>
@@ -304,81 +233,29 @@ const SparkTrade = () => {
         </div>
       </section>
 
-      <section id="amazon-live" className="px-5 pt-8">
-        <div className="mx-auto max-w-md">
-          <div className="flex items-baseline justify-between">
-            <h2 className="font-display text-xl">Live from Amazon</h2>
-            <span className="text-[10px] uppercase tracking-[0.18em] text-accent">SP-API</span>
-          </div>
-          <div className="mt-3 flex gap-2">
-            <div className="relative flex-1">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-              <input
-                value={keywords}
-                onChange={(e) => setKeywords(e.target.value)}
-                onKeyDown={(e) => e.key === "Enter" && searchAmazon()}
-                placeholder="Search keywords (e.g. trending)"
-                className="w-full h-11 pl-9 pr-3 rounded-2xl bg-secondary/60 text-sm outline-none focus:ring-2 focus:ring-primary"
-              />
+      {!hasAccess && (
+        <section className="px-5 pt-6">
+          <div className="mx-auto max-w-md">
+            <div className="rounded-3xl border border-accent/40 bg-accent/10 p-5">
+              <div className="flex items-start gap-3">
+                <Lock className="h-5 w-5 text-accent shrink-0 mt-0.5" />
+                <div className="min-w-0">
+                  <p className="font-display text-lg leading-tight">Join Buyers Club</p>
+                  <p className="mt-1 text-xs text-accent-soft leading-relaxed">
+                    Unlock real product picks, group buying power and live margin data. The 3 demo products below show what you'll see inside.
+                  </p>
+                  <Link
+                    to="/dashboard"
+                    className="mt-4 inline-flex h-10 items-center gap-1.5 rounded-2xl bg-gradient-primary px-4 text-sm font-medium text-primary-foreground shadow-glow"
+                  >
+                    <Crown className="h-4 w-4" /> Join Buyers Club
+                  </Link>
+                </div>
+              </div>
             </div>
-            <button
-              onClick={searchAmazon}
-              disabled={searching}
-              className="h-11 px-4 rounded-2xl bg-gradient-primary text-primary-foreground text-sm font-medium shadow-glow inline-flex items-center gap-1.5 disabled:opacity-60"
-            >
-              {searching ? <Loader2 className="h-4 w-4 animate-spin" /> : <Sparkles className="h-4 w-4" />}
-              Search
-            </button>
           </div>
-
-          {products.length > 0 && (
-            <ul className="mt-4 space-y-3">
-              {products.map((p) => {
-                const isAdded = shortlisted.has(p.asin);
-                return (
-                  <li key={p.asin} className="rounded-3xl glass p-4 flex gap-3 animate-fade-in">
-                    <div className="h-20 w-20 shrink-0 overflow-hidden rounded-2xl bg-secondary grid place-items-center">
-                      {p.image ? (
-                        <img src={p.image} alt={p.title ?? p.asin} className="h-full w-full object-cover" loading="lazy" />
-                      ) : (
-                        <Package className="h-6 w-6 text-muted-foreground" />
-                      )}
-                    </div>
-                    <div className="min-w-0 flex-1">
-                      <p className="text-sm font-medium line-clamp-2">{p.title ?? p.asin}</p>
-                      <p className="mt-1 text-[11px] text-muted-foreground">ASIN {p.asin}{p.category ? ` · ${p.category}` : ""}</p>
-                      <div className="mt-1.5 flex flex-wrap gap-x-3 gap-y-1 text-[11px] text-muted-foreground">
-                        {typeof p.price === "number" && (
-                          <span className="text-gradient-gold font-display text-sm">{fmtR(p.price)}</span>
-                        )}
-                        {p.sales_rank && (
-                          <span className="inline-flex items-center gap-1"><TrendingUp className="h-3 w-3" />#{p.sales_rank}</span>
-                        )}
-                        {p.rating && (
-                          <span className="inline-flex items-center gap-1"><Star className="h-3 w-3" />{p.rating.toFixed(1)}{p.reviews ? ` (${p.reviews})` : ""}</span>
-                        )}
-                      </div>
-                      <button
-                        onClick={() => addToShortlist(p)}
-                        disabled={isAdded || addingAsin === p.asin}
-                        className="mt-2 h-8 px-3 rounded-xl bg-secondary text-xs inline-flex items-center gap-1 hover:bg-secondary/80 disabled:opacity-60"
-                      >
-                        {addingAsin === p.asin ? (
-                          <Loader2 className="h-3 w-3 animate-spin" />
-                        ) : isAdded ? (
-                          <><Check className="h-3 w-3" /> Shortlisted</>
-                        ) : (
-                          <><Plus className="h-3 w-3" /> Add to Shortlist</>
-                        )}
-                      </button>
-                    </div>
-                  </li>
-                );
-              })}
-            </ul>
-          )}
-        </div>
-      </section>
+        </section>
+      )}
 
       <section id="signals" className="px-5 pt-8 scroll-mt-24">
         <div className="mx-auto max-w-md">
@@ -416,13 +293,12 @@ const SparkTrade = () => {
         </div>
       </section>
 
-      {/* My trade activity */}
       <section className="px-5 pt-10">
         <div className="mx-auto max-w-md">
-          <h2 className="font-display text-xl">My trades</h2>
+          <h2 className="font-display text-xl">My orders</h2>
           {loading ? null : orders.length === 0 ? (
             <div className="mt-4">
-              <Empty msg="No trades yet — join a buy above to begin." />
+              <Empty msg="No orders yet — join a buy above to begin." />
             </div>
           ) : (
             <ul className="mt-4 divide-y divide-border rounded-3xl border border-border bg-gradient-card overflow-hidden">
@@ -432,9 +308,7 @@ const SparkTrade = () => {
                     <Flame className="h-4 w-4" />
                   </div>
                   <div className="min-w-0 flex-1">
-                    <p className="truncate text-sm font-medium">
-                      {o.units} units @ {fmtR(o.unit_price)}
-                    </p>
+                    <p className="truncate text-sm font-medium">{o.units} units @ {fmtR(o.unit_price)}</p>
                     <p className="truncate text-xs text-muted-foreground inline-flex items-center gap-1">
                       <Clock className="h-3 w-3" />
                       {o.status ?? "pending"} · {o.created_at ? new Date(o.created_at).toLocaleDateString() : ""}

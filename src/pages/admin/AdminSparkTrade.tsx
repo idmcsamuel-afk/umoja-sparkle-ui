@@ -18,6 +18,8 @@ interface Row {
   data_source: string | null;
   sale_price: number | null;
   cost_price: number | null;
+  estimated_monthly_sales: number | null;
+  is_demo: boolean | null;
 }
 
 interface Opportunity {
@@ -44,7 +46,7 @@ export default function AdminSparkTrade() {
     setLoading(true);
     const { data } = await supabase
       .from("spark_trade_shortlist")
-      .select("id, asin, product_name, category, moq, target_slots, joined_count, status, data_source, sale_price, cost_price")
+      .select("id, asin, product_name, category, moq, target_slots, joined_count, status, data_source, sale_price, cost_price, estimated_monthly_sales, is_demo")
       .order("added_at", { ascending: false });
     setRows((data ?? []) as Row[]);
     setLoading(false);
@@ -104,7 +106,8 @@ export default function AdminSparkTrade() {
       amazon: { label: "Amazon", tone: "bg-primary/20 text-primary" },
       serpapi: { label: "🌍 Buy Soon", tone: "bg-emerald-700/30 text-amber-300" },
     };
-    const m = map[s ?? ""] ?? { label: s ?? "Manual", tone: "bg-secondary text-muted-foreground" };
+    const label = s === "manuel" ? "Manual" : (s ?? "Manual");
+    const m = map[s ?? ""] ?? { label, tone: "bg-secondary text-muted-foreground" };
     return <span className={`text-[10px] uppercase tracking-wider rounded-full px-2 py-1 ${m.tone}`}>{m.label}</span>;
   };
 
@@ -138,6 +141,7 @@ export default function AdminSparkTrade() {
                 <th className="text-left p-4">Source</th>
                 <th className="text-left p-4">SKU/ASIN</th>
                 <th className="text-left p-4">Price</th>
+                <th className="text-left p-4">Sold/mo</th>
                 <th className="text-left p-4">MOQ</th>
                 <th className="text-left p-4">Slots</th>
                 <th className="text-left p-4">Status</th>
@@ -148,12 +152,18 @@ export default function AdminSparkTrade() {
               {rows.map((r) => (
                 <tr key={r.id} className="border-b border-border/50 last:border-0">
                   <td className="p-4">
-                    <div className="font-medium">{r.product_name ?? "—"}</div>
+                    <div className="font-medium flex items-center gap-2">
+                      {r.product_name ?? "—"}
+                      {r.is_demo && <span className="text-[9px] uppercase tracking-wider rounded-full bg-amber-500/20 text-amber-400 px-1.5 py-0.5">DEMO</span>}
+                    </div>
                     <div className="text-xs text-muted-foreground">{r.category}</div>
                   </td>
                   <td className="p-4">{sourceBadge(r.data_source)}</td>
                   <td className="p-4 text-xs">{r.asin}</td>
                   <td className="p-4 text-xs">R{Number(r.sale_price ?? 0).toFixed(0)}</td>
+                  <td className="p-4 text-xs whitespace-nowrap">
+                    {r.estimated_monthly_sales ? `~${r.estimated_monthly_sales.toLocaleString()}` : "—"}
+                  </td>
                   <td className="p-4">
                     <Input type="number" defaultValue={r.moq ?? 0} className="w-20 h-9" onBlur={(e) => {
                       const v = Number(e.target.value); if (v !== r.moq) updateRow(r.id, { moq: v });
@@ -182,7 +192,7 @@ export default function AdminSparkTrade() {
                 </tr>
               ))}
               {rows.length === 0 && (
-                <tr><td colSpan={8} className="p-8 text-center text-sm text-muted-foreground">No shortlist entries. Click "Fetch Products from Makro" to seed.</td></tr>
+                <tr><td colSpan={9} className="p-8 text-center text-sm text-muted-foreground">No shortlist entries. Click "Fetch Products from Makro" to seed.</td></tr>
               )}
             </tbody>
           </table>
