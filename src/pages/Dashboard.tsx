@@ -339,6 +339,7 @@ const Dashboard = () => {
         <section className="px-5 pt-4">
           <div className="mx-auto max-w-md animate-fade-in">
             {bc.has_access ? (
+              <>
               <Link
                 to="/spark"
                 className="flex items-center gap-3 rounded-2xl border border-primary/40 bg-gradient-to-r from-primary/15 to-accent/10 p-4 transition-smooth hover:border-primary/70"
