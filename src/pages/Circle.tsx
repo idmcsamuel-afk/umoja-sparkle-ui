@@ -662,6 +662,7 @@ const Circle = () => {
                   />
                 </label>
               </div>
+              </div>
 
               <div className="sticky bottom-0 z-10 flex gap-3 border-t border-border bg-background/95 backdrop-blur p-4">
                 <Button
