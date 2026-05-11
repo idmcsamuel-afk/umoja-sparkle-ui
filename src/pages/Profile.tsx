@@ -44,16 +44,21 @@ export default function Profile() {
     setSavingPref(null);
     if (error) { setPrefs(prefs); toast.error("Could not save"); }
   };
+
+  useEffect(() => {
     if (!user) return;
     (async () => {
-      const [s, b, w] = await Promise.all([
+      const [s, b, w, m] = await Promise.all([
         supabase.from("spark_transactions").select("id, tx_type, amount, created_at").or(`from_member.eq.${user.id},to_member.eq.${user.id}`).order("created_at", { ascending: false }).limit(50),
         supabase.from("circle_bids").select("id, tier, fiat_amount, net_amount, payout_amount, status, created_at, vault_start, vault_end").eq("member_id", user.id).order("created_at", { ascending: false }).limit(50),
         supabase.from("spark_wallets").select("balance").eq("member_id", user.id).maybeSingle(),
+        supabase.from("members").select("email_preferences").eq("id", user.id).maybeSingle(),
       ]);
       setSparkTxns((s.data ?? []) as typeof sparkTxns);
       setBids((b.data ?? []) as typeof bids);
       setBalance(Number(w.data?.balance ?? 0));
+      const p = (m.data?.email_preferences ?? {}) as Partial<typeof prefs>;
+      setPrefs({ circle: p.circle ?? true, spark_trade: p.spark_trade ?? true, marketing: p.marketing ?? true, weekly_digest: p.weekly_digest ?? true });
       setLoading(false);
     })();
   }, [user]);
