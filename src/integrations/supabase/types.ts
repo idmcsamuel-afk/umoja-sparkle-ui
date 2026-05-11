@@ -753,8 +753,15 @@ export type Database = {
           id: string
           id_number: string | null
           is_active: boolean | null
+          kyc_document_url: string | null
+          kyc_level: number
+          kyc_photo_url: string | null
+          kyc_rejection_reason: string | null
           kyc_status: string | null
+          kyc_submitted_at: string | null
+          kyc_verified_at: string | null
           phone: string
+          phone_verified: boolean
           rank: string | null
           referred_by: string | null
           spark_link_code: string | null
@@ -775,8 +782,15 @@ export type Database = {
           id?: string
           id_number?: string | null
           is_active?: boolean | null
+          kyc_document_url?: string | null
+          kyc_level?: number
+          kyc_photo_url?: string | null
+          kyc_rejection_reason?: string | null
           kyc_status?: string | null
+          kyc_submitted_at?: string | null
+          kyc_verified_at?: string | null
           phone: string
+          phone_verified?: boolean
           rank?: string | null
           referred_by?: string | null
           spark_link_code?: string | null
@@ -797,8 +811,15 @@ export type Database = {
           id?: string
           id_number?: string | null
           is_active?: boolean | null
+          kyc_document_url?: string | null
+          kyc_level?: number
+          kyc_photo_url?: string | null
+          kyc_rejection_reason?: string | null
           kyc_status?: string | null
+          kyc_submitted_at?: string | null
+          kyc_verified_at?: string | null
           phone?: string
+          phone_verified?: boolean
           rank?: string | null
           referred_by?: string | null
           spark_link_code?: string | null
