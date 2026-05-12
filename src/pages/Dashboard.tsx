@@ -97,8 +97,7 @@ const Dashboard = () => {
     (async () => {
       const { count } = await supabase
         .from("properties")
-        .select("id", { count: "exact", head: true })
-        .in("status", ["funding", "active", "open"]);
+        .select("id", { count: "exact", head: true });
       setPropertyCount(count ?? 0);
     })();
   }, []);
