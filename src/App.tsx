@@ -22,6 +22,10 @@ import Calculator from "./pages/Calculator.tsx";
 import Market from "./pages/Market.tsx";
 import Exchange from "./pages/Exchange.tsx";
 import Property from "./pages/Property.tsx";
+import PropertyDetails from "./pages/PropertyDetails.tsx";
+import ModularCatalog from "./pages/ModularCatalog.tsx";
+import PropertyHowItWorks from "./pages/PropertyHowItWorks.tsx";
+import AdminProperties from "./pages/admin/AdminProperties.tsx";
 import FlameMarketing from "./pages/FlameMarketing.tsx";
 import SparkPit from "./pages/SparkPit.tsx";
 import DreamDraw from "./pages/DreamDraw.tsx";
@@ -77,6 +81,9 @@ const App = () => (
               <Route path="/market" element={<ProtectedRoute><Market /></ProtectedRoute>} />
               <Route path="/exchange" element={<ProtectedRoute><Exchange /></ProtectedRoute>} />
               <Route path="/property" element={<ProtectedRoute><Property /></ProtectedRoute>} />
+              <Route path="/property/modular-catalog" element={<ProtectedRoute><ModularCatalog /></ProtectedRoute>} />
+              <Route path="/property/how-it-works" element={<ProtectedRoute><PropertyHowItWorks /></ProtectedRoute>} />
+              <Route path="/property/:id" element={<ProtectedRoute><PropertyDetails /></ProtectedRoute>} />
               <Route path="/flame-marketing" element={<ProtectedRoute><FlameMarketing /></ProtectedRoute>} />
               <Route path="/spark-pit" element={<ProtectedRoute><SparkPit /></ProtectedRoute>} />
               <Route path="/spark-pit/dream-draw" element={<ProtectedRoute><DreamDraw /></ProtectedRoute>} />
@@ -104,6 +111,7 @@ const App = () => (
                 <Route path="notifications" element={<AdminNotifications />} />
                 <Route path="buyers-club" element={<AdminBuyersClub />} />
                 <Route path="fulfillment" element={<AdminFulfillment />} />
+                <Route path="properties" element={<AdminProperties />} />
               </Route>
 
               <Route path="*" element={<NotFound />} />
