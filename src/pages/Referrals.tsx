@@ -112,7 +112,7 @@ const Referrals = () => {
               Earn <span className="text-gradient-gold italic font-[450]">Sparks</span> for every friend you bring.
             </h1>
             <p className="mt-2 text-sm text-muted-foreground">
-              200 Sparks per signup · 300 bonus when they verify · They get 100 welcome Sparks.
+              100 Sparks per signup · 300 bonus when they verify · They get 50 welcome Sparks.
             </p>
           </div>
 
