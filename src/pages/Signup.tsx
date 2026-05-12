@@ -168,7 +168,7 @@ const Signup = () => {
     try { localStorage.removeItem("umoja_referral_code"); } catch {}
 
     setBusy(false);
-    toast.success(`You've earned 100 welcome Sparks! ✨${refMsg}`, { duration: 6000 });
+    toast.success(`You've earned 50 welcome Sparks! ✨${refMsg}`, { duration: 6000 });
 
     if (data.session) nav("/dashboard", { replace: true });
     else nav("/login", { replace: true });
