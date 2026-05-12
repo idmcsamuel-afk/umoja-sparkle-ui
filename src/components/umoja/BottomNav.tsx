@@ -1,6 +1,6 @@
 import { Link, useLocation } from "react-router-dom";
 import { useEffect, useRef, useState } from "react";
-import { Home, Users, Sparkles, Car, Store, ArrowLeftRight, Gamepad2, Gift, Palette, ChevronRight, ChevronLeft, Trophy } from "lucide-react";
+import { Home, Users, Sparkles, Car, Store, ArrowLeftRight, Gamepad2, Gift, Palette, ChevronRight, ChevronLeft, Trophy, Building2 } from "lucide-react";
 
 const items = [
   { to: "/dashboard", label: "Home", icon: Home },
@@ -11,6 +11,7 @@ const items = [
   { to: "/flame-marketing", label: "Create 🎨", icon: Palette },
   { to: "/exchange", label: "Swap", icon: ArrowLeftRight },
   { to: "/drive", label: "Drive", icon: Car },
+  { to: "/property", label: "Property", icon: Building2 },
   { to: "/spark-pit", label: "Pit", icon: Gamepad2 },
   { to: "/referrals", label: "Invite", icon: Gift },
 ];

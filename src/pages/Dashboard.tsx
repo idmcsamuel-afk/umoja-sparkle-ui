@@ -66,6 +66,7 @@ const Dashboard = () => {
   const [isAdmin, setIsAdmin] = useState(false);
   const [kycLevel, setKycLevel] = useState<number | null>(null);
   const [hasContributed, setHasContributed] = useState<boolean | null>(null);
+  const [propertyCount, setPropertyCount] = useState<number>(0);
   const [bc, setBc] = useState<{
     status: string | null;
     tier: string | null;
@@ -91,6 +92,15 @@ const Dashboard = () => {
       }
     })();
   }, [user]);
+
+  useEffect(() => {
+    (async () => {
+      const { count } = await supabase
+        .from("properties")
+        .select("id", { count: "exact", head: true });
+      setPropertyCount(count ?? 0);
+    })();
+  }, []);
 
   useEffect(() => {
     if (!user) { setKycLevel(null); setBc(null); return; }
@@ -573,6 +583,29 @@ const Dashboard = () => {
                 <p className="text-xs text-muted-foreground">AI captions, flyers & plans for your hustle — free</p>
               </div>
               <ArrowUpRight className="h-4 w-4 text-amber-400 group-hover:translate-x-0.5 transition-smooth" />
+            </div>
+          </Link>
+
+          {/* Property Fund shortcut */}
+          <Link
+            to="/property"
+            className="mt-3 group relative block overflow-hidden rounded-3xl border border-primary/30 bg-gradient-to-br from-emerald-950/60 via-card to-amber-950/30 p-4 transition-smooth hover:border-primary/60 hover:-translate-y-0.5"
+          >
+            <div className="absolute -right-10 -top-10 h-32 w-32 rounded-full bg-gradient-to-br from-primary/40 to-accent/20 blur-2xl" />
+            <div className="relative flex items-center gap-3">
+              <div className="grid h-12 w-12 shrink-0 place-items-center rounded-2xl bg-gradient-to-br from-primary to-emerald-700 text-primary-foreground shadow-glow">
+                <Building2 className="h-5 w-5" />
+              </div>
+              <div className="min-w-0 flex-1">
+                <p className="font-display text-base">Invest in Real Estate 🏘️</p>
+                <p className="text-xs text-muted-foreground">Pool funds for properties &amp; modular homes. Earn rental income from R1,000.</p>
+                <div className="mt-1.5 flex flex-wrap gap-x-3 gap-y-0.5 text-[10px] text-muted-foreground">
+                  <span><span className="text-foreground font-medium">{propertyCount}</span> available</span>
+                  <span>From <span className="text-foreground font-medium">R100/unit</span></span>
+                  <span>Yield <span className="text-accent font-medium">8–12%</span></span>
+                </div>
+              </div>
+              <ArrowUpRight className="h-4 w-4 text-accent group-hover:translate-x-0.5 transition-smooth" />
             </div>
           </Link>
         </div>
