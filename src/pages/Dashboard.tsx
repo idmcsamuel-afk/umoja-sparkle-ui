@@ -339,6 +339,22 @@ const Dashboard = () => {
         </section>
       )}
 
+      {/* Contribution / withdrawal status */}
+      {hasContributed !== null && (
+        <section className="px-5 pt-4">
+          <div className={`mx-auto flex max-w-md items-center gap-3 rounded-2xl border p-3 text-xs ${hasContributed ? "border-primary/30 bg-primary/5 text-primary" : "border-accent/40 bg-accent/10 text-accent-soft"}`}>
+            {hasContributed ? (
+              <>✓ Withdrawal enabled — you can sell Sparks for cash on the Exchange.</>
+            ) : (
+              <>
+                <span>⚠️ Contribute to unlock cash withdrawals.</span>
+                <Link to="/circle" className="ml-auto rounded-full bg-gradient-gold px-3 py-1 font-medium text-amber-950">View options</Link>
+              </>
+            )}
+          </div>
+        </section>
+      )}
+
       {/* Buyers Club status card */}
       {bc && (
         <section className="px-5 pt-4">
