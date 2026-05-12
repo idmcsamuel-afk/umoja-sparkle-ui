@@ -150,14 +150,16 @@ const Signup = () => {
     }).catch(() => {});
 
     let refMsg = "";
-    if (refParam && refStatus !== "invalid") {
+    if (refParam && refStatus !== "invalid" && hasSession) {
+      console.log("[signup] calling apply_referral_signup", { uid, refParam });
       const { data: res, error: refErr } = await supabase.rpc("apply_referral_signup", { _code: refParam });
+      console.log("[signup] apply_referral_signup result", { res, refErr });
       const r = res as { ok?: boolean; reason?: string; referrer_name?: string; referrer_id?: string } | null;
       if (refErr || !r?.ok) {
-        toast.warning("Referral code couldn't be applied, but your account was created.");
+        console.warn("[signup] referral NOT applied", { refErr, reason: r?.reason });
+        toast.warning(`Referral code couldn't be applied (${r?.reason ?? refErr?.message ?? "unknown"}).`);
       } else {
         refMsg = ` Your referrer ${r.referrer_name ?? ""} earned 100 Sparks too 🎁`;
-        // Notify referrer by email
         if (r.referrer_id) {
           const { data: refRow } = await supabase.from("members")
             .select("email, full_name").eq("id", r.referrer_id).maybeSingle();
@@ -174,13 +176,15 @@ const Signup = () => {
             }).catch(() => {});
           }
         }
+        try { localStorage.removeItem("umoja_referral_code"); } catch {}
       }
     } else if (refParam && refStatus === "invalid") {
       toast.warning("Invalid referral code — signup allowed without referral bonus.");
+      try { localStorage.removeItem("umoja_referral_code"); } catch {}
+    } else if (refParam && !hasSession) {
+      console.log("[signup] referral deferred to first login (still in localStorage):", refParam);
+      // Keep umoja_referral_code so useAuth applies it after email confirmation.
     }
-
-    // clear cached referral code now that we've used it
-    try { localStorage.removeItem("umoja_referral_code"); } catch {}
 
     setBusy(false);
     toast.success(`You've earned 50 welcome Sparks! ✨${refMsg}`, { duration: 6000 });
