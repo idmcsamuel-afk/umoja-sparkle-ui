@@ -1,6 +1,6 @@
 import { NavLink, Outlet, Link } from "react-router-dom";
 import {
-  LayoutDashboard, Users, Coins, ShoppingBag, Car, TrendingUp, Wallet, ArrowLeft, ShieldCheck, Ticket, Gift, Settings, Trophy, Mail, Crown,
+  LayoutDashboard, Users, Coins, ShoppingBag, Car, TrendingUp, Wallet, ArrowLeft, ShieldCheck, Ticket, Gift, Settings, Trophy, Mail, Crown, Rocket,
 } from "lucide-react";
 import { Logo } from "@/components/umoja/Logo";
 import { ThemeToggle } from "@/components/umoja/ThemeToggle";
@@ -12,6 +12,7 @@ const items = [
   { to: "/admin/allocations", label: "Allocations", icon: Trophy },
   { to: "/admin/spark-trade", label: "Spark Trade", icon: ShoppingBag },
   { to: "/admin/buyers-club", label: "Buyers Club", icon: Crown },
+  { to: "/admin/fulfillment", label: "Fulfillment", icon: Rocket },
   { to: "/admin/drive", label: "Drive", icon: Car },
   { to: "/admin/predictor", label: "Predictor", icon: TrendingUp },
   { to: "/admin/kyc-review", label: "KYC review", icon: ShieldCheck },
