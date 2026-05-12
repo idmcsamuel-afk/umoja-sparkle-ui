@@ -73,7 +73,7 @@ const Referrals = () => {
 
   const shareWhatsApp = () => {
     const text = encodeURIComponent(
-      `Join me on UMOJA — community savings, group buying, and your first car in 12 months. Use my link to get 100 welcome Sparks ✨\n\n${link}`,
+      `Join me on UMOJA — community savings, group buying, and your first car in 12 months. Use my link to get 50 welcome Sparks ✨\n\n${link}`,
     );
     window.open(`https://wa.me/?text=${text}`, "_blank");
   };
