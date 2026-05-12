@@ -1415,8 +1415,10 @@ export type Database = {
           dream_goal: string | null
           email: string | null
           email_preferences: Json
+          first_contribution_at: string | null
           full_name: string
           has_buyers_club_access: boolean
+          has_contributed: boolean
           id: string
           id_number: string | null
           is_active: boolean | null
@@ -1432,6 +1434,7 @@ export type Database = {
           kyc_status: string | null
           kyc_submitted_at: string | null
           kyc_verified_at: string | null
+          last_seen_at: string | null
           phone: string
           phone_verified: boolean
           priority_score: number
@@ -1468,8 +1471,10 @@ export type Database = {
           dream_goal?: string | null
           email?: string | null
           email_preferences?: Json
+          first_contribution_at?: string | null
           full_name: string
           has_buyers_club_access?: boolean
+          has_contributed?: boolean
           id?: string
           id_number?: string | null
           is_active?: boolean | null
@@ -1485,6 +1490,7 @@ export type Database = {
           kyc_status?: string | null
           kyc_submitted_at?: string | null
           kyc_verified_at?: string | null
+          last_seen_at?: string | null
           phone: string
           phone_verified?: boolean
           priority_score?: number
@@ -1521,8 +1527,10 @@ export type Database = {
           dream_goal?: string | null
           email?: string | null
           email_preferences?: Json
+          first_contribution_at?: string | null
           full_name?: string
           has_buyers_club_access?: boolean
+          has_contributed?: boolean
           id?: string
           id_number?: string | null
           is_active?: boolean | null
@@ -1538,6 +1546,7 @@ export type Database = {
           kyc_status?: string | null
           kyc_submitted_at?: string | null
           kyc_verified_at?: string | null
+          last_seen_at?: string | null
           phone?: string
           phone_verified?: boolean
           priority_score?: number
@@ -2461,6 +2470,7 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      active_members_count: { Args: never; Returns: number }
       adjust_spark_balance: {
         Args: { _delta: number; _member: string; _note?: string }
         Returns: number
@@ -2620,6 +2630,7 @@ export type Database = {
           full_name: string
         }[]
       }
+      mark_contributed: { Args: { _member?: string }; Returns: undefined }
       my_referred_members: {
         Args: never
         Returns: {
@@ -2637,6 +2648,16 @@ export type Database = {
           member_id: string
           sparks_won: number
         }[]
+      }
+      record_circle_payout: {
+        Args: {
+          _bid_id: string
+          _method: string
+          _net_amount: number
+          _paid_on?: string
+          _reference: string
+        }
+        Returns: undefined
       }
       redeem_invite_code: { Args: { _code: string }; Returns: boolean }
       referral_leaderboard: {
@@ -2660,6 +2681,7 @@ export type Database = {
         Args: { _amount: number; _proof_url: string; _tier: string }
         Returns: undefined
       }
+      touch_last_seen: { Args: never; Returns: undefined }
     }
     Enums: {
       [_ in never]: never
