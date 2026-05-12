@@ -27,6 +27,7 @@ interface Shortlist {
   added_at: string | null;
   data_source: string | null;
   is_demo: boolean | null;
+  cost_breakdown: any | null;
 }
 
 interface Order {
