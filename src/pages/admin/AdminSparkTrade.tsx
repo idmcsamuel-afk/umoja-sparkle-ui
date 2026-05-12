@@ -287,6 +287,9 @@ export default function AdminSparkTrade() {
                   </td>
                   <td className="p-4 text-right">
                     <div className="inline-flex flex-wrap justify-end gap-2">
+                      <Button size="sm" variant="outline" title="Edit Costs" onClick={() => openCalc(r)} className="gap-1">
+                        <Calculator className="h-3 w-3" /> Costs
+                      </Button>
                       <Button size="sm" variant="outline" title="Buy Now" onClick={() => updateRow(r.id, { status: "buy_now" })}>
                         <Zap className="h-3 w-3" />
                       </Button>
