@@ -13,7 +13,7 @@ const items = [
   { to: "/admin/spark-trade", label: "Spark Trade", icon: ShoppingBag },
   { to: "/admin/buyers-club", label: "Buyers Club", icon: Crown },
   { to: "/admin/fulfillment", label: "Fulfillment", icon: Rocket },
-  { to: "/admin/properties", label: "Properties", icon: Building2 },
+  { to: "/admin/properties", label: "Property Fund", icon: Building2 },
   { to: "/admin/drive", label: "Drive", icon: Car },
   { to: "/admin/predictor", label: "Predictor", icon: TrendingUp },
   { to: "/admin/kyc-review", label: "KYC review", icon: ShieldCheck },
