@@ -43,6 +43,7 @@ export default function AdminSparkTrade() {
   const [fetching, setFetching] = useState(false);
   const [scouting, setScouting] = useState(false);
   const [opps, setOpps] = useState<Opportunity[] | null>(null);
+  const [serpUsage, setSerpUsage] = useState<{ plan?: string; searches_used?: number | null; searches_left?: number | null } | null>(null);
   const [adding, setAdding] = useState<string | null>(null);
 
   const [calcOpen, setCalcOpen] = useState(false);
@@ -160,10 +161,20 @@ export default function AdminSparkTrade() {
     setScouting(true);
     const { data, error } = await supabase.functions.invoke("serpapi-trending");
     setScouting(false);
-    if (error) return toast.error(error.message);
-    const list = (data as any)?.opportunities ?? [];
+    if (error) {
+      console.error("serpapi-trending failed", error);
+      return toast.error(error.message || "SerpAPI search failed");
+    }
+    const payload = data as any;
+    if (payload?.ok === false) {
+      console.error("serpapi-trending payload error", payload);
+      return toast.error(payload.error || "SerpAPI search failed");
+    }
+    const list = payload?.opportunities ?? [];
     setOpps(list);
+    setSerpUsage(payload?.usage ?? null);
     if (!list.length) toast.message("No opportunities found this run.");
+    else toast.success(`Found ${list.length} new Buy Soon opportunities`);
   };
 
   const addOpportunity = async (o: Opportunity) => {
@@ -319,8 +330,15 @@ export default function AdminSparkTrade() {
           <DialogHeader>
             <DialogTitle className="font-display text-2xl">🌍 International Buy Soon Opportunities</DialogTitle>
             <DialogDescription>
-              Trending in US/UK/AU with low Takealot availability. Add the best to your shortlist.
+              Trending in US/UK/AU/CA with low Takealot availability. Add the best to your shortlist.
             </DialogDescription>
+            {serpUsage && (
+              <p className="text-[11px] text-muted-foreground mt-1">
+                SerpAPI {serpUsage.plan ?? "Free"} ·{" "}
+                {serpUsage.searches_used != null ? `${serpUsage.searches_used} used` : "usage n/a"}
+                {serpUsage.searches_left != null ? ` · ${serpUsage.searches_left} searches left` : ""}
+              </p>
+            )}
           </DialogHeader>
           <div className="space-y-3 mt-2">
             {opps?.length === 0 && (
