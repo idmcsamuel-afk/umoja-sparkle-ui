@@ -611,6 +611,59 @@ const Dashboard = () => {
         </div>
       </section>
 
+      {/* Property Fund section */}
+      <section className="px-5 pt-8">
+        <div className="mx-auto max-w-md">
+          <div className="flex items-baseline justify-between">
+            <h2 className="font-display text-xl">Property Fund 🏘️</h2>
+            <Link to="/property/how-it-works" className="text-xs text-muted-foreground hover:text-foreground transition-smooth">How it works →</Link>
+          </div>
+          <p className="mt-1 text-xs text-muted-foreground">
+            Co-own real estate &amp; modular home projects. Track funding milestones and your portfolio.
+          </p>
+          <div className="mt-3 grid grid-cols-3 gap-2">
+            <Link
+              to="/property"
+              className="group rounded-2xl border border-border bg-gradient-card p-3 transition-smooth hover:border-primary/50 hover:-translate-y-0.5"
+            >
+              <span className="grid h-9 w-9 place-items-center rounded-xl bg-secondary text-primary">
+                <Building2 className="h-4 w-4" />
+              </span>
+              <p className="mt-2 text-[12px] font-medium">Browse</p>
+              <p className="text-[10px] text-muted-foreground">{propertyCount} live</p>
+            </Link>
+            <Link
+              to="/property?tab=investments"
+              className="group rounded-2xl border border-border bg-gradient-card p-3 transition-smooth hover:border-accent/50 hover:-translate-y-0.5"
+            >
+              <span className="grid h-9 w-9 place-items-center rounded-xl bg-secondary text-accent">
+                <TrendingUp className="h-4 w-4" />
+              </span>
+              <p className="mt-2 text-[12px] font-medium">Portfolio</p>
+              <p className="text-[10px] text-muted-foreground">My units</p>
+            </Link>
+            <Link
+              to="/property?tab=milestones"
+              className="group rounded-2xl border border-border bg-gradient-card p-3 transition-smooth hover:border-accent/50 hover:-translate-y-0.5"
+            >
+              <span className="grid h-9 w-9 place-items-center rounded-xl bg-secondary text-accent">
+                <CheckCircle2 className="h-4 w-4" />
+              </span>
+              <p className="mt-2 text-[12px] font-medium">Milestones</p>
+              <p className="text-[10px] text-muted-foreground">Project stages</p>
+            </Link>
+          </div>
+          <Link
+            to="/property/modular-catalog"
+            className="mt-3 flex items-center gap-2 rounded-2xl border border-dashed border-border bg-secondary/30 px-3 py-2.5 text-xs hover:border-accent/50 transition-smooth"
+          >
+            <span className="text-base leading-none">🏗️</span>
+            <span className="flex-1 text-muted-foreground">Browse modular home catalog</span>
+            <ChevronRight className="h-3.5 w-3.5 text-muted-foreground" />
+          </Link>
+        </div>
+      </section>
+
       {/* Activity */}
       <section className="px-5 pt-8">
         <div className="mx-auto max-w-md">
