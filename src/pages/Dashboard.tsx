@@ -5,6 +5,7 @@ import {
   Calculator as CalcIcon, ShoppingBag, Repeat, Building2, ShieldAlert, Gift, Palette, ShoppingCart, CheckCircle2, Clock, XCircle,
 } from "lucide-react";
 import { Logo } from "@/components/umoja/Logo";
+import { FulfillmentCard } from "@/components/umoja/FulfillmentCard";
 import { BottomNav } from "@/components/umoja/BottomNav";
 import { ThemeToggle } from "@/components/umoja/ThemeToggle";
 import { NotificationBell } from "@/components/umoja/NotificationBell";
@@ -375,6 +376,11 @@ const Dashboard = () => {
                   </div>
                   <ChevronRight className="h-4 w-4 text-muted-foreground" />
                 </Link>
+              )}
+              {bc.tier?.toLowerCase() === "gold" && (
+                <div className="mt-3">
+                  <FulfillmentCard />
+                </div>
               )}
               </>
             ) : bc.status === "payment_pending" ? (

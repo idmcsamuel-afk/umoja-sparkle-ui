@@ -48,6 +48,8 @@ import AdminNotifications from "./pages/admin/AdminNotifications";
 import AdminBuyersClub from "./pages/admin/AdminBuyersClub";
 import StorefrontEdit from "./pages/StorefrontEdit";
 import StorefrontPublic from "./pages/StorefrontPublic";
+import FulfillmentDashboard from "./pages/FulfillmentDashboard";
+import AdminFulfillment from "./pages/admin/AdminFulfillment";
 
 const queryClient = new QueryClient();
 
@@ -84,6 +86,7 @@ const App = () => (
               <Route path="/priority" element={<ProtectedRoute><Priority /></ProtectedRoute>} />
               <Route path="/storefront/edit" element={<ProtectedRoute><StorefrontEdit /></ProtectedRoute>} />
               <Route path="/shop/:code" element={<StorefrontPublic />} />
+              <Route path="/fulfillment/dashboard" element={<ProtectedRoute><FulfillmentDashboard /></ProtectedRoute>} />
 
               <Route path="/admin" element={<AdminRoute><AdminLayout /></AdminRoute>}>
                 <Route index element={<AdminDashboard />} />
@@ -100,6 +103,7 @@ const App = () => (
                 <Route path="allocations" element={<AdminAllocations />} />
                 <Route path="notifications" element={<AdminNotifications />} />
                 <Route path="buyers-club" element={<AdminBuyersClub />} />
+                <Route path="fulfillment" element={<AdminFulfillment />} />
               </Route>
 
               <Route path="*" element={<NotFound />} />
