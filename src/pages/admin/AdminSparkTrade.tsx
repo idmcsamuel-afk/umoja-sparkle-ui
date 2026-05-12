@@ -21,6 +21,8 @@ interface Row {
   cost_price: number | null;
   estimated_monthly_sales: number | null;
   is_demo: boolean | null;
+  cost_breakdown: CostBreakdown | null;
+  cost_updated_at: string | null;
 }
 
 interface Opportunity {
