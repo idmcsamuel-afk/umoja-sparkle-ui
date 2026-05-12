@@ -118,7 +118,7 @@ const SparkTrade = () => {
     setItems((arr) => arr.map((x) => (x.id === p.id ? { ...x, joined_count: next } : x)));
   };
 
-  const memberTier = (member?.buyers_club_tier as "bronze" | "silver" | "gold" | undefined) ?? "bronze";
+  const memberTier = (((member as any)?.buyers_club_tier as "bronze" | "silver" | "gold" | undefined)) ?? "bronze";
   const tierLabel = { bronze: "Bronze", silver: "Silver", gold: "Gold" }[memberTier];
   const tierBonus = { bronze: 0, silver: 5, gold: 10 }[memberTier];
 
