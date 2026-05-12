@@ -252,6 +252,14 @@ export default function AdminSparkTrade() {
                       {r.is_demo && <span className="text-[9px] uppercase tracking-wider rounded-full bg-amber-500/20 text-amber-400 px-1.5 py-0.5">DEMO</span>}
                     </div>
                     <div className="text-xs text-muted-foreground">{r.category}</div>
+                    {r.cost_breakdown && (
+                      <div className="mt-1.5 flex flex-wrap gap-1">
+                        <span className="text-[10px] rounded-full bg-secondary px-2 py-0.5">R{Math.round(r.cost_breakdown.cost_per_unit)} cost</span>
+                        <span className="text-[10px] rounded-full bg-emerald-700/20 text-emerald-400 px-2 py-0.5">R{Math.round(r.cost_breakdown.bronze_profit)}–R{Math.round(r.cost_breakdown.gold_profit)} profit</span>
+                        <span className="text-[10px] rounded-full bg-accent/20 text-accent px-2 py-0.5">{r.cost_breakdown.target_margin_percent}% margin</span>
+                        {r.cost_updated_at && <span className="text-[10px] text-muted-foreground">Updated {ago(r.cost_updated_at)}</span>}
+                      </div>
+                    )}
                   </td>
                   <td className="p-4">{sourceBadge(r.data_source)}</td>
                   <td className="p-4 text-xs">{r.asin}</td>
