@@ -73,7 +73,7 @@ const Referrals = () => {
 
   const shareWhatsApp = () => {
     const text = encodeURIComponent(
-      `Join me on UMOJA — community savings, group buying, and your first car in 12 months. Use my link to get 100 welcome Sparks ✨\n\n${link}`,
+      `Join me on UMOJA — community savings, group buying, and your first car in 12 months. Use my link to get 50 welcome Sparks ✨\n\n${link}`,
     );
     window.open(`https://wa.me/?text=${text}`, "_blank");
   };
@@ -112,7 +112,7 @@ const Referrals = () => {
               Earn <span className="text-gradient-gold italic font-[450]">Sparks</span> for every friend you bring.
             </h1>
             <p className="mt-2 text-sm text-muted-foreground">
-              200 Sparks per signup · 300 bonus when they verify · They get 100 welcome Sparks.
+              100 Sparks per signup · 300 bonus when they verify · They get 50 welcome Sparks.
             </p>
           </div>
 

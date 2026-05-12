@@ -141,7 +141,7 @@ const Signup = () => {
       if (refErr || !r?.ok) {
         toast.warning("Referral code couldn't be applied, but your account was created.");
       } else {
-        refMsg = ` Your referrer ${r.referrer_name ?? ""} earned 200 Sparks too 🎁`;
+        refMsg = ` Your referrer ${r.referrer_name ?? ""} earned 100 Sparks too 🎁`;
         // Notify referrer by email
         if (r.referrer_id) {
           const { data: refRow } = await supabase.from("members")
@@ -168,7 +168,7 @@ const Signup = () => {
     try { localStorage.removeItem("umoja_referral_code"); } catch {}
 
     setBusy(false);
-    toast.success(`You've earned 100 welcome Sparks! ✨${refMsg}`, { duration: 6000 });
+    toast.success(`You've earned 50 welcome Sparks! ✨${refMsg}`, { duration: 6000 });
 
     if (data.session) nav("/dashboard", { replace: true });
     else nav("/login", { replace: true });
@@ -193,7 +193,7 @@ const Signup = () => {
         <div className="mx-auto max-w-md animate-fade-in">
           <div className="inline-flex items-center gap-2 rounded-full glass px-3 py-1.5 text-xs">
             <Sparkles className="h-3 w-3 text-accent" />
-            <span className="text-muted-foreground">100 welcome Sparks for new members</span>
+            <span className="text-muted-foreground">50 welcome Sparks for new members</span>
           </div>
           <h1 className="mt-5 font-display text-[40px] leading-[1.05] tracking-tight">
             Join the <span className="text-gradient-gold italic font-[450]">circle.</span>
