@@ -864,6 +864,312 @@ export type Database = {
           },
         ]
       }
+      fulfillment_applications: {
+        Row: {
+          account_number: string
+          account_type: string
+          agreed: boolean
+          amazon_seller_id: string | null
+          bank_name: string
+          branch_code: string
+          created_at: string
+          expected_volume: string
+          has_amazon: boolean
+          has_makro: boolean
+          has_takealot: boolean
+          id: string
+          makro_seller_id: string | null
+          member_id: string
+          needs_amazon: boolean
+          needs_makro: boolean
+          needs_takealot: boolean
+          other_category: string | null
+          product_categories: string[]
+          rejection_reason: string | null
+          reviewed_at: string | null
+          reviewed_by: string | null
+          status: string
+          takealot_seller_id: string | null
+          updated_at: string
+        }
+        Insert: {
+          account_number: string
+          account_type: string
+          agreed?: boolean
+          amazon_seller_id?: string | null
+          bank_name: string
+          branch_code: string
+          created_at?: string
+          expected_volume: string
+          has_amazon?: boolean
+          has_makro?: boolean
+          has_takealot?: boolean
+          id?: string
+          makro_seller_id?: string | null
+          member_id: string
+          needs_amazon?: boolean
+          needs_makro?: boolean
+          needs_takealot?: boolean
+          other_category?: string | null
+          product_categories?: string[]
+          rejection_reason?: string | null
+          reviewed_at?: string | null
+          reviewed_by?: string | null
+          status?: string
+          takealot_seller_id?: string | null
+          updated_at?: string
+        }
+        Update: {
+          account_number?: string
+          account_type?: string
+          agreed?: boolean
+          amazon_seller_id?: string | null
+          bank_name?: string
+          branch_code?: string
+          created_at?: string
+          expected_volume?: string
+          has_amazon?: boolean
+          has_makro?: boolean
+          has_takealot?: boolean
+          id?: string
+          makro_seller_id?: string | null
+          member_id?: string
+          needs_amazon?: boolean
+          needs_makro?: boolean
+          needs_takealot?: boolean
+          other_category?: string | null
+          product_categories?: string[]
+          rejection_reason?: string | null
+          reviewed_at?: string | null
+          reviewed_by?: string | null
+          status?: string
+          takealot_seller_id?: string | null
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      fulfillment_inventory: {
+        Row: {
+          created_at: string
+          expected_arrival: string | null
+          id: string
+          last_restocked_at: string | null
+          member_id: string
+          product_name: string
+          quantity_available: number
+          quantity_reserved: number
+          quantity_total: number
+          sku: string | null
+          status: string
+          storage_location: string | null
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          expected_arrival?: string | null
+          id?: string
+          last_restocked_at?: string | null
+          member_id: string
+          product_name: string
+          quantity_available?: number
+          quantity_reserved?: number
+          quantity_total?: number
+          sku?: string | null
+          status?: string
+          storage_location?: string | null
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          expected_arrival?: string | null
+          id?: string
+          last_restocked_at?: string | null
+          member_id?: string
+          product_name?: string
+          quantity_available?: number
+          quantity_reserved?: number
+          quantity_total?: number
+          sku?: string | null
+          status?: string
+          storage_location?: string | null
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      fulfillment_invoices: {
+        Row: {
+          base_fee: number
+          created_at: string
+          due_date: string
+          handling_count: number
+          handling_fees: number
+          id: string
+          item_fees: number
+          large_item_count: number
+          medium_item_count: number
+          member_id: string
+          month: number
+          paid_at: string | null
+          small_item_count: number
+          status: string
+          total_amount: number
+          updated_at: string
+          year: number
+        }
+        Insert: {
+          base_fee?: number
+          created_at?: string
+          due_date: string
+          handling_count?: number
+          handling_fees?: number
+          id?: string
+          item_fees?: number
+          large_item_count?: number
+          medium_item_count?: number
+          member_id: string
+          month: number
+          paid_at?: string | null
+          small_item_count?: number
+          status?: string
+          total_amount?: number
+          updated_at?: string
+          year: number
+        }
+        Update: {
+          base_fee?: number
+          created_at?: string
+          due_date?: string
+          handling_count?: number
+          handling_fees?: number
+          id?: string
+          item_fees?: number
+          large_item_count?: number
+          medium_item_count?: number
+          member_id?: string
+          month?: number
+          paid_at?: string | null
+          small_item_count?: number
+          status?: string
+          total_amount?: number
+          updated_at?: string
+          year?: number
+        }
+        Relationships: []
+      }
+      fulfillment_orders: {
+        Row: {
+          amount: number
+          courier: string | null
+          created_at: string
+          customer_address: string | null
+          customer_city: string | null
+          customer_name: string | null
+          delivered_at: string | null
+          id: string
+          member_id: string
+          order_number: string
+          platform: string
+          problem_description: string | null
+          problem_type: string | null
+          product_name: string
+          quantity: number
+          shipped_at: string | null
+          size_tier: string | null
+          sku: string | null
+          status: string
+          tracking_number: string | null
+          updated_at: string
+          weight_kg: number | null
+        }
+        Insert: {
+          amount?: number
+          courier?: string | null
+          created_at?: string
+          customer_address?: string | null
+          customer_city?: string | null
+          customer_name?: string | null
+          delivered_at?: string | null
+          id?: string
+          member_id: string
+          order_number: string
+          platform: string
+          problem_description?: string | null
+          problem_type?: string | null
+          product_name: string
+          quantity?: number
+          shipped_at?: string | null
+          size_tier?: string | null
+          sku?: string | null
+          status?: string
+          tracking_number?: string | null
+          updated_at?: string
+          weight_kg?: number | null
+        }
+        Update: {
+          amount?: number
+          courier?: string | null
+          created_at?: string
+          customer_address?: string | null
+          customer_city?: string | null
+          customer_name?: string | null
+          delivered_at?: string | null
+          id?: string
+          member_id?: string
+          order_number?: string
+          platform?: string
+          problem_description?: string | null
+          problem_type?: string | null
+          product_name?: string
+          quantity?: number
+          shipped_at?: string | null
+          size_tier?: string | null
+          sku?: string | null
+          status?: string
+          tracking_number?: string | null
+          updated_at?: string
+          weight_kg?: number | null
+        }
+        Relationships: []
+      }
+      fulfillment_subscriptions: {
+        Row: {
+          activated_at: string
+          created_at: string
+          id: string
+          member_id: string
+          monthly_fee: number
+          next_billing_date: string
+          status: string
+          suspended_at: string | null
+          updated_at: string
+          warehouse_address: string | null
+        }
+        Insert: {
+          activated_at?: string
+          created_at?: string
+          id?: string
+          member_id: string
+          monthly_fee?: number
+          next_billing_date?: string
+          status?: string
+          suspended_at?: string | null
+          updated_at?: string
+          warehouse_address?: string | null
+        }
+        Update: {
+          activated_at?: string
+          created_at?: string
+          id?: string
+          member_id?: string
+          monthly_fee?: number
+          next_billing_date?: string
+          status?: string
+          suspended_at?: string | null
+          updated_at?: string
+          warehouse_address?: string | null
+        }
+        Relationships: []
+      }
       health_snapshots: {
         Row: {
           active_bids: number | null
@@ -2167,6 +2473,10 @@ export type Database = {
         Args: { _member: string }
         Returns: undefined
       }
+      admin_approve_fulfillment: {
+        Args: { _application_id: string }
+        Returns: string
+      }
       admin_approve_kyc: {
         Args: { _member: string; _override_reason?: string }
         Returns: undefined
@@ -2217,6 +2527,10 @@ export type Database = {
       admin_referral_overview: { Args: never; Returns: Json }
       admin_reject_buyers_club: {
         Args: { _member: string; _reason: string }
+        Returns: undefined
+      }
+      admin_reject_fulfillment: {
+        Args: { _application_id: string; _reason: string }
         Returns: undefined
       }
       admin_top_referrers_month: {
