@@ -66,6 +66,7 @@ const Dashboard = () => {
   const [isAdmin, setIsAdmin] = useState(false);
   const [kycLevel, setKycLevel] = useState<number | null>(null);
   const [hasContributed, setHasContributed] = useState<boolean | null>(null);
+  const [propertyCount, setPropertyCount] = useState<number>(0);
   const [bc, setBc] = useState<{
     status: string | null;
     tier: string | null;
