@@ -54,6 +54,7 @@ import StorefrontEdit from "./pages/StorefrontEdit";
 import StorefrontPublic from "./pages/StorefrontPublic";
 import FulfillmentDashboard from "./pages/FulfillmentDashboard";
 import AdminFulfillment from "./pages/admin/AdminFulfillment";
+import MemberLayout from "./components/umoja/MemberLayout";
 
 const queryClient = new QueryClient();
 
