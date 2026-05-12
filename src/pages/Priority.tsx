@@ -252,6 +252,36 @@ export default function Priority() {
             </div>
           </section>
 
+          {/* Next steps to improve */}
+          <section className="px-5 mt-6">
+            <div className="mx-auto max-w-md rounded-3xl border border-accent/30 bg-gradient-to-br from-accent/10 to-primary/5 p-5">
+              <div className="flex items-center gap-2">
+                <Sparkles className="h-4 w-4 text-accent" />
+                <h3 className="font-display text-lg">Next steps to improve</h3>
+              </div>
+              <ul className="mt-3 space-y-2 text-sm">
+                {Number(me.consistency_pct) < 100 && (
+                  <li className="flex gap-2"><span className="text-accent">→</span><span>Pay on time for the next session to push consistency from <b>{fmt(me.consistency_pct,0)}%</b> to 100% (+{fmt(40 - Number(me.consistency_score),1)} pts).</span></li>
+                )}
+                {Number(me.community_score) < 10 && (
+                  <li className="flex gap-2"><span className="text-accent">→</span><span>Refer 1 more verified member for +2 community points.</span></li>
+                )}
+                {Number(me.bid_boost_score) < 5 && (
+                  <li className="flex gap-2"><span className="text-accent">→</span><span>Add ~R300 to your next bid to gain up to +{fmt(5 - Number(me.bid_boost_score),1)} boost points.</span></li>
+                )}
+                {((me.breakdown as { kyc_level?: number })?.kyc_level ?? 0) < 3 && (
+                  <li className="flex gap-2"><span className="text-accent">→</span><span><Link to="/kyc" className="underline">Complete KYC Level 3</Link> for +2 community points.</span></li>
+                )}
+              </ul>
+              <div className="mt-4 rounded-2xl bg-secondary/40 p-3 text-xs text-muted-foreground">
+                <p>Estimated payout at current score: <b className="text-foreground">~{estWeeks ?? "—"} week{estWeeks === 1 ? "" : "s"}</b></p>
+                {Number(me.priority_score) < 95 && (
+                  <p className="mt-1">If your score reaches 95: ~{Math.max(1, Math.ceil((estWeeks ?? 8) * 0.35))} weeks</p>
+                )}
+              </div>
+            </div>
+          </section>
+
           {/* Improve */}
           <section className="px-5 mt-6">
             <div className="mx-auto max-w-md rounded-3xl glass p-5">
