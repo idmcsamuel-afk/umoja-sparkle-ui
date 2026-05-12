@@ -118,11 +118,19 @@ const SparkTrade = () => {
     setItems((arr) => arr.map((x) => (x.id === p.id ? { ...x, joined_count: next } : x)));
   };
 
+  const memberTier = (member?.buyers_club_tier as "bronze" | "silver" | "gold" | undefined) ?? "bronze";
+  const tierLabel = { bronze: "Bronze", silver: "Silver", gold: "Gold" }[memberTier];
+  const tierBonus = { bronze: 0, silver: 5, gold: 10 }[memberTier];
+
   const Card = ({ p }: { p: Shortlist }) => {
     const target = Number(p.target_slots ?? 0) || 1;
     const joined = Number(p.joined_count ?? 0);
     const pct = Math.min(100, Math.round((joined / target) * 100));
     const isDemo = !!p.is_demo;
+    const cb = p.cost_breakdown;
+    const tierPrice = cb ? Number(cb[`${memberTier}_sell_price`] ?? p.sale_price ?? 0) : Number(p.sale_price ?? 0);
+    const tierProfit = cb ? Number(cb[`${memberTier}_profit`] ?? p.estimated_margin ?? 0) : Number(p.estimated_margin ?? 0);
+    const tierMargin = tierPrice > 0 ? Math.round((tierProfit / tierPrice) * 100) : Number(p.margin_pct ?? 0);
     return (
       <article className={`group relative overflow-hidden rounded-3xl glass p-5 animate-slide-up ${isDemo ? "ring-1 ring-amber-500/40" : ""}`}>
         {isDemo && (
@@ -153,19 +161,22 @@ const SparkTrade = () => {
             )}
           </div>
           <div className="text-right shrink-0">
-            <p className="text-[10px] uppercase tracking-[0.18em] text-muted-foreground">Sell at</p>
-            <p className="font-display text-base text-gradient-gold">{fmtR(p.sale_price)}</p>
+            <p className="text-[10px] uppercase tracking-[0.18em] text-muted-foreground">{hasAccess ? `${tierLabel} price` : "Sell at"}</p>
+            <p className="font-display text-base text-gradient-gold">R{tierPrice.toFixed(2)}</p>
+            {hasAccess && tierBonus > 0 && (
+              <p className="text-[10px] text-accent">+{tierBonus}% better margin</p>
+            )}
           </div>
         </div>
 
         <div className="mt-4 grid grid-cols-3 gap-2">
           <div className="rounded-2xl bg-secondary/60 p-3">
             <p className="text-[10px] uppercase tracking-wider text-muted-foreground">Margin</p>
-            <p className="mt-1 font-display text-sm">{Math.round(Number(p.margin_pct ?? 0))}%</p>
+            <p className="mt-1 font-display text-sm">{tierMargin}%</p>
           </div>
           <div className="rounded-2xl bg-secondary/60 p-3">
-            <p className="text-[10px] uppercase tracking-wider text-muted-foreground">Profit</p>
-            <p className="mt-1 font-display text-sm">{fmtR(p.estimated_margin)}</p>
+            <p className="text-[10px] uppercase tracking-wider text-muted-foreground">Your profit</p>
+            <p className="mt-1 font-display text-sm">R{tierProfit.toFixed(2)}</p>
           </div>
           <div className="rounded-2xl bg-secondary/60 p-3">
             <p className="text-[10px] uppercase tracking-wider text-muted-foreground">Sold/mo</p>
