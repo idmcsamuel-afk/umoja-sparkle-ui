@@ -1,6 +1,6 @@
-// SerpAPI trending finder — searches Google Shopping in US/UK/AU for trending
-// products across key categories, then compares against Takealot.co.za to
-// surface "Buy Soon" opportunities (popular abroad, scarce locally).
+// SerpAPI trending finder — searches Google Shopping in US/UK/AU/CA across
+// 5 categories, then compares against Takealot.co.za to surface "Buy Soon"
+// opportunities (popular abroad, scarce locally).
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -11,19 +11,21 @@ const MARKETS = [
   { gl: "us", flag: "🇺🇸", label: "US" },
   { gl: "uk", flag: "🇬🇧", label: "UK" },
   { gl: "au", flag: "🇦🇺", label: "AU" },
+  { gl: "ca", flag: "🇨🇦", label: "CA" },
 ];
 
-const CATEGORIES = [
-  "trending electronics gadgets",
-  "trending kitchen home",
-  "trending beauty personal care",
-  "trending fitness wellness",
+const CATEGORIES: { q: string; label: string }[] = [
+  { q: "trending electronics", label: "Electronics" },
+  { q: "trending home gadgets", label: "Home Gadgets" },
+  { q: "trending beauty products", label: "Beauty" },
+  { q: "trending kitchen tools", label: "Kitchen" },
+  { q: "trending fitness gear", label: "Fitness" },
 ];
 
 interface Candidate {
   title: string;
   category: string;
-  markets: string[]; // labels like "US","UK"
+  markets: string[];
   flags: string[];
   avg_price_usd: number;
   takealot_count: number;
@@ -41,7 +43,7 @@ async function serpShopping(key: string, q: string, gl: string) {
   url.searchParams.set("q", q);
   url.searchParams.set("gl", gl);
   url.searchParams.set("hl", "en");
-  url.searchParams.set("num", "10");
+  url.searchParams.set("num", "5");
   url.searchParams.set("api_key", key);
   const r = await fetch(url.toString());
   if (!r.ok) return [];
@@ -50,26 +52,31 @@ async function serpShopping(key: string, q: string, gl: string) {
 }
 
 async function takealotCount(key: string, q: string) {
-  // Use Google search restricted to takealot.co.za as a proxy for availability.
   const url = new URL("https://serpapi.com/search.json");
   url.searchParams.set("engine", "google");
   url.searchParams.set("q", `site:takealot.co.za ${q}`);
   url.searchParams.set("gl", "za");
-  url.searchParams.set("num", "5");
+  url.searchParams.set("num", "3");
   url.searchParams.set("api_key", key);
   const r = await fetch(url.toString());
   if (!r.ok) return 99;
   const j = await r.json();
-  const organic = (j.organic_results ?? []) as any[];
-  return organic.length;
+  return ((j.organic_results ?? []) as any[]).length;
 }
 
-function categoryLabel(q: string): string {
-  if (q.includes("electronics")) return "Electronics";
-  if (q.includes("kitchen")) return "Kitchen & Home";
-  if (q.includes("beauty")) return "Beauty";
-  if (q.includes("fitness")) return "Fitness & Wellness";
-  return "General";
+async function fetchAccount(key: string) {
+  try {
+    const r = await fetch(`https://serpapi.com/account.json?api_key=${key}`);
+    if (!r.ok) return null;
+    const j = await r.json();
+    return {
+      plan: j.plan_name ?? "Free",
+      searches_used: j.this_month_usage ?? null,
+      searches_left: j.total_searches_left ?? j.searches_per_month ?? null,
+    };
+  } catch {
+    return null;
+  }
 }
 
 Deno.serve(async (req) => {
@@ -79,47 +86,56 @@ Deno.serve(async (req) => {
     const apiKey = Deno.env.get("SERPAPI_KEY");
     if (!apiKey) throw new Error("SERPAPI_KEY not configured");
 
-    // title -> aggregate
-    const agg = new Map<string, Candidate>();
+    const accountBefore = await fetchAccount(apiKey);
 
+    const candidates: Candidate[] = [];
+
+    // 5 categories × 4 markets = 20 shopping searches → top 1 per combo
     for (const cat of CATEGORIES) {
       for (const m of MARKETS) {
-        const items = await serpShopping(apiKey, cat, m.gl);
-        for (const it of items.slice(0, 6)) {
-          const title = String(it.title ?? "").trim();
-          if (!title) continue;
-          const key = title.toLowerCase().slice(0, 80);
-          const priceNum = Number(
-            String(it.extracted_price ?? it.price ?? "0").replace(/[^0-9.]/g, ""),
-          ) || 0;
-          const existing = agg.get(key);
-          if (existing) {
-            if (!existing.markets.includes(m.label)) {
-              existing.markets.push(m.label);
-              existing.flags.push(m.flag);
-            }
-            existing.avg_price_usd = (existing.avg_price_usd + priceNum) / 2;
-          } else {
-            agg.set(key, {
-              title,
-              category: categoryLabel(cat),
-              markets: [m.label],
-              flags: [m.flag],
-              avg_price_usd: priceNum,
-              takealot_count: -1,
-              estimated_margin_zar: 0,
-              sale_price_zar: 0,
-              cost_price_zar: 0,
-              thumbnail: it.thumbnail,
-            });
-          }
-        }
+        const items = await serpShopping(apiKey, cat.q, m.gl);
+        const top = items[0];
+        if (!top) continue;
+        const title = String(top.title ?? "").trim();
+        if (!title) continue;
+        const priceNum = Number(
+          String(top.extracted_price ?? top.price ?? "0").replace(/[^0-9.]/g, ""),
+        ) || 0;
+        candidates.push({
+          title,
+          category: cat.label,
+          markets: [m.label],
+          flags: [m.flag],
+          avg_price_usd: priceNum,
+          takealot_count: -1,
+          estimated_margin_zar: 0,
+          sale_price_zar: 0,
+          cost_price_zar: 0,
+          thumbnail: top.thumbnail,
+        });
       }
     }
 
-    // Filter: must be popular in 2+ markets to be a real signal.
-    const shortlist = Array.from(agg.values())
-      .filter((c) => c.markets.length >= 2 && c.avg_price_usd > 0)
+    // Dedupe by lowercased prefix; merge market flags
+    const dedup = new Map<string, Candidate>();
+    for (const c of candidates) {
+      const key = c.title.toLowerCase().slice(0, 60);
+      const existing = dedup.get(key);
+      if (existing) {
+        for (let i = 0; i < c.markets.length; i++) {
+          if (!existing.markets.includes(c.markets[i])) {
+            existing.markets.push(c.markets[i]);
+            existing.flags.push(c.flags[i]);
+          }
+        }
+        existing.avg_price_usd = (existing.avg_price_usd + c.avg_price_usd) / 2;
+      } else {
+        dedup.set(key, c);
+      }
+    }
+
+    const shortlist = Array.from(dedup.values())
+      .filter((c) => c.avg_price_usd > 0)
       .slice(0, 20);
 
     // Check Takealot for each. Keep only low/no listings.
@@ -133,14 +149,22 @@ Deno.serve(async (req) => {
         c.estimated_margin_zar = c.sale_price_zar - c.cost_price_zar;
         opportunities.push(c);
       }
-      if (opportunities.length >= 12) break;
+      if (opportunities.length >= 20) break;
     }
 
+    const accountAfter = await fetchAccount(apiKey);
+
     return new Response(
-      JSON.stringify({ ok: true, count: opportunities.length, opportunities }),
+      JSON.stringify({
+        ok: true,
+        count: opportunities.length,
+        opportunities,
+        usage: accountAfter ?? accountBefore,
+      }),
       { headers: { ...corsHeaders, "Content-Type": "application/json" } },
     );
   } catch (e) {
+    console.error("serpapi-trending error", e);
     return new Response(
       JSON.stringify({ ok: false, error: (e as Error).message }),
       { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } },
