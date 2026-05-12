@@ -2,9 +2,10 @@ import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Loader2, Check, X, RefreshCw, Zap, Clock, Globe2, Plus } from "lucide-react";
+import { Loader2, Check, X, RefreshCw, Zap, Clock, Globe2, Plus, Calculator, Download, DollarSign } from "lucide-react";
 import { toast } from "sonner";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
+import { SparkTradeCostCalculator, type CostBreakdown } from "@/components/umoja/SparkTradeCostCalculator";
 
 interface Row {
   id: string;
