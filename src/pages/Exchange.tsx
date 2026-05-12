@@ -457,7 +457,7 @@ export default function Exchange() {
         </DialogContent>
       </Dialog>
 
-
+      <section className="px-5 pt-6"><div className="mx-auto max-w-md"><SparksDisclaimer /></div></section>
       <BottomNav />
     </main>
   );
