@@ -105,22 +105,37 @@ const Signup = () => {
     }
 
     const uid = data.user.id;
-    const { error: memberErr } = await supabase.from("members").insert({
-      id: uid,
-      full_name: parsed.data.full_name,
-      email: parsed.data.email,
-      phone: parsed.data.phone,
-      is_active: true,
-    });
+    const hasSession = !!data.session;
+    console.log("[signup] auth.signUp ok", { uid, hasSession, refParam, refStatus });
+
+    // The handle_new_auth_user trigger already inserts the members row, so use upsert
+    // to enrich it (full_name/email/phone) without colliding on the primary key.
+    const { error: memberErr } = await supabase
+      .from("members")
+      .upsert(
+        {
+          id: uid,
+          full_name: parsed.data.full_name,
+          email: parsed.data.email,
+          phone: parsed.data.phone,
+          is_active: true,
+        },
+        { onConflict: "id" }
+      );
 
     if (memberErr) {
-      console.error("member insert", memberErr);
-      toast.error("Account created but profile setup failed. Please contact support.");
-      setBusy(false);
-      return;
+      console.error("[signup] member upsert failed", memberErr);
+      // Non-fatal — trigger row exists. Continue so we still try referral/bonus.
     }
 
-    await supabase.rpc("claim_signup_bonus");
+    // claim_signup_bonus and apply_referral_signup BOTH require auth.uid().
+    // If email confirmation is required, there's no session yet — defer to first login.
+    if (hasSession) {
+      const { data: bonus, error: bonusErr } = await supabase.rpc("claim_signup_bonus");
+      console.log("[signup] claim_signup_bonus", { bonus, bonusErr });
+    } else {
+      console.log("[signup] no session yet (email confirm) — bonuses deferred to first login");
+    }
 
     // Fetch member referral code for the welcome email
     const { data: meRow } = await supabase.from("members").select("referral_code").eq("id", uid).maybeSingle();
