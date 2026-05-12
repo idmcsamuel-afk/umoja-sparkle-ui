@@ -38,12 +38,36 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setMember(data as MemberProfile | null);
   };
 
+  const applyPendingReferral = async () => {
+    try {
+      const code = (localStorage.getItem("umoja_referral_code") ?? "").toUpperCase();
+      if (!code) return;
+      console.log("[useAuth] pending referral code found, applying:", code);
+      // Always try claim_signup_bonus first (no-op if wallet exists)
+      await supabase.rpc("claim_signup_bonus");
+      const { data: res, error } = await supabase.rpc("apply_referral_signup", { _code: code });
+      console.log("[useAuth] apply_referral_signup deferred result:", { res, error });
+      const r = res as { ok?: boolean; reason?: string } | null;
+      if (!error && r?.ok) {
+        localStorage.removeItem("umoja_referral_code");
+      } else if (r?.reason === "already_referred" || r?.reason === "invalid_code") {
+        // Don't keep retrying for terminal failures
+        localStorage.removeItem("umoja_referral_code");
+      }
+    } catch (e) {
+      console.warn("[useAuth] applyPendingReferral failed", e);
+    }
+  };
+
   useEffect(() => {
     const { data: sub } = supabase.auth.onAuthStateChange((_event, s) => {
       setSession(s);
       setUser(s?.user ?? null);
       if (s?.user) {
-        setTimeout(() => loadMember(s.user.id), 0);
+        setTimeout(() => {
+          loadMember(s.user.id);
+          applyPendingReferral();
+        }, 0);
       } else {
         setMember(null);
       }
@@ -52,8 +76,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     supabase.auth.getSession().then(({ data: { session: s } }) => {
       setSession(s);
       setUser(s?.user ?? null);
-      if (s?.user) loadMember(s.user.id).finally(() => setLoading(false));
-      else setLoading(false);
+      if (s?.user) {
+        loadMember(s.user.id).finally(() => setLoading(false));
+        applyPendingReferral();
+      } else {
+        setLoading(false);
+      }
     });
 
     return () => sub.subscription.unsubscribe();

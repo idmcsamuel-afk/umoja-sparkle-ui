@@ -105,22 +105,37 @@ const Signup = () => {
     }
 
     const uid = data.user.id;
-    const { error: memberErr } = await supabase.from("members").insert({
-      id: uid,
-      full_name: parsed.data.full_name,
-      email: parsed.data.email,
-      phone: parsed.data.phone,
-      is_active: true,
-    });
+    const hasSession = !!data.session;
+    console.log("[signup] auth.signUp ok", { uid, hasSession, refParam, refStatus });
+
+    // The handle_new_auth_user trigger already inserts the members row, so use upsert
+    // to enrich it (full_name/email/phone) without colliding on the primary key.
+    const { error: memberErr } = await supabase
+      .from("members")
+      .upsert(
+        {
+          id: uid,
+          full_name: parsed.data.full_name,
+          email: parsed.data.email,
+          phone: parsed.data.phone,
+          is_active: true,
+        },
+        { onConflict: "id" }
+      );
 
     if (memberErr) {
-      console.error("member insert", memberErr);
-      toast.error("Account created but profile setup failed. Please contact support.");
-      setBusy(false);
-      return;
+      console.error("[signup] member upsert failed", memberErr);
+      // Non-fatal — trigger row exists. Continue so we still try referral/bonus.
     }
 
-    await supabase.rpc("claim_signup_bonus");
+    // claim_signup_bonus and apply_referral_signup BOTH require auth.uid().
+    // If email confirmation is required, there's no session yet — defer to first login.
+    if (hasSession) {
+      const { data: bonus, error: bonusErr } = await supabase.rpc("claim_signup_bonus");
+      console.log("[signup] claim_signup_bonus", { bonus, bonusErr });
+    } else {
+      console.log("[signup] no session yet (email confirm) — bonuses deferred to first login");
+    }
 
     // Fetch member referral code for the welcome email
     const { data: meRow } = await supabase.from("members").select("referral_code").eq("id", uid).maybeSingle();
@@ -135,14 +150,16 @@ const Signup = () => {
     }).catch(() => {});
 
     let refMsg = "";
-    if (refParam && refStatus !== "invalid") {
+    if (refParam && refStatus !== "invalid" && hasSession) {
+      console.log("[signup] calling apply_referral_signup", { uid, refParam });
       const { data: res, error: refErr } = await supabase.rpc("apply_referral_signup", { _code: refParam });
+      console.log("[signup] apply_referral_signup result", { res, refErr });
       const r = res as { ok?: boolean; reason?: string; referrer_name?: string; referrer_id?: string } | null;
       if (refErr || !r?.ok) {
-        toast.warning("Referral code couldn't be applied, but your account was created.");
+        console.warn("[signup] referral NOT applied", { refErr, reason: r?.reason });
+        toast.warning(`Referral code couldn't be applied (${r?.reason ?? refErr?.message ?? "unknown"}).`);
       } else {
         refMsg = ` Your referrer ${r.referrer_name ?? ""} earned 100 Sparks too 🎁`;
-        // Notify referrer by email
         if (r.referrer_id) {
           const { data: refRow } = await supabase.from("members")
             .select("email, full_name").eq("id", r.referrer_id).maybeSingle();
@@ -159,13 +176,15 @@ const Signup = () => {
             }).catch(() => {});
           }
         }
+        try { localStorage.removeItem("umoja_referral_code"); } catch {}
       }
     } else if (refParam && refStatus === "invalid") {
       toast.warning("Invalid referral code — signup allowed without referral bonus.");
+      try { localStorage.removeItem("umoja_referral_code"); } catch {}
+    } else if (refParam && !hasSession) {
+      console.log("[signup] referral deferred to first login (still in localStorage):", refParam);
+      // Keep umoja_referral_code so useAuth applies it after email confirmation.
     }
-
-    // clear cached referral code now that we've used it
-    try { localStorage.removeItem("umoja_referral_code"); } catch {}
 
     setBusy(false);
     toast.success(`You've earned 50 welcome Sparks! ✨${refMsg}`, { duration: 6000 });
