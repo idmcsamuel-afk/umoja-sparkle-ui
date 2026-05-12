@@ -9,6 +9,7 @@ import { FulfillmentCard } from "@/components/umoja/FulfillmentCard";
 import { BottomNav } from "@/components/umoja/BottomNav";
 import { ThemeToggle } from "@/components/umoja/ThemeToggle";
 import { NotificationBell } from "@/components/umoja/NotificationBell";
+import { ActiveUsersBadge } from "@/components/umoja/ActiveUsersBadge";
 import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
 
@@ -64,6 +65,7 @@ const Dashboard = () => {
   const [teaser, setTeaser] = useState<PredictorTeaser | null>(null);
   const [isAdmin, setIsAdmin] = useState(false);
   const [kycLevel, setKycLevel] = useState<number | null>(null);
+  const [hasContributed, setHasContributed] = useState<boolean | null>(null);
   const [bc, setBc] = useState<{
     status: string | null;
     tier: string | null;
@@ -95,9 +97,10 @@ const Dashboard = () => {
     const uid = user.id;
     const fetchBc = async () => {
       const { data } = await supabase.from("members")
-        .select("kyc_level, buyers_club_status, buyers_club_tier, has_buyers_club_access, buyers_club_rejection_reason, buyers_club_renewal_at, referral_code")
+        .select("kyc_level, buyers_club_status, buyers_club_tier, has_buyers_club_access, buyers_club_rejection_reason, buyers_club_renewal_at, referral_code, has_contributed")
         .eq("id", uid).maybeSingle();
       setKycLevel(data?.kyc_level ?? 0);
+      setHasContributed(!!(data as any)?.has_contributed);
       setBc({
         status: data?.buyers_club_status ?? null,
         tier: data?.buyers_club_tier ?? null,
@@ -300,6 +303,7 @@ const Dashboard = () => {
         <div className="mx-auto flex max-w-md items-center justify-between gap-2">
           <Logo />
           <div className="flex items-center gap-2">
+            <ActiveUsersBadge />
             <ThemeToggle />
             <NotificationBell />
             {isAdmin && (
