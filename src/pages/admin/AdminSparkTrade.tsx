@@ -353,6 +353,38 @@ export default function AdminSparkTrade() {
           </div>
         </DialogContent>
       </Dialog>
+
+      <SparkTradeCostCalculator
+        open={calcOpen}
+        onOpenChange={setCalcOpen}
+        productId={calcRow?.id ?? null}
+        productName={calcRow?.product_name ?? calcRow?.asin ?? ""}
+        initial={calcRow?.cost_breakdown ?? null}
+        onSaved={load}
+      />
+
+      <Dialog open={rateOpen} onOpenChange={setRateOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Update Exchange Rate</DialogTitle>
+            <DialogDescription>
+              Recalculates costs for {rows.filter(r => r.cost_breakdown).length} product(s) with stored cost breakdowns.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-3">
+            <div>
+              <label className="text-sm">New rate (CNY → ZAR)</label>
+              <Input type="number" step="0.01" value={newRate || ""} onChange={(e) => setNewRate(Number(e.target.value))} />
+            </div>
+            <div className="flex justify-end gap-2">
+              <Button variant="outline" onClick={() => setRateOpen(false)}>Cancel</Button>
+              <Button onClick={applyNewRate} disabled={applying} className="gap-1">
+                {applying && <Loader2 className="h-4 w-4 animate-spin" />} Apply to All Products
+              </Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
