@@ -330,8 +330,15 @@ export default function AdminSparkTrade() {
           <DialogHeader>
             <DialogTitle className="font-display text-2xl">🌍 International Buy Soon Opportunities</DialogTitle>
             <DialogDescription>
-              Trending in US/UK/AU with low Takealot availability. Add the best to your shortlist.
+              Trending in US/UK/AU/CA with low Takealot availability. Add the best to your shortlist.
             </DialogDescription>
+            {serpUsage && (
+              <p className="text-[11px] text-muted-foreground mt-1">
+                SerpAPI {serpUsage.plan ?? "Free"} ·{" "}
+                {serpUsage.searches_used != null ? `${serpUsage.searches_used} used` : "usage n/a"}
+                {serpUsage.searches_left != null ? ` · ${serpUsage.searches_left} searches left` : ""}
+              </p>
+            )}
           </DialogHeader>
           <div className="space-y-3 mt-2">
             {opps?.length === 0 && (
