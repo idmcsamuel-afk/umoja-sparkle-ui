@@ -346,7 +346,7 @@ export default function AdminMembers() {
           <DialogHeader>
             <DialogTitle>Assign referrer</DialogTitle>
             <DialogDescription>
-              Manually attach a referrer to <b>{assignFor?.full_name}</b>. The referrer will be credited 200 Sparks if not already credited.
+              Manually attach a referrer to <b>{assignFor?.full_name}</b>. The referrer will be credited 100 Sparks if not already credited.
             </DialogDescription>
           </DialogHeader>
           <Input
