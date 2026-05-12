@@ -208,6 +208,12 @@ export default function AdminSparkTrade() {
           <p className="text-sm text-muted-foreground mt-1">Manage MOQ, slots, source, and approval status.</p>
         </div>
         <div className="flex gap-2 flex-wrap">
+          <Button onClick={exportCsv} variant="outline" className="gap-2">
+            <Download className="h-4 w-4" /> Export Costs
+          </Button>
+          <Button onClick={() => setRateOpen(true)} variant="outline" className="gap-2">
+            <DollarSign className="h-4 w-4" /> Update Exchange Rate
+          </Button>
           <Button onClick={findBuySoon} disabled={scouting} variant="outline" className="gap-2">
             {scouting ? <Loader2 className="h-4 w-4 animate-spin" /> : <Globe2 className="h-4 w-4" />}
             Find Buy Soon Products
