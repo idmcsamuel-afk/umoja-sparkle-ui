@@ -141,7 +141,7 @@ const Signup = () => {
       if (refErr || !r?.ok) {
         toast.warning("Referral code couldn't be applied, but your account was created.");
       } else {
-        refMsg = ` Your referrer ${r.referrer_name ?? ""} earned 200 Sparks too 🎁`;
+        refMsg = ` Your referrer ${r.referrer_name ?? ""} earned 100 Sparks too 🎁`;
         // Notify referrer by email
         if (r.referrer_id) {
           const { data: refRow } = await supabase.from("members")
