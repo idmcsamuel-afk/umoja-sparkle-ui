@@ -50,6 +50,8 @@ export default function Exchange() {
   const [balance, setBalance] = useState<number>(0);
   const [loading, setLoading] = useState(true);
   const [sellOpen, setSellOpen] = useState(false);
+  const [lockOpen, setLockOpen] = useState(false);
+  const [hasContributed, setHasContributed] = useState<boolean>(true);
   const [busy, setBusy] = useState(false);
   const [sellAmt, setSellAmt] = useState("");
   const [sellPrice, setSellPrice] = useState(String(SPARK_RATE));
@@ -59,7 +61,7 @@ export default function Exchange() {
 
   const load = async () => {
     setLoading(true);
-    const [oRes, tRes, wRes] = await Promise.all([
+    const [oRes, tRes, wRes, mRes] = await Promise.all([
       supabase
         .from("spark_exchange")
         .select("*")
@@ -77,10 +79,14 @@ export default function Exchange() {
       user
         ? supabase.from("spark_wallets").select("balance").eq("member_id", user.id).maybeSingle()
         : Promise.resolve({ data: null, error: null } as const),
+      user
+        ? supabase.from("members").select("has_contributed").eq("id", user.id).maybeSingle()
+        : Promise.resolve({ data: null, error: null } as const),
     ]);
     setOffers((oRes.data ?? []) as Offer[]);
     setTxns((tRes.data ?? []) as Txn[]);
     setBalance(Number((wRes.data as { balance?: number } | null)?.balance ?? 0));
+    setHasContributed(!!(mRes.data as { has_contributed?: boolean } | null)?.has_contributed);
     setLoading(false);
   };
 
