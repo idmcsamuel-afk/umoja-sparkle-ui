@@ -1570,6 +1570,60 @@ export type Database = {
           },
         ]
       }
+      modular_models: {
+        Row: {
+          assembly_weeks: number
+          base_price_zar: number
+          bathrooms: number
+          bedrooms: number
+          created_at: string
+          delivery_weeks: number
+          description: string | null
+          floor_plan_url: string | null
+          id: string
+          image_url: string | null
+          is_active: boolean
+          min_plot_sqm: number | null
+          name: string
+          size_sqm: number
+          supplier: string | null
+        }
+        Insert: {
+          assembly_weeks?: number
+          base_price_zar: number
+          bathrooms: number
+          bedrooms: number
+          created_at?: string
+          delivery_weeks?: number
+          description?: string | null
+          floor_plan_url?: string | null
+          id?: string
+          image_url?: string | null
+          is_active?: boolean
+          min_plot_sqm?: number | null
+          name: string
+          size_sqm: number
+          supplier?: string | null
+        }
+        Update: {
+          assembly_weeks?: number
+          base_price_zar?: number
+          bathrooms?: number
+          bedrooms?: number
+          created_at?: string
+          delivery_weeks?: number
+          description?: string | null
+          floor_plan_url?: string | null
+          id?: string
+          image_url?: string | null
+          is_active?: boolean
+          min_plot_sqm?: number | null
+          name?: string
+          size_sqm?: number
+          supplier?: string | null
+        }
+        Relationships: []
+      }
       notifications: {
         Row: {
           body: string | null
@@ -1742,43 +1796,118 @@ export type Database = {
       }
       properties: {
         Row: {
+          assembly_complete_date: string | null
+          assembly_cost: number | null
+          bathrooms: number | null
+          bedrooms: number | null
+          connection_cost: number | null
+          contingency_cost: number | null
           created_at: string | null
+          delivery_date: string | null
           description: string | null
+          expected_monthly_rental: number | null
+          funding_deadline: string | null
+          gallery_urls: Json | null
+          home_cost: number | null
+          home_order_date: string | null
           id: string
           image_url: string | null
+          land_cost: number | null
           location: string
+          modular_model: string | null
+          modular_supplier: string | null
           name: string
+          plot_size_sqm: number | null
+          project_stage: string | null
           projected_return_pct: number | null
+          property_kind: string
           property_type: string
           raised_amount: number | null
+          site_prep_cost: number | null
+          size_sqm: number | null
           status: string | null
+          supplier_info: Json | null
           target_amount: number
+          tenant_ready_date: string | null
+          title_deed_number: string | null
+          title_deed_url: string | null
+          unit_price: number
         }
         Insert: {
+          assembly_complete_date?: string | null
+          assembly_cost?: number | null
+          bathrooms?: number | null
+          bedrooms?: number | null
+          connection_cost?: number | null
+          contingency_cost?: number | null
           created_at?: string | null
+          delivery_date?: string | null
           description?: string | null
+          expected_monthly_rental?: number | null
+          funding_deadline?: string | null
+          gallery_urls?: Json | null
+          home_cost?: number | null
+          home_order_date?: string | null
           id?: string
           image_url?: string | null
+          land_cost?: number | null
           location: string
+          modular_model?: string | null
+          modular_supplier?: string | null
           name: string
+          plot_size_sqm?: number | null
+          project_stage?: string | null
           projected_return_pct?: number | null
+          property_kind?: string
           property_type: string
           raised_amount?: number | null
+          site_prep_cost?: number | null
+          size_sqm?: number | null
           status?: string | null
+          supplier_info?: Json | null
           target_amount: number
+          tenant_ready_date?: string | null
+          title_deed_number?: string | null
+          title_deed_url?: string | null
+          unit_price?: number
         }
         Update: {
+          assembly_complete_date?: string | null
+          assembly_cost?: number | null
+          bathrooms?: number | null
+          bedrooms?: number | null
+          connection_cost?: number | null
+          contingency_cost?: number | null
           created_at?: string | null
+          delivery_date?: string | null
           description?: string | null
+          expected_monthly_rental?: number | null
+          funding_deadline?: string | null
+          gallery_urls?: Json | null
+          home_cost?: number | null
+          home_order_date?: string | null
           id?: string
           image_url?: string | null
+          land_cost?: number | null
           location?: string
+          modular_model?: string | null
+          modular_supplier?: string | null
           name?: string
+          plot_size_sqm?: number | null
+          project_stage?: string | null
           projected_return_pct?: number | null
+          property_kind?: string
           property_type?: string
           raised_amount?: number | null
+          site_prep_cost?: number | null
+          size_sqm?: number | null
           status?: string | null
+          supplier_info?: Json | null
           target_amount?: number
+          tenant_ready_date?: string | null
+          title_deed_number?: string | null
+          title_deed_url?: string | null
+          unit_price?: number
         }
         Relationships: []
       }
@@ -1813,6 +1942,50 @@ export type Database = {
             columns: ["member_id"]
             isOneToOne: false
             referencedRelation: "members"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      property_milestones: {
+        Row: {
+          created_at: string
+          created_by: string | null
+          description: string | null
+          id: string
+          is_complete: boolean
+          occurred_at: string
+          property_id: string
+          stage: string
+          title: string
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string | null
+          description?: string | null
+          id?: string
+          is_complete?: boolean
+          occurred_at?: string
+          property_id: string
+          stage: string
+          title: string
+        }
+        Update: {
+          created_at?: string
+          created_by?: string | null
+          description?: string | null
+          id?: string
+          is_complete?: boolean
+          occurred_at?: string
+          property_id?: string
+          stage?: string
+          title?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "property_milestones_property_id_fkey"
+            columns: ["property_id"]
+            isOneToOne: false
+            referencedRelation: "properties"
             referencedColumns: ["id"]
           },
         ]
