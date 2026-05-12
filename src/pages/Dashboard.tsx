@@ -94,6 +94,16 @@ const Dashboard = () => {
   }, [user]);
 
   useEffect(() => {
+    (async () => {
+      const { count } = await supabase
+        .from("properties")
+        .select("id", { count: "exact", head: true })
+        .in("status", ["funding", "active", "open"]);
+      setPropertyCount(count ?? 0);
+    })();
+  }, []);
+
+  useEffect(() => {
     if (!user) { setKycLevel(null); setBc(null); return; }
     const uid = user.id;
     const fetchBc = async () => {
