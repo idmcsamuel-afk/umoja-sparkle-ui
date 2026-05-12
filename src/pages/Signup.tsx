@@ -193,7 +193,7 @@ const Signup = () => {
         <div className="mx-auto max-w-md animate-fade-in">
           <div className="inline-flex items-center gap-2 rounded-full glass px-3 py-1.5 text-xs">
             <Sparkles className="h-3 w-3 text-accent" />
-            <span className="text-muted-foreground">100 welcome Sparks for new members</span>
+            <span className="text-muted-foreground">50 welcome Sparks for new members</span>
           </div>
           <h1 className="mt-5 font-display text-[40px] leading-[1.05] tracking-tight">
             Join the <span className="text-gradient-gold italic font-[450]">circle.</span>
