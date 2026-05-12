@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { Link } from "react-router-dom";
-import { ArrowLeft, Loader2, Sparkles, ArrowDownLeft, ArrowUpRight, Plus, Wallet, History, ShieldCheck } from "lucide-react";
+import { ArrowLeft, Loader2, Sparkles, ArrowDownLeft, ArrowUpRight, Plus, Wallet, History, ShieldCheck, Lock } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { Logo } from "@/components/umoja/Logo";
@@ -50,6 +50,8 @@ export default function Exchange() {
   const [balance, setBalance] = useState<number>(0);
   const [loading, setLoading] = useState(true);
   const [sellOpen, setSellOpen] = useState(false);
+  const [lockOpen, setLockOpen] = useState(false);
+  const [hasContributed, setHasContributed] = useState<boolean>(true);
   const [busy, setBusy] = useState(false);
   const [sellAmt, setSellAmt] = useState("");
   const [sellPrice, setSellPrice] = useState(String(SPARK_RATE));
@@ -59,7 +61,7 @@ export default function Exchange() {
 
   const load = async () => {
     setLoading(true);
-    const [oRes, tRes, wRes] = await Promise.all([
+    const [oRes, tRes, wRes, mRes] = await Promise.all([
       supabase
         .from("spark_exchange")
         .select("*")
@@ -77,10 +79,14 @@ export default function Exchange() {
       user
         ? supabase.from("spark_wallets").select("balance").eq("member_id", user.id).maybeSingle()
         : Promise.resolve({ data: null, error: null } as const),
+      user
+        ? supabase.from("members").select("has_contributed").eq("id", user.id).maybeSingle()
+        : Promise.resolve({ data: null, error: null } as const),
     ]);
     setOffers((oRes.data ?? []) as Offer[]);
     setTxns((tRes.data ?? []) as Txn[]);
     setBalance(Number((wRes.data as { balance?: number } | null)?.balance ?? 0));
+    setHasContributed(!!(mRes.data as { has_contributed?: boolean } | null)?.has_contributed);
     setLoading(false);
   };
 
@@ -149,11 +155,11 @@ export default function Exchange() {
           </Link>
           <Logo />
           <button
-            onClick={() => setSellOpen(true)}
+            onClick={() => (hasContributed ? setSellOpen(true) : setLockOpen(true))}
             className="grid h-10 w-10 place-items-center rounded-2xl bg-gradient-primary text-primary-foreground shadow-glow"
             aria-label="Sell sparks"
           >
-            <Plus className="h-4 w-4" />
+            {hasContributed ? <Plus className="h-4 w-4" /> : <Lock className="h-4 w-4" />}
           </button>
         </div>
       </header>
@@ -231,10 +237,10 @@ export default function Exchange() {
                   <h3 className="mt-4 font-display text-xl">No open offers</h3>
                   <p className="mt-1.5 text-sm text-muted-foreground leading-relaxed">Be the first to set a fair rate for the village.</p>
                   <Button
-                    onClick={() => setSellOpen(true)}
+                    onClick={() => (hasContributed ? setSellOpen(true) : setLockOpen(true))}
                     className="mt-5 h-11 rounded-2xl bg-gradient-primary text-primary-foreground shadow-glow hover-scale"
                   >
-                    <Plus className="h-4 w-4 mr-1.5" /> Sell Sparks
+                    {hasContributed ? <><Plus className="h-4 w-4 mr-1.5" /> Sell Sparks</> : <><Lock className="h-4 w-4 mr-1.5" /> Withdrawal locked</>}
                   </Button>
                 </div>
               ) : (
@@ -409,6 +415,44 @@ export default function Exchange() {
             >
               {buyBusy ? <Loader2 className="h-4 w-4 animate-spin" /> : (<><ArrowDownLeft className="h-4 w-4 mr-1.5" /> Reserve trade</>)}
             </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Withdrawal lock dialog */}
+      <Dialog open={lockOpen} onOpenChange={setLockOpen}>
+        <DialogContent className="rounded-3xl border border-accent/40 bg-gradient-card max-w-md">
+          <DialogHeader>
+            <DialogTitle className="font-display text-2xl flex items-center gap-2"><Lock className="h-5 w-5 text-accent" /> Withdrawal Locked</DialogTitle>
+            <DialogDescription>
+              Spark withdrawals require a financial contribution to the UMOJA community first.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-3 text-sm">
+            <div className="rounded-2xl bg-secondary/40 p-4">
+              <p className="font-medium mb-2">Contribute by:</p>
+              <ul className="space-y-1 text-muted-foreground">
+                <li>• Joining a Circle (from R50)</li>
+                <li>• Purchasing from Spark Trade</li>
+                <li>• Joining UMOJA Drive</li>
+                <li>• Subscribing to Buyers Club</li>
+              </ul>
+            </div>
+            <div className="rounded-2xl border border-primary/30 bg-primary/5 p-4">
+              <p className="font-medium mb-2">Sparks earned through referrals can still be used for:</p>
+              <ul className="space-y-1 text-muted-foreground">
+                <li>✓ Playing Spark Pit games</li>
+                <li>✓ Joining Spark Trade groups</li>
+                <li>✓ Circle entry fees</li>
+              </ul>
+              <p className="mt-2 text-xs text-accent">But not for cash withdrawal until you contribute.</p>
+            </div>
+          </div>
+          <DialogFooter className="gap-2">
+            <Button variant="ghost" onClick={() => setLockOpen(false)}>Close</Button>
+            <Link to="/circle" onClick={() => setLockOpen(false)}>
+              <Button className="rounded-2xl bg-gradient-primary text-primary-foreground shadow-glow">View contribution options</Button>
+            </Link>
           </DialogFooter>
         </DialogContent>
       </Dialog>

@@ -2470,6 +2470,7 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      _flip_contributed: { Args: { _member: string }; Returns: undefined }
       active_members_count: { Args: never; Returns: number }
       adjust_spark_balance: {
         Args: { _delta: number; _member: string; _note?: string }

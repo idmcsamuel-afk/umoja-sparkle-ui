@@ -20,7 +20,12 @@ const schema = z.object({
 const Signup = () => {
   const nav = useNavigate();
   const [params] = useSearchParams();
-  const refParam = (params.get("ref") ?? "").trim().toUpperCase().slice(0, 8);
+  const urlRef = (params.get("ref") ?? "").trim().toUpperCase().slice(0, 8);
+  // Persist referral code so it survives navigation (email confirmation, etc.)
+  const refParam = urlRef || (typeof window !== "undefined" ? (localStorage.getItem("umoja_referral_code") ?? "").toUpperCase() : "");
+  useEffect(() => {
+    if (urlRef) localStorage.setItem("umoja_referral_code", urlRef);
+  }, [urlRef]);
   const [referrerName, setReferrerName] = useState<string | null>(null);
   const [refStatus, setRefStatus] = useState<"none" | "checking" | "valid" | "invalid">(refParam ? "checking" : "none");
   const [form, setForm] = useState({ full_name: "", email: "", phone: "", password: "", invite_code: "" });
@@ -158,6 +163,9 @@ const Signup = () => {
     } else if (refParam && refStatus === "invalid") {
       toast.warning("Invalid referral code — signup allowed without referral bonus.");
     }
+
+    // clear cached referral code now that we've used it
+    try { localStorage.removeItem("umoja_referral_code"); } catch {}
 
     setBusy(false);
     toast.success(`You've earned 100 welcome Sparks! ✨${refMsg}`, { duration: 6000 });
