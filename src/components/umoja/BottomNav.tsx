@@ -66,7 +66,7 @@ export const BottomNav = () => {
   }, []);
 
   return (
-    <nav className="fixed bottom-0 inset-x-0 z-40 px-3 pb-[max(0.75rem,env(safe-area-inset-bottom))] pt-2">
+    <nav className="md:hidden fixed bottom-0 inset-x-0 z-40 px-3 pb-[max(0.75rem,env(safe-area-inset-bottom))] pt-2">
       <div className="relative mx-auto max-w-lg">
         <div className="glass rounded-3xl px-1.5 py-2 shadow-soft overflow-hidden">
           <div

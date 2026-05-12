@@ -54,6 +54,7 @@ import StorefrontEdit from "./pages/StorefrontEdit";
 import StorefrontPublic from "./pages/StorefrontPublic";
 import FulfillmentDashboard from "./pages/FulfillmentDashboard";
 import AdminFulfillment from "./pages/admin/AdminFulfillment";
+import MemberLayout from "./components/umoja/MemberLayout";
 
 const queryClient = new QueryClient();
 
@@ -71,29 +72,31 @@ const App = () => (
               <Route path="/login" element={<Login />} />
               <Route path="/signup" element={<Signup />} />
               <Route path="/waitlist" element={<Waitlist />} />
-              <Route path="/dashboard" element={<ProtectedRoute><Dashboard /></ProtectedRoute>} />
-              <Route path="/circle" element={<ProtectedRoute><Circle /></ProtectedRoute>} />
-              <Route path="/spark" element={<ProtectedRoute><SparkTrade /></ProtectedRoute>} />
-              <Route path="/drive" element={<ProtectedRoute><Drive /></ProtectedRoute>} />
-              <Route path="/predictor" element={<ProtectedRoute><Predictor /></ProtectedRoute>} />
-              <Route path="/profile" element={<ProtectedRoute><Profile /></ProtectedRoute>} />
-              <Route path="/calculator" element={<ProtectedRoute><Calculator /></ProtectedRoute>} />
-              <Route path="/market" element={<ProtectedRoute><Market /></ProtectedRoute>} />
-              <Route path="/exchange" element={<ProtectedRoute><Exchange /></ProtectedRoute>} />
-              <Route path="/property" element={<ProtectedRoute><Property /></ProtectedRoute>} />
-              <Route path="/property/modular-catalog" element={<ProtectedRoute><ModularCatalog /></ProtectedRoute>} />
-              <Route path="/property/how-it-works" element={<ProtectedRoute><PropertyHowItWorks /></ProtectedRoute>} />
-              <Route path="/property/:id" element={<ProtectedRoute><PropertyDetails /></ProtectedRoute>} />
-              <Route path="/flame-marketing" element={<ProtectedRoute><FlameMarketing /></ProtectedRoute>} />
-              <Route path="/spark-pit" element={<ProtectedRoute><SparkPit /></ProtectedRoute>} />
-              <Route path="/spark-pit/dream-draw" element={<ProtectedRoute><DreamDraw /></ProtectedRoute>} />
-              <Route path="/spark-pit/spark-flip" element={<ProtectedRoute><SparkFlip /></ProtectedRoute>} />
-              <Route path="/kyc" element={<ProtectedRoute><Kyc /></ProtectedRoute>} />
-              <Route path="/referrals" element={<ProtectedRoute><Referrals /></ProtectedRoute>} />
-              <Route path="/priority" element={<ProtectedRoute><Priority /></ProtectedRoute>} />
-              <Route path="/storefront/edit" element={<ProtectedRoute><StorefrontEdit /></ProtectedRoute>} />
+              <Route element={<MemberLayout />}>
+                <Route path="/dashboard" element={<ProtectedRoute><Dashboard /></ProtectedRoute>} />
+                <Route path="/circle" element={<ProtectedRoute><Circle /></ProtectedRoute>} />
+                <Route path="/spark" element={<ProtectedRoute><SparkTrade /></ProtectedRoute>} />
+                <Route path="/drive" element={<ProtectedRoute><Drive /></ProtectedRoute>} />
+                <Route path="/predictor" element={<ProtectedRoute><Predictor /></ProtectedRoute>} />
+                <Route path="/profile" element={<ProtectedRoute><Profile /></ProtectedRoute>} />
+                <Route path="/calculator" element={<ProtectedRoute><Calculator /></ProtectedRoute>} />
+                <Route path="/market" element={<ProtectedRoute><Market /></ProtectedRoute>} />
+                <Route path="/exchange" element={<ProtectedRoute><Exchange /></ProtectedRoute>} />
+                <Route path="/property" element={<ProtectedRoute><Property /></ProtectedRoute>} />
+                <Route path="/property/modular-catalog" element={<ProtectedRoute><ModularCatalog /></ProtectedRoute>} />
+                <Route path="/property/how-it-works" element={<ProtectedRoute><PropertyHowItWorks /></ProtectedRoute>} />
+                <Route path="/property/:id" element={<ProtectedRoute><PropertyDetails /></ProtectedRoute>} />
+                <Route path="/flame-marketing" element={<ProtectedRoute><FlameMarketing /></ProtectedRoute>} />
+                <Route path="/spark-pit" element={<ProtectedRoute><SparkPit /></ProtectedRoute>} />
+                <Route path="/spark-pit/dream-draw" element={<ProtectedRoute><DreamDraw /></ProtectedRoute>} />
+                <Route path="/spark-pit/spark-flip" element={<ProtectedRoute><SparkFlip /></ProtectedRoute>} />
+                <Route path="/kyc" element={<ProtectedRoute><Kyc /></ProtectedRoute>} />
+                <Route path="/referrals" element={<ProtectedRoute><Referrals /></ProtectedRoute>} />
+                <Route path="/priority" element={<ProtectedRoute><Priority /></ProtectedRoute>} />
+                <Route path="/storefront/edit" element={<ProtectedRoute><StorefrontEdit /></ProtectedRoute>} />
+                <Route path="/fulfillment/dashboard" element={<ProtectedRoute><FulfillmentDashboard /></ProtectedRoute>} />
+              </Route>
               <Route path="/shop/:code" element={<StorefrontPublic />} />
-              <Route path="/fulfillment/dashboard" element={<ProtectedRoute><FulfillmentDashboard /></ProtectedRoute>} />
 
               <Route path="/admin" element={<AdminRoute><AdminLayout /></AdminRoute>}>
                 <Route index element={<AdminDashboard />} />
