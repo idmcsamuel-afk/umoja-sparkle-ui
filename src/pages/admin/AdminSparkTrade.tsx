@@ -43,6 +43,7 @@ export default function AdminSparkTrade() {
   const [fetching, setFetching] = useState(false);
   const [scouting, setScouting] = useState(false);
   const [opps, setOpps] = useState<Opportunity[] | null>(null);
+  const [serpUsage, setSerpUsage] = useState<{ plan?: string; searches_used?: number | null; searches_left?: number | null } | null>(null);
   const [adding, setAdding] = useState<string | null>(null);
 
   const [calcOpen, setCalcOpen] = useState(false);
