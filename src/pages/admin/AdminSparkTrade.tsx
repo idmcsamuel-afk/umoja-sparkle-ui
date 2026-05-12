@@ -161,10 +161,20 @@ export default function AdminSparkTrade() {
     setScouting(true);
     const { data, error } = await supabase.functions.invoke("serpapi-trending");
     setScouting(false);
-    if (error) return toast.error(error.message);
-    const list = (data as any)?.opportunities ?? [];
+    if (error) {
+      console.error("serpapi-trending failed", error);
+      return toast.error(error.message || "SerpAPI search failed");
+    }
+    const payload = data as any;
+    if (payload?.ok === false) {
+      console.error("serpapi-trending payload error", payload);
+      return toast.error(payload.error || "SerpAPI search failed");
+    }
+    const list = payload?.opportunities ?? [];
     setOpps(list);
+    setSerpUsage(payload?.usage ?? null);
     if (!list.length) toast.message("No opportunities found this run.");
+    else toast.success(`Found ${list.length} new Buy Soon opportunities`);
   };
 
   const addOpportunity = async (o: Opportunity) => {
