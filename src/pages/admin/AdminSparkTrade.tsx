@@ -45,20 +45,105 @@ export default function AdminSparkTrade() {
   const [opps, setOpps] = useState<Opportunity[] | null>(null);
   const [adding, setAdding] = useState<string | null>(null);
 
+  const [calcOpen, setCalcOpen] = useState(false);
+  const [calcRow, setCalcRow] = useState<Row | null>(null);
+  const [rateOpen, setRateOpen] = useState(false);
+  const [newRate, setNewRate] = useState<number>(2.45);
+  const [applying, setApplying] = useState(false);
+
   const load = async () => {
     setLoading(true);
     const { data } = await supabase
       .from("spark_trade_shortlist")
-      .select("id, asin, product_name, category, moq, target_slots, joined_count, status, data_source, sale_price, cost_price, estimated_monthly_sales, is_demo")
+      .select("id, asin, product_name, category, moq, target_slots, joined_count, status, data_source, sale_price, cost_price, estimated_monthly_sales, is_demo, cost_breakdown, cost_updated_at")
       .order("added_at", { ascending: false });
-    setRows((data ?? []) as Row[]);
+    setRows((data ?? []) as unknown as Row[]);
     setLoading(false);
   };
   useEffect(() => { load(); }, []);
 
   const updateRow = async (id: string, patch: Partial<Row>) => {
-    const { error } = await supabase.from("spark_trade_shortlist").update(patch).eq("id", id);
+    const { error } = await supabase.from("spark_trade_shortlist").update(patch as any).eq("id", id);
     if (error) toast.error(error.message); else { toast.success("Updated"); load(); }
+  };
+
+  const openCalc = (r: Row) => { setCalcRow(r); setCalcOpen(true); };
+
+  const applyNewRate = async () => {
+    if (newRate <= 0) return toast.error("Rate must be > 0");
+    setApplying(true);
+    const targets = rows.filter(r => r.cost_breakdown);
+    for (const r of targets) {
+      const cb = r.cost_breakdown!;
+      const qty = cb.quantity || 1;
+      const productZar = cb.product_cost_cny * newRate * qty;
+      const shipping = cb.shipping_cost; // shipping is ZAR-based, unchanged
+      const clearing = 0.15 * (cb.product_cost_cny * newRate);
+      const landing = (productZar + shipping + clearing) * 1.05;
+      const total = landing + cb.handling_fee + cb.storage_fee;
+      const perUnit = total / qty;
+      const m = cb.target_margin_percent;
+      const bronzePrice = m < 100 ? perUnit / (1 - m / 100) : perUnit;
+      const bronzeProfit = bronzePrice - perUnit;
+      const updated: CostBreakdown = {
+        ...cb,
+        exchange_rate: newRate,
+        clearing_cost: Math.round(clearing * 100) / 100,
+        landing_cost: Math.round(landing * 100) / 100,
+        total_cost_zar: Math.round(total * 100) / 100,
+        cost_per_unit: Math.round(perUnit * 100) / 100,
+        bronze_sell_price: Math.round(bronzePrice * 100) / 100,
+        bronze_profit: Math.round(bronzeProfit * 100) / 100,
+        silver_sell_price: Math.round(bronzePrice * 1.05 * 100) / 100,
+        silver_profit: Math.round(bronzeProfit * 1.05 * 100) / 100,
+        gold_sell_price: Math.round(bronzePrice * 1.10 * 100) / 100,
+        gold_profit: Math.round(bronzeProfit * 1.10 * 100) / 100,
+        calculated_at: new Date().toISOString(),
+      };
+      await supabase.from("spark_trade_shortlist").update({
+        cost_breakdown: updated as any,
+        cost_updated_at: new Date().toISOString(),
+        sale_price: updated.bronze_sell_price,
+        cost_price: updated.cost_per_unit,
+        estimated_margin: updated.bronze_profit,
+      }).eq("id", r.id);
+    }
+    setApplying(false);
+    setRateOpen(false);
+    toast.success(`Recalculated ${targets.length} products`);
+    load();
+  };
+
+  const exportCsv = () => {
+    const header = ["Product","ASIN","MOQ","Product Cost CNY","Rate","Shipping","Clearing","Landing","Handling","Storage","Total Cost","Cost/Unit","Margin %","Bronze Price","Bronze Profit","Silver Price","Silver Profit","Gold Price","Gold Profit","Updated"];
+    const lines = [header.join(",")];
+    rows.forEach(r => {
+      const cb = r.cost_breakdown;
+      lines.push([
+        JSON.stringify(r.product_name ?? ""), r.asin, r.moq ?? "",
+        cb?.product_cost_cny ?? "", cb?.exchange_rate ?? "",
+        cb?.shipping_cost ?? "", cb?.clearing_cost ?? "", cb?.landing_cost ?? "",
+        cb?.handling_fee ?? "", cb?.storage_fee ?? "", cb?.total_cost_zar ?? "",
+        cb?.cost_per_unit ?? "", cb?.target_margin_percent ?? "",
+        cb?.bronze_sell_price ?? "", cb?.bronze_profit ?? "",
+        cb?.silver_sell_price ?? "", cb?.silver_profit ?? "",
+        cb?.gold_sell_price ?? "", cb?.gold_profit ?? "",
+        r.cost_updated_at ?? "",
+      ].join(","));
+    });
+    const blob = new Blob([lines.join("\n")], { type: "text/csv" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url; a.download = `spark-trade-costs-${new Date().toISOString().slice(0,10)}.csv`;
+    a.click(); URL.revokeObjectURL(url);
+  };
+
+  const ago = (iso: string | null) => {
+    if (!iso) return null;
+    const days = Math.floor((Date.now() - new Date(iso).getTime()) / 86400000);
+    if (days === 0) return "today";
+    if (days === 1) return "1 day ago";
+    return `${days} days ago`;
   };
 
   const fetchMakro = async () => {
