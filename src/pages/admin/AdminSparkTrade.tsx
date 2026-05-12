@@ -2,9 +2,10 @@ import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Loader2, Check, X, RefreshCw, Zap, Clock, Globe2, Plus } from "lucide-react";
+import { Loader2, Check, X, RefreshCw, Zap, Clock, Globe2, Plus, Calculator, Download, DollarSign } from "lucide-react";
 import { toast } from "sonner";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
+import { SparkTradeCostCalculator, type CostBreakdown } from "@/components/umoja/SparkTradeCostCalculator";
 
 interface Row {
   id: string;
@@ -20,6 +21,8 @@ interface Row {
   cost_price: number | null;
   estimated_monthly_sales: number | null;
   is_demo: boolean | null;
+  cost_breakdown: CostBreakdown | null;
+  cost_updated_at: string | null;
 }
 
 interface Opportunity {
@@ -42,20 +45,105 @@ export default function AdminSparkTrade() {
   const [opps, setOpps] = useState<Opportunity[] | null>(null);
   const [adding, setAdding] = useState<string | null>(null);
 
+  const [calcOpen, setCalcOpen] = useState(false);
+  const [calcRow, setCalcRow] = useState<Row | null>(null);
+  const [rateOpen, setRateOpen] = useState(false);
+  const [newRate, setNewRate] = useState<number>(2.45);
+  const [applying, setApplying] = useState(false);
+
   const load = async () => {
     setLoading(true);
     const { data } = await supabase
       .from("spark_trade_shortlist")
-      .select("id, asin, product_name, category, moq, target_slots, joined_count, status, data_source, sale_price, cost_price, estimated_monthly_sales, is_demo")
+      .select("id, asin, product_name, category, moq, target_slots, joined_count, status, data_source, sale_price, cost_price, estimated_monthly_sales, is_demo, cost_breakdown, cost_updated_at")
       .order("added_at", { ascending: false });
-    setRows((data ?? []) as Row[]);
+    setRows((data ?? []) as unknown as Row[]);
     setLoading(false);
   };
   useEffect(() => { load(); }, []);
 
   const updateRow = async (id: string, patch: Partial<Row>) => {
-    const { error } = await supabase.from("spark_trade_shortlist").update(patch).eq("id", id);
+    const { error } = await supabase.from("spark_trade_shortlist").update(patch as any).eq("id", id);
     if (error) toast.error(error.message); else { toast.success("Updated"); load(); }
+  };
+
+  const openCalc = (r: Row) => { setCalcRow(r); setCalcOpen(true); };
+
+  const applyNewRate = async () => {
+    if (newRate <= 0) return toast.error("Rate must be > 0");
+    setApplying(true);
+    const targets = rows.filter(r => r.cost_breakdown);
+    for (const r of targets) {
+      const cb = r.cost_breakdown!;
+      const qty = cb.quantity || 1;
+      const productZar = cb.product_cost_cny * newRate * qty;
+      const shipping = cb.shipping_cost; // shipping is ZAR-based, unchanged
+      const clearing = 0.15 * (cb.product_cost_cny * newRate);
+      const landing = (productZar + shipping + clearing) * 1.05;
+      const total = landing + cb.handling_fee + cb.storage_fee;
+      const perUnit = total / qty;
+      const m = cb.target_margin_percent;
+      const bronzePrice = m < 100 ? perUnit / (1 - m / 100) : perUnit;
+      const bronzeProfit = bronzePrice - perUnit;
+      const updated: CostBreakdown = {
+        ...cb,
+        exchange_rate: newRate,
+        clearing_cost: Math.round(clearing * 100) / 100,
+        landing_cost: Math.round(landing * 100) / 100,
+        total_cost_zar: Math.round(total * 100) / 100,
+        cost_per_unit: Math.round(perUnit * 100) / 100,
+        bronze_sell_price: Math.round(bronzePrice * 100) / 100,
+        bronze_profit: Math.round(bronzeProfit * 100) / 100,
+        silver_sell_price: Math.round(bronzePrice * 1.05 * 100) / 100,
+        silver_profit: Math.round(bronzeProfit * 1.05 * 100) / 100,
+        gold_sell_price: Math.round(bronzePrice * 1.10 * 100) / 100,
+        gold_profit: Math.round(bronzeProfit * 1.10 * 100) / 100,
+        calculated_at: new Date().toISOString(),
+      };
+      await supabase.from("spark_trade_shortlist").update({
+        cost_breakdown: updated as any,
+        cost_updated_at: new Date().toISOString(),
+        sale_price: updated.bronze_sell_price,
+        cost_price: updated.cost_per_unit,
+        estimated_margin: updated.bronze_profit,
+      }).eq("id", r.id);
+    }
+    setApplying(false);
+    setRateOpen(false);
+    toast.success(`Recalculated ${targets.length} products`);
+    load();
+  };
+
+  const exportCsv = () => {
+    const header = ["Product","ASIN","MOQ","Product Cost CNY","Rate","Shipping","Clearing","Landing","Handling","Storage","Total Cost","Cost/Unit","Margin %","Bronze Price","Bronze Profit","Silver Price","Silver Profit","Gold Price","Gold Profit","Updated"];
+    const lines = [header.join(",")];
+    rows.forEach(r => {
+      const cb = r.cost_breakdown;
+      lines.push([
+        JSON.stringify(r.product_name ?? ""), r.asin, r.moq ?? "",
+        cb?.product_cost_cny ?? "", cb?.exchange_rate ?? "",
+        cb?.shipping_cost ?? "", cb?.clearing_cost ?? "", cb?.landing_cost ?? "",
+        cb?.handling_fee ?? "", cb?.storage_fee ?? "", cb?.total_cost_zar ?? "",
+        cb?.cost_per_unit ?? "", cb?.target_margin_percent ?? "",
+        cb?.bronze_sell_price ?? "", cb?.bronze_profit ?? "",
+        cb?.silver_sell_price ?? "", cb?.silver_profit ?? "",
+        cb?.gold_sell_price ?? "", cb?.gold_profit ?? "",
+        r.cost_updated_at ?? "",
+      ].join(","));
+    });
+    const blob = new Blob([lines.join("\n")], { type: "text/csv" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url; a.download = `spark-trade-costs-${new Date().toISOString().slice(0,10)}.csv`;
+    a.click(); URL.revokeObjectURL(url);
+  };
+
+  const ago = (iso: string | null) => {
+    if (!iso) return null;
+    const days = Math.floor((Date.now() - new Date(iso).getTime()) / 86400000);
+    if (days === 0) return "today";
+    if (days === 1) return "1 day ago";
+    return `${days} days ago`;
   };
 
   const fetchMakro = async () => {
@@ -120,6 +208,12 @@ export default function AdminSparkTrade() {
           <p className="text-sm text-muted-foreground mt-1">Manage MOQ, slots, source, and approval status.</p>
         </div>
         <div className="flex gap-2 flex-wrap">
+          <Button onClick={exportCsv} variant="outline" className="gap-2">
+            <Download className="h-4 w-4" /> Export Costs
+          </Button>
+          <Button onClick={() => setRateOpen(true)} variant="outline" className="gap-2">
+            <DollarSign className="h-4 w-4" /> Update Exchange Rate
+          </Button>
           <Button onClick={findBuySoon} disabled={scouting} variant="outline" className="gap-2">
             {scouting ? <Loader2 className="h-4 w-4 animate-spin" /> : <Globe2 className="h-4 w-4" />}
             Find Buy Soon Products
@@ -158,6 +252,14 @@ export default function AdminSparkTrade() {
                       {r.is_demo && <span className="text-[9px] uppercase tracking-wider rounded-full bg-amber-500/20 text-amber-400 px-1.5 py-0.5">DEMO</span>}
                     </div>
                     <div className="text-xs text-muted-foreground">{r.category}</div>
+                    {r.cost_breakdown && (
+                      <div className="mt-1.5 flex flex-wrap gap-1">
+                        <span className="text-[10px] rounded-full bg-secondary px-2 py-0.5">R{Math.round(r.cost_breakdown.cost_per_unit)} cost</span>
+                        <span className="text-[10px] rounded-full bg-emerald-700/20 text-emerald-400 px-2 py-0.5">R{Math.round(r.cost_breakdown.bronze_profit)}–R{Math.round(r.cost_breakdown.gold_profit)} profit</span>
+                        <span className="text-[10px] rounded-full bg-accent/20 text-accent px-2 py-0.5">{r.cost_breakdown.target_margin_percent}% margin</span>
+                        {r.cost_updated_at && <span className="text-[10px] text-muted-foreground">Updated {ago(r.cost_updated_at)}</span>}
+                      </div>
+                    )}
                   </td>
                   <td className="p-4">{sourceBadge(r.data_source)}</td>
                   <td className="p-4 text-xs">{r.asin}</td>
@@ -185,6 +287,9 @@ export default function AdminSparkTrade() {
                   </td>
                   <td className="p-4 text-right">
                     <div className="inline-flex flex-wrap justify-end gap-2">
+                      <Button size="sm" variant="outline" title="Edit Costs" onClick={() => openCalc(r)} className="gap-1">
+                        <Calculator className="h-3 w-3" /> Costs
+                      </Button>
                       <Button size="sm" variant="outline" title="Buy Now" onClick={() => updateRow(r.id, { status: "buy_now" })}>
                         <Zap className="h-3 w-3" />
                       </Button>
@@ -245,6 +350,38 @@ export default function AdminSparkTrade() {
                 </div>
               );
             })}
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      <SparkTradeCostCalculator
+        open={calcOpen}
+        onOpenChange={setCalcOpen}
+        productId={calcRow?.id ?? null}
+        productName={calcRow?.product_name ?? calcRow?.asin ?? ""}
+        initial={calcRow?.cost_breakdown ?? null}
+        onSaved={load}
+      />
+
+      <Dialog open={rateOpen} onOpenChange={setRateOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Update Exchange Rate</DialogTitle>
+            <DialogDescription>
+              Recalculates costs for {rows.filter(r => r.cost_breakdown).length} product(s) with stored cost breakdowns.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-3">
+            <div>
+              <label className="text-sm">New rate (CNY → ZAR)</label>
+              <Input type="number" step="0.01" value={newRate || ""} onChange={(e) => setNewRate(Number(e.target.value))} />
+            </div>
+            <div className="flex justify-end gap-2">
+              <Button variant="outline" onClick={() => setRateOpen(false)}>Cancel</Button>
+              <Button onClick={applyNewRate} disabled={applying} className="gap-1">
+                {applying && <Loader2 className="h-4 w-4 animate-spin" />} Apply to All Products
+              </Button>
+            </div>
           </div>
         </DialogContent>
       </Dialog>
