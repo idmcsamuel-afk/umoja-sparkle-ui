@@ -57,22 +57,44 @@ export function usePaystack() {
       plan: args.plan,
     });
     const key = pubKey ?? (await fetchPublicKey());
-    console.log("[Paystack Debug] 4. Using key:", key ? key.slice(0, 10) + "…" : "NULL");
-    if (!key) {
-      console.error("[Paystack Debug] ❌ No public key — aborting");
-      toast.error("Payment unavailable — Paystack not configured");
-      return { ok: false, error: "no_public_key" };
+    console.log("[Paystack Debug] 4. Key prefix:", key ? key.substring(0, 8) : "NULL");
+
+    // ---- Validation block ----
+    if (!key || !/^pk_(live|test)_/.test(key)) {
+      console.error("[Paystack Debug] ❌ Invalid public key format:", key?.substring(0, 8));
+      toast.error("Payment system configuration error");
+      return { ok: false, error: "invalid_public_key" };
     }
-    if (!args.email) {
-      console.error("[Paystack Debug] ❌ No email provided — aborting");
-      toast.error("Email is required for payment");
-      return { ok: false, error: "no_email" };
+    const email = (args.email ?? "").trim();
+    const emailValid = /\S+@\S+\.\S+/.test(email);
+    console.log("[Paystack Debug] Email:", email, "valid?", emailValid);
+    if (!emailValid) {
+      toast.error("Valid email address required for payment");
+      return { ok: false, error: "invalid_email" };
     }
-    if (!args.amountZar || args.amountZar <= 0) {
-      console.error("[Paystack Debug] ❌ Invalid amount:", args.amountZar);
-      toast.error("Invalid payment amount");
+    const amountInKobo = Math.round(Number(args.amountZar) * 100);
+    console.log("[Paystack Debug] Amount ZAR:", args.amountZar, "→ kobo:", amountInKobo);
+    if (!Number.isFinite(amountInKobo) || amountInKobo < 100) {
+      toast.error("Invalid amount. Minimum R1 required.");
       return { ok: false, error: "invalid_amount" };
     }
+    const cleanRef = String(args.reference ?? "").replace(/[^A-Za-z0-9\-_=.]/g, "").slice(0, 100);
+    console.log("[Paystack Debug] Reference (clean):", cleanRef);
+    if (!cleanRef || cleanRef.length < 6) {
+      toast.error("Invalid payment reference");
+      return { ok: false, error: "invalid_reference" };
+    }
+
+    console.log("[Paystack Debug] ✅ Final parameters:", {
+      key: key.substring(0, 10) + "...",
+      email,
+      amount: amountInKobo,
+      currency: "ZAR",
+      reference: cleanRef,
+      plan: args.plan,
+      allValid: true,
+    });
+
     return new Promise((resolve) => {
       try {
         console.log("[Paystack Debug] 5. Instantiating PaystackPop…", typeof PaystackPop);
@@ -80,10 +102,10 @@ export function usePaystack() {
         console.log("[Paystack Debug] 6. Calling popup.newTransaction…");
         popup.newTransaction({
           key,
-          email: args.email,
-          amount: Math.round(args.amountZar * 100),
+          email,
+          amount: amountInKobo,
           currency: "ZAR",
-          reference: args.reference,
+          reference: cleanRef,
           plan: args.plan,
           metadata: args.metadata,
           onSuccess: async (tx: any) => {
