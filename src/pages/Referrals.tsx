@@ -193,7 +193,7 @@ const Referrals = () => {
                       <div className="min-w-0">
                         <p className="text-sm truncate">{r.full_name}</p>
                         <p className="text-[11px] text-muted-foreground">
-                          Joined {new Date(r.joined_at).toLocaleDateString()} · +200 ✨ {approved ? "· +300 bonus ✨" : ""}
+                          Joined {new Date(r.joined_at).toLocaleDateString()} · +100 ✨ {approved ? "· +30 bonus ✨" : ""}
                         </p>
                       </div>
                       <div className="flex flex-col items-end gap-1 shrink-0">
