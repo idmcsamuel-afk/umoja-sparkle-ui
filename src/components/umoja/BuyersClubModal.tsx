@@ -131,28 +131,36 @@ export function BuyersClubModal({ open, onOpenChange, onSuccess }: { open: boole
 
         {step === 2 && selected && (
           <div className="space-y-3 mt-2">
-            <div className="rounded-2xl bg-secondary/60 p-4 space-y-2 text-sm">
-              <p className="text-[11px] uppercase tracking-[0.18em] text-accent">Pay via EFT</p>
-              {[
-                ["Bank", bank.bank_name ?? "—"],
-                ["Account name", bank.account_name ?? "—"],
-                ["Account", bank.account_number ?? "—"],
-                ["Branch", bank.branch_code ?? "—"],
-                ["Reference", reference],
-                ["Amount", `R${selected.price.toLocaleString()} (1 month)`],
-              ].map(([k, v]) => (
-                <div key={k} className="flex items-center justify-between gap-2 border-b border-border/40 pb-1.5 last:border-0 last:pb-0">
-                  <span className="text-muted-foreground text-xs">{k}</span>
-                  <button onClick={() => copy(String(v))} className="font-mono text-xs inline-flex items-center gap-1 hover:text-accent">
-                    {v} <Copy className="h-3 w-3" />
-                  </button>
-                </div>
-              ))}
-              {bank.payment_instructions && <p className="pt-2 text-xs text-muted-foreground">{bank.payment_instructions}</p>}
-            </div>
+            <PaymentMethodSelector value={method} onChange={setMethod} />
+            {method === "eft" && (
+              <div className="rounded-2xl bg-secondary/60 p-4 space-y-2 text-sm">
+                <p className="text-[11px] uppercase tracking-[0.18em] text-accent">Pay via EFT</p>
+                {[
+                  ["Bank", bank.bank_name ?? "—"],
+                  ["Account name", bank.account_name ?? "—"],
+                  ["Account", bank.account_number ?? "—"],
+                  ["Branch", bank.branch_code ?? "—"],
+                  ["Reference", reference],
+                  ["Amount", `R${selected.price.toLocaleString()} (1 month)`],
+                ].map(([k, v]) => (
+                  <div key={k} className="flex items-center justify-between gap-2 border-b border-border/40 pb-1.5 last:border-0 last:pb-0">
+                    <span className="text-muted-foreground text-xs">{k}</span>
+                    <button onClick={() => copy(String(v))} className="font-mono text-xs inline-flex items-center gap-1 hover:text-accent">
+                      {v} <Copy className="h-3 w-3" />
+                    </button>
+                  </div>
+                ))}
+              </div>
+            )}
             <div className="flex gap-2">
               <Button variant="outline" className="flex-1" onClick={() => setStep(1)}><ChevronLeft className="h-4 w-4" /> Back</Button>
-              <Button className="flex-1 bg-gradient-primary text-primary-foreground" onClick={() => setStep(3)}>I've made payment</Button>
+              {method === "paystack" ? (
+                <Button disabled={busy} className="flex-1 bg-gradient-primary text-primary-foreground" onClick={payNow}>
+                  {busy ? <Loader2 className="h-4 w-4 animate-spin" /> : "Pay with card"}
+                </Button>
+              ) : (
+                <Button className="flex-1 bg-gradient-primary text-primary-foreground" onClick={() => setStep(3)}>I've made payment</Button>
+              )}
             </div>
           </div>
         )}
@@ -167,7 +175,7 @@ export function BuyersClubModal({ open, onOpenChange, onSuccess }: { open: boole
             </label>
             <div className="flex gap-2">
               <Button variant="outline" className="flex-1" onClick={() => setStep(2)}><ChevronLeft className="h-4 w-4" /> Back</Button>
-              <Button disabled={!file || busy} className="flex-1 bg-gradient-primary text-primary-foreground" onClick={submit}>
+              <Button disabled={!file || busy} className="flex-1 bg-gradient-primary text-primary-foreground" onClick={payNow}>
                 {busy ? <Loader2 className="h-4 w-4 animate-spin" /> : "Submit for verification"}
               </Button>
             </div>
