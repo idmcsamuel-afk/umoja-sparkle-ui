@@ -48,7 +48,7 @@ export function MemberSidebar() {
           <SidebarGroupContent>
             <SidebarMenu>
               {main.map((item) => (
-                <SidebarMenuItem key={item.to}>
+                <SidebarMenuItem key={item.to} data-tour={item.tour}>
                   <SidebarMenuButton asChild isActive={isActive(item.to)} tooltip={item.label}>
                     <NavLink to={item.to} className="flex items-center gap-2">
                       <item.icon className="h-4 w-4" />
