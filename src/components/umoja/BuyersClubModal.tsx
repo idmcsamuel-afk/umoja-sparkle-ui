@@ -71,6 +71,9 @@ export function BuyersClubModal({ open, onOpenChange, onSuccess }: { open: boole
     setBusy(true);
     if (method === "paystack") {
       const ref = buildReference("BC", tier, memberCode);
+      // Close this dialog first so Radix focus trap doesn't block Paystack iframe inputs
+      onOpenChange(false);
+      await new Promise((r) => setTimeout(r, 150));
       const result = await payWithPaystack({
         email: user.email ?? "",
         amountZar: selected.price,
@@ -79,7 +82,7 @@ export function BuyersClubModal({ open, onOpenChange, onSuccess }: { open: boole
         metadata: { member_id: user.id, payment_type: "buyers_club", tier },
       });
       setBusy(false);
-      if (result.ok) { onOpenChange(false); onSuccess?.(); }
+      if (result.ok) onSuccess?.();
       return;
     }
     if (!file) { setBusy(false); return toast.error("Please attach proof of payment"); }
