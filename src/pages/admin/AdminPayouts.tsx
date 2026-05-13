@@ -92,6 +92,13 @@ export default function AdminPayouts() {
     );
   }, [pending, tierFilter, search]);
 
+  const paidFiltered = useMemo(() => {
+    if (dateRange === "all") return paid;
+    const days = Number(dateRange);
+    const cutoff = Date.now() - days * 86400000;
+    return paid.filter(b => b.payout_date && new Date(b.payout_date).getTime() >= cutoff);
+  }, [paid, dateRange]);
+
   const kpis = useMemo(() => {
     const gross = pending.reduce((s, b) => s + Number(b.fiat_amount ?? 0), 0);
     const net = pending.reduce((s, b) => s + Number(b.payout_amount ?? b.net_amount ?? 0), 0);
