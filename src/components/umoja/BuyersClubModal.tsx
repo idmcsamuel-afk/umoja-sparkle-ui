@@ -5,6 +5,8 @@ import { Loader2, Crown, Check, Copy, Upload, ChevronLeft } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { toast } from "sonner";
+import { PaymentMethodSelector, type PaymentMethod } from "@/components/umoja/PaymentMethodSelector";
+import { usePaystack, buildReference } from "@/hooks/usePaystack";
 
 type Tier = "bronze" | "silver" | "gold";
 
