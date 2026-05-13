@@ -459,26 +459,35 @@ export default function PropertyDetails() {
                   <div className="flex justify-between font-medium"><span>Total payable</span><span className="text-gradient-gold font-display">{fmtR(total)}</span></div>
                 </div>
 
-                <BankAccountInfo project="property" reference={payRef} />
+                <PaymentMethodSelector value={method} onChange={setMethod} />
 
-                <div>
-                  <Label className="text-xs uppercase tracking-[0.18em] text-muted-foreground">Proof of payment</Label>
-                  <label className="mt-1 flex items-center gap-2 h-12 rounded-2xl bg-secondary/60 border border-border px-3 cursor-pointer hover:bg-secondary/80">
-                    <Upload className="h-4 w-4 text-muted-foreground" />
-                    <span className="text-sm truncate">{proofFile ? proofFile.name : "Upload screenshot or PDF"}</span>
-                    <input
-                      type="file"
-                      accept="image/*,application/pdf"
-                      className="hidden"
-                      onChange={(e) => setProofFile(e.target.files?.[0] ?? null)}
-                    />
-                  </label>
-                </div>
+                {method === "eft" && (
+                  <>
+                    <BankAccountInfo project="property" reference={payRef} />
+                    <div>
+                      <Label className="text-xs uppercase tracking-[0.18em] text-muted-foreground">Proof of payment</Label>
+                      <label className="mt-1 flex items-center gap-2 h-12 rounded-2xl bg-secondary/60 border border-border px-3 cursor-pointer hover:bg-secondary/80">
+                        <Upload className="h-4 w-4 text-muted-foreground" />
+                        <span className="text-sm truncate">{proofFile ? proofFile.name : "Upload screenshot or PDF"}</span>
+                        <input
+                          type="file"
+                          accept="image/*,application/pdf"
+                          className="hidden"
+                          onChange={(e) => setProofFile(e.target.files?.[0] ?? null)}
+                        />
+                      </label>
+                    </div>
+                  </>
+                )}
               </div>
               <DialogFooter className="gap-2">
                 <Button variant="ghost" disabled={busy} onClick={() => setStep("amount")}>Back</Button>
-                <Button onClick={submitInvest} disabled={busy || !proofFile} className="rounded-2xl bg-gradient-primary text-primary-foreground shadow-glow hover-scale min-w-[160px]">
-                  {busy ? <Loader2 className="h-4 w-4 animate-spin" /> : "I've made payment"}
+                <Button
+                  onClick={submitInvest}
+                  disabled={busy || (method === "eft" && !proofFile)}
+                  className="rounded-2xl bg-gradient-primary text-primary-foreground shadow-glow hover-scale min-w-[160px]"
+                >
+                  {busy ? <Loader2 className="h-4 w-4 animate-spin" /> : method === "paystack" ? "Pay with card" : "I've made payment"}
                 </Button>
               </DialogFooter>
             </>
