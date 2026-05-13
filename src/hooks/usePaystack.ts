@@ -96,18 +96,30 @@ export function usePaystack() {
     });
 
     return new Promise((resolve) => {
+      const txParams = {
+        key,
+        email,
+        amount: amountInKobo,
+        currency: "ZAR",
+        reference: cleanRef,
+        plan: args.plan,
+        metadata: args.metadata,
+      };
+      console.log("[Paystack Debug] 6a. Parameters:", {
+        key: key.substring(0, 15) + "...",
+        email,
+        amount: amountInKobo,
+        currency: "ZAR",
+        reference: cleanRef,
+        plan: args.plan,
+        metadata: args.metadata,
+      });
       try {
         console.log("[Paystack Debug] 5. Instantiating PaystackPop…", typeof PaystackPop);
         const popup = new PaystackPop();
         console.log("[Paystack Debug] 6. Calling popup.newTransaction…");
         popup.newTransaction({
-          key,
-          email,
-          amount: amountInKobo,
-          currency: "ZAR",
-          reference: cleanRef,
-          plan: args.plan,
-          metadata: args.metadata,
+          ...txParams,
           onSuccess: async (tx: any) => {
             console.log("[Paystack Debug] ✅ onSuccess:", tx);
             const { data, error } = await supabase.functions.invoke("verify-paystack-payment", {
@@ -137,11 +149,20 @@ export function usePaystack() {
             resolve({ ok: false, error: e?.message ?? "error" });
           },
         });
-        console.log("[Paystack Debug] 8. newTransaction() returned (popup should be opening)");
+        console.log("[Paystack Debug] 7. newTransaction called successfully (popup should be opening)");
       } catch (e: any) {
-        console.error("[Paystack Debug] ❌ Exception thrown opening popup:", e);
-        toast.error("Could not open payment", { description: e?.message ?? String(e) });
-        resolve({ ok: false, error: e?.message ?? String(e) });
+        console.error("[Paystack Debug] ❌ Exception thrown opening popup:", {
+          name: e?.name,
+          message: e?.message,
+          stack: e?.stack,
+          fullError: e,
+        });
+        const msg: string = e?.message ?? String(e);
+        let friendly = "Payment popup failed to open: " + (msg || "Unknown error");
+        if (/invalid/i.test(msg)) friendly = "Payment details invalid. Please try EFT payment instead.";
+        else if (/key/i.test(msg)) friendly = "Payment system configuration error. Contact support.";
+        toast.error("Could not open payment", { description: friendly });
+        resolve({ ok: false, error: friendly });
       }
     });
   };
