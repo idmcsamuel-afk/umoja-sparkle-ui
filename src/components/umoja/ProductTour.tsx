@@ -143,10 +143,7 @@ export const ProductTour = () => {
       steps={TOUR_STEPS}
       run={run}
       continuous
-      showSkipButton
-      showProgress
       scrollToFirstStep
-      disableScrolling={false}
       onEvent={handleEvent}
       locale={{ back: "Back", close: "Close", last: "Done", next: "Next", skip: "Skip tour" }}
       styles={{
