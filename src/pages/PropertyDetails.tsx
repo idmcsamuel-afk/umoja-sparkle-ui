@@ -370,30 +370,83 @@ export default function PropertyDetails() {
       </section>
 
       {/* Invest dialog */}
-      <Dialog open={investing} onOpenChange={(v) => !v && !busy && setInvesting(false)}>
-        <DialogContent className="rounded-3xl border border-border bg-gradient-card max-w-md">
+      <Dialog open={investing} onOpenChange={(v) => !v && !busy && (setInvesting(false), setStep("amount"))}>
+        <DialogContent className="rounded-3xl border border-border bg-gradient-card max-w-md max-h-[90vh] overflow-y-auto">
           <DialogHeader>
-            <DialogTitle className="font-display text-2xl">Invest in {p.name}</DialogTitle>
-            <DialogDescription>Each unit is {fmtR(unitPrice)}. Min 10 units.</DialogDescription>
+            <DialogTitle className="font-display text-2xl">
+              {step === "amount" ? `Invest in ${p.name}` : "Complete your investment"}
+            </DialogTitle>
+            <DialogDescription>
+              {step === "amount"
+                ? `Each unit is ${fmtR(unitPrice)}. Min 10 units.`
+                : "Pay via EFT and upload proof so admin can confirm."}
+            </DialogDescription>
           </DialogHeader>
-          <div className="space-y-3">
-            <div>
-              <Label className="text-xs uppercase tracking-[0.18em] text-muted-foreground">Units</Label>
-              <Input type="number" min="1" value={units} onChange={(e) => setUnits(e.target.value)} className="mt-1 h-12 rounded-2xl bg-secondary/60 font-display text-xl" />
-            </div>
-            <div className="rounded-2xl border border-border bg-secondary/30 p-4 space-y-1.5 text-sm">
-              <div className="flex justify-between"><span className="text-muted-foreground">Unit price</span><span>{fmtR(unitPrice)}</span></div>
-              <div className="flex justify-between"><span className="text-muted-foreground">Units</span><span>{Number(units) || 0}</span></div>
-              <div className="my-1 h-px bg-border" />
-              <div className="flex justify-between font-medium"><span>You pay</span><span className="text-gradient-gold font-display">{fmtR((Number(units) || 0) * unitPrice)}</span></div>
-            </div>
-          </div>
-          <DialogFooter className="gap-2">
-            <Button variant="ghost" disabled={busy} onClick={() => setInvesting(false)}>Cancel</Button>
-            <Button onClick={submitInvest} disabled={busy || !Number(units)} className="rounded-2xl bg-gradient-primary text-primary-foreground shadow-glow hover-scale min-w-[140px]">
-              {busy ? <Loader2 className="h-4 w-4 animate-spin" /> : "Confirm invest"}
-            </Button>
-          </DialogFooter>
+
+          {step === "amount" && (
+            <>
+              <div className="space-y-3">
+                <div>
+                  <Label className="text-xs uppercase tracking-[0.18em] text-muted-foreground">Units</Label>
+                  <Input type="number" min="1" value={units} onChange={(e) => setUnits(e.target.value)} className="mt-1 h-12 rounded-2xl bg-secondary/60 font-display text-xl" />
+                </div>
+                <div className="rounded-2xl border border-border bg-secondary/30 p-4 space-y-1.5 text-sm">
+                  <div className="flex justify-between"><span className="text-muted-foreground">{u || 0} units × {fmtR(unitPrice)}</span><span>{fmtR(subtotal)}</span></div>
+                  <div className="flex justify-between"><span className="text-muted-foreground">Platform fee (2%)</span><span>{fmtR(platformFee)}</span></div>
+                  <div className="my-1 h-px bg-border" />
+                  <div className="flex justify-between font-medium"><span>Total payable</span><span className="text-gradient-gold font-display">{fmtR(total)}</span></div>
+                </div>
+                <PaymentBreakdown total={total} poolLabel="Property pool" />
+              </div>
+              <DialogFooter className="gap-2">
+                <Button variant="ghost" onClick={() => setInvesting(false)}>Cancel</Button>
+                <Button
+                  onClick={() => {
+                    if (!Number.isFinite(u) || u <= 0) return toast.error("Enter unit count");
+                    setStep("pay");
+                  }}
+                  className="rounded-2xl bg-gradient-primary text-primary-foreground shadow-glow hover-scale min-w-[140px]"
+                >
+                  Confirm investment
+                </Button>
+              </DialogFooter>
+            </>
+          )}
+
+          {step === "pay" && (
+            <>
+              <div className="space-y-3">
+                <div className="rounded-2xl border border-border bg-secondary/30 p-4 space-y-1 text-sm">
+                  <div className="flex justify-between"><span className="text-muted-foreground">Investment</span><span>{u} units · {fmtR(subtotal)}</span></div>
+                  <div className="flex justify-between"><span className="text-muted-foreground">Platform fee (2%)</span><span>{fmtR(platformFee)}</span></div>
+                  <div className="my-1 h-px bg-border" />
+                  <div className="flex justify-between font-medium"><span>Total payable</span><span className="text-gradient-gold font-display">{fmtR(total)}</span></div>
+                </div>
+
+                <BankAccountInfo project="property" reference={payRef} />
+
+                <div>
+                  <Label className="text-xs uppercase tracking-[0.18em] text-muted-foreground">Proof of payment</Label>
+                  <label className="mt-1 flex items-center gap-2 h-12 rounded-2xl bg-secondary/60 border border-border px-3 cursor-pointer hover:bg-secondary/80">
+                    <Upload className="h-4 w-4 text-muted-foreground" />
+                    <span className="text-sm truncate">{proofFile ? proofFile.name : "Upload screenshot or PDF"}</span>
+                    <input
+                      type="file"
+                      accept="image/*,application/pdf"
+                      className="hidden"
+                      onChange={(e) => setProofFile(e.target.files?.[0] ?? null)}
+                    />
+                  </label>
+                </div>
+              </div>
+              <DialogFooter className="gap-2">
+                <Button variant="ghost" disabled={busy} onClick={() => setStep("amount")}>Back</Button>
+                <Button onClick={submitInvest} disabled={busy || !proofFile} className="rounded-2xl bg-gradient-primary text-primary-foreground shadow-glow hover-scale min-w-[160px]">
+                  {busy ? <Loader2 className="h-4 w-4 animate-spin" /> : "I've made payment"}
+                </Button>
+              </DialogFooter>
+            </>
+          )}
         </DialogContent>
       </Dialog>
 
