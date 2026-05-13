@@ -149,11 +149,20 @@ export function usePaystack() {
             resolve({ ok: false, error: e?.message ?? "error" });
           },
         });
-        console.log("[Paystack Debug] 8. newTransaction() returned (popup should be opening)");
+        console.log("[Paystack Debug] 7. newTransaction called successfully (popup should be opening)");
       } catch (e: any) {
-        console.error("[Paystack Debug] ❌ Exception thrown opening popup:", e);
-        toast.error("Could not open payment", { description: e?.message ?? String(e) });
-        resolve({ ok: false, error: e?.message ?? String(e) });
+        console.error("[Paystack Debug] ❌ Exception thrown opening popup:", {
+          name: e?.name,
+          message: e?.message,
+          stack: e?.stack,
+          fullError: e,
+        });
+        const msg: string = e?.message ?? String(e);
+        let friendly = "Payment popup failed to open: " + (msg || "Unknown error");
+        if (/invalid/i.test(msg)) friendly = "Payment details invalid. Please try EFT payment instead.";
+        else if (/key/i.test(msg)) friendly = "Payment system configuration error. Contact support.";
+        toast.error("Could not open payment", { description: friendly });
+        resolve({ ok: false, error: friendly });
       }
     });
   };
