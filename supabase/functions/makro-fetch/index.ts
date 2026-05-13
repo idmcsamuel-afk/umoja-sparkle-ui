@@ -60,8 +60,9 @@ async function fetchFromMakro(): Promise<MakroProduct[]> {
   try {
     const res = await fetch(`${base.replace(/\/$/, "")}/products?limit=20`, {
       headers: { "x-app-id": appId, "x-app-secret": appSecret, Accept: "application/json" },
+      signal: AbortSignal.timeout(8000),
     });
-    if (!res.ok) { LAST_REAL = false; return SEED; }
+    if (!res.ok) { await res.text().catch(() => ""); LAST_REAL = false; return SEED; }
     const json = await res.json();
     const list: any[] = json.products ?? json.items ?? json.data ?? [];
     if (!list.length) { LAST_REAL = false; return SEED; }
