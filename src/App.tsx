@@ -16,6 +16,7 @@ import Signup from "./pages/Signup.tsx";
 import Circle from "./pages/Circle.tsx";
 import SparkTrade from "./pages/SparkTrade.tsx";
 import Drive from "./pages/Drive.tsx";
+import DriveDashboard from "./pages/DriveDashboard.tsx";
 import Predictor from "./pages/Predictor.tsx";
 import Profile from "./pages/Profile.tsx";
 import Calculator from "./pages/Calculator.tsx";
@@ -87,6 +88,7 @@ const App = () => (
                 <Route path="/circle" element={<ProtectedRoute><Circle /></ProtectedRoute>} />
                 <Route path="/spark" element={<ProtectedRoute><SparkTrade /></ProtectedRoute>} />
                 <Route path="/drive" element={<ProtectedRoute><Drive /></ProtectedRoute>} />
+                <Route path="/drive/dashboard" element={<ProtectedRoute><DriveDashboard /></ProtectedRoute>} />
                 <Route path="/predictor" element={<ProtectedRoute><Predictor /></ProtectedRoute>} />
                 <Route path="/profile" element={<ProtectedRoute><Profile /></ProtectedRoute>} />
                 <Route path="/calculator" element={<ProtectedRoute><Calculator /></ProtectedRoute>} />

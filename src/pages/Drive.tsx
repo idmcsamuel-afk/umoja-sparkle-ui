@@ -1,760 +1,251 @@
-import { useEffect, useState, type ReactNode } from "react";
-import { Link } from "react-router-dom";
-import { ArrowLeft, Car, Loader2, Users, Calendar, CheckCircle2, Clock, Sparkles, Bell, Wallet, Settings2, Smartphone, Mail, MessageSquare } from "lucide-react";
+import { useEffect, useState } from "react";
+import { Link, useNavigate } from "react-router-dom";
+import { ArrowLeft, Car, Loader2, Lock, CheckCircle2, Sparkles } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { Logo } from "@/components/umoja/Logo";
 import { BottomNav } from "@/components/umoja/BottomNav";
+import { Button } from "@/components/ui/button";
+import { Slider } from "@/components/ui/slider";
 import {
-  AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
-  AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
-} from "@/components/ui/alert-dialog";
-import { Switch } from "@/components/ui/switch";
+  Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter,
+} from "@/components/ui/dialog";
 import { toast } from "sonner";
-
-interface NotifPref { circle_id: string; in_app: boolean; email: boolean; push: boolean; }
-const DEFAULT_PREF = { in_app: true, email: true, push: true };
 
 interface Tier {
   id: string;
-  name: string;
-  weekly_contribution: number;
+  tier_name: string;
+  display_name: string;
+  vehicle_description: string | null;
+  retail_value: number;
+  umoja_cost: number;
   pool_target: number;
-  circle_size: number;
-  car_make: string | null;
-  car_model: string | null;
-  car_year: number | null;
-  car_image_url: string | null;
-  description: string | null;
+  cars_per_allocation: number;
+  min_contribution_before: number;
+  weekly_payment_before_min: number;
+  weekly_payment_before_max: number;
+  weekly_payment_after: number;
+  payback_weeks: number;
+  requires_buyers_club_tier: string | null;
 }
 
-interface DriveCircle {
-  id: string;
-  name: string | null;
-  tier_id: string | null;
-  target_pool: number;
-  current_pool: number | null;
-  members_count: number | null;
-  status: string | null;
-  created_at?: string | null;
-}
+interface Pool { tier_id: string; pool_total: number; active_members: number; }
 
-interface Membership {
-  id: string;
-  circle_id: string | null;
-  total_contributed: number | null;
-  status: string | null;
-  joined_at: string | null;
-}
+const fmtR = (n: number) => "R" + Math.round(n).toLocaleString("en-ZA");
 
-interface Repayment {
-  id: string;
-  circle_id: string | null;
-  amount: number;
-  week_number: number | null;
-  paid_at: string | null;
-  status: string | null;
-}
-
-const fmtR = (n: number | null | undefined) =>
-  "R" + Math.round(Number(n ?? 0)).toLocaleString("en-ZA");
-
-const Drive = () => {
+export default function Drive() {
   const { user, member } = useAuth();
+  const navigate = useNavigate();
   const [tiers, setTiers] = useState<Tier[]>([]);
-  const [circles, setCircles] = useState<DriveCircle[]>([]);
-  const [memberships, setMemberships] = useState<Membership[]>([]);
-  const [repayments, setRepayments] = useState<Repayment[]>([]);
+  const [pools, setPools] = useState<Record<string, Pool>>({});
+  const [enrollments, setEnrollments] = useState<Record<string, string>>({}); // tier_id -> enrollment_id
   const [loading, setLoading] = useState(true);
-  const [joining, setJoining] = useState<string | null>(null);
-  const [confirm, setConfirm] = useState<DriveCircle | null>(null);
-  const [justReserved, setJustReserved] = useState<string | null>(null);
-  const [prefs, setPrefs] = useState<Record<string, NotifPref>>({});
-  const [prefsOpen, setPrefsOpen] = useState<string | null>(null);
-  const [savingPref, setSavingPref] = useState<string | null>(null); // `${circleId}:${channel}`
-
-  const getPref = (circleId: string) => prefs[circleId] ?? { circle_id: circleId, ...DEFAULT_PREF };
-
-  const channelLabel: Record<keyof Omit<NotifPref, "circle_id">, string> = {
-    in_app: "In-app",
-    email: "Email",
-    push: "Browser push",
-  };
-
-  const setPref = async (
-    circleId: string,
-    patch: Partial<Omit<NotifPref, "circle_id">>,
-  ) => {
-    if (!user) return;
-    const channel = Object.keys(patch)[0] as keyof Omit<NotifPref, "circle_id"> | undefined;
-    if (!channel) return;
-    const prev = getPref(circleId);
-    const next = { ...prev, ...patch } as NotifPref;
-    const key = `${circleId}:${channel}`;
-    setSavingPref(key);
-    setPrefs((p) => ({ ...p, [circleId]: next }));
-    const { error } = await supabase
-      .from("drive_notification_prefs")
-      .upsert(
-        { member_id: user.id, circle_id: circleId, in_app: next.in_app, email: next.email, push: next.push },
-        { onConflict: "member_id,circle_id" },
-      );
-    setSavingPref((cur) => (cur === key ? null : cur));
-    if (error) {
-      // rollback optimistic update
-      setPrefs((p) => ({ ...p, [circleId]: prev }));
-      toast.error(`Couldn't save ${channelLabel[channel].toLowerCase()} setting`, {
-        description: error.message,
-      });
-      return;
-    }
-    toast.success(
-      `${channelLabel[channel]} ${next[channel] ? "on" : "off"}`,
-      { description: "Preference saved for this circle." },
-    );
-  };
+  const [enrollTier, setEnrollTier] = useState<Tier | null>(null);
+  const [weeklyAmount, setWeeklyAmount] = useState(0);
+  const [submitting, setSubmitting] = useState(false);
 
   const load = async () => {
     setLoading(true);
-    const [tRes, cRes, mRes, rRes, pRes] = await Promise.all([
-      supabase.from("drive_tiers").select("*").eq("status", "active"),
-      supabase.from("drive_circles").select("*").neq("status", "completed").order("created_at", { ascending: false }),
+    const [tiersRes, poolsRes, enrollRes] = await Promise.all([
+      supabase.from("drive_tiers").select("*").eq("is_active", true).not("tier_name", "is", null).order("retail_value"),
+      supabase.from("drive_tier_pool_v" as any).select("*"),
       user
-        ? supabase.from("drive_members").select("*").eq("member_id", user.id)
-        : Promise.resolve({ data: [], error: null } as const),
-      user
-        ? supabase
-            .from("drive_repayments")
-            .select("*")
-            .eq("member_id", user.id)
-            .order("week_number", { ascending: true })
-        : Promise.resolve({ data: [], error: null } as const),
-      user
-        ? supabase.from("drive_notification_prefs").select("circle_id, in_app, email, push").eq("member_id", user.id)
-        : Promise.resolve({ data: [], error: null } as const),
+        ? supabase.from("drive_enrollments").select("id, tier_id").eq("member_id", user.id)
+        : Promise.resolve({ data: [] as any[] }),
     ]);
-    if (tRes.error) console.error(tRes.error);
-    if (cRes.error) console.error(cRes.error);
-    const tiersData = (tRes.data ?? []) as Tier[];
-    const realCircles = (cRes.data ?? []) as DriveCircle[];
-
-    // Synthesize a forming circle for any active tier that has none yet
-    const tiersWithCircles = new Set(realCircles.map((c) => c.tier_id));
-    const synthetic: DriveCircle[] = tiersData
-      .filter((t) => !tiersWithCircles.has(t.id))
-      .map((t) => ({
-        id: `synthetic-${t.id}`,
-        name: `${t.name} Circle`,
-        tier_id: t.id,
-        target_pool: Number(t.pool_target),
-        current_pool: 0,
-        members_count: 0,
-        status: "forming",
-      }));
-
-    setTiers(tiersData);
-    setCircles([...realCircles, ...synthetic]);
-    setMemberships((mRes.data ?? []) as Membership[]);
-    setRepayments((rRes.data ?? []) as Repayment[]);
-    const prefMap: Record<string, NotifPref> = {};
-    for (const row of (pRes.data ?? []) as NotifPref[]) prefMap[row.circle_id] = { ...DEFAULT_PREF, ...row };
-    setPrefs(prefMap);
+    setTiers((tiersRes.data ?? []) as Tier[]);
+    const pmap: Record<string, Pool> = {};
+    ((poolsRes.data ?? []) as unknown as Pool[]).forEach((p) => { pmap[p.tier_id] = p; });
+    setPools(pmap);
+    const emap: Record<string, string> = {};
+    ((enrollRes.data ?? []) as { id: string; tier_id: string }[]).forEach((e) => { emap[e.tier_id] = e.id; });
+    setEnrollments(emap);
     setLoading(false);
   };
 
-  useEffect(() => {
-    load();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [user?.id]);
+  useEffect(() => { load(); }, [user?.id]);
 
-  // Live updates: refresh whenever circles or members change, and surface
-  // an OS-level push notification the moment a circle the user joined goes live.
-  useEffect(() => {
-    const channel = supabase
-      .channel("drive-live")
-      .on("postgres_changes", { event: "*", schema: "public", table: "drive_circles" }, () => load())
-      .on("postgres_changes", { event: "*", schema: "public", table: "drive_members" }, () => load())
-      .on(
-        "postgres_changes",
-        { event: "INSERT", schema: "public", table: "notifications", filter: user?.id ? `member_id=eq.${user.id}` : undefined },
-        (payload) => {
-          const n: any = payload.new;
-          if (n?.kind === "drive_activated") {
-            const cid = typeof n.link === "string" && n.link.includes("c=") ? n.link.split("c=")[1] : "";
-            const pref = cid ? (prefs[cid] ?? { ...DEFAULT_PREF, circle_id: cid }) : DEFAULT_PREF;
-            if (pref.in_app) toast.success(n.title ?? "Your circle is live", { description: n.body ?? undefined });
-            if (pref.push && typeof window !== "undefined" && "Notification" in window && Notification.permission === "granted") {
-              try { new Notification(n.title ?? "Drive circle live", { body: n.body ?? "", tag: `drive-${n.id}` }); } catch {}
-            }
-          }
-        },
-      )
-      .subscribe();
-    return () => { supabase.removeChannel(channel); };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [user?.id]);
-
-  // Browser push opt-in
-  const [pushPerm, setPushPerm] = useState<NotificationPermission | "unsupported">(() => {
-    if (typeof window === "undefined" || !("Notification" in window)) return "unsupported";
-    return Notification.permission;
-  });
-  const enablePush = async () => {
-    if (pushPerm === "unsupported") return toast.error("This browser doesn't support push alerts");
-    if (pushPerm === "granted") return;
-    try {
-      const p = await Notification.requestPermission();
-      setPushPerm(p);
-      if (p === "granted") toast.success("Browser alerts on", { description: "We'll ping you when your circle activates." });
-    } catch { /* noop */ }
+  const openEnroll = (t: Tier) => {
+    setEnrollTier(t);
+    setWeeklyAmount(t.weekly_payment_before_min);
   };
 
-  // Tick every 30s so countdowns stay fresh even without DB changes
-  const [tick, setTick] = useState(0);
-  useEffect(() => {
-    const id = setInterval(() => setTick((n) => n + 1), 30_000);
-    return () => clearInterval(id);
-  }, []);
-
-  // Estimate when a forming circle will activate based on join velocity since creation
-  const estimateActivation = (c: DriveCircle, targetSeats: number) => {
-    void tick; // re-evaluate on tick
-    if (!c.created_at) return null;
-    const seats = Math.max(0, c.members_count ?? 0);
-    const remaining = Math.max(0, targetSeats - seats);
-    if (remaining === 0) return { etaDate: new Date(), ready: true as const };
-    if (seats < 1) return null;
-    const ageMs = Date.now() - new Date(c.created_at).getTime();
-    if (ageMs < 60_000) return null; // need at least a minute of data
-    const msPerSeat = ageMs / seats;
-    const etaDate = new Date(Date.now() + msPerSeat * remaining);
-    return { etaDate, ready: false as const };
-  };
-
-  const requestJoin = (c: DriveCircle) => {
-    if (!user) return toast.error("Sign in first");
-    setConfirm(c);
-  };
-
-  const confirmJoin = async () => {
-    const c = confirm;
-    if (!c || !user) return;
-    setJoining(c.id);
-    let circleId = c.id;
-    const wasForming = c.id.startsWith("synthetic-") || c.status === "forming";
-    // Materialize the synthetic forming circle into a real drive_circles row
-    if (c.id.startsWith("synthetic-") && c.tier_id) {
-      const { data: created, error: cErr } = await supabase
-        .from("drive_circles")
-        .insert({
-          tier_id: c.tier_id,
-          name: c.name,
-          target_pool: c.target_pool,
-          current_pool: 0,
-          members_count: 0,
-          status: "forming",
-        })
-        .select("id")
-        .single();
-      if (cErr || !created) {
-        setJoining(null);
-        setConfirm(null);
-        return toast.error(cErr?.message ?? "Could not start circle");
-      }
-      circleId = created.id;
+  const confirmEnroll = async () => {
+    if (!enrollTier || !user) return;
+    setSubmitting(true);
+    const { data, error } = await supabase
+      .from("drive_enrollments")
+      .insert({
+        member_id: user.id,
+        tier_id: enrollTier.id,
+        weekly_amount: weeklyAmount,
+        status: "active",
+      })
+      .select("id")
+      .single();
+    setSubmitting(false);
+    if (error) {
+      toast.error(error.message);
+      return;
     }
-    if (memberships.some((m) => m.circle_id === circleId)) {
-      setJoining(null);
-      setConfirm(null);
-      return toast.message("You're already in this circle");
+    toast.success(`Enrolled in ${enrollTier.display_name}!`);
+    setEnrollTier(null);
+    // calculate first score
+    if (data?.id) {
+      await supabase.rpc("calculate_drive_score", { p_enrollment_id: data.id });
     }
-    const { error } = await supabase.from("drive_members").insert({
-      circle_id: circleId,
-      member_id: user.id,
-      total_contributed: 0,
-      status: "active",
-    });
-    setJoining(null);
-    setConfirm(null);
-    if (error) return toast.error(error.message);
-    setJustReserved(circleId);
-    toast.success(wasForming ? "Seat reserved ✨" : `Joined ${c.name ?? "circle"}`, {
-      description: wasForming
-        ? "We'll notify you the moment this circle activates."
-        : undefined,
-    });
-    await load();
+    navigate("/drive/dashboard");
   };
 
-  const tierFor = (id: string | null) => tiers.find((t) => t.id === id);
-  const myCircles = circles.filter((c) => memberships.some((m) => m.circle_id === c.id));
+  const buyersClubTier = (member as any)?.buyers_club_tier as string | null;
+  const tierLocked = (t: Tier) => {
+    if (!t.requires_buyers_club_tier) return false;
+    const ranks = { bronze: 1, silver: 2, gold: 3 } as const;
+    const need = ranks[t.requires_buyers_club_tier as keyof typeof ranks] ?? 0;
+    const have = ranks[(buyersClubTier ?? "") as keyof typeof ranks] ?? 0;
+    return have < need;
+  };
 
   return (
-    <main className="relative min-h-screen pb-32">
-      <header className="px-5 pt-6">
-        <div className="mx-auto flex max-w-md items-center justify-between">
-          <Link to="/dashboard" className="grid h-10 w-10 place-items-center rounded-2xl glass">
-            <ArrowLeft className="h-4 w-4" />
+    <div className="min-h-screen bg-background pb-24">
+      <header className="sticky top-0 z-30 backdrop-blur bg-background/80 border-b border-border">
+        <div className="max-w-6xl mx-auto px-4 h-14 flex items-center justify-between">
+          <Link to="/dashboard" className="inline-flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground">
+            <ArrowLeft className="h-4 w-4" /> Back
           </Link>
           <Logo />
-          <div className="w-10" />
+          <div className="w-12" />
         </div>
       </header>
 
-      <section className="px-5 pt-6">
-        <div className="mx-auto max-w-md animate-fade-in">
-          <p className="text-[11px] uppercase tracking-[0.22em] text-accent">UMOJA Drive</p>
-          <h1 className="mt-2 font-display text-[34px] leading-tight tracking-tight">
-            Own the road,<br />
-            <span className="text-gradient-gold italic font-[450]">together.</span>
-          </h1>
-        </div>
-      </section>
-
-      {loading && (
-        <div className="px-5 pt-8">
-          <div className="mx-auto max-w-md grid place-items-center rounded-3xl glass p-10">
-            <Loader2 className="h-5 w-5 animate-spin text-primary" />
+      <main className="max-w-6xl mx-auto px-4 py-8">
+        <section className="text-center max-w-2xl mx-auto">
+          <div className="inline-flex items-center gap-2 rounded-full bg-primary/10 text-primary px-3 py-1 text-xs font-medium">
+            <Car className="h-3.5 w-3.5" /> UMOJA Drive
           </div>
-        </div>
-      )}
-
-      {/* My Drive */}
-      {!loading && myCircles.length > 0 && (
-        <section className="px-5 pt-8">
-          <div className="mx-auto max-w-md">
-            <h2 className="font-display text-xl">My Drive</h2>
-            <div className="mt-4 space-y-3">
-              {myCircles.map((c) => {
-                const t = tierFor(c.tier_id);
-                const me = memberships.find((m) => m.circle_id === c.id);
-                const pct = Math.min(100, Math.round(((c.current_pool ?? 0) / Math.max(1, c.target_pool)) * 100));
-                return (
-                  <article key={c.id} className="relative overflow-hidden rounded-3xl p-5 bg-gradient-primary shadow-glow">
-                    <div className="absolute -right-12 -top-12 h-44 w-44 rounded-full bg-accent/30 blur-3xl" />
-                    <div className="relative">
-                      <p className="text-[10px] uppercase tracking-[0.18em] text-primary-foreground/80">{t?.name ?? "Drive"}</p>
-                      <p className="mt-1 font-display text-xl text-primary-foreground">{c.name ?? "Drive Circle"}</p>
-                      {t && (
-                        <p className="text-xs text-primary-foreground/80">
-                          {t.car_year} {t.car_make} {t.car_model}
-                        </p>
-                      )}
-                      <div className="mt-4">
-                        <div className="flex items-baseline justify-between text-xs text-primary-foreground/80">
-                          <span>Pool</span>
-                          <span className="font-display text-sm text-primary-foreground">
-                            {fmtR(c.current_pool)} / {fmtR(c.target_pool)}
-                          </span>
-                        </div>
-                        <div className="mt-2 h-2 w-full rounded-full bg-background/20 overflow-hidden">
-                          <div className="h-full rounded-full bg-gradient-gold" style={{ width: `${pct}%` }} />
-                        </div>
-                      </div>
-                      <div className="mt-4 grid grid-cols-2 gap-2">
-                        <div className="rounded-2xl bg-background/15 backdrop-blur p-3">
-                          <p className="text-[10px] uppercase tracking-wider text-primary-foreground/75">My contributions</p>
-                          <p className="mt-1 font-display text-base text-primary-foreground">{fmtR(me?.total_contributed)}</p>
-                        </div>
-                        <div className="rounded-2xl bg-background/15 backdrop-blur p-3">
-                          <p className="text-[10px] uppercase tracking-wider text-primary-foreground/75">Members</p>
-                          <p className="mt-1 font-display text-base text-primary-foreground inline-flex items-center gap-1">
-                            <Users className="h-3 w-3" /> {c.members_count ?? 0}
-                          </p>
-                        </div>
-                      </div>
-                    </div>
-                  </article>
-                );
-              })}
-            </div>
-          </div>
+          <h1 className="mt-4 font-display text-4xl md:text-5xl tracking-tight">Own Your Vehicle in 18 Months</h1>
+          <p className="mt-3 text-muted-foreground">Stop renting. Start building equity. Same weekly payment.</p>
         </section>
-      )}
 
-      {/* Active circles */}
-      {!loading && (
-        <section className="px-5 pt-8">
-          <div className="mx-auto max-w-md">
-            <h2 className="font-display text-xl">Active circles</h2>
-            {circles.length === 0 ? (
-              <div className="mt-4 rounded-3xl glass p-6 text-center text-sm text-muted-foreground">
-                No active drive circles right now.
-              </div>
-            ) : (
-              <div className="mt-4 space-y-3">
-                {circles.map((c, i) => {
-                  const t = tierFor(c.tier_id);
-                  const pct = Math.min(100, Math.round(((c.current_pool ?? 0) / Math.max(1, c.target_pool)) * 100));
-                  const joined = memberships.some((m) => m.circle_id === c.id);
-                  const isForming = c.id.startsWith("synthetic-") || c.status === "forming";
-                  return (
-                    <article
-                      key={c.id}
-                      style={{ animationDelay: `${i * 60}ms` }}
-                      className={`relative overflow-hidden rounded-3xl p-5 animate-slide-up ${
-                        isForming
-                          ? "border border-dashed border-accent/40 bg-gradient-card"
-                          : "glass"
-                      }`}
-                    >
-                      {isForming && (
-                        <div className="absolute right-4 top-4 inline-flex items-center gap-1 rounded-full border border-accent/40 bg-accent/10 px-2.5 py-1 text-[10px] uppercase tracking-[0.18em] text-accent">
-                          <span className="relative flex h-1.5 w-1.5">
-                            <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-accent opacity-75" />
-                            <span className="relative inline-flex h-1.5 w-1.5 rounded-full bg-accent" />
-                          </span>
-                          Forming
-                        </div>
-                      )}
-                      <div className="flex items-start gap-4">
-                        <div className={`grid h-14 w-14 shrink-0 place-items-center rounded-2xl bg-secondary text-primary ${isForming ? "opacity-80" : ""}`}>
-                          {t?.car_image_url ? (
-                            <img src={t.car_image_url} alt="" className="h-14 w-14 rounded-2xl object-cover" />
-                          ) : (
-                            <Car className="h-5 w-5" />
-                          )}
-                        </div>
-                        <div className="min-w-0 flex-1 pr-20">
-                          <p className="text-[10px] uppercase tracking-[0.18em] text-accent">{t?.name ?? "Drive"}</p>
-                          <p className="font-display text-lg leading-tight truncate">{c.name ?? "Drive Circle"}</p>
-                          {t && (
-                            <p className="text-xs text-muted-foreground truncate">
-                              {t.car_year} {t.car_make} {t.car_model} · {fmtR(t.weekly_contribution)}/wk
-                            </p>
-                          )}
-                        </div>
-                      </div>
+        {loading ? (
+          <div className="mt-16 flex justify-center"><Loader2 className="h-6 w-6 animate-spin text-primary" /></div>
+        ) : (
+          <section className="mt-10 grid gap-5 md:grid-cols-3">
+            {tiers.map((t) => {
+              const pool = pools[t.id];
+              const poolTotal = pool?.pool_total ?? 0;
+              const pct = Math.min(100, Math.round((poolTotal / t.pool_target) * 100));
+              const ready = poolTotal >= t.pool_target;
+              const enrolled = enrollments[t.id];
+              const locked = tierLocked(t);
+              const youSave = t.retail_value - (t.min_contribution_before + t.weekly_payment_after * t.payback_weeks);
 
-                      <div className="mt-4">
-                        <div className="flex items-baseline justify-between text-xs text-muted-foreground">
-                          <span className="inline-flex items-center gap-1">
-                            <Users className="h-3 w-3" /> {c.members_count ?? 0}
-                            {t ? ` / ${t.circle_size}` : ""}
-                          </span>
-                          <span>
-                            {fmtR(c.current_pool)} / {fmtR(c.target_pool)} · {pct}%
-                          </span>
-                        </div>
-                        <div className="mt-2 h-2 w-full rounded-full bg-secondary overflow-hidden">
-                          <div
-                            className={`h-full rounded-full transition-all ${isForming ? "bg-accent/30" : "bg-gradient-gold"}`}
-                            style={{ width: `${Math.max(pct, isForming ? 4 : 0)}%` }}
-                          />
-                        </div>
-                      </div>
-
-                      {isForming && !joined && (
-                        <div className="mt-4 rounded-2xl bg-secondary/60 p-3">
-                          <p className="inline-flex items-center gap-1.5 text-[10px] uppercase tracking-[0.18em] text-accent">
-                            <Clock className="h-3 w-3" /> Forming now
-                          </p>
-                          <p className="mt-1 text-xs text-muted-foreground">
-                            {t ? `Be one of the first ${t.circle_size} to reserve a seat. ` : ""}
-                            The circle activates once it fills up.
-                          </p>
-                        </div>
-                      )}
-
-                      {isForming && joined && (() => {
-                        const targetSeats = t?.circle_size ?? 0;
-                        const seats = c.members_count ?? 0;
-                        const seatsLeft = Math.max(0, targetSeats - seats);
-                        const seatPct = targetSeats
-                          ? Math.min(100, Math.round((seats / targetSeats) * 100))
-                          : 0;
-                        const eta = estimateActivation(c, targetSeats);
-                        const etaLabel = eta?.ready
-                          ? "Activating now"
-                          : eta
-                          ? `~${eta.etaDate.toLocaleDateString(undefined, { month: "short", day: "numeric" })}`
-                          : "Gathering data…";
-                        return (
-                          <div className="mt-4 rounded-2xl border border-accent/40 bg-accent/10 p-4 animate-fade-in">
-                            <div className="flex items-center justify-between">
-                              <p className="inline-flex items-center gap-1.5 text-[10px] uppercase tracking-[0.18em] text-accent">
-                                <CheckCircle2 className="h-3 w-3" /> Seat reserved
-                              </p>
-                              <span className="inline-flex items-center gap-1 rounded-full bg-background/40 px-2 py-0.5 text-[10px] uppercase tracking-[0.18em] text-accent">
-                                <span className="relative flex h-1.5 w-1.5">
-                                  <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-accent opacity-75" />
-                                  <span className="relative inline-flex h-1.5 w-1.5 rounded-full bg-accent" />
-                                </span>
-                                Live
-                              </span>
-                            </div>
-
-                            <div className="mt-3">
-                              <div className="flex items-baseline justify-between text-xs">
-                                <span className="text-foreground font-medium">
-                                  {seats} / {targetSeats || "—"} seats filled
-                                </span>
-                                <span className="text-muted-foreground">{seatPct}%</span>
-                              </div>
-                              <div className="mt-1.5 h-2 w-full rounded-full bg-background/40 overflow-hidden">
-                                <div
-                                  className="h-full rounded-full bg-gradient-gold transition-all duration-700"
-                                  style={{ width: `${Math.max(seatPct, 4)}%` }}
-                                />
-                              </div>
-                              <div className="mt-2 flex items-center justify-between text-[11px] text-muted-foreground">
-                                <span className="inline-flex items-center gap-1">
-                                  <Users className="h-3 w-3 text-accent" />
-                                  {seatsLeft === 0 ? "All seats secured" : `${seatsLeft} seat${seatsLeft === 1 ? "" : "s"} to go`}
-                                </span>
-                                <span className="inline-flex items-center gap-1">
-                                  <Calendar className="h-3 w-3 text-accent" />
-                                  {etaLabel}
-                                </span>
-                              </div>
-                            </div>
-
-                            {(() => {
-                              const pref = getPref(c.id);
-                              const channels = [
-                                pref.in_app && "in-app",
-                                pref.email && "email",
-                                pref.push && pushPerm === "granted" && "browser push",
-                              ].filter(Boolean) as string[];
-                              const summary = channels.length
-                                ? channels.join(" + ") + " when seats fill."
-                                : "All alerts off — you'll only see this card update.";
-                              const isOpen = prefsOpen === c.id;
-                              return (
-                                <div className="mt-3 border-t border-accent/20 pt-3">
-                                  <div className="flex items-start justify-between gap-3">
-                                    <p className="text-xs text-muted-foreground inline-flex items-start gap-1.5">
-                                      <Bell className="mt-0.5 h-3 w-3 text-accent shrink-0" />
-                                      <span>{summary}</span>
-                                    </p>
-                                    <button
-                                      type="button"
-                                      onClick={() => setPrefsOpen(isOpen ? null : c.id)}
-                                      className="shrink-0 inline-flex items-center gap-1 rounded-full border border-accent/30 bg-background/40 px-2 py-1 text-[10px] font-medium text-accent uppercase tracking-wider hover:bg-accent/10"
-                                      aria-expanded={isOpen}
-                                    >
-                                      <Settings2 className="h-3 w-3" /> {isOpen ? "Done" : "Edit"}
-                                    </button>
-                                  </div>
-
-                                  {isOpen && (
-                                    <div className="mt-3 space-y-2.5 rounded-xl bg-background/40 p-3 animate-fade-in">
-                                      <PrefRow
-                                        icon={<MessageSquare className="h-3.5 w-3.5" />}
-                                        label="In-app alert"
-                                        hint="Toast + notification bell"
-                                        checked={pref.in_app}
-                                        loading={savingPref === `${c.id}:in_app`}
-                                        onChange={(v) => setPref(c.id, { in_app: v })}
-                                      />
-                                      <PrefRow
-                                        icon={<Mail className="h-3.5 w-3.5" />}
-                                        label="Email"
-                                        hint={member?.email ? `Sent to ${member.email}` : "Add an email to your profile"}
-                                        checked={pref.email}
-                                        disabled={!member?.email}
-                                        loading={savingPref === `${c.id}:email`}
-                                        onChange={(v) => setPref(c.id, { email: v })}
-                                      />
-                                      <PrefRow
-                                        icon={<Smartphone className="h-3.5 w-3.5" />}
-                                        label="Browser push"
-                                        hint={
-                                          pushPerm === "unsupported"
-                                            ? "Not supported on this browser"
-                                            : pushPerm === "denied"
-                                            ? "Blocked — enable in browser settings"
-                                            : pushPerm === "granted"
-                                            ? "OS-level alert"
-                                            : "Tap to allow browser alerts"
-                                        }
-                                        checked={pref.push && pushPerm === "granted"}
-                                        disabled={pushPerm === "unsupported" || pushPerm === "denied"}
-                                        loading={savingPref === `${c.id}:push`}
-                                        onChange={async (v) => {
-                                          if (v && pushPerm !== "granted") await enablePush();
-                                          setPref(c.id, { push: v });
-                                        }}
-                                      />
-                                    </div>
-                                  )}
-
-                                  <p className="mt-3 inline-flex items-start gap-1.5 text-xs text-muted-foreground">
-                                    <Wallet className="mt-0.5 h-3 w-3 text-accent shrink-0" />
-                                    <span>
-                                      First weekly contribution of {fmtR(t?.weekly_contribution)} starts on activation day.
-                                    </span>
-                                  </p>
-                                </div>
-                              );
-                            })()}
-                          </div>
-                        );
-                      })()}
-
-                      <button
-                        onClick={() => requestJoin(c)}
-                        disabled={joined || joining === c.id}
-                        className="mt-5 w-full h-11 rounded-2xl bg-gradient-primary text-primary-foreground text-sm font-medium shadow-glow inline-flex items-center justify-center gap-1.5 disabled:opacity-60"
-                      >
-                        {joining === c.id ? (
-                          <Loader2 className="h-4 w-4 animate-spin" />
-                        ) : joined ? (
-                          <>
-                            <CheckCircle2 className="h-4 w-4" />
-                            {isForming ? (justReserved === c.id ? "Reserved ✓" : "Seat reserved") : "Joined"}
-                          </>
-                        ) : (
-                          <>
-                            <Car className="h-4 w-4" /> {isForming ? "Reserve a seat" : "Join Circle"}
-                          </>
-                        )}
-                      </button>
-                    </article>
-                  );
-                })}
-              </div>
-            )}
-          </div>
-        </section>
-      )}
-
-      {/* Repayments */}
-      {!loading && repayments.length > 0 && (
-        <section className="px-5 pt-8">
-          <div className="mx-auto max-w-md">
-            <h2 className="font-display text-xl inline-flex items-center gap-2">
-              <Calendar className="h-5 w-5 text-accent" /> Repayment schedule
-            </h2>
-            <ul className="mt-4 divide-y divide-border rounded-3xl border border-border bg-gradient-card overflow-hidden">
-              {repayments.slice(0, 8).map((r) => (
-                <li key={r.id} className="flex items-center gap-4 p-4">
-                  <div className="grid h-10 w-10 shrink-0 place-items-center rounded-2xl bg-secondary text-primary">
-                    {r.paid_at ? <CheckCircle2 className="h-4 w-4 text-accent" /> : <Clock className="h-4 w-4" />}
+              return (
+                <article key={t.id} className="rounded-3xl border border-border bg-gradient-card p-5 flex flex-col">
+                  <div className="flex items-center justify-between">
+                    <span className="inline-block text-[10px] uppercase tracking-[0.18em] rounded-full bg-secondary px-2 py-1">{t.tier_name}</span>
+                    {locked && <Lock className="h-4 w-4 text-muted-foreground" />}
                   </div>
-                  <div className="min-w-0 flex-1">
-                    <p className="text-sm font-medium">Week {r.week_number ?? "—"}</p>
-                    <p className="text-xs text-muted-foreground capitalize">
-                      {r.paid_at ? `Paid ${new Date(r.paid_at).toLocaleDateString()}` : r.status ?? "pending"}
-                    </p>
-                  </div>
-                  <span className="text-sm font-display text-gradient-gold">{fmtR(r.amount)}</span>
-                </li>
-              ))}
-            </ul>
-          </div>
-        </section>
-      )}
+                  <h2 className="mt-3 font-display text-2xl">{t.display_name}</h2>
+                  <p className="mt-1 text-xs text-muted-foreground line-clamp-2">{t.vehicle_description}</p>
 
-      <AlertDialog open={!!confirm} onOpenChange={(o) => !o && !joining && setConfirm(null)}>
-        <AlertDialogContent className="rounded-3xl">
-          {(() => {
-            const c = confirm;
-            if (!c) return null;
-            const t = tierFor(c.tier_id);
-            const forming = c.id.startsWith("synthetic-") || c.status === "forming";
-            const seatsLeft = Math.max(0, (t?.circle_size ?? 0) - (c.members_count ?? 0));
-            return (
-              <>
-                <AlertDialogHeader>
-                  <AlertDialogTitle className="font-display text-xl">
-                    {forming ? "Reserve your seat?" : "Join this circle?"}
-                  </AlertDialogTitle>
-                  <AlertDialogDescription>
-                    {forming
-                      ? "You're locking in a spot in a circle that's still forming. Here's what happens next:"
-                      : "You're about to join an active circle. Weekly contributions begin immediately."}
-                  </AlertDialogDescription>
-                </AlertDialogHeader>
-
-                <div className="space-y-2.5 rounded-2xl bg-secondary/60 p-4 text-sm">
-                  <div className="flex items-start gap-2.5">
-                    <Sparkles className="mt-0.5 h-4 w-4 text-accent shrink-0" />
+                  <dl className="mt-4 space-y-3 text-sm">
                     <div>
-                      <p className="font-medium">{c.name ?? "Drive Circle"}</p>
-                      {t && (
-                        <p className="text-xs text-muted-foreground">
-                          {t.car_year} {t.car_make} {t.car_model}
-                        </p>
-                      )}
+                      <dt className="text-[10px] uppercase tracking-wider text-muted-foreground">Before you win</dt>
+                      <dd>Weekly: {fmtR(t.weekly_payment_before_min)}–{fmtR(t.weekly_payment_before_max)}</dd>
+                      <dd className="text-muted-foreground text-xs">Min total: {fmtR(t.min_contribution_before)}</dd>
                     </div>
-                  </div>
-                  <div className="flex items-start gap-2.5">
-                    <Wallet className="mt-0.5 h-4 w-4 text-accent shrink-0" />
-                    <p className="text-xs text-muted-foreground">
-                      {fmtR(t?.weekly_contribution)}/week — first payment {forming ? "starts on activation" : "due this week"}.
-                    </p>
-                  </div>
-                  <div className="flex items-start gap-2.5">
-                    <Users className="mt-0.5 h-4 w-4 text-accent shrink-0" />
-                    <p className="text-xs text-muted-foreground">
-                      {forming
-                        ? `${seatsLeft} of ${t?.circle_size ?? "—"} seats still need to fill before this circle activates.`
-                        : `${c.members_count ?? 0} / ${t?.circle_size ?? "—"} members already in.`}
-                    </p>
-                  </div>
-                  {forming && (
-                    <div className="flex items-start gap-2.5">
-                      <Bell className="mt-0.5 h-4 w-4 text-accent shrink-0" />
-                      <p className="text-xs text-muted-foreground">
-                        We'll notify you the moment the circle goes live — no charge until then.
-                      </p>
+                    <div>
+                      <dt className="text-[10px] uppercase tracking-wider text-muted-foreground">After you win</dt>
+                      <dd>{fmtR(t.weekly_payment_after)}/week × {t.payback_weeks} weeks</dd>
+                      <dd className="text-muted-foreground text-xs">Total payback: {fmtR(t.weekly_payment_after * t.payback_weeks)}</dd>
                     </div>
-                  )}
-                </div>
+                    <div className="pt-2 border-t border-border/60">
+                      <dd className="text-xs text-muted-foreground">Retail {fmtR(t.retail_value)}</dd>
+                      <dd className="font-display text-lg text-primary">You save {fmtR(youSave)}</dd>
+                    </div>
+                  </dl>
 
-                <AlertDialogFooter>
-                  <AlertDialogCancel disabled={!!joining} className="rounded-2xl">Not yet</AlertDialogCancel>
-                  <AlertDialogAction
-                    disabled={!!joining}
-                    onClick={(e) => { e.preventDefault(); confirmJoin(); }}
-                    className="rounded-2xl bg-gradient-primary text-primary-foreground"
-                  >
-                    {joining ? (
-                      <Loader2 className="h-4 w-4 animate-spin" />
-                    ) : forming ? (
-                      "Reserve my seat"
+                  <div className="mt-4">
+                    <div className="flex items-center justify-between text-xs">
+                      <span className="text-muted-foreground">Pool</span>
+                      <span>{fmtR(poolTotal)} / {fmtR(t.pool_target)}</span>
+                    </div>
+                    <div className="mt-1 h-2 rounded-full bg-secondary overflow-hidden">
+                      <div className="h-full bg-primary transition-all" style={{ width: `${pct}%` }} />
+                    </div>
+                    <p className="mt-1 text-[11px] text-muted-foreground">
+                      {ready ? `Allocation ready — top ${t.cars_per_allocation} get cars` : `${pct}% funded`}
+                    </p>
+                  </div>
+
+                  <div className="mt-5">
+                    {locked ? (
+                      <Button disabled className="w-full">Requires Buyers Club {t.requires_buyers_club_tier}</Button>
+                    ) : enrolled ? (
+                      <Button variant="secondary" className="w-full" onClick={() => navigate("/drive/dashboard")}>
+                        <CheckCircle2 className="h-4 w-4" /> Enrolled — Open dashboard
+                      </Button>
                     ) : (
-                      "Confirm join"
+                      <Button className="w-full" onClick={() => openEnroll(t)}>Join {t.display_name}</Button>
                     )}
-                  </AlertDialogAction>
-                </AlertDialogFooter>
-              </>
-            );
-          })()}
-        </AlertDialogContent>
-      </AlertDialog>
+                  </div>
+                </article>
+              );
+            })}
+          </section>
+        )}
+      </main>
+
+      <Dialog open={!!enrollTier} onOpenChange={(o) => !o && setEnrollTier(null)}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Join {enrollTier?.display_name}</DialogTitle>
+            <DialogDescription>You're about to enroll in the vehicle program.</DialogDescription>
+          </DialogHeader>
+          {enrollTier && (
+            <div className="space-y-4 text-sm">
+              <div className="rounded-xl border border-border p-3 space-y-1">
+                <p className="text-[10px] uppercase tracking-wider text-muted-foreground">Commitment</p>
+                <p>Weekly payment: {fmtR(enrollTier.weekly_payment_before_min)}–{fmtR(enrollTier.weekly_payment_before_max)}</p>
+                <p>Minimum contributed: {fmtR(enrollTier.min_contribution_before)}</p>
+                <p>If you win: {fmtR(enrollTier.weekly_payment_after)}/week for {enrollTier.payback_weeks} weeks</p>
+              </div>
+
+              <div>
+                <div className="flex items-center justify-between">
+                  <p className="text-[10px] uppercase tracking-wider text-muted-foreground">Your weekly amount</p>
+                  <p className="font-display text-lg">{fmtR(weeklyAmount)}</p>
+                </div>
+                <Slider
+                  className="mt-3"
+                  value={[weeklyAmount]}
+                  min={enrollTier.weekly_payment_before_min}
+                  max={enrollTier.weekly_payment_before_max}
+                  step={50}
+                  onValueChange={(v) => setWeeklyAmount(v[0])}
+                />
+                <div className="mt-1 flex justify-between text-[11px] text-muted-foreground">
+                  <span>{fmtR(enrollTier.weekly_payment_before_min)}</span>
+                  <span>{fmtR(enrollTier.weekly_payment_before_max)}</span>
+                </div>
+                <p className="mt-2 text-[11px] text-muted-foreground">
+                  Higher = funds the pool faster and boosts your priority score. You can increase later but not decrease.
+                </p>
+              </div>
+            </div>
+          )}
+          <DialogFooter>
+            <Button variant="ghost" onClick={() => setEnrollTier(null)}>Cancel</Button>
+            <Button onClick={confirmEnroll} disabled={submitting}>
+              {submitting ? <Loader2 className="h-4 w-4 animate-spin" /> : <Sparkles className="h-4 w-4" />}
+              Confirm Enrollment
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
 
       <BottomNav />
-    </main>
-  );
-};
-
-interface PrefRowProps {
-  icon: ReactNode;
-  label: string;
-  hint?: string;
-  checked: boolean;
-  disabled?: boolean;
-  loading?: boolean;
-  onChange: (v: boolean) => void;
-}
-const PrefRow = ({ icon, label, hint, checked, disabled, loading, onChange }: PrefRowProps) => (
-  <div className={`flex items-center justify-between gap-3 ${disabled ? "opacity-60" : ""}`}>
-    <div className="flex items-start gap-2 min-w-0">
-      <span className="mt-0.5 grid h-6 w-6 place-items-center rounded-md bg-accent/15 text-accent shrink-0">
-        {icon}
-      </span>
-      <div className="min-w-0">
-        <p className="text-xs font-medium text-foreground inline-flex items-center gap-1.5">
-          {label}
-          {loading && <Loader2 className="h-3 w-3 animate-spin text-accent" aria-label="Saving" />}
-        </p>
-        {hint && <p className="text-[10px] text-muted-foreground truncate">{hint}</p>}
-      </div>
     </div>
-    <Switch checked={checked} disabled={disabled || loading} onCheckedChange={onChange} />
-  </div>
-);
-
-export default Drive;
+  );
+}
