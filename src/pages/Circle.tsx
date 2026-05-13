@@ -255,7 +255,35 @@ const Circle = () => {
 
   // Step 2 → upload proof, mark payment_pending, notify admins
   const submitPayment = async () => {
-    if (!pendingBid || !user) return;
+    if (!pendingBid || !user || !open) return;
+
+    // Paystack flow — instant activation via verification edge fn
+    if (method === "paystack") {
+      setBusy(true);
+      const memberShort = user.id.slice(0, 6).toUpperCase();
+      const ref = buildReference("CIRCLE", open.tier, memberShort);
+      const { error: refErr } = await supabase
+        .from("circle_bids")
+        .update({
+          payment_method: "paystack",
+          paystack_reference: ref,
+          payment_reference: ref,
+          status: "payment_pending",
+          payment_submitted_at: new Date().toISOString(),
+        })
+        .eq("id", pendingBid.id);
+      if (refErr) { setBusy(false); return toast.error(refErr.message); }
+      const result = await payWithPaystack({
+        email: user.email ?? "",
+        amountZar: pendingBid.amount,
+        reference: ref,
+        metadata: { member_id: user.id, payment_type: "circle_contribution", tier: open.tier },
+      });
+      setBusy(false);
+      if (result.ok) { closeModal(); load(); }
+      return;
+    }
+
     if (!proofFile) {
       toast.error("Please attach proof of payment");
       return;
@@ -276,6 +304,7 @@ const Circle = () => {
       .update({
         status: "payment_pending",
         payment_proof_url: path,
+        payment_method: "eft",
         payment_submitted_at: new Date().toISOString(),
       })
       .eq("id", pendingBid.id);
