@@ -35,26 +35,48 @@ const Signup = () => {
     if (!refParam) { setRefStatus("none"); return; }
     setRefStatus("checking");
     (async () => {
-      // Look up referrer row directly so we can self-reference check.
-      const { data: row, error } = await supabase
-        .from("members")
-        .select("id, full_name")
-        .eq("referral_code", refParam)
-        .maybeSingle();
-      if (error || !row?.full_name) {
+      console.log("[Signup] Validating code:", refParam);
+      const { data, error } = await supabase.rpc("lookup_referrer", { p_code: refParam });
+      console.log("[Signup] Raw RPC response:", { data, error });
+      console.log("[Signup] Data type:", typeof data, "isArray:", Array.isArray(data));
+      console.log("[Signup] Data content:", JSON.stringify(data));
+
+      if (error) {
+        console.error("[Signup] lookup_referrer RPC error:", error);
+        // Fallback to direct table lookup
+        const { data: row } = await supabase
+          .from("members").select("id, full_name").eq("referral_code", refParam).maybeSingle();
+        if (row?.full_name) {
+          setReferrerName(row.full_name);
+          setRefStatus("valid");
+          return;
+        }
         setRefStatus("invalid");
         return;
       }
+
+      let referrer: { id?: string; full_name?: string } | null = null;
+      if (Array.isArray(data) && data.length > 0) referrer = data[0] as typeof referrer;
+      else if (data && typeof data === "object" && (data as { id?: string }).id) referrer = data as typeof referrer;
+
+      if (!referrer || !referrer.full_name) {
+        console.warn("[Signup] No referrer found for code:", refParam);
+        setRefStatus("invalid");
+        return;
+      }
+
       const { data: sess } = await supabase.auth.getSession();
       const currentUid = sess?.session?.user?.id ?? null;
-      if (currentUid && currentUid === row.id) {
-        console.warn("[signup] self-referral blocked", { refParam, currentUid });
+      if (currentUid && currentUid === referrer.id) {
+        console.warn("[Signup] self-referral blocked", { refParam, currentUid });
         setRefStatus("invalid");
         try { localStorage.removeItem("umoja_referral_code"); } catch {}
         toast.error("You can't use your own referral link.");
         return;
       }
-      setReferrerName(row.full_name);
+
+      console.log("[Signup] ✅ Valid referrer:", referrer.full_name);
+      setReferrerName(referrer.full_name);
       setRefStatus("valid");
     })();
   }, [refParam]);
