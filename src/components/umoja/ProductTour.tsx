@@ -1,4 +1,4 @@
-import Joyride, { Step, CallBackProps, STATUS } from "react-joyride";
+import { Joyride, Step, EventData, STATUS } from "react-joyride";
 import { useEffect, useState } from "react";
 import { useAuth } from "@/hooks/useAuth";
 import { useLocation } from "react-router-dom";
