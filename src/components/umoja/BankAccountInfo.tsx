@@ -14,14 +14,6 @@ interface Account {
   account_holder: string;
 }
 
-const COL: Record<BankAccountProject, string> = {
-  circle: "for_circle",
-  spark_trade: "for_spark_trade",
-  drive: "for_drive",
-  property: "for_property",
-  buyers_club: "for_buyers_club",
-};
-
 interface Props {
   project: BankAccountProject;
   reference: string;
@@ -34,25 +26,14 @@ export function BankAccountInfo({ project, reference }: Props) {
   useEffect(() => {
     (async () => {
       setLoading(true);
-      // 1. Try project-specific account
-      const { data: byProj } = await (supabase as any)
-        .from("bank_accounts")
-        .select("*")
-        .eq(COL[project], true)
-        .eq("is_active", true)
-        .order("created_at", { ascending: false })
-        .limit(1)
-        .maybeSingle();
-      if (byProj) { setAcc(byProj); setLoading(false); return; }
-      // 2. Fall back to default
-      const { data: dflt } = await (supabase as any)
-        .from("bank_accounts")
-        .select("*")
-        .eq("is_default", true)
-        .eq("is_active", true)
-        .limit(1)
-        .maybeSingle();
-      setAcc(dflt ?? null);
+      const { data, error } = await (supabase as any).rpc("get_active_bank_account", { _project: project });
+      if (error) {
+        console.error("[BankAccountInfo] get_active_bank_account error", error);
+        setAcc(null);
+      } else {
+        const row = Array.isArray(data) ? data[0] : data;
+        setAcc(row ?? null);
+      }
       setLoading(false);
     })();
   }, [project]);
