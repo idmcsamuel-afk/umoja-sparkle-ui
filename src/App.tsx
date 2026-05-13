@@ -59,6 +59,15 @@ import MemberLayout from "./components/umoja/MemberLayout";
 
 const queryClient = new QueryClient();
 
+if (typeof window !== "undefined") {
+  window.addEventListener("paystack-popup-open", () => {
+    try { queryClient.cancelQueries(); } catch {}
+  });
+  window.addEventListener("paystack-popup-close", () => {
+    try { queryClient.refetchQueries({ type: "active" }); } catch {}
+  });
+}
+
 const App = () => (
   <QueryClientProvider client={queryClient}>
     <ThemeProvider>
