@@ -2911,6 +2911,17 @@ export type Database = {
         }[]
       }
       gen_referral_code: { Args: { _seed?: string }; Returns: string }
+      get_active_bank_account: {
+        Args: { _project: string }
+        Returns: {
+          account_holder: string
+          account_name: string
+          account_number: string
+          bank_name: string
+          branch_code: string
+          id: string
+        }[]
+      }
       get_email_recipients: {
         Args: { _audience: string; _ids?: string[]; _tier?: string }
         Returns: {
