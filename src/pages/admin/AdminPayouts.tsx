@@ -74,7 +74,7 @@ export default function AdminPayouts() {
     let mm = new Map<string, any>();
     if (ids.length) {
       const { data: members } = await supabase.from("members")
-        .select("id, full_name, email, phone, kyc_level, bank_name, bank_account").in("id", ids);
+        .select("id, full_name, email, phone, kyc_level, bank_name, bank_account, bank_branch").in("id", ids);
       mm = new Map((members ?? []).map((m: any) => [m.id, m]));
     }
     const join = (rows: any[]) => rows.map((b) => ({ ...b, member: mm.get(b.member_id) })) as Bid[];
