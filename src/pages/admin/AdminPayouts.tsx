@@ -112,11 +112,13 @@ export default function AdminPayouts() {
     setPayMethod("EFT");
     setPayRef("");
     setPayDate(new Date().toISOString().slice(0, 10));
+    setConfirmCheck(false);
     setConfirm(b);
   };
 
   const markPaid = async () => {
     if (!confirm) return;
+    if (!confirmCheck) return toast.error("Please confirm the payment was made");
     const amt = Number(payAmount);
     if (!Number.isFinite(amt) || amt <= 0) return toast.error("Enter a valid amount");
     if (!payRef.trim()) return toast.error("Enter a payment reference");
