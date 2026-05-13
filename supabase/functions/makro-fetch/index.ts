@@ -50,6 +50,8 @@ function estimateMonthlySales(p: MakroProduct): number {
   return Math.max(50, est);
 }
 
+let LAST_REAL = false;
+
 async function fetchFromMakro(): Promise<MakroProduct[]> {
   const base = Deno.env.get("MAKRO_API_BASE");
   const appId = Deno.env.get("MAKRO_APP_ID");
