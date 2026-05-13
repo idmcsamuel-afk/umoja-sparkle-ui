@@ -593,12 +593,14 @@ const Circle = () => {
             <>
               <div className="flex-1 overflow-y-auto p-6 space-y-4">
                 <DialogHeader>
-                  <DialogTitle className="font-display text-2xl">🎯 Pay via EFT to Community Pool</DialogTitle>
+                  <DialogTitle className="font-display text-2xl">🎯 Pay to Community Pool</DialogTitle>
                   <DialogDescription>
                     This payment joins the <span className="capitalize font-medium text-foreground">{open?.tier}</span> Circle pool.
                     Payouts distributed based on priority scoring.
                   </DialogDescription>
                 </DialogHeader>
+
+                <PaymentMethodSelector value={method} onChange={setMethod} />
 
               {!settingsReady ? (
                 <div className="rounded-2xl border border-destructive/40 bg-destructive/10 p-4 space-y-3">
