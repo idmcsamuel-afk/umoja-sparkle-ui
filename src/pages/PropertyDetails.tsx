@@ -201,7 +201,7 @@ export default function PropertyDetails() {
             <MiniStat label="Total units" value={totalUnits.toLocaleString("en-ZA")} />
             <MiniStat label="Min invest" value={fmtR(unitPrice * 10)} />
           </div>
-          <Button onClick={() => setInvesting(true)} className="mt-4 w-full h-12 rounded-2xl bg-gradient-primary text-primary-foreground shadow-glow hover-scale">
+          <Button onClick={openInvest} className="mt-4 w-full h-12 rounded-2xl bg-gradient-primary text-primary-foreground shadow-glow hover-scale">
             <Sparkles className="h-4 w-4 mr-1.5" /> Invest now
           </Button>
         </div>
