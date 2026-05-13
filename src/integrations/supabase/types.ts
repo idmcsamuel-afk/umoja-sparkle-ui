@@ -569,6 +569,54 @@ export type Database = {
           },
         ]
       }
+      drive_allocations: {
+        Row: {
+          allocation_date: string
+          allocation_results: Json | null
+          cars_allocated: number
+          created_at: string
+          created_by: string | null
+          id: string
+          pool_amount: number
+          tier_id: string
+        }
+        Insert: {
+          allocation_date?: string
+          allocation_results?: Json | null
+          cars_allocated: number
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          pool_amount: number
+          tier_id: string
+        }
+        Update: {
+          allocation_date?: string
+          allocation_results?: Json | null
+          cars_allocated?: number
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          pool_amount?: number
+          tier_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "drive_allocations_tier_id_fkey"
+            columns: ["tier_id"]
+            isOneToOne: false
+            referencedRelation: "drive_tier_pool_v"
+            referencedColumns: ["tier_id"]
+          },
+          {
+            foreignKeyName: "drive_allocations_tier_id_fkey"
+            columns: ["tier_id"]
+            isOneToOne: false
+            referencedRelation: "drive_tiers"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       drive_circles: {
         Row: {
           created_at: string | null
@@ -606,6 +654,123 @@ export type Database = {
         Relationships: [
           {
             foreignKeyName: "drive_circles_tier_id_fkey"
+            columns: ["tier_id"]
+            isOneToOne: false
+            referencedRelation: "drive_tier_pool_v"
+            referencedColumns: ["tier_id"]
+          },
+          {
+            foreignKeyName: "drive_circles_tier_id_fkey"
+            columns: ["tier_id"]
+            isOneToOne: false
+            referencedRelation: "drive_tiers"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      drive_contributions: {
+        Row: {
+          amount: number
+          created_at: string
+          enrollment_id: string
+          id: string
+          is_on_time: boolean
+          member_id: string
+          payment_date: string
+          payment_method: string | null
+          payment_ref: string | null
+          week_number: number
+        }
+        Insert: {
+          amount: number
+          created_at?: string
+          enrollment_id: string
+          id?: string
+          is_on_time?: boolean
+          member_id: string
+          payment_date?: string
+          payment_method?: string | null
+          payment_ref?: string | null
+          week_number: number
+        }
+        Update: {
+          amount?: number
+          created_at?: string
+          enrollment_id?: string
+          id?: string
+          is_on_time?: boolean
+          member_id?: string
+          payment_date?: string
+          payment_method?: string | null
+          payment_ref?: string | null
+          week_number?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "drive_contributions_enrollment_id_fkey"
+            columns: ["enrollment_id"]
+            isOneToOne: false
+            referencedRelation: "drive_enrollments"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      drive_enrollments: {
+        Row: {
+          completed_at: string | null
+          enrolled_at: string
+          id: string
+          member_id: string
+          priority_score: number
+          referrals_count: number
+          status: string
+          tier_id: string
+          total_contributed: number
+          weekly_amount: number
+          weeks_contributed: number
+          weeks_paid_on_time: number
+          won_at: string | null
+        }
+        Insert: {
+          completed_at?: string | null
+          enrolled_at?: string
+          id?: string
+          member_id: string
+          priority_score?: number
+          referrals_count?: number
+          status?: string
+          tier_id: string
+          total_contributed?: number
+          weekly_amount?: number
+          weeks_contributed?: number
+          weeks_paid_on_time?: number
+          won_at?: string | null
+        }
+        Update: {
+          completed_at?: string | null
+          enrolled_at?: string
+          id?: string
+          member_id?: string
+          priority_score?: number
+          referrals_count?: number
+          status?: string
+          tier_id?: string
+          total_contributed?: number
+          weekly_amount?: number
+          weeks_contributed?: number
+          weeks_paid_on_time?: number
+          won_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "drive_enrollments_tier_id_fkey"
+            columns: ["tier_id"]
+            isOneToOne: false
+            referencedRelation: "drive_tier_pool_v"
+            referencedColumns: ["tier_id"]
+          },
+          {
+            foreignKeyName: "drive_enrollments_tier_id_fkey"
             columns: ["tier_id"]
             isOneToOne: false
             referencedRelation: "drive_tiers"
@@ -737,44 +902,146 @@ export type Database = {
           car_make: string | null
           car_model: string | null
           car_year: number | null
+          cars_per_allocation: number | null
           circle_size: number
           created_at: string | null
           description: string | null
+          display_name: string | null
           id: string
+          is_active: boolean | null
+          min_contribution_before: number | null
           name: string
+          payback_weeks: number | null
           pool_target: number
+          requires_buyers_club_tier: string | null
+          retail_value: number | null
           status: string | null
+          tier_name: string | null
+          umoja_cost: number | null
+          vehicle_description: string | null
           weekly_contribution: number
+          weekly_payment_after: number | null
+          weekly_payment_before_max: number | null
+          weekly_payment_before_min: number | null
         }
         Insert: {
           car_image_url?: string | null
           car_make?: string | null
           car_model?: string | null
           car_year?: number | null
+          cars_per_allocation?: number | null
           circle_size: number
           created_at?: string | null
           description?: string | null
+          display_name?: string | null
           id?: string
+          is_active?: boolean | null
+          min_contribution_before?: number | null
           name: string
+          payback_weeks?: number | null
           pool_target: number
+          requires_buyers_club_tier?: string | null
+          retail_value?: number | null
           status?: string | null
+          tier_name?: string | null
+          umoja_cost?: number | null
+          vehicle_description?: string | null
           weekly_contribution: number
+          weekly_payment_after?: number | null
+          weekly_payment_before_max?: number | null
+          weekly_payment_before_min?: number | null
         }
         Update: {
           car_image_url?: string | null
           car_make?: string | null
           car_model?: string | null
           car_year?: number | null
+          cars_per_allocation?: number | null
           circle_size?: number
           created_at?: string | null
           description?: string | null
+          display_name?: string | null
           id?: string
+          is_active?: boolean | null
+          min_contribution_before?: number | null
           name?: string
+          payback_weeks?: number | null
           pool_target?: number
+          requires_buyers_club_tier?: string | null
+          retail_value?: number | null
           status?: string | null
+          tier_name?: string | null
+          umoja_cost?: number | null
+          vehicle_description?: string | null
           weekly_contribution?: number
+          weekly_payment_after?: number | null
+          weekly_payment_before_max?: number | null
+          weekly_payment_before_min?: number | null
         }
         Relationships: []
+      }
+      drive_winners: {
+        Row: {
+          allocation_id: string | null
+          created_at: string
+          enrollment_id: string
+          gps_tracker_id: string | null
+          handover_date: string | null
+          id: string
+          member_id: string
+          papers_released: boolean
+          tier_id: string
+          total_paid_back: number
+          vehicle_details: Json | null
+          weekly_payback: number
+          weeks_remaining: number | null
+        }
+        Insert: {
+          allocation_id?: string | null
+          created_at?: string
+          enrollment_id: string
+          gps_tracker_id?: string | null
+          handover_date?: string | null
+          id?: string
+          member_id: string
+          papers_released?: boolean
+          tier_id: string
+          total_paid_back?: number
+          vehicle_details?: Json | null
+          weekly_payback: number
+          weeks_remaining?: number | null
+        }
+        Update: {
+          allocation_id?: string | null
+          created_at?: string
+          enrollment_id?: string
+          gps_tracker_id?: string | null
+          handover_date?: string | null
+          id?: string
+          member_id?: string
+          papers_released?: boolean
+          tier_id?: string
+          total_paid_back?: number
+          vehicle_details?: Json | null
+          weekly_payback?: number
+          weeks_remaining?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "drive_winners_allocation_id_fkey"
+            columns: ["allocation_id"]
+            isOneToOne: false
+            referencedRelation: "drive_allocations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "drive_winners_enrollment_id_fkey"
+            columns: ["enrollment_id"]
+            isOneToOne: false
+            referencedRelation: "drive_enrollments"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       email_blasts: {
         Row: {
@@ -2787,7 +3054,15 @@ export type Database = {
       }
     }
     Views: {
-      [_ in never]: never
+      drive_tier_pool_v: {
+        Row: {
+          active_members: number | null
+          pool_total: number | null
+          tier_id: string | null
+          tier_name: string | null
+        }
+        Relationships: []
+      }
     }
     Functions: {
       _flip_contributed: { Args: { _member: string }; Returns: undefined }
@@ -2888,6 +3163,10 @@ export type Database = {
         Returns: Json
       }
       award_kyc_referral_bonus: { Args: { _member?: string }; Returns: boolean }
+      calculate_drive_score: {
+        Args: { p_enrollment_id: string }
+        Returns: number
+      }
       claim_signup_bonus: { Args: never; Returns: number }
       compute_session_scores: {
         Args: { _tier: string }
@@ -3010,6 +3289,7 @@ export type Database = {
           total_refs: number
         }[]
       }
+      run_drive_allocation: { Args: { p_tier_id: string }; Returns: Json }
       submit_buyers_club_payment: {
         Args: { _amount: number; _proof_url: string; _tier: string }
         Returns: undefined
