@@ -96,11 +96,12 @@ export const BottomNav = () => {
             style={{ scrollSnapType: "x mandatory" }}
           >
             <ul className="flex gap-0.5 min-w-max">
-              {items.map(({ to, label, icon: Icon }) => {
+              {items.map(({ to, label, icon: Icon, tour }) => {
                 const active = pathname === to || (to !== "/dashboard" && pathname.startsWith(to));
                 return (
                   <li
                     key={to}
+                    data-tour={tour}
                     className="flex-1 min-w-[56px]"
                     style={{ scrollSnapAlign: "start" }}
                   >
