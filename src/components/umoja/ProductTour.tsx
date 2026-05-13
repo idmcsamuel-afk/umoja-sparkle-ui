@@ -9,7 +9,7 @@ const TOUR_STEPS: Step[] = [
   {
     target: "body",
     placement: "center",
-    disableBeacon: true,
+    
     content: (
       <div className="space-y-2">
         <h3 className="text-lg font-display text-accent">Welcome to UMOJA! 🎉</h3>
