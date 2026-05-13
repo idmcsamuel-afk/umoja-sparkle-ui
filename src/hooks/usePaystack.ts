@@ -90,12 +90,15 @@ export function usePaystack() {
       const fireOpen = () => window.dispatchEvent(new Event("paystack-popup-open"));
       const fireClose = () => window.dispatchEvent(new Event("paystack-popup-close"));
 
-      try {
-        const popup = new PaystackPop();
-        fireOpen();
-        popup.newTransaction({
+      const openPopup = () => {
+        try {
+          document.body.classList.add("paystack-open");
+          const popup = new PaystackPop();
+          fireOpen();
+          popup.newTransaction({
           ...txParams,
           onSuccess: async (tx: any) => {
+            document.body.classList.remove("paystack-open");
             fireClose();
             dlog("[Paystack] success:", tx?.reference);
             let stashedMeta: Record<string, any> | undefined;
@@ -127,27 +130,35 @@ export function usePaystack() {
             resolve({ ok: true, reference: tx.reference });
           },
           onCancel: () => {
+            document.body.classList.remove("paystack-open");
             fireClose();
             toast.message("Payment cancelled");
             resolve({ ok: false, error: "cancelled" });
           },
           onError: (e: any) => {
+            document.body.classList.remove("paystack-open");
             fireClose();
             derr("[Paystack] onError:", e);
             toast.error("Payment failed", { description: e?.message ?? "Try again or use EFT" });
             resolve({ ok: false, error: e?.message ?? "error" });
           },
         });
-      } catch (e: any) {
-        fireClose();
-        derr("[Paystack] Exception opening popup:", e);
-        const msg: string = e?.message ?? String(e);
-        let friendly = "Payment popup failed to open: " + (msg || "Unknown error");
-        if (/invalid/i.test(msg)) friendly = "Payment details invalid. Please try EFT payment instead.";
-        else if (/key/i.test(msg)) friendly = "Payment system configuration error. Contact support.";
-        toast.error("Could not open payment", { description: friendly });
-        resolve({ ok: false, error: friendly });
-      }
+        } catch (e: any) {
+          document.body.classList.remove("paystack-open");
+          fireClose();
+          derr("[Paystack] Exception opening popup:", e);
+          const msg: string = e?.message ?? String(e);
+          let friendly = "Payment popup failed to open: " + (msg || "Unknown error");
+          if (/invalid/i.test(msg)) friendly = "Payment details invalid. Please try EFT payment instead.";
+          else if (/key/i.test(msg)) friendly = "Payment system configuration error. Contact support.";
+          toast.error("Could not open payment", { description: friendly });
+          resolve({ ok: false, error: friendly });
+        }
+      };
+
+      // Give parent Radix dialogs a moment to close & release focus trap
+      // before opening the Paystack iframe (prevents click/focus blocking)
+      setTimeout(openPopup, 220);
     });
   };
 

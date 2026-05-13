@@ -129,6 +129,9 @@ export default function PropertyDetails() {
         status: "payment_pending",
       });
       if (insErr) { setBusy(false); return toast.error(insErr.message); }
+      // Close this dialog first so Radix focus trap doesn't block Paystack iframe inputs
+      setInvesting(false);
+      await new Promise((r) => setTimeout(r, 150));
       const result = await payWithPaystack({
         email: user.email ?? "",
         amountZar: total,
@@ -137,7 +140,6 @@ export default function PropertyDetails() {
       });
       setBusy(false);
       if (result.ok) {
-        setInvesting(false);
         setStep("amount");
         load();
       }
