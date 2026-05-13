@@ -52,6 +52,8 @@ export default function PropertyDetails() {
   const [milestones, setMilestones] = useState<Milestone[]>([]);
   const [units, setUnits] = useState("10");
   const [investing, setInvesting] = useState(false);
+  const [step, setStep] = useState<"amount" | "pay">("amount");
+  const [proofFile, setProofFile] = useState<File | null>(null);
   const [busy, setBusy] = useState(false);
 
   const load = async () => {
