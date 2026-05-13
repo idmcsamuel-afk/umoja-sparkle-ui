@@ -28,6 +28,20 @@ const items = [
 ];
 
 export default function AdminLayout() {
+  const [pendingPayouts, setPendingPayouts] = useState(0);
+  useEffect(() => {
+    let active = true;
+    const load = async () => {
+      const { count } = await supabase
+        .from("circle_bids")
+        .select("id", { count: "exact", head: true })
+        .eq("status", "matched");
+      if (active) setPendingPayouts(count ?? 0);
+    };
+    load();
+    const t = setInterval(load, 60000);
+    return () => { active = false; clearInterval(t); };
+  }, []);
   return (
     <div className="min-h-screen flex flex-col md:flex-row">
       <Link
