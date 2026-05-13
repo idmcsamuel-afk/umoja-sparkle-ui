@@ -83,6 +83,21 @@ Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response("ok", { headers: corsHeaders });
 
   try {
+    // Admin auth gate — this endpoint burns paid SerpAPI quota.
+    const { createClient } = await import("https://esm.sh/@supabase/supabase-js@2.45.0");
+    const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
+    const ANON = Deno.env.get("SUPABASE_ANON_KEY")!;
+    const SERVICE = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
+    const auth = req.headers.get("Authorization") ?? "";
+    const userClient = createClient(SUPABASE_URL, ANON, {
+      global: { headers: { Authorization: auth } },
+    });
+    const { data: u } = await userClient.auth.getUser();
+    if (!u?.user) return new Response(JSON.stringify({ error: "auth required" }), { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+    const adminClient = createClient(SUPABASE_URL, SERVICE);
+    const { data: isAdm } = await adminClient.from("admin_users").select("user_id").eq("user_id", u.user.id).maybeSingle();
+    if (!isAdm) return new Response(JSON.stringify({ error: "forbidden" }), { status: 403, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+
     const apiKey = Deno.env.get("SERPAPI_KEY");
     if (!apiKey) throw new Error("SERPAPI_KEY not configured");
 
