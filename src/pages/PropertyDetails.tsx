@@ -12,6 +12,8 @@ import { Progress } from "@/components/ui/progress";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog";
 import { PaymentBreakdown } from "@/components/umoja/PaymentBreakdown";
 import { BankAccountInfo } from "@/components/umoja/BankAccountInfo";
+import { PaymentMethodSelector, type PaymentMethod } from "@/components/umoja/PaymentMethodSelector";
+import { usePaystack, buildReference } from "@/hooks/usePaystack";
 import { toast } from "sonner";
 
 const STAGES = [
@@ -47,7 +49,7 @@ interface Milestone {
 
 export default function PropertyDetails() {
   const { id } = useParams();
-  const { user } = useAuth();
+  const { user, member } = useAuth() as any;
   const [p, setP] = useState<PropertyRow | null>(null);
   const [milestones, setMilestones] = useState<Milestone[]>([]);
   const [units, setUnits] = useState("10");
@@ -55,6 +57,8 @@ export default function PropertyDetails() {
   const [step, setStep] = useState<"amount" | "pay">("amount");
   const [proofFile, setProofFile] = useState<File | null>(null);
   const [busy, setBusy] = useState(false);
+  const [method, setMethod] = useState<PaymentMethod>("paystack");
+  const { pay: payWithPaystack } = usePaystack();
 
   const load = async () => {
     if (!id) return;
@@ -108,9 +112,40 @@ export default function PropertyDetails() {
   const submitInvest = async () => {
     if (!user || !p) return;
     if (!Number.isFinite(u) || u <= 0) return toast.error("Enter unit count");
+
+    if (method === "paystack") {
+      setBusy(true);
+      // Create the reit_units row first as payment_pending so verify-edge can find it.
+      const memberCode = (member as any)?.referral_code ?? user.id.slice(0, 6).toUpperCase();
+      const ref = buildReference("PROP", p.id, memberCode);
+      const { error: insErr } = await (supabase.from("reit_units") as any).insert({
+        member_id: user.id,
+        property_id: p.id,
+        units: u,
+        price_per_unit: unitPrice,
+        total_paid: total,
+        platform_fee: platformFee,
+        payment_reference: ref,
+        status: "payment_pending",
+      });
+      if (insErr) { setBusy(false); return toast.error(insErr.message); }
+      const result = await payWithPaystack({
+        email: user.email ?? "",
+        amountZar: total,
+        reference: ref,
+        metadata: { member_id: user.id, payment_type: "property_investment", property_id: p.id, units: u },
+      });
+      setBusy(false);
+      if (result.ok) {
+        setInvesting(false);
+        setStep("amount");
+        load();
+      }
+      return;
+    }
+
     if (!proofFile) return toast.error("Please upload proof of payment");
     setBusy(true);
-    // Upload proof
     const ext = proofFile.name.split(".").pop() || "jpg";
     const path = `${user.id}/${p.id}-${Date.now()}.${ext}`;
     const up = await supabase.storage.from("property-payment-proofs").upload(path, proofFile, { upsert: false });
@@ -125,6 +160,7 @@ export default function PropertyDetails() {
       platform_fee: platformFee,
       payment_reference: payRef,
       proof_url: path,
+      payment_method: "eft",
       status: "payment_pending",
     });
     setBusy(false);
@@ -136,7 +172,7 @@ export default function PropertyDetails() {
     load();
   };
 
-  const openInvest = () => { setStep("amount"); setProofFile(null); setInvesting(true); };
+  const openInvest = () => { setStep("amount"); setProofFile(null); setMethod("paystack"); setInvesting(true); };
 
   if (!p) {
     return (
@@ -423,26 +459,35 @@ export default function PropertyDetails() {
                   <div className="flex justify-between font-medium"><span>Total payable</span><span className="text-gradient-gold font-display">{fmtR(total)}</span></div>
                 </div>
 
-                <BankAccountInfo project="property" reference={payRef} />
+                <PaymentMethodSelector value={method} onChange={setMethod} />
 
-                <div>
-                  <Label className="text-xs uppercase tracking-[0.18em] text-muted-foreground">Proof of payment</Label>
-                  <label className="mt-1 flex items-center gap-2 h-12 rounded-2xl bg-secondary/60 border border-border px-3 cursor-pointer hover:bg-secondary/80">
-                    <Upload className="h-4 w-4 text-muted-foreground" />
-                    <span className="text-sm truncate">{proofFile ? proofFile.name : "Upload screenshot or PDF"}</span>
-                    <input
-                      type="file"
-                      accept="image/*,application/pdf"
-                      className="hidden"
-                      onChange={(e) => setProofFile(e.target.files?.[0] ?? null)}
-                    />
-                  </label>
-                </div>
+                {method === "eft" && (
+                  <>
+                    <BankAccountInfo project="property" reference={payRef} />
+                    <div>
+                      <Label className="text-xs uppercase tracking-[0.18em] text-muted-foreground">Proof of payment</Label>
+                      <label className="mt-1 flex items-center gap-2 h-12 rounded-2xl bg-secondary/60 border border-border px-3 cursor-pointer hover:bg-secondary/80">
+                        <Upload className="h-4 w-4 text-muted-foreground" />
+                        <span className="text-sm truncate">{proofFile ? proofFile.name : "Upload screenshot or PDF"}</span>
+                        <input
+                          type="file"
+                          accept="image/*,application/pdf"
+                          className="hidden"
+                          onChange={(e) => setProofFile(e.target.files?.[0] ?? null)}
+                        />
+                      </label>
+                    </div>
+                  </>
+                )}
               </div>
               <DialogFooter className="gap-2">
                 <Button variant="ghost" disabled={busy} onClick={() => setStep("amount")}>Back</Button>
-                <Button onClick={submitInvest} disabled={busy || !proofFile} className="rounded-2xl bg-gradient-primary text-primary-foreground shadow-glow hover-scale min-w-[160px]">
-                  {busy ? <Loader2 className="h-4 w-4 animate-spin" /> : "I've made payment"}
+                <Button
+                  onClick={submitInvest}
+                  disabled={busy || (method === "eft" && !proofFile)}
+                  className="rounded-2xl bg-gradient-primary text-primary-foreground shadow-glow hover-scale min-w-[160px]"
+                >
+                  {busy ? <Loader2 className="h-4 w-4 animate-spin" /> : method === "paystack" ? "Pay with card" : "I've made payment"}
                 </Button>
               </DialogFooter>
             </>

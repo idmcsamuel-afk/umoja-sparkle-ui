@@ -293,6 +293,7 @@ export type Database = {
           net_amount: number
           payment_confirmed_at: string | null
           payment_confirmed_by: string | null
+          payment_method: string | null
           payment_proof_url: string | null
           payment_ref: string | null
           payment_reference: string | null
@@ -300,6 +301,7 @@ export type Database = {
           payout_amount: number | null
           payout_date: string | null
           payout_rank: number | null
+          paystack_reference: string | null
           platform_fee: number
           priority_score: number | null
           priority_slot: boolean | null
@@ -325,6 +327,7 @@ export type Database = {
           net_amount: number
           payment_confirmed_at?: string | null
           payment_confirmed_by?: string | null
+          payment_method?: string | null
           payment_proof_url?: string | null
           payment_ref?: string | null
           payment_reference?: string | null
@@ -332,6 +335,7 @@ export type Database = {
           payout_amount?: number | null
           payout_date?: string | null
           payout_rank?: number | null
+          paystack_reference?: string | null
           platform_fee: number
           priority_score?: number | null
           priority_slot?: boolean | null
@@ -357,6 +361,7 @@ export type Database = {
           net_amount?: number
           payment_confirmed_at?: string | null
           payment_confirmed_by?: string | null
+          payment_method?: string | null
           payment_proof_url?: string | null
           payment_ref?: string | null
           payment_reference?: string | null
@@ -364,6 +369,7 @@ export type Database = {
           payout_amount?: number | null
           payout_date?: string | null
           payout_rank?: number | null
+          paystack_reference?: string | null
           platform_fee?: number
           priority_score?: number | null
           priority_slot?: boolean | null
@@ -613,6 +619,9 @@ export type Database = {
           id: string
           joined_at: string | null
           member_id: string | null
+          payment_method: string | null
+          payment_ref: string | null
+          paystack_reference: string | null
           status: string | null
           total_contributed: number | null
         }
@@ -621,6 +630,9 @@ export type Database = {
           id?: string
           joined_at?: string | null
           member_id?: string | null
+          payment_method?: string | null
+          payment_ref?: string | null
+          paystack_reference?: string | null
           status?: string | null
           total_contributed?: number | null
         }
@@ -629,6 +641,9 @@ export type Database = {
           id?: string
           joined_at?: string | null
           member_id?: string | null
+          payment_method?: string | null
+          payment_ref?: string | null
+          paystack_reference?: string | null
           status?: string | null
           total_contributed?: number | null
         }
@@ -1456,6 +1471,7 @@ export type Database = {
           bid_boost_score: number
           buyers_club_amount: number | null
           buyers_club_approved_at: string | null
+          buyers_club_payment_method: string | null
           buyers_club_proof_url: string | null
           buyers_club_rejection_reason: string | null
           buyers_club_renewal_at: string | null
@@ -1492,6 +1508,10 @@ export type Database = {
           kyc_submitted_at: string | null
           kyc_verified_at: string | null
           last_seen_at: string | null
+          paystack_customer_code: string | null
+          paystack_plan_code: string | null
+          paystack_reference: string | null
+          paystack_subscription_code: string | null
           phone: string
           phone_verified: boolean
           priority_score: number
@@ -1512,6 +1532,7 @@ export type Database = {
           bid_boost_score?: number
           buyers_club_amount?: number | null
           buyers_club_approved_at?: string | null
+          buyers_club_payment_method?: string | null
           buyers_club_proof_url?: string | null
           buyers_club_rejection_reason?: string | null
           buyers_club_renewal_at?: string | null
@@ -1548,6 +1569,10 @@ export type Database = {
           kyc_submitted_at?: string | null
           kyc_verified_at?: string | null
           last_seen_at?: string | null
+          paystack_customer_code?: string | null
+          paystack_plan_code?: string | null
+          paystack_reference?: string | null
+          paystack_subscription_code?: string | null
           phone: string
           phone_verified?: boolean
           priority_score?: number
@@ -1568,6 +1593,7 @@ export type Database = {
           bid_boost_score?: number
           buyers_club_amount?: number | null
           buyers_club_approved_at?: string | null
+          buyers_club_payment_method?: string | null
           buyers_club_proof_url?: string | null
           buyers_club_rejection_reason?: string | null
           buyers_club_renewal_at?: string | null
@@ -1604,6 +1630,10 @@ export type Database = {
           kyc_submitted_at?: string | null
           kyc_verified_at?: string | null
           last_seen_at?: string | null
+          paystack_customer_code?: string | null
+          paystack_plan_code?: string | null
+          paystack_reference?: string | null
+          paystack_subscription_code?: string | null
           phone?: string
           phone_verified?: boolean
           priority_score?: number
@@ -1711,6 +1741,39 @@ export type Database = {
           member_id?: string
           read_at?: string | null
           title?: string
+        }
+        Relationships: []
+      }
+      paystack_events: {
+        Row: {
+          created_at: string
+          error: string | null
+          event: string
+          id: string
+          member_id: string | null
+          processed: boolean
+          raw: Json
+          reference: string | null
+        }
+        Insert: {
+          created_at?: string
+          error?: string | null
+          event: string
+          id?: string
+          member_id?: string | null
+          processed?: boolean
+          raw: Json
+          reference?: string | null
+        }
+        Update: {
+          created_at?: string
+          error?: string | null
+          event?: string
+          id?: string
+          member_id?: string | null
+          processed?: boolean
+          raw?: Json
+          reference?: string | null
         }
         Relationships: []
       }
@@ -2054,7 +2117,9 @@ export type Database = {
           created_at: string | null
           id: string
           member_id: string
+          payment_method: string | null
           payment_reference: string | null
+          paystack_reference: string | null
           platform_fee: number | null
           price_per_unit: number
           proof_url: string | null
@@ -2070,7 +2135,9 @@ export type Database = {
           created_at?: string | null
           id?: string
           member_id: string
+          payment_method?: string | null
           payment_reference?: string | null
+          paystack_reference?: string | null
           platform_fee?: number | null
           price_per_unit: number
           proof_url?: string | null
@@ -2086,7 +2153,9 @@ export type Database = {
           created_at?: string | null
           id?: string
           member_id?: string
+          payment_method?: string | null
           payment_reference?: string | null
+          paystack_reference?: string | null
           platform_fee?: number | null
           price_per_unit?: number
           proof_url?: string | null

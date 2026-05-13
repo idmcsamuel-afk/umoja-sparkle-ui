@@ -5,6 +5,8 @@ import { Loader2, Crown, Check, Copy, Upload, ChevronLeft } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { toast } from "sonner";
+import { PaymentMethodSelector, type PaymentMethod } from "@/components/umoja/PaymentMethodSelector";
+import { usePaystack, buildReference } from "@/hooks/usePaystack";
 
 type Tier = "bronze" | "silver" | "gold";
 
@@ -47,9 +49,11 @@ export function BuyersClubModal({ open, onOpenChange, onSuccess }: { open: boole
   const [bank, setBank] = useState<Bank>({});
   const [file, setFile] = useState<File | null>(null);
   const [busy, setBusy] = useState(false);
+  const [method, setMethod] = useState<PaymentMethod>("paystack");
+  const { pay: payWithPaystack } = usePaystack();
 
   useEffect(() => {
-    if (!open) { setStep(1); setTier(null); setFile(null); return; }
+    if (!open) { setStep(1); setTier(null); setFile(null); setMethod("paystack"); return; }
     supabase.rpc("get_member_platform_settings").then(({ data }) => {
       const row = Array.isArray(data) ? data[0] : data;
       if (row) setBank(row as Bank);
@@ -62,10 +66,23 @@ export function BuyersClubModal({ open, onOpenChange, onSuccess }: { open: boole
 
   const copy = (txt: string) => { navigator.clipboard.writeText(txt); toast.success("Copied"); };
 
-  const submit = async () => {
+  const payNow = async () => {
     if (!user || !tier || !selected) return;
-    if (!file) return toast.error("Please attach proof of payment");
     setBusy(true);
+    if (method === "paystack") {
+      const ref = buildReference("BC", tier, memberCode);
+      const result = await payWithPaystack({
+        email: user.email ?? "",
+        amountZar: selected.price,
+        reference: ref,
+        plan: `umoja-${tier}`,
+        metadata: { member_id: user.id, payment_type: "buyers_club", tier },
+      });
+      setBusy(false);
+      if (result.ok) { onOpenChange(false); onSuccess?.(); }
+      return;
+    }
+    if (!file) { setBusy(false); return toast.error("Please attach proof of payment"); }
     const path = `${user.id}/${Date.now()}-${file.name.replace(/[^a-zA-Z0-9.\-_]/g, "_")}`;
     const up = await supabase.storage.from("buyers-club-proofs").upload(path, file, { upsert: false });
     if (up.error) { setBusy(false); return toast.error(up.error.message); }
@@ -114,28 +131,36 @@ export function BuyersClubModal({ open, onOpenChange, onSuccess }: { open: boole
 
         {step === 2 && selected && (
           <div className="space-y-3 mt-2">
-            <div className="rounded-2xl bg-secondary/60 p-4 space-y-2 text-sm">
-              <p className="text-[11px] uppercase tracking-[0.18em] text-accent">Pay via EFT</p>
-              {[
-                ["Bank", bank.bank_name ?? "—"],
-                ["Account name", bank.account_name ?? "—"],
-                ["Account", bank.account_number ?? "—"],
-                ["Branch", bank.branch_code ?? "—"],
-                ["Reference", reference],
-                ["Amount", `R${selected.price.toLocaleString()} (1 month)`],
-              ].map(([k, v]) => (
-                <div key={k} className="flex items-center justify-between gap-2 border-b border-border/40 pb-1.5 last:border-0 last:pb-0">
-                  <span className="text-muted-foreground text-xs">{k}</span>
-                  <button onClick={() => copy(String(v))} className="font-mono text-xs inline-flex items-center gap-1 hover:text-accent">
-                    {v} <Copy className="h-3 w-3" />
-                  </button>
-                </div>
-              ))}
-              {bank.payment_instructions && <p className="pt-2 text-xs text-muted-foreground">{bank.payment_instructions}</p>}
-            </div>
+            <PaymentMethodSelector value={method} onChange={setMethod} />
+            {method === "eft" && (
+              <div className="rounded-2xl bg-secondary/60 p-4 space-y-2 text-sm">
+                <p className="text-[11px] uppercase tracking-[0.18em] text-accent">Pay via EFT</p>
+                {[
+                  ["Bank", bank.bank_name ?? "—"],
+                  ["Account name", bank.account_name ?? "—"],
+                  ["Account", bank.account_number ?? "—"],
+                  ["Branch", bank.branch_code ?? "—"],
+                  ["Reference", reference],
+                  ["Amount", `R${selected.price.toLocaleString()} (1 month)`],
+                ].map(([k, v]) => (
+                  <div key={k} className="flex items-center justify-between gap-2 border-b border-border/40 pb-1.5 last:border-0 last:pb-0">
+                    <span className="text-muted-foreground text-xs">{k}</span>
+                    <button onClick={() => copy(String(v))} className="font-mono text-xs inline-flex items-center gap-1 hover:text-accent">
+                      {v} <Copy className="h-3 w-3" />
+                    </button>
+                  </div>
+                ))}
+              </div>
+            )}
             <div className="flex gap-2">
               <Button variant="outline" className="flex-1" onClick={() => setStep(1)}><ChevronLeft className="h-4 w-4" /> Back</Button>
-              <Button className="flex-1 bg-gradient-primary text-primary-foreground" onClick={() => setStep(3)}>I've made payment</Button>
+              {method === "paystack" ? (
+                <Button disabled={busy} className="flex-1 bg-gradient-primary text-primary-foreground" onClick={payNow}>
+                  {busy ? <Loader2 className="h-4 w-4 animate-spin" /> : "Pay with card"}
+                </Button>
+              ) : (
+                <Button className="flex-1 bg-gradient-primary text-primary-foreground" onClick={() => setStep(3)}>I've made payment</Button>
+              )}
             </div>
           </div>
         )}
@@ -150,7 +175,7 @@ export function BuyersClubModal({ open, onOpenChange, onSuccess }: { open: boole
             </label>
             <div className="flex gap-2">
               <Button variant="outline" className="flex-1" onClick={() => setStep(2)}><ChevronLeft className="h-4 w-4" /> Back</Button>
-              <Button disabled={!file || busy} className="flex-1 bg-gradient-primary text-primary-foreground" onClick={submit}>
+              <Button disabled={!file || busy} className="flex-1 bg-gradient-primary text-primary-foreground" onClick={payNow}>
                 {busy ? <Loader2 className="h-4 w-4 animate-spin" /> : "Submit for verification"}
               </Button>
             </div>
