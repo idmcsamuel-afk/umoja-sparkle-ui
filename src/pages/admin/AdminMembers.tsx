@@ -117,6 +117,19 @@ export default function AdminMembers() {
   const apply = async () => {
     if (!confirm) return;
     setBusy(true);
+    if (confirm.action === "deleted") {
+      const { data, error } = await supabase.functions.invoke("admin-delete-auth-user", {
+        body: { userId: confirm.row.id },
+      });
+      setBusy(false);
+      if (error || (data as any)?.error) {
+        return toast.error((data as any)?.error || error?.message || "Delete failed");
+      }
+      toast.success(`${confirm.row.full_name} permanently deleted`);
+      setConfirm(null);
+      load();
+      return;
+    }
     const { error } = await supabase
       .from("members")
       .update({ status: confirm.action, is_active: confirm.action === "active" })
