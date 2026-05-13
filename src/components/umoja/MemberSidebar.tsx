@@ -9,23 +9,24 @@ import {
   useSidebar,
 } from "@/components/ui/sidebar";
 import { Logo } from "@/components/umoja/Logo";
+import { restartProductTour } from "@/components/umoja/ProductTour";
 
 const main = [
-  { to: "/dashboard", label: "Home", icon: Home },
-  { to: "/circle", label: "Circle", icon: Users },
+  { to: "/dashboard", label: "Home", icon: Home, tour: "dashboard" },
+  { to: "/circle", label: "Circle", icon: Users, tour: "circle" },
   { to: "/priority", label: "Priority Queue", icon: Trophy },
-  { to: "/spark", label: "Spark Trade", icon: Sparkles },
+  { to: "/spark", label: "Spark Trade", icon: Sparkles, tour: "spark-trade" },
   { to: "/market", label: "Market", icon: Store },
   { to: "/exchange", label: "Exchange", icon: ArrowLeftRight },
-  { to: "/drive", label: "Drive", icon: Car },
-  { to: "/property", label: "Property Fund", icon: Building2 },
+  { to: "/drive", label: "Drive", icon: Car, tour: "drive" },
+  { to: "/property", label: "Property Fund", icon: Building2, tour: "property" },
   { to: "/spark-pit", label: "Spark Pit", icon: Gamepad2 },
 ];
 
 const tools = [
   { to: "/flame-marketing", label: "Create Marketing", icon: Palette },
   { to: "/calculator", label: "Calculator", icon: CalcIcon },
-  { to: "/referrals", label: "Invite Friends", icon: Gift },
+  { to: "/referrals", label: "Invite Friends", icon: Gift, tour: "referrals" },
   { to: "/kyc", label: "Verification", icon: ShieldCheck },
   { to: "/profile", label: "Profile", icon: UserIcon },
 ];
@@ -48,7 +49,7 @@ export function MemberSidebar() {
           <SidebarGroupContent>
             <SidebarMenu>
               {main.map((item) => (
-                <SidebarMenuItem key={item.to}>
+                <SidebarMenuItem key={item.to} data-tour={item.tour}>
                   <SidebarMenuButton asChild isActive={isActive(item.to)} tooltip={item.label}>
                     <NavLink to={item.to} className="flex items-center gap-2">
                       <item.icon className="h-4 w-4" />
@@ -65,7 +66,7 @@ export function MemberSidebar() {
           <SidebarGroupContent>
             <SidebarMenu>
               {tools.map((item) => (
-                <SidebarMenuItem key={item.to}>
+                <SidebarMenuItem key={item.to} data-tour={item.tour}>
                   <SidebarMenuButton asChild isActive={isActive(item.to)} tooltip={item.label}>
                     <NavLink to={item.to} className="flex items-center gap-2">
                       <item.icon className="h-4 w-4" />
@@ -78,7 +79,16 @@ export function MemberSidebar() {
           </SidebarGroupContent>
         </SidebarGroup>
       </SidebarContent>
-      <SidebarFooter className="px-3 py-3 text-[10px] text-muted-foreground">
+      <SidebarFooter className="px-3 py-3 text-[10px] text-muted-foreground space-y-2">
+        <button
+          type="button"
+          onClick={restartProductTour}
+          className="flex items-center gap-2 w-full rounded-md px-2 py-1.5 text-xs hover:bg-accent/10 hover:text-accent transition-colors"
+          aria-label="Restart product tour"
+        >
+          <span>🎯</span>
+          {!collapsed && <span>Restart Tour</span>}
+        </button>
         {!collapsed && <span>Umoja Rise</span>}
       </SidebarFooter>
     </Sidebar>

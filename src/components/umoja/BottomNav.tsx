@@ -2,18 +2,18 @@ import { Link, useLocation } from "react-router-dom";
 import { useEffect, useRef, useState } from "react";
 import { Home, Users, Sparkles, Car, Store, ArrowLeftRight, Gamepad2, Gift, Palette, ChevronRight, ChevronLeft, Trophy, Building2 } from "lucide-react";
 
-const items = [
-  { to: "/dashboard", label: "Home", icon: Home },
-  { to: "/circle", label: "Circle", icon: Users },
+const items: { to: string; label: string; icon: typeof Home; tour?: string }[] = [
+  { to: "/dashboard", label: "Home", icon: Home, tour: "dashboard" },
+  { to: "/circle", label: "Circle", icon: Users, tour: "circle" },
   { to: "/priority", label: "Queue", icon: Trophy },
-  { to: "/spark", label: "Spark", icon: Sparkles },
+  { to: "/spark", label: "Spark", icon: Sparkles, tour: "spark-trade" },
   { to: "/market", label: "Market", icon: Store },
   { to: "/flame-marketing", label: "Create 🎨", icon: Palette },
   { to: "/exchange", label: "Swap", icon: ArrowLeftRight },
-  { to: "/drive", label: "Drive", icon: Car },
-  { to: "/property", label: "Property", icon: Building2 },
+  { to: "/drive", label: "Drive", icon: Car, tour: "drive" },
+  { to: "/property", label: "Property", icon: Building2, tour: "property" },
   { to: "/spark-pit", label: "Pit", icon: Gamepad2 },
-  { to: "/referrals", label: "Invite", icon: Gift },
+  { to: "/referrals", label: "Invite", icon: Gift, tour: "referrals" },
 ];
 
 const HINT_KEY = "umoja_bottomnav_hint_seen";
@@ -96,11 +96,12 @@ export const BottomNav = () => {
             style={{ scrollSnapType: "x mandatory" }}
           >
             <ul className="flex gap-0.5 min-w-max">
-              {items.map(({ to, label, icon: Icon }) => {
+              {items.map(({ to, label, icon: Icon, tour }) => {
                 const active = pathname === to || (to !== "/dashboard" && pathname.startsWith(to));
                 return (
                   <li
                     key={to}
+                    data-tour={tour}
                     className="flex-1 min-w-[56px]"
                     style={{ scrollSnapAlign: "start" }}
                   >
