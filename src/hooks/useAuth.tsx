@@ -38,24 +38,40 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setMember(data as MemberProfile | null);
   };
 
+  const referralAppliedRef = useRef(false);
+  const referralInFlightRef = useRef(false);
+
   const applyPendingReferral = async () => {
+    if (referralAppliedRef.current || referralInFlightRef.current) return;
     try {
       const code = (localStorage.getItem("umoja_referral_code") ?? "").toUpperCase();
       if (!code) return;
+      referralInFlightRef.current = true;
       console.log("[useAuth] pending referral code found, applying:", code);
       // Always try claim_signup_bonus first (no-op if wallet exists)
       await supabase.rpc("claim_signup_bonus");
       const { data: res, error } = await supabase.rpc("apply_referral_signup", { _code: code });
-      console.log("[useAuth] apply_referral_signup deferred result:", { res, error });
-      const r = res as { ok?: boolean; reason?: string } | null;
+      const r = res as { ok?: boolean; reason?: string; referrer_name?: string; referrer_id?: string } | null;
+      console.log("[useAuth] apply_referral_signup deferred result:", {
+        ok: r?.ok,
+        reason: r?.reason,
+        referrer_id: r?.referrer_id,
+        referrer_name: r?.referrer_name,
+        error: error?.message,
+        raw: res,
+      });
       if (!error && r?.ok) {
         localStorage.removeItem("umoja_referral_code");
-      } else if (r?.reason === "already_referred" || r?.reason === "invalid_code") {
+        referralAppliedRef.current = true;
+      } else if (r?.reason === "already_referred" || r?.reason === "invalid_code" || r?.reason === "no_code") {
         // Don't keep retrying for terminal failures
         localStorage.removeItem("umoja_referral_code");
+        referralAppliedRef.current = true;
       }
     } catch (e) {
       console.warn("[useAuth] applyPendingReferral failed", e);
+    } finally {
+      referralInFlightRef.current = false;
     }
   };
 
