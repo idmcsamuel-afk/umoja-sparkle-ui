@@ -110,7 +110,7 @@ function buildEmail(template: TemplateName, data: Record<string, any>) {
          <p style="margin-top:18px;"><strong>Your member code:</strong> <span style="color:${GREEN};font-family:monospace;">${code || "—"}</span></p>
          <p><strong>Your referral link:</strong><br><a href="${link}" style="color:${GREEN};word-break:break-all;">${link}</a></p>
          <p style="margin-top:18px;background:#f6efdc;border-left:4px solid ${GOLD};padding:12px 14px;border-radius:8px;">
-           ✨ <strong>100 Sparks</strong> have been credited to your account.
+           ✨ <strong>50 Sparks</strong> have been credited to your account.
          </p>`,
         "Explore Dashboard",
         `${APP_URL}/dashboard`,
