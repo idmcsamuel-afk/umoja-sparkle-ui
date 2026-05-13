@@ -74,6 +74,11 @@ export default function AdminLayout() {
                 >
                   <Icon className="h-4 w-4" />
                   <span>{label}</span>
+                  {to === "/admin/payouts" && pendingPayouts > 0 && (
+                    <span className="ml-auto inline-flex items-center justify-center min-w-[1.25rem] h-5 px-1.5 rounded-full text-[10px] font-semibold bg-gradient-gold text-amber-950">
+                      {pendingPayouts}
+                    </span>
+                  )}
                 </NavLink>
               </li>
             ))}
