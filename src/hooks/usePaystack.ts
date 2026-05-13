@@ -96,18 +96,30 @@ export function usePaystack() {
     });
 
     return new Promise((resolve) => {
+      const txParams = {
+        key,
+        email,
+        amount: amountInKobo,
+        currency: "ZAR",
+        reference: cleanRef,
+        plan: args.plan,
+        metadata: args.metadata,
+      };
+      console.log("[Paystack Debug] 6a. Parameters:", {
+        key: key.substring(0, 15) + "...",
+        email,
+        amount: amountInKobo,
+        currency: "ZAR",
+        reference: cleanRef,
+        plan: args.plan,
+        metadata: args.metadata,
+      });
       try {
         console.log("[Paystack Debug] 5. Instantiating PaystackPop…", typeof PaystackPop);
         const popup = new PaystackPop();
         console.log("[Paystack Debug] 6. Calling popup.newTransaction…");
         popup.newTransaction({
-          key,
-          email,
-          amount: amountInKobo,
-          currency: "ZAR",
-          reference: cleanRef,
-          plan: args.plan,
-          metadata: args.metadata,
+          ...txParams,
           onSuccess: async (tx: any) => {
             console.log("[Paystack Debug] ✅ onSuccess:", tx);
             const { data, error } = await supabase.functions.invoke("verify-paystack-payment", {
