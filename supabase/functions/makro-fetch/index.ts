@@ -50,6 +50,8 @@ function estimateMonthlySales(p: MakroProduct): number {
   return Math.max(50, est);
 }
 
+let LAST_REAL = false;
+
 async function fetchFromMakro(): Promise<MakroProduct[]> {
   const base = Deno.env.get("MAKRO_API_BASE");
   const appId = Deno.env.get("MAKRO_APP_ID");
@@ -58,8 +60,9 @@ async function fetchFromMakro(): Promise<MakroProduct[]> {
   try {
     const res = await fetch(`${base.replace(/\/$/, "")}/products?limit=20`, {
       headers: { "x-app-id": appId, "x-app-secret": appSecret, Accept: "application/json" },
+      signal: AbortSignal.timeout(8000),
     });
-    if (!res.ok) { LAST_REAL = false; return SEED; }
+    if (!res.ok) { await res.text().catch(() => ""); LAST_REAL = false; return SEED; }
     const json = await res.json();
     const list: any[] = json.products ?? json.items ?? json.data ?? [];
     if (!list.length) { LAST_REAL = false; return SEED; }
@@ -136,9 +139,10 @@ Deno.serve(async (req) => {
       { headers: { ...corsHeaders, "Content-Type": "application/json" } },
     );
   } catch (e) {
+    console.error("[makro-fetch] exception:", (e as Error).message);
     return new Response(
-      JSON.stringify({ ok: false, error: (e as Error).message }),
-      { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } },
+      JSON.stringify({ ok: false, inserted: 0, products: [], error: (e as Error).message }),
+      { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } },
     );
   }
 });
