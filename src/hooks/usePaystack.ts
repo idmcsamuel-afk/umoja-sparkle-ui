@@ -104,23 +104,23 @@ export function usePaystack() {
     });
 
     return new Promise((resolve) => {
-      const txParams = {
+      const customFields = Object.entries(args.metadata ?? {}).map(([k, v]) => ({
+        display_name: k.replace(/_/g, " ").replace(/\b\w/g, (c) => c.toUpperCase()),
+        variable_name: k,
+        value: String(v ?? ""),
+      }));
+      const txParams: any = {
         key,
         email,
         amount: amountInKobo,
         currency: "ZAR",
-        reference: cleanRef,
-        plan: args.plan,
-        metadata: args.metadata,
+        ref: cleanRef,
       };
+      if (args.plan) txParams.plan = args.plan;
+      if (customFields.length) txParams.metadata = { custom_fields: customFields };
       console.log("[Paystack Debug] 6a. Parameters:", {
+        ...txParams,
         key: key.substring(0, 15) + "...",
-        email,
-        amount: amountInKobo,
-        currency: "ZAR",
-        reference: cleanRef,
-        plan: args.plan,
-        metadata: args.metadata,
       });
       try {
         console.log("[Paystack Debug] 5. Instantiating PaystackPop…", typeof PaystackPop);
