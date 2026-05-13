@@ -79,7 +79,16 @@ export function MemberSidebar() {
           </SidebarGroupContent>
         </SidebarGroup>
       </SidebarContent>
-      <SidebarFooter className="px-3 py-3 text-[10px] text-muted-foreground">
+      <SidebarFooter className="px-3 py-3 text-[10px] text-muted-foreground space-y-2">
+        <button
+          type="button"
+          onClick={restartProductTour}
+          className="flex items-center gap-2 w-full rounded-md px-2 py-1.5 text-xs hover:bg-accent/10 hover:text-accent transition-colors"
+          aria-label="Restart product tour"
+        >
+          <span>🎯</span>
+          {!collapsed && <span>Restart Tour</span>}
+        </button>
         {!collapsed && <span>Umoja Rise</span>}
       </SidebarFooter>
     </Sidebar>
