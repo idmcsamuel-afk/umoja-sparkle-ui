@@ -2,6 +2,7 @@ import { Outlet } from "react-router-dom";
 import { SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar";
 import { MemberSidebar } from "@/components/umoja/MemberSidebar";
 import { ProductTour } from "@/components/umoja/ProductTour";
+import { TourBanner } from "@/components/umoja/TourBanner";
 
 export default function MemberLayout() {
   return (
