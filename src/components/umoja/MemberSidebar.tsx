@@ -11,21 +11,21 @@ import {
 import { Logo } from "@/components/umoja/Logo";
 
 const main = [
-  { to: "/dashboard", label: "Home", icon: Home },
-  { to: "/circle", label: "Circle", icon: Users },
+  { to: "/dashboard", label: "Home", icon: Home, tour: "dashboard" },
+  { to: "/circle", label: "Circle", icon: Users, tour: "circle" },
   { to: "/priority", label: "Priority Queue", icon: Trophy },
-  { to: "/spark", label: "Spark Trade", icon: Sparkles },
+  { to: "/spark", label: "Spark Trade", icon: Sparkles, tour: "spark-trade" },
   { to: "/market", label: "Market", icon: Store },
   { to: "/exchange", label: "Exchange", icon: ArrowLeftRight },
-  { to: "/drive", label: "Drive", icon: Car },
-  { to: "/property", label: "Property Fund", icon: Building2 },
+  { to: "/drive", label: "Drive", icon: Car, tour: "drive" },
+  { to: "/property", label: "Property Fund", icon: Building2, tour: "property" },
   { to: "/spark-pit", label: "Spark Pit", icon: Gamepad2 },
 ];
 
 const tools = [
   { to: "/flame-marketing", label: "Create Marketing", icon: Palette },
   { to: "/calculator", label: "Calculator", icon: CalcIcon },
-  { to: "/referrals", label: "Invite Friends", icon: Gift },
+  { to: "/referrals", label: "Invite Friends", icon: Gift, tour: "referrals" },
   { to: "/kyc", label: "Verification", icon: ShieldCheck },
   { to: "/profile", label: "Profile", icon: UserIcon },
 ];
