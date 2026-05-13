@@ -65,21 +65,29 @@ export function usePaystack() {
       toast.error("Payment system configuration error");
       return { ok: false, error: "invalid_public_key" };
     }
-    const email = (args.email ?? "").trim();
-    const emailValid = /\S+@\S+\.\S+/.test(email);
+    const email = (args.email ?? "").trim().toLowerCase();
+    const emailValid = /^[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}$/.test(email);
     console.log("[Paystack Debug] Email:", email, "valid?", emailValid);
     if (!emailValid) {
       toast.error("Valid email address required for payment");
       return { ok: false, error: "invalid_email" };
     }
-    const amountInKobo = Math.round(Number(args.amountZar) * 100);
-    console.log("[Paystack Debug] Amount ZAR:", args.amountZar, "→ kobo:", amountInKobo);
+    const amountInKobo = Math.floor(Math.abs(Number(args.amountZar) * 100));
+    console.log("[Paystack Debug] Amount check:", {
+      original: args.amountZar,
+      kobo: amountInKobo,
+      type: typeof amountInKobo,
+    });
     if (!Number.isFinite(amountInKobo) || amountInKobo < 100) {
       toast.error("Invalid amount. Minimum R1 required.");
       return { ok: false, error: "invalid_amount" };
     }
-    const cleanRef = String(args.reference ?? "").replace(/[^A-Za-z0-9\-_=.]/g, "").slice(0, 100);
-    console.log("[Paystack Debug] Reference (clean):", cleanRef);
+    const cleanRef = String(args.reference ?? "").replace(/[^A-Za-z0-9-]/g, "").slice(0, 100);
+    console.log("[Paystack Debug] Reference check:", {
+      original: args.reference,
+      cleaned: cleanRef,
+      length: cleanRef.length,
+    });
     if (!cleanRef || cleanRef.length < 6) {
       toast.error("Invalid payment reference");
       return { ok: false, error: "invalid_reference" };
