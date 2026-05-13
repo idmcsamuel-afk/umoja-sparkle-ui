@@ -35,13 +35,14 @@ const TOUR_STEPS: Step[] = [
         <h3 className="text-base font-display text-accent">Circle — Rotating Savings 🎯</h3>
         <p className="text-sm font-medium">How it works:</p>
         <ul className="text-xs list-disc pl-4 space-y-1">
-          <li>Choose a tier: Seed (R50–R500), Growth (R501–R2K), Elite (R2K+)</li>
-          <li>Make your monthly contribution</li>
+          <li>Choose a tier: Seed (R200–R2K), Growth (R2K–R10K), Harvest (R10K+)</li>
+          <li>Make your monthly contribution (minimum R200)</li>
           <li>Get ranked by priority score (consistency + time + contribution)</li>
-          <li>Top scorers get payouts each session</li>
-          <li>Everyone gets their turn based on priority</li>
+          <li>Top scorers get payouts each allocation session</li>
+          <li>Everyone gets their turn based on merit</li>
         </ul>
-        <p className="text-xs italic text-muted-foreground">It's NOT first-come-first-served — it's merit-based!</p>
+        <p className="text-xs italic text-muted-foreground">It's NOT first-come-first-served — it's MERIT-based!</p>
+        <p className="text-[11px] text-muted-foreground">Your consistency, contribution size, and community impact determine your rank.</p>
       </div>
     ),
   },

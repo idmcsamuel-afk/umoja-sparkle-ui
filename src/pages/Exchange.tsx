@@ -432,7 +432,7 @@ export default function Exchange() {
             <div className="rounded-2xl bg-secondary/40 p-4">
               <p className="font-medium mb-2">Contribute by:</p>
               <ul className="space-y-1 text-muted-foreground">
-                <li>• Joining a Circle (from R50)</li>
+                <li>• Joining a Circle (from R200)</li>
                 <li>• Purchasing from Spark Trade</li>
                 <li>• Joining UMOJA Drive</li>
                 <li>• Subscribing to Buyers Club</li>
