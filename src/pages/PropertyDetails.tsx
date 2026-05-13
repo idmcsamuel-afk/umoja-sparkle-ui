@@ -49,7 +49,7 @@ interface Milestone {
 
 export default function PropertyDetails() {
   const { id } = useParams();
-  const { user } = useAuth();
+  const { user, member } = useAuth() as any;
   const [p, setP] = useState<PropertyRow | null>(null);
   const [milestones, setMilestones] = useState<Milestone[]>([]);
   const [units, setUnits] = useState("10");
@@ -57,6 +57,8 @@ export default function PropertyDetails() {
   const [step, setStep] = useState<"amount" | "pay">("amount");
   const [proofFile, setProofFile] = useState<File | null>(null);
   const [busy, setBusy] = useState(false);
+  const [method, setMethod] = useState<PaymentMethod>("paystack");
+  const { pay: payWithPaystack } = usePaystack();
 
   const load = async () => {
     if (!id) return;
