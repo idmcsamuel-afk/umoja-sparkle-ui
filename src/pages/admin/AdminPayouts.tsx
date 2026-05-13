@@ -48,9 +48,12 @@ export default function AdminPayouts() {
   const [payRef, setPayRef] = useState("");
   const [payDate, setPayDate] = useState(() => new Date().toISOString().slice(0, 10));
 
+  const [confirmCheck, setConfirmCheck] = useState(false);
+
   // Filters
   const [tierFilter, setTierFilter] = useState<"all" | "seed" | "growth" | "harvest">("all");
   const [search, setSearch] = useState("");
+  const [dateRange, setDateRange] = useState<"7" | "30" | "90" | "all">("30");
 
   const load = async () => {
     setLoading(true);
