@@ -85,10 +85,20 @@ Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response("ok", { headers: corsHeaders });
 
   try {
-    const supabase = createClient(
-      Deno.env.get("SUPABASE_URL")!,
-      Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!,
-    );
+    const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
+    const ANON = Deno.env.get("SUPABASE_ANON_KEY")!;
+    const SERVICE = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
+
+    // Admin auth gate — this endpoint mutates spark_trade_shortlist with service role.
+    const auth = req.headers.get("Authorization") ?? "";
+    const userClient = createClient(SUPABASE_URL, ANON, {
+      global: { headers: { Authorization: auth } },
+    });
+    const { data: u } = await userClient.auth.getUser();
+    if (!u?.user) return new Response(JSON.stringify({ error: "auth required" }), { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+    const supabase = createClient(SUPABASE_URL, SERVICE);
+    const { data: isAdm } = await supabase.from("admin_users").select("user_id").eq("user_id", u.user.id).maybeSingle();
+    if (!isAdm) return new Response(JSON.stringify({ error: "forbidden" }), { status: 403, headers: { ...corsHeaders, "Content-Type": "application/json" } });
 
     const products = await fetchFromMakro();
 

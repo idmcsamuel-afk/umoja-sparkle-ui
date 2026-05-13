@@ -65,6 +65,31 @@ const esc = (s: unknown) =>
     ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]!),
   );
 
+// Sanitize a small allowlist of safe HTML for the `custom` admin template.
+// Strips <script>/<style>, on* event handlers, and javascript:/data: URLs.
+function sanitizeHtml(input: string): string {
+  let s = String(input ?? "");
+  // Drop dangerous blocks entirely (including content)
+  s = s.replace(/<\s*(script|style|iframe|object|embed|link|meta)\b[\s\S]*?<\s*\/\s*\1\s*>/gi, "");
+  s = s.replace(/<\s*(script|style|iframe|object|embed|link|meta)\b[^>]*>/gi, "");
+  // Strip inline event handlers: onclick=, onerror=, etc.
+  s = s.replace(/\son[a-z]+\s*=\s*"(?:[^"\\]|\\.)*"/gi, "");
+  s = s.replace(/\son[a-z]+\s*=\s*'(?:[^'\\]|\\.)*'/gi, "");
+  s = s.replace(/\son[a-z]+\s*=\s*[^\s>]+/gi, "");
+  // Neutralize dangerous URL schemes in href/src
+  s = s.replace(/(href|src)\s*=\s*"(\s*(?:javascript|data|vbscript):[^"]*)"/gi, '$1="#"');
+  s = s.replace(/(href|src)\s*=\s*'(\s*(?:javascript|data|vbscript):[^']*)'/gi, "$1='#'");
+  return s;
+}
+
+function safeUrl(u: unknown): string | undefined {
+  if (!u) return undefined;
+  const str = String(u).trim();
+  if (!/^https?:\/\//i.test(str)) return undefined;
+  // HTML-escape for safe attribute interpolation
+  return esc(str);
+}
+
 type TemplateName =
   | "welcome"
   | "referral_success"
@@ -219,8 +244,10 @@ function buildEmail(template: TemplateName, data: Record<string, any>) {
     }
     case "custom": {
       const subject = String(data.subject ?? "A message from UMOJA");
-      const body = String(data.body_html ?? "");
-      const html = shell(esc(data.title ?? subject), body, data.cta_label, data.cta_url);
+      const body = sanitizeHtml(String(data.body_html ?? ""));
+      const safeCtaUrl = safeUrl(data.cta_url);
+      const safeCtaLabel = data.cta_label ? esc(data.cta_label) : undefined;
+      const html = shell(esc(data.title ?? subject), body, safeCtaLabel, safeCtaUrl);
       return { subject, html };
     }
   }
@@ -304,13 +331,49 @@ async function sendOne(args: {
   }
 }
 
+const ANON_ALLOWED_TEMPLATES = new Set<TemplateName>(["contact_form"]);
+const ADMIN_ONLY_TEMPLATES = new Set<TemplateName>(["custom"]);
+const ANON_KEY = Deno.env.get("SUPABASE_ANON_KEY")!;
+
+async function getCaller(req: Request): Promise<{ user_id: string | null; is_admin: boolean }> {
+  const auth = req.headers.get("Authorization") ?? "";
+  const token = auth.toLowerCase().startsWith("bearer ") ? auth.slice(7).trim() : "";
+  // Treat the public anon key as "no user" — supabase-js attaches it by default.
+  if (!token || token === ANON_KEY) return { user_id: null, is_admin: false };
+  try {
+    const userClient = createClient(SUPABASE_URL, ANON_KEY, {
+      global: { headers: { Authorization: `Bearer ${token}` } },
+    });
+    const { data: u } = await userClient.auth.getUser();
+    if (!u?.user) return { user_id: null, is_admin: false };
+    const { data: isAdm } = await sb
+      .from("admin_users").select("user_id").eq("user_id", u.user.id).maybeSingle();
+    return { user_id: u.user.id, is_admin: !!isAdm };
+  } catch {
+    return { user_id: null, is_admin: false };
+  }
+}
+
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
   try {
     const body = await req.json();
     const action = body.action ?? "send";
+    const caller = await getCaller(req);
+
+    const forbid = (msg = "forbidden") =>
+      new Response(JSON.stringify({ ok: false, error: msg }), {
+        status: 403,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    const unauthed = () =>
+      new Response(JSON.stringify({ ok: false, error: "auth required" }), {
+        status: 401,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
 
     if (action === "retry") {
+      if (!caller.is_admin) return forbid();
       const { log_id } = body;
       const { data: row } = await sb.from("email_log").select("*").eq("id", log_id).maybeSingle();
       if (!row) throw new Error("log not found");
@@ -332,6 +395,7 @@ Deno.serve(async (req) => {
     }
 
     if (action === "blast") {
+      if (!caller.is_admin) return forbid();
       const { subject, body_html, audience, tier, member_ids } = body;
       // Create blast row
       const { data: blast } = await sb.from("email_blasts").insert({
@@ -366,7 +430,15 @@ Deno.serve(async (req) => {
     // default: single send
     const { template, to, data = {}, member_id, bypass_prefs } = body;
     if (!template || !to) throw new Error("template and to are required");
-    const result = await sendOne({ template, to, data, member_id, bypass_prefs });
+    const tpl = template as TemplateName;
+
+    // Admin-only templates (custom HTML body)
+    if (ADMIN_ONLY_TEMPLATES.has(tpl) && !caller.is_admin) return forbid();
+
+    // All other templates require an authenticated caller, except a small public allowlist.
+    if (!caller.user_id && !ANON_ALLOWED_TEMPLATES.has(tpl)) return unauthed();
+
+    const result = await sendOne({ template: tpl, to, data, member_id, bypass_prefs });
     return new Response(JSON.stringify(result), {
       status: result.ok ? 200 : 500,
       headers: { ...corsHeaders, "Content-Type": "application/json" },
