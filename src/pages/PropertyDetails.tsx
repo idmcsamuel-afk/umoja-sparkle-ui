@@ -112,9 +112,40 @@ export default function PropertyDetails() {
   const submitInvest = async () => {
     if (!user || !p) return;
     if (!Number.isFinite(u) || u <= 0) return toast.error("Enter unit count");
+
+    if (method === "paystack") {
+      setBusy(true);
+      // Create the reit_units row first as payment_pending so verify-edge can find it.
+      const memberCode = (member as any)?.referral_code ?? user.id.slice(0, 6).toUpperCase();
+      const ref = buildReference("PROP", p.id, memberCode);
+      const { error: insErr } = await (supabase.from("reit_units") as any).insert({
+        member_id: user.id,
+        property_id: p.id,
+        units: u,
+        price_per_unit: unitPrice,
+        total_paid: total,
+        platform_fee: platformFee,
+        payment_reference: ref,
+        status: "payment_pending",
+      });
+      if (insErr) { setBusy(false); return toast.error(insErr.message); }
+      const result = await payWithPaystack({
+        email: user.email ?? "",
+        amountZar: total,
+        reference: ref,
+        metadata: { member_id: user.id, payment_type: "property_investment", property_id: p.id, units: u },
+      });
+      setBusy(false);
+      if (result.ok) {
+        setInvesting(false);
+        setStep("amount");
+        load();
+      }
+      return;
+    }
+
     if (!proofFile) return toast.error("Please upload proof of payment");
     setBusy(true);
-    // Upload proof
     const ext = proofFile.name.split(".").pop() || "jpg";
     const path = `${user.id}/${p.id}-${Date.now()}.${ext}`;
     const up = await supabase.storage.from("property-payment-proofs").upload(path, proofFile, { upsert: false });
@@ -129,6 +160,7 @@ export default function PropertyDetails() {
       platform_fee: platformFee,
       payment_reference: payRef,
       proof_url: path,
+      payment_method: "eft",
       status: "payment_pending",
     });
     setBusy(false);
@@ -140,7 +172,7 @@ export default function PropertyDetails() {
     load();
   };
 
-  const openInvest = () => { setStep("amount"); setProofFile(null); setInvesting(true); };
+  const openInvest = () => { setStep("amount"); setProofFile(null); setMethod("paystack"); setInvesting(true); };
 
   if (!p) {
     return (
