@@ -34,6 +34,22 @@ const SESSIONS_PER_WEEK: Record<TierKey, number> = { seed: 14, growth: 7, harves
 const fmtR = (n: number) => "R" + Math.round(n).toLocaleString("en-ZA");
 const fmt = (n: number, d = 1) => Number(n ?? 0).toFixed(d);
 
+interface MyBid {
+  id: string;
+  status: string | null;
+  fiat_amount: number;
+  tier: string;
+  created_at: string;
+}
+
+interface CommunityStats {
+  referrals: number;
+  kyc_level: number;
+  active_days: number;
+}
+
+const TIER_MIN: Record<TierKey, number> = { seed: 200, growth: 2001, harvest: 10001 };
+
 export default function Priority() {
   const { user } = useAuth();
   const [tier, setTier] = useState<TierKey>("seed");
@@ -41,6 +57,8 @@ export default function Priority() {
   const [loading, setLoading] = useState(true);
   const [payouts, setPayouts] = useState<Record<TierKey, number>>(PAYOUTS_PER_SESSION);
   const [lastSnapshot, setLastSnapshot] = useState<{ priority_score: number; rank: number | null; session_at: string } | null>(null);
+  const [myBid, setMyBid] = useState<MyBid | null>(null);
+  const [community, setCommunity] = useState<CommunityStats>({ referrals: 0, kyc_level: 0, active_days: 0 });
 
   useEffect(() => {
     (async () => {
@@ -55,6 +73,32 @@ export default function Priority() {
       }
     })();
   }, []);
+
+  // Load user-level signals (any-status bid in tier + community impact)
+  useEffect(() => {
+    if (!user?.id) return;
+    (async () => {
+      const { data: bid, error: bidErr } = await supabase
+        .from("circle_bids")
+        .select("id, status, fiat_amount, tier, created_at")
+        .eq("member_id", user.id)
+        .eq("tier", tier)
+        .in("status", ["active", "payment_pending", "matched", "pending"])
+        .order("created_at", { ascending: false })
+        .limit(1)
+        .maybeSingle();
+      console.log("[Priority] my bid:", { bid, bidErr, tier });
+      setMyBid((bid as MyBid) ?? null);
+
+      const [{ count: refs }, { data: me }, { data: activeRows }] = await Promise.all([
+        supabase.from("members").select("id", { count: "exact", head: true }).eq("referred_by", user.id),
+        supabase.from("members").select("kyc_level").eq("id", user.id).maybeSingle(),
+        supabase.from("circle_bids").select("created_at").eq("member_id", user.id),
+      ]);
+      const days = new Set((activeRows ?? []).map((r) => new Date(r.created_at).toISOString().slice(0, 10))).size;
+      setCommunity({ referrals: refs ?? 0, kyc_level: (me?.kyc_level as number) ?? 0, active_days: days });
+    })();
+  }, [user?.id, tier]);
 
   useEffect(() => {
     setLoading(true);
@@ -104,6 +148,23 @@ export default function Priority() {
     // positive = moved up the queue (lower number is better)
     return Number(lastSnapshot.rank) - myRank;
   }, [myRank, lastSnapshot]);
+
+  // Community impact (max 10) — same formula as compute_session_scores
+  const communityScore = Math.min(
+    10,
+    community.referrals * 2 + community.active_days * 0.1 + (community.kyc_level >= 3 ? 2 : 0),
+  );
+
+  // Potential score for a hypothetical first bid at tier minimum
+  const potentialScore = useMemo(() => {
+    const cons = 40; // first bid → no missed payments
+    const time = 0;
+    const min = TIER_MIN[tier];
+    const vol = Math.min(15, (min / Math.max(min * 5, 1)) * 15);
+    const boost = 0;
+    return Math.round(cons + time + vol + communityScore + boost);
+  }, [tier, communityScore]);
+
 
   return (
     <main className="relative min-h-screen pb-32">
