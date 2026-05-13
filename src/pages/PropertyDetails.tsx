@@ -12,6 +12,8 @@ import { Progress } from "@/components/ui/progress";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog";
 import { PaymentBreakdown } from "@/components/umoja/PaymentBreakdown";
 import { BankAccountInfo } from "@/components/umoja/BankAccountInfo";
+import { PaymentMethodSelector, type PaymentMethod } from "@/components/umoja/PaymentMethodSelector";
+import { usePaystack, buildReference } from "@/hooks/usePaystack";
 import { toast } from "sonner";
 
 const STAGES = [
