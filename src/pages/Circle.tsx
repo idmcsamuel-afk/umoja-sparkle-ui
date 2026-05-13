@@ -93,6 +93,8 @@ const Circle = () => {
   const [busy, setBusy] = useState(false);
   const [pendingBid, setPendingBid] = useState<{ id: string; amount: number; ref: string } | null>(null);
   const [proofFile, setProofFile] = useState<File | null>(null);
+  const [method, setMethod] = useState<PaymentMethod>("paystack");
+  const { pay: payWithPaystack } = usePaystack();
   const [copied, setCopied] = useState<string | null>(null);
   const [leaders, setLeaders] = useState<Array<{ member_id: string; full_name: string; priority_score: number }>>([]);
   const [leadersLoading, setLeadersLoading] = useState(false);
