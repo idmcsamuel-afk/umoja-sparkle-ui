@@ -36,7 +36,7 @@ const Signup = () => {
     setRefStatus("checking");
     (async () => {
       console.log("[Signup] Validating code:", refParam);
-      const { data, error } = await supabase.rpc("lookup_referrer", { p_code: refParam });
+      const { data, error } = await supabase.rpc("lookup_referrer", { _code: refParam });
       console.log("[Signup] Raw RPC response:", { data, error });
       console.log("[Signup] Data type:", typeof data, "isArray:", Array.isArray(data));
       console.log("[Signup] Data content:", JSON.stringify(data));
