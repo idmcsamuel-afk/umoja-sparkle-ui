@@ -602,32 +602,21 @@ const Circle = () => {
 
                 <PaymentMethodSelector value={method} onChange={setMethod} />
 
-              {!settingsReady ? (
+              {method === "eft" && !settingsReady ? (
                 <div className="rounded-2xl border border-destructive/40 bg-destructive/10 p-4 space-y-3">
                   <div>
                     <p className="text-sm font-medium text-destructive">Bank details not configured</p>
                     <p className="mt-1 text-xs text-muted-foreground">
-                      EFT instructions can't be shown until an admin saves the bank name, account name, account number, and branch code.
+                      EFT instructions can't be shown until an admin saves the bank details.
                     </p>
                   </div>
-                  {isAdmin ? (
-                    <Button
-                      asChild
-                      onClick={closeModal}
-                      className="w-full rounded-2xl bg-gradient-primary text-primary-foreground shadow-glow"
-                    >
-                      <Link to="/admin/settings">
-                        Configure bank details
-                        <ChevronRight className="h-4 w-4 ml-1" />
-                      </Link>
+                  {isAdmin && (
+                    <Button asChild onClick={closeModal} className="w-full rounded-2xl bg-gradient-primary text-primary-foreground shadow-glow">
+                      <Link to="/admin/settings">Configure bank details<ChevronRight className="h-4 w-4 ml-1" /></Link>
                     </Button>
-                  ) : (
-                    <p className="text-xs text-muted-foreground">
-                      Please contact an admin and try again once they're saved.
-                    </p>
                   )}
                 </div>
-              ) : (
+              ) : method === "eft" ? (
                 <div className="space-y-2 rounded-2xl border border-border bg-secondary/40 p-4 text-sm">
                   <p className="text-[10px] uppercase tracking-wider text-muted-foreground pb-1">Your Payment Details</p>
                   {[
@@ -643,60 +632,35 @@ const Circle = () => {
                       <div className="flex items-center gap-2 min-w-0">
                         <span className="font-mono text-sm truncate">{value}</span>
                         {value && (
-                          <button
-                            onClick={() => copy(label, String(value))}
-                            className="grid h-7 w-7 place-items-center rounded-lg bg-background/60 hover:bg-background text-muted-foreground hover:text-foreground transition-smooth"
-                            aria-label={`Copy ${label}`}
-                          >
+                          <button onClick={() => copy(label, String(value))} className="grid h-7 w-7 place-items-center rounded-lg bg-background/60 hover:bg-background text-muted-foreground hover:text-foreground transition-smooth" aria-label={`Copy ${label}`}>
                             {copied === label ? <Check className="h-3 w-3 text-primary" /> : <Copy className="h-3 w-3" />}
                           </button>
                         )}
                       </div>
                     </div>
                   ))}
-                  {settings?.payment_instructions && (
-                    <p className="pt-2 text-xs text-muted-foreground whitespace-pre-line">
-                      {settings.payment_instructions}
-                    </p>
-                  )}
-                  <ul className="pt-2 space-y-1 text-xs text-muted-foreground">
-                    <li>✓ Your contribution earns you priority points</li>
-                    <li>✓ Your payout depends on your priority score</li>
-                    <li>✓ Track your queue position at <Link to="/priority" className="text-primary underline">/priority</Link></li>
-                  </ul>
                 </div>
-              )}
+              ) : null}
 
-              {/* Fund split explanation */}
               <div className="rounded-2xl border border-accent/40 bg-gradient-to-br from-primary/10 to-accent/10 p-4 text-sm space-y-2">
                 <p className="font-medium text-accent inline-flex items-center gap-1">💡 How Your Payment is Split</p>
                 <ul className="space-y-1 text-xs">
-                  <li className="flex justify-between"><span>Community Pool (distributed to members)</span><span className="font-display text-gradient-gold">95%</span></li>
-                  <li className="flex justify-between"><span>Platform Fee (operations)</span><span className="font-mono text-muted-foreground">2%</span></li>
-                  <li className="flex justify-between"><span>Ubuntu Fund (community projects)</span><span className="font-mono text-muted-foreground">3%</span></li>
+                  <li className="flex justify-between"><span>Community Pool</span><span className="font-display text-gradient-gold">95%</span></li>
+                  <li className="flex justify-between"><span>Platform Fee</span><span className="font-mono text-muted-foreground">2%</span></li>
+                  <li className="flex justify-between"><span>Ubuntu Fund</span><span className="font-mono text-muted-foreground">3%</span></li>
                 </ul>
-                <p className="text-[11px] text-muted-foreground pt-1 border-t border-border/40">
-                  You receive a payout based on your priority when you reach the front of the queue. UMOJA only takes a small fee — the rest goes back to members.
-                </p>
               </div>
 
-              <div className="space-y-2">
-                <Label className="text-xs uppercase tracking-[0.18em] text-muted-foreground">
-                  Proof of payment (required)
-                </Label>
-                <label className="flex items-center gap-3 rounded-2xl border border-dashed border-border bg-secondary/30 p-3 cursor-pointer hover:bg-secondary/50 transition-smooth">
-                  <Upload className="h-4 w-4 text-accent" />
-                  <span className="text-sm truncate flex-1">
-                    {proofFile ? proofFile.name : "Tap to attach screenshot or PDF"}
-                  </span>
-                  <input
-                    type="file"
-                    accept="image/*,application/pdf"
-                    className="hidden"
-                    onChange={(e) => setProofFile(e.target.files?.[0] ?? null)}
-                  />
-                </label>
-              </div>
+              {method === "eft" && (
+                <div className="space-y-2">
+                  <Label className="text-xs uppercase tracking-[0.18em] text-muted-foreground">Proof of payment (required)</Label>
+                  <label className="flex items-center gap-3 rounded-2xl border border-dashed border-border bg-secondary/30 p-3 cursor-pointer hover:bg-secondary/50 transition-smooth">
+                    <Upload className="h-4 w-4 text-accent" />
+                    <span className="text-sm truncate flex-1">{proofFile ? proofFile.name : "Tap to attach screenshot or PDF"}</span>
+                    <input type="file" accept="image/*,application/pdf" className="hidden" onChange={(e) => setProofFile(e.target.files?.[0] ?? null)} />
+                  </label>
+                </div>
+              )}
               </div>
 
               <div className="sticky bottom-0 z-10 flex gap-3 border-t border-border bg-background/95 backdrop-blur p-4">
