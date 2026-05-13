@@ -9,6 +9,7 @@ import {
   useSidebar,
 } from "@/components/ui/sidebar";
 import { Logo } from "@/components/umoja/Logo";
+import { restartProductTour } from "@/components/umoja/ProductTour";
 
 const main = [
   { to: "/dashboard", label: "Home", icon: Home, tour: "dashboard" },
