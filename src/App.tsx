@@ -116,6 +116,7 @@ const App = () => (
                 <Route path="buyers-club" element={<AdminBuyersClub />} />
                 <Route path="fulfillment" element={<AdminFulfillment />} />
                 <Route path="properties" element={<AdminProperties />} />
+                <Route path="bank-accounts" element={<AdminBankAccounts />} />
               </Route>
 
               <Route path="*" element={<NotFound />} />
