@@ -200,7 +200,7 @@ Deno.serve(async (req) => {
       event: "manual.verify",
       reference,
       member_id: u.user.id,
-      raw: { tx, result },
+      raw: { tx, result, clientMeta },
       processed: !!result.applied,
       error: result.applied ? null : (result.error || result.reason || "not_applied"),
     });
