@@ -34,19 +34,29 @@ const Signup = () => {
   useEffect(() => {
     if (!refParam) { setRefStatus("none"); return; }
     setRefStatus("checking");
-    supabase.rpc("lookup_referrer", { _code: refParam }).then(({ data, error }) => {
-      const row = Array.isArray(data) ? data[0] : data;
-      if (error) {
+    (async () => {
+      // Look up referrer row directly so we can self-reference check.
+      const { data: row, error } = await supabase
+        .from("members")
+        .select("id, full_name")
+        .eq("referral_code", refParam)
+        .maybeSingle();
+      if (error || !row?.full_name) {
         setRefStatus("invalid");
         return;
       }
-      if (row?.full_name) {
-        setReferrerName(row.full_name);
-        setRefStatus("valid");
-      } else {
+      const { data: sess } = await supabase.auth.getSession();
+      const currentUid = sess?.session?.user?.id ?? null;
+      if (currentUid && currentUid === row.id) {
+        console.warn("[signup] self-referral blocked", { refParam, currentUid });
         setRefStatus("invalid");
+        try { localStorage.removeItem("umoja_referral_code"); } catch {}
+        toast.error("You can't use your own referral link.");
+        return;
       }
-    });
+      setReferrerName(row.full_name);
+      setRefStatus("valid");
+    })();
   }, [refParam]);
 
   const update = (k: keyof typeof form) => (e: React.ChangeEvent<HTMLInputElement>) =>
