@@ -133,14 +133,25 @@ export function usePaystack() {
             const { data, error } = await supabase.functions.invoke("verify-paystack-payment", {
               body: { reference: tx.reference },
             });
-            if (error || !(data as any)?.ok) {
-              const msg = (error as any)?.message || (data as any)?.error || "Verification pending";
-              console.warn("[Paystack Debug] verify failed:", msg, { error, data });
-              toast.warning("Payment received — verification pending", { description: msg });
+            console.log("[Paystack Debug] verify response:", { data, error });
+            const d = data as any;
+            if (error || !d?.ok) {
+              const msg = (error as any)?.message || d?.error || "Verification pending";
+              console.warn("[Paystack Debug] verify hard-fail:", msg, { error, data });
+              toast.warning("Payment received — verification pending", {
+                description: `${msg}. Ref: ${tx.reference}`,
+              });
               resolve({ ok: false, reference: tx.reference, error: msg });
               return;
             }
-            toast.success("Payment successful ✓", { description: `Ref: ${tx.reference}` });
+            if (d.applied === false) {
+              console.warn("[Paystack Debug] verified but not applied:", d);
+              toast.success("Payment received ✓", {
+                description: `Activation pending review. Ref: ${tx.reference}`,
+              });
+            } else {
+              toast.success("Payment successful ✓", { description: `Ref: ${tx.reference}` });
+            }
             resolve({ ok: true, reference: tx.reference });
           },
           onCancel: () => {
