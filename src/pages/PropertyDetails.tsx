@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { Link, useParams } from "react-router-dom";
-import { ArrowLeft, Building2, MapPin, TrendingUp, ShieldCheck, Sparkles, Boxes, Loader2, CheckCircle2, Clock, Truck, Hammer, Home as HomeIcon, FileText } from "lucide-react";
+import { ArrowLeft, Building2, MapPin, TrendingUp, ShieldCheck, Sparkles, Boxes, Loader2, CheckCircle2, Clock, Truck, Hammer, Home as HomeIcon, FileText, Upload } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { Logo } from "@/components/umoja/Logo";
@@ -10,6 +10,8 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Progress } from "@/components/ui/progress";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog";
+import { PaymentBreakdown } from "@/components/umoja/PaymentBreakdown";
+import { BankAccountInfo } from "@/components/umoja/BankAccountInfo";
 import { toast } from "sonner";
 
 const STAGES = [
