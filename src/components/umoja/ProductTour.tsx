@@ -129,9 +129,8 @@ export const ProductTour = () => {
     return () => window.removeEventListener("umoja:restart-tour", handler);
   }, []);
 
-  const handleCallback = (data: CallBackProps) => {
-    const { status } = data;
-    if (status === STATUS.FINISHED || status === STATUS.SKIPPED) {
+  const handleEvent = (data: EventData) => {
+    if (data.status === STATUS.FINISHED || data.status === STATUS.SKIPPED) {
       setRun(false);
       localStorage.setItem(TOUR_KEY, "true");
     }
@@ -148,21 +147,15 @@ export const ProductTour = () => {
       showProgress
       scrollToFirstStep
       disableScrolling={false}
-      callback={handleCallback}
+      onEvent={handleEvent}
       locale={{ back: "Back", close: "Close", last: "Done", next: "Next", skip: "Skip tour" }}
       styles={{
-        options: {
-          primaryColor: "hsl(var(--accent))",
-          backgroundColor: "hsl(var(--background))",
-          textColor: "hsl(var(--foreground))",
-          arrowColor: "hsl(var(--background))",
-          overlayColor: "rgba(0,0,0,0.65)",
-          zIndex: 10000,
-        },
-        tooltip: { borderRadius: 12, padding: 16 },
-        buttonNext: { borderRadius: 8, fontWeight: 600 },
+        tooltip: { borderRadius: 12, padding: 16, backgroundColor: "hsl(var(--background))", color: "hsl(var(--foreground))" },
+        buttonPrimary: { borderRadius: 8, fontWeight: 600, backgroundColor: "hsl(var(--accent))", color: "hsl(var(--accent-foreground))" },
         buttonBack: { color: "hsl(var(--muted-foreground))" },
         buttonSkip: { color: "hsl(var(--muted-foreground))" },
+        overlay: { backgroundColor: "rgba(0,0,0,0.65)" },
+        spotlight: { borderRadius: 8 },
       }}
     />
   );
