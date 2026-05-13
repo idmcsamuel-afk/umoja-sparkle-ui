@@ -155,7 +155,7 @@ export const ProductTour = () => {
         buttonBack: { color: "hsl(var(--muted-foreground))" },
         buttonSkip: { color: "hsl(var(--muted-foreground))" },
         overlay: { backgroundColor: "rgba(0,0,0,0.65)" },
-        spotlight: { borderRadius: 8 },
+        
       }}
     />
   );
