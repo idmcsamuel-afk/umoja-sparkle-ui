@@ -34,6 +34,22 @@ const SESSIONS_PER_WEEK: Record<TierKey, number> = { seed: 14, growth: 7, harves
 const fmtR = (n: number) => "R" + Math.round(n).toLocaleString("en-ZA");
 const fmt = (n: number, d = 1) => Number(n ?? 0).toFixed(d);
 
+interface MyBid {
+  id: string;
+  status: string | null;
+  fiat_amount: number;
+  tier: string;
+  created_at: string;
+}
+
+interface CommunityStats {
+  referrals: number;
+  kyc_level: number;
+  active_days: number;
+}
+
+const TIER_MIN: Record<TierKey, number> = { seed: 200, growth: 2001, harvest: 10001 };
+
 export default function Priority() {
   const { user } = useAuth();
   const [tier, setTier] = useState<TierKey>("seed");
@@ -41,6 +57,8 @@ export default function Priority() {
   const [loading, setLoading] = useState(true);
   const [payouts, setPayouts] = useState<Record<TierKey, number>>(PAYOUTS_PER_SESSION);
   const [lastSnapshot, setLastSnapshot] = useState<{ priority_score: number; rank: number | null; session_at: string } | null>(null);
+  const [myBid, setMyBid] = useState<MyBid | null>(null);
+  const [community, setCommunity] = useState<CommunityStats>({ referrals: 0, kyc_level: 0, active_days: 0 });
 
   useEffect(() => {
     (async () => {
@@ -55,6 +73,32 @@ export default function Priority() {
       }
     })();
   }, []);
+
+  // Load user-level signals (any-status bid in tier + community impact)
+  useEffect(() => {
+    if (!user?.id) return;
+    (async () => {
+      const { data: bid, error: bidErr } = await supabase
+        .from("circle_bids")
+        .select("id, status, fiat_amount, tier, created_at")
+        .eq("member_id", user.id)
+        .eq("tier", tier)
+        .in("status", ["active", "payment_pending", "matched", "pending"])
+        .order("created_at", { ascending: false })
+        .limit(1)
+        .maybeSingle();
+      console.log("[Priority] my bid:", { bid, bidErr, tier });
+      setMyBid((bid as MyBid) ?? null);
+
+      const [{ count: refs }, { data: me }, { data: activeRows }] = await Promise.all([
+        supabase.from("members").select("id", { count: "exact", head: true }).eq("referred_by", user.id),
+        supabase.from("members").select("kyc_level").eq("id", user.id).maybeSingle(),
+        supabase.from("circle_bids").select("created_at").eq("member_id", user.id),
+      ]);
+      const days = new Set((activeRows ?? []).map((r) => new Date(r.created_at).toISOString().slice(0, 10))).size;
+      setCommunity({ referrals: refs ?? 0, kyc_level: (me?.kyc_level as number) ?? 0, active_days: days });
+    })();
+  }, [user?.id, tier]);
 
   useEffect(() => {
     setLoading(true);
@@ -105,6 +149,23 @@ export default function Priority() {
     return Number(lastSnapshot.rank) - myRank;
   }, [myRank, lastSnapshot]);
 
+  // Community impact (max 10) — same formula as compute_session_scores
+  const communityScore = Math.min(
+    10,
+    community.referrals * 2 + community.active_days * 0.1 + (community.kyc_level >= 3 ? 2 : 0),
+  );
+
+  // Potential score for a hypothetical first bid at tier minimum
+  const potentialScore = useMemo(() => {
+    const cons = 40; // first bid → no missed payments
+    const time = 0;
+    const min = TIER_MIN[tier];
+    const vol = Math.min(15, (min / Math.max(min * 5, 1)) * 15);
+    const boost = 0;
+    return Math.round(cons + time + vol + communityScore + boost);
+  }, [tier, communityScore]);
+
+
   return (
     <main className="relative min-h-screen pb-32">
       <header className="px-5 pt-6">
@@ -147,20 +208,105 @@ export default function Priority() {
       {loading ? (
         <div className="mt-10 grid place-items-center"><Loader2 className="h-6 w-6 animate-spin text-primary" /></div>
       ) : !me ? (
-        <section className="px-5 mt-6">
-          <div className="mx-auto max-w-md rounded-3xl glass p-6 text-center">
-            <p className="text-sm text-muted-foreground">
-              You don't have an active bid in the <span className="capitalize text-foreground">{tier}</span> circle yet.
-              Place a bid to see your priority score and queue position.
-            </p>
-            <Link
-              to="/circle"
-              className="mt-4 inline-flex items-center gap-1 rounded-2xl bg-gradient-primary text-primary-foreground px-4 h-10 text-sm shadow-glow"
-            >
-              Place a bid
-            </Link>
-          </div>
-        </section>
+        <>
+          <section className="px-5 mt-6">
+            <div className="mx-auto max-w-md rounded-3xl glass p-6">
+              {myBid ? (
+                <>
+                  <p className="text-[10px] uppercase tracking-[0.22em] text-accent text-center">Bid in progress</p>
+                  <p className="mt-2 text-sm text-center text-muted-foreground">
+                    Your <span className="capitalize text-foreground">{tier}</span> bid of{" "}
+                    <b className="text-foreground">{fmtR(Number(myBid.fiat_amount))}</b> is{" "}
+                    <span className="text-foreground">{(myBid.status ?? "pending").replace(/_/g, " ")}</span>.
+                    Once payment is confirmed it joins the priority queue below.
+                  </p>
+                </>
+              ) : (
+                <p className="text-sm text-center text-muted-foreground">
+                  You don't have an active bid in the <span className="capitalize text-foreground">{tier}</span> circle yet.
+                  Here's where you'd land based on your community impact.
+                </p>
+              )}
+              <div className="mt-4 grid place-items-center">
+                <Link to="/circle" className="inline-flex items-center gap-1 rounded-2xl bg-gradient-primary text-primary-foreground px-4 h-10 text-sm shadow-glow">
+                  {myBid ? "View Circle" : "Make your first bid"}
+                </Link>
+              </div>
+            </div>
+          </section>
+
+          <section className="px-5 mt-6">
+            <div className="mx-auto max-w-md rounded-3xl border border-accent/30 bg-gradient-card p-5">
+              <div className="flex items-center gap-2">
+                <Users className="h-4 w-4 text-accent" />
+                <h3 className="font-display text-lg">Community impact</h3>
+                <span className="ml-auto font-mono text-sm">{fmt(communityScore, 1)}<span className="text-muted-foreground">/10</span></span>
+              </div>
+              <ul className="mt-3 space-y-1.5 text-sm text-muted-foreground">
+                <li className="flex justify-between"><span>Referrals · {community.referrals} × 2pts</span><span className="font-mono text-foreground">+{(community.referrals * 2).toFixed(1)}</span></li>
+                <li className="flex justify-between"><span>Active days · {community.active_days} × 0.1pts</span><span className="font-mono text-foreground">+{(community.active_days * 0.1).toFixed(1)}</span></li>
+                <li className="flex justify-between"><span>KYC Level 3 bonus</span><span className="font-mono text-foreground">{community.kyc_level >= 3 ? "+2.0" : "0.0"}</span></li>
+              </ul>
+              <p className="mt-3 text-[11px] text-muted-foreground">
+                These points carry over to every bid — grow them now to climb faster later.
+              </p>
+            </div>
+          </section>
+
+          <section className="px-5 mt-6">
+            <div className="mx-auto max-w-md rounded-3xl border border-primary/30 bg-gradient-card p-5">
+              <div className="flex items-center gap-2">
+                <Sparkles className="h-4 w-4 text-accent" />
+                <h3 className="font-display text-lg">Your potential score</h3>
+              </div>
+              <p className="mt-2 text-xs text-muted-foreground">
+                If you bid {fmtR(TIER_MIN[tier])} in <span className="capitalize text-foreground">{tier}</span> today:
+              </p>
+              <ul className="mt-3 space-y-1 text-sm">
+                <li className="flex justify-between"><span className="text-muted-foreground">Consistency (baseline)</span><span className="font-mono">40.0</span></li>
+                <li className="flex justify-between"><span className="text-muted-foreground">Time waiting</span><span className="font-mono">0.0</span></li>
+                <li className="flex justify-between"><span className="text-muted-foreground">Contribution volume</span><span className="font-mono">~3.0</span></li>
+                <li className="flex justify-between"><span className="text-muted-foreground">Community impact</span><span className="font-mono">{fmt(communityScore, 1)}</span></li>
+                <li className="flex justify-between"><span className="text-muted-foreground">Bid boost</span><span className="font-mono">0.0</span></li>
+              </ul>
+              <div className="mt-3 flex items-baseline justify-between border-t border-border pt-3">
+                <span className="text-sm">Estimated score</span>
+                <span className="font-display text-2xl text-gradient-gold">~{potentialScore}<span className="text-base text-muted-foreground">/100</span></span>
+              </div>
+              <p className="mt-1 text-[11px] text-muted-foreground">
+                Estimated rank: ~#{Math.max(1, Math.ceil(eligibleRows.length * 0.4) + 1)} of {eligibleRows.length || 0} active members
+              </p>
+            </div>
+          </section>
+
+          <section className="px-5 mt-6">
+            <div className="mx-auto max-w-md rounded-3xl glass p-5">
+              <div className="flex items-center gap-2">
+                <Trophy className="h-4 w-4 text-accent" />
+                <h3 className="font-display text-lg capitalize">{tier} queue</h3>
+                <span className="ml-auto text-[11px] text-muted-foreground">{eligibleRows.length} active</span>
+              </div>
+              {eligibleRows.length === 0 ? (
+                <p className="mt-3 text-xs text-muted-foreground">No active bids in this tier yet — be the first.</p>
+              ) : (
+                <ol className="mt-3 space-y-1.5">
+                  {eligibleRows.slice(0, 10).map((r, i) => (
+                    <li key={r.bid_id} className="flex items-center justify-between rounded-xl bg-secondary/30 px-3 py-2 text-sm">
+                      <span className="flex items-center gap-2">
+                        <span className="font-mono text-xs text-muted-foreground w-5">#{i + 1}</span>
+                        <span className="truncate max-w-[140px]">{r.full_name}</span>
+                      </span>
+                      <span className="font-mono text-xs">{fmt(r.priority_score)}pts</span>
+                    </li>
+                  ))}
+                </ol>
+              )}
+              <p className="mt-3 text-[11px] text-muted-foreground">
+                You're not in the queue yet — <Link to="/circle" className="underline">join {tier}</Link> to compete.
+              </p>
+            </div>
+          </section>
+        </>
       ) : (
         <>
           {/* Score hero */}
