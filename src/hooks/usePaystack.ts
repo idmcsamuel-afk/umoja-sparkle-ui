@@ -90,10 +90,12 @@ export function usePaystack() {
       const fireOpen = () => window.dispatchEvent(new Event("paystack-popup-open"));
       const fireClose = () => window.dispatchEvent(new Event("paystack-popup-close"));
 
-      try {
-        const popup = new PaystackPop();
-        fireOpen();
-        popup.newTransaction({
+      const openPopup = () => {
+        try {
+          document.body.classList.add("paystack-open");
+          const popup = new PaystackPop();
+          fireOpen();
+          popup.newTransaction({
           ...txParams,
           onSuccess: async (tx: any) => {
             fireClose();
