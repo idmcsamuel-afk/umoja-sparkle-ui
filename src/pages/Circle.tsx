@@ -674,10 +674,10 @@ const Circle = () => {
                 </Button>
                 <Button
                   onClick={submitPayment}
-                  disabled={busy || !proofFile || !settingsReady}
+                  disabled={busy || (method === "eft" && (!proofFile || !settingsReady))}
                   className="flex-1 min-h-12 rounded-2xl bg-gradient-primary text-primary-foreground shadow-glow"
                 >
-                  {busy ? <Loader2 className="h-4 w-4 animate-spin" /> : "I've Made Payment"}
+                  {busy ? <Loader2 className="h-4 w-4 animate-spin" /> : method === "paystack" ? "Pay with card" : "I've Made Payment"}
                 </Button>
               </div>
             </>
