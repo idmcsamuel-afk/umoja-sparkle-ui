@@ -26,6 +26,7 @@ import PropertyDetails from "./pages/PropertyDetails.tsx";
 import ModularCatalog from "./pages/ModularCatalog.tsx";
 import PropertyHowItWorks from "./pages/PropertyHowItWorks.tsx";
 import AdminProperties from "./pages/admin/AdminProperties.tsx";
+import AdminBankAccounts from "./pages/admin/AdminBankAccounts.tsx";
 import FlameMarketing from "./pages/FlameMarketing.tsx";
 import SparkPit from "./pages/SparkPit.tsx";
 import DreamDraw from "./pages/DreamDraw.tsx";
@@ -115,6 +116,7 @@ const App = () => (
                 <Route path="buyers-club" element={<AdminBuyersClub />} />
                 <Route path="fulfillment" element={<AdminFulfillment />} />
                 <Route path="properties" element={<AdminProperties />} />
+                <Route path="bank-accounts" element={<AdminBankAccounts />} />
               </Route>
 
               <Route path="*" element={<NotFound />} />

@@ -1,6 +1,6 @@
 import { NavLink, Outlet, Link } from "react-router-dom";
 import {
-  LayoutDashboard, Users, Coins, ShoppingBag, Car, TrendingUp, Wallet, ArrowLeft, ShieldCheck, Ticket, Gift, Settings, Trophy, Mail, Crown, Rocket, Building2,
+  LayoutDashboard, Users, Coins, ShoppingBag, Car, TrendingUp, Wallet, ArrowLeft, ShieldCheck, Ticket, Gift, Settings, Trophy, Mail, Crown, Rocket, Building2, Landmark,
 } from "lucide-react";
 import { Logo } from "@/components/umoja/Logo";
 import { ThemeToggle } from "@/components/umoja/ThemeToggle";
@@ -21,6 +21,7 @@ const items = [
   { to: "/admin/invites", label: "Invites", icon: Ticket },
   { to: "/admin/referrals", label: "Referrals", icon: Gift },
   { to: "/admin/notifications", label: "Notifications", icon: Mail },
+  { to: "/admin/bank-accounts", label: "Bank accounts", icon: Landmark },
   { to: "/admin/settings", label: "Settings", icon: Settings },
 ];
 

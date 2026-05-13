@@ -118,6 +118,63 @@ export type Database = {
           },
         ]
       }
+      bank_accounts: {
+        Row: {
+          account_holder: string
+          account_name: string
+          account_number: string
+          bank_name: string
+          branch_code: string
+          created_at: string
+          created_by: string | null
+          for_buyers_club: boolean
+          for_circle: boolean
+          for_drive: boolean
+          for_property: boolean
+          for_spark_trade: boolean
+          id: string
+          is_active: boolean
+          is_default: boolean
+          updated_at: string
+        }
+        Insert: {
+          account_holder: string
+          account_name: string
+          account_number: string
+          bank_name: string
+          branch_code: string
+          created_at?: string
+          created_by?: string | null
+          for_buyers_club?: boolean
+          for_circle?: boolean
+          for_drive?: boolean
+          for_property?: boolean
+          for_spark_trade?: boolean
+          id?: string
+          is_active?: boolean
+          is_default?: boolean
+          updated_at?: string
+        }
+        Update: {
+          account_holder?: string
+          account_name?: string
+          account_number?: string
+          bank_name?: string
+          branch_code?: string
+          created_at?: string
+          created_by?: string | null
+          for_buyers_club?: boolean
+          for_circle?: boolean
+          for_drive?: boolean
+          for_property?: boolean
+          for_spark_trade?: boolean
+          id?: string
+          is_active?: boolean
+          is_default?: boolean
+          updated_at?: string
+        }
+        Relationships: []
+      }
       circle_allocation_overrides: {
         Row: {
           applied_to_allocation: string | null
@@ -1992,29 +2049,50 @@ export type Database = {
       }
       reit_units: {
         Row: {
+          confirmed_at: string | null
+          confirmed_by: string | null
           created_at: string | null
           id: string
           member_id: string
+          payment_reference: string | null
+          platform_fee: number | null
           price_per_unit: number
+          proof_url: string | null
           property_id: string | null
+          status: string
+          submitted_at: string | null
           total_paid: number
           units: number
         }
         Insert: {
+          confirmed_at?: string | null
+          confirmed_by?: string | null
           created_at?: string | null
           id?: string
           member_id: string
+          payment_reference?: string | null
+          platform_fee?: number | null
           price_per_unit: number
+          proof_url?: string | null
           property_id?: string | null
+          status?: string
+          submitted_at?: string | null
           total_paid: number
           units: number
         }
         Update: {
+          confirmed_at?: string | null
+          confirmed_by?: string | null
           created_at?: string | null
           id?: string
           member_id?: string
+          payment_reference?: string | null
+          platform_fee?: number | null
           price_per_unit?: number
+          proof_url?: string | null
           property_id?: string | null
+          status?: string
+          submitted_at?: string | null
           total_paid?: number
           units?: number
         }
