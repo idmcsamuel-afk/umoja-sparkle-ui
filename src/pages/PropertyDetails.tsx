@@ -96,19 +96,49 @@ export default function PropertyDetails() {
 
   const submitInvest = async () => {
     if (!user || !p) return;
-    const u = Number(units);
+  const u = Number(units);
+  const subtotal = +(u * unitPrice).toFixed(2);
+  const platformFee = +(subtotal * 0.02).toFixed(2);
+  const total = +(subtotal + platformFee).toFixed(2);
+  const payRef = useMemo(() => {
+    if (!user || !p) return "";
+    const memberShort = user.id.slice(0, 6).toUpperCase();
+    const propShort = p.id.slice(0, 6).toUpperCase();
+    return `PROP-${memberShort}-${propShort}`;
+  }, [user, p]);
+
+  const submitInvest = async () => {
+    if (!user || !p) return;
     if (!Number.isFinite(u) || u <= 0) return toast.error("Enter unit count");
+    if (!proofFile) return toast.error("Please upload proof of payment");
     setBusy(true);
-    const total = +(u * unitPrice).toFixed(2);
-    const { error } = await supabase.from("reit_units").insert({
-      member_id: user.id, property_id: p.id, units: u, price_per_unit: unitPrice, total_paid: total,
+    // Upload proof
+    const ext = proofFile.name.split(".").pop() || "jpg";
+    const path = `${user.id}/${p.id}-${Date.now()}.${ext}`;
+    const up = await supabase.storage.from("property-payment-proofs").upload(path, proofFile, { upsert: false });
+    if (up.error) { setBusy(false); return toast.error(up.error.message); }
+
+    const { error } = await (supabase.from("reit_units") as any).insert({
+      member_id: user.id,
+      property_id: p.id,
+      units: u,
+      price_per_unit: unitPrice,
+      total_paid: total,
+      platform_fee: platformFee,
+      payment_reference: payRef,
+      proof_url: path,
+      status: "payment_pending",
     });
     setBusy(false);
     if (error) return toast.error(error.message);
-    toast.success("Investment recorded ✨", { description: `${u} units in ${p.name}` });
+    toast.success("Investment submitted ✨", { description: "Admin will confirm your payment shortly." });
     setInvesting(false);
+    setStep("amount");
+    setProofFile(null);
     load();
   };
+
+  const openInvest = () => { setStep("amount"); setProofFile(null); setInvesting(true); };
 
   if (!p) {
     return (
