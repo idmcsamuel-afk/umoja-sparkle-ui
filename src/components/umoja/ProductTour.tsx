@@ -133,6 +133,7 @@ export const ProductTour = () => {
     if (data.status === STATUS.FINISHED || data.status === STATUS.SKIPPED) {
       setRun(false);
       localStorage.setItem(TOUR_KEY, "true");
+      window.dispatchEvent(new CustomEvent("umoja:tour-state"));
     }
   };
 
