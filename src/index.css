@@ -5,6 +5,20 @@
 html { scroll-behavior: smooth; }
 section[id] { scroll-margin-top: 80px; }
 
+/* Paystack popup must sit above any app overlays and remain interactive */
+iframe[src*="paystack"],
+iframe[name*="paystack"] {
+  z-index: 2147483647 !important;
+  pointer-events: auto !important;
+}
+body.paystack-open [data-radix-dialog-overlay],
+body.paystack-open [data-sonner-toaster],
+body.paystack-open .loading-overlay,
+body.paystack-open [class*="backdrop"] {
+  pointer-events: none !important;
+}
+body.paystack-open { pointer-events: auto !important; }
+
 /* UMOJA — Africa's community wealth platform
  * Design system: deep forest green + gold on warm dark.
  * All colors are HSL.
