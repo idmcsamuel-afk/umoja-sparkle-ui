@@ -262,6 +262,18 @@ const Circle = () => {
       setBusy(true);
       const memberShort = user.id.slice(0, 6).toUpperCase();
       const ref = buildReference("CIRCLE", open.tier, memberShort);
+      console.log("[Paystack Debug] Circle submitPayment →", {
+        email: user.email,
+        amount: pendingBid.amount,
+        reference: ref,
+        tier: open.tier,
+        bidId: pendingBid.id,
+      });
+      if (!user.email) {
+        setBusy(false);
+        toast.error("Your account has no email — add one in Profile to use card payments");
+        return;
+      }
       const { error: refErr } = await supabase
         .from("circle_bids")
         .update({
