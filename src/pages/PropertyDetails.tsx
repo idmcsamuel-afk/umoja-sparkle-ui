@@ -94,8 +94,6 @@ export default function PropertyDetails() {
     return { rent, mgmt, reserve, net: Math.max(0, rent - mgmt - reserve) };
   }, [p]);
 
-  const submitInvest = async () => {
-    if (!user || !p) return;
   const u = Number(units);
   const subtotal = +(u * unitPrice).toFixed(2);
   const platformFee = +(subtotal * 0.02).toFixed(2);
