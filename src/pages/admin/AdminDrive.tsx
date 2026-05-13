@@ -32,7 +32,7 @@ export default function AdminDrive() {
     ]);
     setTiers((t.data ?? []) as Tier[]);
     const pmap: Record<string, Pool> = {};
-    ((p.data ?? []) as Pool[]).forEach((x) => { pmap[x.tier_id] = x; });
+    ((p.data ?? []) as unknown as Pool[]).forEach((x) => { pmap[x.tier_id] = x; });
     setPools(pmap);
     setLoading(false);
   };

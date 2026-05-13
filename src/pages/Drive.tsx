@@ -55,7 +55,7 @@ export default function Drive() {
     ]);
     setTiers((tiersRes.data ?? []) as Tier[]);
     const pmap: Record<string, Pool> = {};
-    ((poolsRes.data ?? []) as Pool[]).forEach((p) => { pmap[p.tier_id] = p; });
+    ((poolsRes.data ?? []) as unknown as Pool[]).forEach((p) => { pmap[p.tier_id] = p; });
     setPools(pmap);
     const emap: Record<string, string> = {};
     ((enrollRes.data ?? []) as { id: string; tier_id: string }[]).forEach((e) => { emap[e.tier_id] = e.id; });
