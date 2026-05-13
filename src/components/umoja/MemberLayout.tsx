@@ -18,6 +18,7 @@ export default function MemberLayout() {
             <SidebarTrigger />
           </header>
           <main className="flex-1 min-w-0">
+            <TourBanner />
             <Outlet />
           </main>
         </div>
