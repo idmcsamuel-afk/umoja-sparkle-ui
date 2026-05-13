@@ -2816,6 +2816,7 @@ export type Database = {
         Args: { _amount: number; _member: string; _note?: string }
         Returns: number
       }
+      admin_delete_user: { Args: { _user_id: string }; Returns: Json }
       admin_extend_buyers_club: {
         Args: { _member: string; _months?: number }
         Returns: string

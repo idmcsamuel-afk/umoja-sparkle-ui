@@ -163,8 +163,15 @@ const Signup = () => {
     if (refParam && refStatus !== "invalid" && hasSession) {
       console.log("[signup] calling apply_referral_signup", { uid, refParam });
       const { data: res, error: refErr } = await supabase.rpc("apply_referral_signup", { _code: refParam });
-      console.log("[signup] apply_referral_signup result", { res, refErr });
       const r = res as { ok?: boolean; reason?: string; referrer_name?: string; referrer_id?: string } | null;
+      console.log("[Signup] ========= REFERRAL RESULT =========");
+      console.log("[Signup] Success:", !!r?.ok);
+      console.log("[Signup] Reason/Error:", r?.reason ?? refErr?.message ?? "(none)");
+      console.log("[Signup] Referrer ID:", r?.referrer_id ?? "(none)");
+      console.log("[Signup] Referrer Name:", r?.referrer_name ?? "(none)");
+      console.log("[Signup] Raw data:", JSON.stringify(res));
+      console.log("[Signup] Raw error:", JSON.stringify(refErr));
+      console.log("[Signup] ======================================");
       if (refErr || !r?.ok) {
         console.warn("[signup] referral NOT applied", { refErr, reason: r?.reason });
         toast.warning(`Referral code couldn't be applied (${r?.reason ?? refErr?.message ?? "unknown"}).`);

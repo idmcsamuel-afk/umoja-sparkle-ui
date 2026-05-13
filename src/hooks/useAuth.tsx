@@ -52,14 +52,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       await supabase.rpc("claim_signup_bonus");
       const { data: res, error } = await supabase.rpc("apply_referral_signup", { _code: code });
       const r = res as { ok?: boolean; reason?: string; referrer_name?: string; referrer_id?: string } | null;
-      console.log("[useAuth] apply_referral_signup deferred result:", {
-        ok: r?.ok,
-        reason: r?.reason,
-        referrer_id: r?.referrer_id,
-        referrer_name: r?.referrer_name,
-        error: error?.message,
-        raw: res,
-      });
+      console.log("[useAuth] ========= REFERRAL RESULT =========");
+      console.log("[useAuth] Success:", !!r?.ok);
+      console.log("[useAuth] Reason/Error:", r?.reason ?? error?.message ?? "(none)");
+      console.log("[useAuth] Referrer ID:", r?.referrer_id ?? "(none)");
+      console.log("[useAuth] Referrer Name:", r?.referrer_name ?? "(none)");
+      console.log("[useAuth] Raw data:", JSON.stringify(res));
+      console.log("[useAuth] Raw error:", JSON.stringify(error));
+      console.log("[useAuth] ======================================");
       if (!error && r?.ok) {
         localStorage.removeItem("umoja_referral_code");
         referralAppliedRef.current = true;
