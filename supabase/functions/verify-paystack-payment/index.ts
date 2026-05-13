@@ -141,10 +141,11 @@ Deno.serve(async (req) => {
 
     const body = await req.json().catch(() => ({}));
     const reference = body?.reference;
+    const clientMeta: Record<string, any> = (body?.metadata && typeof body.metadata === "object") ? body.metadata : {};
     if (!reference || typeof reference !== "string") {
       return json(400, { ok: false, error: "reference required" });
     }
-    console.log("[verify] start", { user: u.user.id, reference });
+    console.log("[verify] start", { user: u.user.id, reference, clientMeta });
 
     let tx: any;
     try {
@@ -163,17 +164,35 @@ Deno.serve(async (req) => {
     const amountZar = Number(tx.amount) / 100;
     const parts = String(reference).split("-");
     const prefix = parts[0];
+    // Prefer explicit client-provided metadata fields, fall back to reference parsing
+    const metaPaymentType: string | undefined = clientMeta.payment_type;
+    const metaMemberId: string | undefined = clientMeta.member_id;
+    const metaTier: string | undefined = clientMeta.tier || clientMeta.circle_tier || clientMeta.buyers_club_tier;
+    const metaPropertyId: string | undefined = clientMeta.property_id;
+    // Auth user is the source of truth for security; only log mismatch
+    if (metaMemberId && metaMemberId !== u.user.id) {
+      console.warn("[verify] metadata member_id mismatch", { metaMemberId, authUser: u.user.id });
+    }
+
+    const kind = metaPaymentType
+      ? (metaPaymentType.includes("circle") ? "CIRCLE"
+        : metaPaymentType.includes("propert") || metaPaymentType.includes("reit") ? "PROP"
+        : metaPaymentType.includes("buyers") || metaPaymentType.includes("club") ? "BC"
+        : metaPaymentType.includes("drive") ? "DRIVE"
+        : prefix)
+      : prefix;
+
     let result: any = { kind: "unknown", applied: false };
     try {
-      if (prefix === "CIRCLE") result = await applyToCircle(u.user.id, parts[1], reference);
-      else if (prefix === "PROP") result = await applyToProperty(u.user.id, parts[1], reference);
-      else if (prefix === "BC" || prefix === "CLUB") result = await applyToBuyersClub(u.user.id, (parts[1] || "bronze").toLowerCase(), reference);
-      else if (prefix === "DRIVE") result = await applyToDrive(u.user.id, reference);
+      if (kind === "CIRCLE") result = await applyToCircle(u.user.id, metaTier || parts[1], reference);
+      else if (kind === "PROP") result = await applyToProperty(u.user.id, metaPropertyId || parts[1], reference);
+      else if (kind === "BC" || kind === "CLUB") result = await applyToBuyersClub(u.user.id, (metaTier || parts[1] || "bronze").toLowerCase(), reference);
+      else if (kind === "DRIVE") result = await applyToDrive(u.user.id, reference);
       else result = { kind: "unknown", applied: false, reason: `unknown_prefix:${prefix}` };
     } catch (e) {
       const msg = e instanceof Error ? e.message : String(e);
       console.error("[verify] apply error", msg);
-      result = { kind: prefix, applied: false, error: msg };
+      result = { kind, applied: false, error: msg };
     }
     console.log("[verify] apply result", result);
 
