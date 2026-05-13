@@ -98,9 +98,15 @@ export function usePaystack() {
           onSuccess: async (tx: any) => {
             fireClose();
             dlog("[Paystack] success:", tx?.reference);
+            let stashedMeta: Record<string, any> | undefined;
+            try {
+              const raw = sessionStorage.getItem(`paystack:meta:${cleanRef}`);
+              if (raw) stashedMeta = JSON.parse(raw);
+            } catch {}
             const { data, error } = await supabase.functions.invoke("verify-paystack-payment", {
-              body: { reference: tx.reference },
+              body: { reference: tx.reference, metadata: stashedMeta },
             });
+            try { sessionStorage.removeItem(`paystack:meta:${cleanRef}`); } catch {}
             const d = data as any;
             if (error || !d?.ok) {
               const msg = (error as any)?.message || d?.error || "Verification pending";
