@@ -285,7 +285,17 @@ export default function AdminPayouts() {
         </TabsContent>
 
         <TabsContent value="paid" className="mt-5">
-          <div className="flex justify-end mb-3">
+          <div className="flex flex-wrap items-center justify-between gap-2 mb-3">
+            <select
+              value={dateRange}
+              onChange={(e) => setDateRange(e.target.value as any)}
+              className="h-10 rounded-xl border border-border bg-secondary/60 px-3 text-sm"
+            >
+              <option value="7">Last 7 days</option>
+              <option value="30">Last 30 days</option>
+              <option value="90">Last 90 days</option>
+              <option value="all">All time</option>
+            </select>
             <Button variant="outline" onClick={exportCsv} className="rounded-xl">
               <Download className="h-4 w-4 mr-1.5" /> Export CSV
             </Button>
@@ -302,7 +312,7 @@ export default function AdminPayouts() {
                 </tr>
               </thead>
               <tbody>
-                {paid.map((r) => (
+                {paidFiltered.map((r) => (
                   <tr key={r.id} className="border-b border-border/50 last:border-0">
                     <td className="p-3 text-xs">{r.payout_date ? new Date(r.payout_date).toLocaleString() : "—"}</td>
                     <td className="p-3">{r.member?.full_name ?? r.member_id.slice(0, 8) + "…"}</td>
@@ -311,8 +321,11 @@ export default function AdminPayouts() {
                     <td className="p-3 text-xs text-muted-foreground">{r.payment_ref ?? "—"}</td>
                   </tr>
                 ))}
-                {paid.length === 0 && (
-                  <tr><td colSpan={5} className="p-8 text-center text-sm text-muted-foreground">No paid payouts yet.</td></tr>
+                {paidFiltered.length === 0 && (
+                  <tr><td colSpan={5} className="p-10 text-center text-sm text-muted-foreground">
+                    <Inbox className="h-6 w-6 mx-auto mb-2 opacity-60" />
+                    No payments found in this period.
+                  </td></tr>
                 )}
               </tbody>
             </table>
@@ -320,17 +333,51 @@ export default function AdminPayouts() {
         </TabsContent>
       </Tabs>
 
-      {/* Mark-paid modal */}
+      {/* Fast-track modal */}
       <Dialog open={!!confirm} onOpenChange={(o) => !o && !busy && setConfirm(null)}>
-        <DialogContent className="max-w-md rounded-3xl">
+        <DialogContent className="max-w-md rounded-3xl max-h-[90vh] overflow-y-auto">
           <DialogHeader>
-            <DialogTitle>Confirm payout</DialogTitle>
+            <DialogTitle>Fast-track payout {confirm ? `for ${confirm.member?.full_name ?? "member"}` : ""}</DialogTitle>
             <DialogDescription>
               {confirm && (
-                <>Pay <b>{confirm.member?.full_name ?? confirm.member_id.slice(0, 8)}</b> for the <b className="capitalize">{confirm.tier}</b> circle.</>
+                <>Confirm the <b className="capitalize">{confirm.tier}</b> circle payout below.</>
               )}
             </DialogDescription>
           </DialogHeader>
+          {confirm && (() => {
+            const gross = Number(confirm.fiat_amount ?? 0);
+            const platform = +(gross * PLATFORM_FEE).toFixed(2);
+            const ubuntu = +(gross * UBUNTU_FUND).toFixed(2);
+            const net = +(gross - platform - ubuntu).toFixed(2);
+            return (
+              <div className="rounded-2xl border border-border bg-secondary/30 p-3 text-sm">
+                <div className="flex justify-between"><span className="text-muted-foreground">Gross amount</span><span>{fmtR(gross)}</span></div>
+                <div className="flex justify-between text-muted-foreground"><span>Platform fee (2%)</span><span>−{fmtR(platform)}</span></div>
+                <div className="flex justify-between text-muted-foreground"><span>Ubuntu fund (3%)</span><span>−{fmtR(ubuntu)}</span></div>
+                <div className="border-t border-border my-2" />
+                <div className="flex justify-between font-semibold text-accent-soft text-base"><span>Net payout</span><span>{fmtR(net)}</span></div>
+              </div>
+            );
+          })()}
+          {confirm && payMethod === "EFT" && (confirm.member?.bank_name || confirm.member?.bank_account) && (
+            <div className="rounded-2xl border border-border bg-background/40 p-3 text-xs space-y-1">
+              <div className="flex justify-between"><span className="text-muted-foreground">Bank</span><span>{confirm.member?.bank_name ?? "—"}</span></div>
+              <div className="flex justify-between"><span className="text-muted-foreground">Account</span><span>{confirm.member?.bank_account ?? "—"}</span></div>
+              <div className="flex justify-between"><span className="text-muted-foreground">Branch</span><span>{(confirm.member as any)?.bank_branch ?? "—"}</span></div>
+              <div className="flex justify-between"><span className="text-muted-foreground">Holder</span><span>{confirm.member?.full_name ?? "—"}</span></div>
+              <Button
+                type="button" size="sm" variant="ghost"
+                className="mt-1 h-7 px-2 text-[11px]"
+                onClick={() => {
+                  const m: any = confirm.member ?? {};
+                  const txt = `Bank: ${m.bank_name ?? ""}\nAccount: ${m.bank_account ?? ""}\nBranch: ${m.bank_branch ?? ""}\nHolder: ${m.full_name ?? ""}`;
+                  navigator.clipboard.writeText(txt).then(() => toast.success("Bank details copied"));
+                }}
+              >
+                <Copy className="h-3 w-3 mr-1" /> Copy bank details
+              </Button>
+            </div>
+          )}
           <div className="space-y-3">
             <div>
               <Label className="text-xs">Net amount (R)</Label>
@@ -339,9 +386,9 @@ export default function AdminPayouts() {
             <div>
               <Label className="text-xs">Payment method</Label>
               <select value={payMethod} onChange={(e) => setPayMethod(e.target.value as any)} className="mt-1 w-full h-11 rounded-xl border border-border bg-secondary/60 px-3 text-sm">
-                <option value="EFT">EFT</option>
-                <option value="Cash">Cash</option>
-                <option value="Paystack">Paystack</option>
+                <option value="EFT">EFT Transfer</option>
+                <option value="Cash">Cash Payment</option>
+                <option value="Paystack">Paystack Transfer</option>
               </select>
             </div>
             <div>
@@ -352,11 +399,15 @@ export default function AdminPayouts() {
               <Label className="text-xs">Payment date</Label>
               <Input type="date" value={payDate} onChange={(e) => setPayDate(e.target.value)} className="mt-1 h-11 rounded-xl" />
             </div>
+            <label className="flex items-start gap-2 text-xs cursor-pointer">
+              <Checkbox checked={confirmCheck} onCheckedChange={(v) => setConfirmCheck(!!v)} className="mt-0.5" />
+              <span>I confirm payment of <b>R{Math.round(Number(payAmount) || 0).toLocaleString("en-ZA")}</b> has been made to this member.</span>
+            </label>
           </div>
           <DialogFooter>
             <Button variant="ghost" disabled={busy} onClick={() => setConfirm(null)}>Cancel</Button>
-            <Button disabled={busy} onClick={markPaid} className="bg-gradient-gold text-amber-950">
-              {busy ? <Loader2 className="h-4 w-4 animate-spin" /> : "Confirm payment"}
+            <Button disabled={busy || !confirmCheck} onClick={markPaid} className="bg-gradient-gold text-amber-950">
+              {busy ? <Loader2 className="h-4 w-4 animate-spin" /> : "Process payout"}
             </Button>
           </DialogFooter>
         </DialogContent>
