@@ -49,9 +49,11 @@ export function BuyersClubModal({ open, onOpenChange, onSuccess }: { open: boole
   const [bank, setBank] = useState<Bank>({});
   const [file, setFile] = useState<File | null>(null);
   const [busy, setBusy] = useState(false);
+  const [method, setMethod] = useState<PaymentMethod>("paystack");
+  const { pay: payWithPaystack } = usePaystack();
 
   useEffect(() => {
-    if (!open) { setStep(1); setTier(null); setFile(null); return; }
+    if (!open) { setStep(1); setTier(null); setFile(null); setMethod("paystack"); return; }
     supabase.rpc("get_member_platform_settings").then(({ data }) => {
       const row = Array.isArray(data) ? data[0] : data;
       if (row) setBank(row as Bank);
@@ -64,10 +66,23 @@ export function BuyersClubModal({ open, onOpenChange, onSuccess }: { open: boole
 
   const copy = (txt: string) => { navigator.clipboard.writeText(txt); toast.success("Copied"); };
 
-  const submit = async () => {
+  const payNow = async () => {
     if (!user || !tier || !selected) return;
-    if (!file) return toast.error("Please attach proof of payment");
     setBusy(true);
+    if (method === "paystack") {
+      const ref = buildReference("BC", tier, memberCode);
+      const result = await payWithPaystack({
+        email: user.email ?? "",
+        amountZar: selected.price,
+        reference: ref,
+        plan: `umoja-${tier}`,
+        metadata: { member_id: user.id, payment_type: "buyers_club", tier },
+      });
+      setBusy(false);
+      if (result.ok) { onOpenChange(false); onSuccess?.(); }
+      return;
+    }
+    if (!file) { setBusy(false); return toast.error("Please attach proof of payment"); }
     const path = `${user.id}/${Date.now()}-${file.name.replace(/[^a-zA-Z0-9.\-_]/g, "_")}`;
     const up = await supabase.storage.from("buyers-club-proofs").upload(path, file, { upsert: false });
     if (up.error) { setBusy(false); return toast.error(up.error.message); }
