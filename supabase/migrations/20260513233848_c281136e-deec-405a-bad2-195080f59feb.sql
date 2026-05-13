@@ -1,0 +1,1 @@
+ALTER VIEW public.drive_tier_pool_v SET (security_invoker = true);
