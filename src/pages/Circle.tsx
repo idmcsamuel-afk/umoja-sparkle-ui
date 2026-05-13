@@ -285,6 +285,9 @@ const Circle = () => {
         })
         .eq("id", pendingBid.id);
       if (refErr) { setBusy(false); return toast.error(refErr.message); }
+      // Close this dialog first so Radix focus trap doesn't block Paystack iframe inputs
+      closeModal();
+      await new Promise((r) => setTimeout(r, 150));
       const result = await payWithPaystack({
         email: user.email ?? "",
         amountZar: pendingBid.amount,
@@ -292,7 +295,7 @@ const Circle = () => {
         metadata: { member_id: user.id, payment_type: "circle_contribution", tier: open.tier },
       });
       setBusy(false);
-      if (result.ok) { closeModal(); load(); }
+      if (result.ok) load();
       return;
     }
 
