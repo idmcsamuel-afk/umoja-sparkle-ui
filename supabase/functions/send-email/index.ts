@@ -65,6 +65,31 @@ const esc = (s: unknown) =>
     ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]!),
   );
 
+// Sanitize a small allowlist of safe HTML for the `custom` admin template.
+// Strips <script>/<style>, on* event handlers, and javascript:/data: URLs.
+function sanitizeHtml(input: string): string {
+  let s = String(input ?? "");
+  // Drop dangerous blocks entirely (including content)
+  s = s.replace(/<\s*(script|style|iframe|object|embed|link|meta)\b[\s\S]*?<\s*\/\s*\1\s*>/gi, "");
+  s = s.replace(/<\s*(script|style|iframe|object|embed|link|meta)\b[^>]*>/gi, "");
+  // Strip inline event handlers: onclick=, onerror=, etc.
+  s = s.replace(/\son[a-z]+\s*=\s*"(?:[^"\\]|\\.)*"/gi, "");
+  s = s.replace(/\son[a-z]+\s*=\s*'(?:[^'\\]|\\.)*'/gi, "");
+  s = s.replace(/\son[a-z]+\s*=\s*[^\s>]+/gi, "");
+  // Neutralize dangerous URL schemes in href/src
+  s = s.replace(/(href|src)\s*=\s*"(\s*(?:javascript|data|vbscript):[^"]*)"/gi, '$1="#"');
+  s = s.replace(/(href|src)\s*=\s*'(\s*(?:javascript|data|vbscript):[^']*)'/gi, "$1='#'");
+  return s;
+}
+
+function safeUrl(u: unknown): string | undefined {
+  if (!u) return undefined;
+  const str = String(u).trim();
+  if (!/^https?:\/\//i.test(str)) return undefined;
+  // HTML-escape for safe attribute interpolation
+  return esc(str);
+}
+
 type TemplateName =
   | "welcome"
   | "referral_success"
