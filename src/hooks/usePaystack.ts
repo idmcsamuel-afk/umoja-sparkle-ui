@@ -3,26 +3,25 @@ import PaystackPop from "@paystack/inline-js";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 
+const isDev = typeof window !== "undefined" && (window.location.hostname === "localhost" || window.location.hostname.includes("lovable"));
+const dlog = (...a: any[]) => { if (isDev) console.log(...a); };
+const dwarn = (...a: any[]) => { if (isDev) console.warn(...a); };
+const derr = (...a: any[]) => console.error(...a);
+
 let cachedKey: string | null = null;
 async function fetchPublicKey(): Promise<string | null> {
-  if (cachedKey) {
-    console.log("[Paystack Debug] Using cached public key:", cachedKey?.slice(0, 10) + "...");
-    return cachedKey;
-  }
+  if (cachedKey) return cachedKey;
   const fromEnv = (import.meta as any).env?.VITE_PAYSTACK_PUBLIC_KEY as string | undefined;
   if (fromEnv) {
-    console.log("[Paystack Debug] Loaded public key from VITE env");
     cachedKey = fromEnv;
     return cachedKey;
   }
-  console.log("[Paystack Debug] Fetching public key from edge function paystack-config…");
   const { data, error } = await supabase.functions.invoke("paystack-config", { method: "GET" });
   if (error) {
-    console.error("[Paystack Debug] paystack-config error:", error);
+    derr("[Paystack] paystack-config error:", error);
     return null;
   }
   cachedKey = (data as any)?.public_key ?? null;
-  console.log("[Paystack Debug] Edge function returned public_key:", cachedKey ? cachedKey.slice(0, 10) + "…" : "null");
   return cachedKey;
 }
 
@@ -39,76 +38,45 @@ export function usePaystack() {
   const [pubKey, setPubKey] = useState<string | null>(null);
 
   useEffect(() => {
-    console.log("[Paystack Debug] 1. usePaystack mounted — loading key");
     fetchPublicKey().then((k) => {
-      console.log("[Paystack Debug] 2. Public key resolved:", k ? k.slice(0, 10) + "…" : "NULL");
       setPubKey(k);
       setReady(!!k);
-    }).catch((e) => {
-      console.error("[Paystack Debug] Key load threw:", e);
-    });
+    }).catch((e) => derr("[Paystack] Key load failed:", e));
   }, []);
 
   const pay = async (args: PaystackPaymentArgs): Promise<{ ok: boolean; reference?: string; error?: string }> => {
-    console.log("[Paystack Debug] 3. pay() called with:", {
-      email: args.email,
-      amountZar: args.amountZar,
-      reference: args.reference,
-      plan: args.plan,
-    });
     const key = pubKey ?? (await fetchPublicKey());
-    console.log("[Paystack Debug] 4. Key prefix:", key ? key.substring(0, 8) : "NULL");
 
-    // ---- Validation block ----
     if (!key || !/^pk_(live|test)_/.test(key)) {
-      console.error("[Paystack Debug] ❌ Invalid public key format:", key?.substring(0, 8));
       toast.error("Payment system configuration error");
       return { ok: false, error: "invalid_public_key" };
     }
     const email = (args.email ?? "").trim().toLowerCase();
-    const emailValid = /^[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}$/.test(email);
-    console.log("[Paystack Debug] Email:", email, "valid?", emailValid);
-    if (!emailValid) {
+    if (!/^[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}$/.test(email)) {
       toast.error("Valid email address required for payment");
       return { ok: false, error: "invalid_email" };
     }
     const amountInKobo = Math.floor(Math.abs(Number(args.amountZar) * 100));
-    console.log("[Paystack Debug] Amount check:", {
-      original: args.amountZar,
-      kobo: amountInKobo,
-      type: typeof amountInKobo,
-    });
     if (!Number.isFinite(amountInKobo) || amountInKobo < 100) {
       toast.error("Invalid amount. Minimum R1 required.");
       return { ok: false, error: "invalid_amount" };
     }
     const cleanRef = String(args.reference ?? "").replace(/[^A-Za-z0-9-]/g, "").slice(0, 100);
-    console.log("[Paystack Debug] Reference check:", {
-      original: args.reference,
-      cleaned: cleanRef,
-      length: cleanRef.length,
-    });
     if (!cleanRef || cleanRef.length < 6) {
       toast.error("Invalid payment reference");
       return { ok: false, error: "invalid_reference" };
     }
 
-    console.log("[Paystack Debug] ✅ Final parameters:", {
-      key: key.substring(0, 10) + "...",
-      email,
-      amount: amountInKobo,
-      currency: "ZAR",
-      reference: cleanRef,
-      plan: args.plan,
-      allValid: true,
-    });
+    // Stash metadata for verify-time use; do NOT pass to Paystack popup (causes input lag)
+    if (args.metadata && Object.keys(args.metadata).length) {
+      try {
+        sessionStorage.setItem(`paystack:meta:${cleanRef}`, JSON.stringify(args.metadata));
+      } catch {}
+    }
+
+    toast.message("Opening payment gateway…", { duration: 1200 });
 
     return new Promise((resolve) => {
-      const customFields = Object.entries(args.metadata ?? {}).map(([k, v]) => ({
-        display_name: k.replace(/_/g, " ").replace(/\b\w/g, (c) => c.toUpperCase()),
-        variable_name: k,
-        value: String(v ?? ""),
-      }));
       const txParams: any = {
         key,
         email,
@@ -117,27 +85,26 @@ export function usePaystack() {
         ref: cleanRef,
       };
       if (args.plan) txParams.plan = args.plan;
-      if (customFields.length) txParams.metadata = { custom_fields: customFields };
-      console.log("[Paystack Debug] 6a. Parameters:", {
-        ...txParams,
-        key: key.substring(0, 15) + "...",
-      });
+
+      // Signal app to pause heavy background work while popup is open
+      const fireOpen = () => window.dispatchEvent(new Event("paystack-popup-open"));
+      const fireClose = () => window.dispatchEvent(new Event("paystack-popup-close"));
+
       try {
-        console.log("[Paystack Debug] 5. Instantiating PaystackPop…", typeof PaystackPop);
         const popup = new PaystackPop();
-        console.log("[Paystack Debug] 6. Calling popup.newTransaction…");
+        fireOpen();
         popup.newTransaction({
           ...txParams,
           onSuccess: async (tx: any) => {
-            console.log("[Paystack Debug] ✅ onSuccess:", tx);
+            fireClose();
+            dlog("[Paystack] success:", tx?.reference);
             const { data, error } = await supabase.functions.invoke("verify-paystack-payment", {
               body: { reference: tx.reference },
             });
-            console.log("[Paystack Debug] verify response:", { data, error });
             const d = data as any;
             if (error || !d?.ok) {
               const msg = (error as any)?.message || d?.error || "Verification pending";
-              console.warn("[Paystack Debug] verify hard-fail:", msg, { error, data });
+              dwarn("[Paystack] verify hard-fail:", msg);
               toast.warning("Payment received — verification pending", {
                 description: `${msg}. Ref: ${tx.reference}`,
               });
@@ -145,7 +112,6 @@ export function usePaystack() {
               return;
             }
             if (d.applied === false) {
-              console.warn("[Paystack Debug] verified but not applied:", d);
               toast.success("Payment received ✓", {
                 description: `Activation pending review. Ref: ${tx.reference}`,
               });
@@ -155,27 +121,20 @@ export function usePaystack() {
             resolve({ ok: true, reference: tx.reference });
           },
           onCancel: () => {
-            console.log("[Paystack Debug] 🚫 onCancel");
+            fireClose();
             toast.message("Payment cancelled");
             resolve({ ok: false, error: "cancelled" });
           },
-          onLoad: () => {
-            console.log("[Paystack Debug] 7. Popup onLoad fired");
-          },
           onError: (e: any) => {
-            console.error("[Paystack Debug] ❌ onError:", e);
+            fireClose();
+            derr("[Paystack] onError:", e);
             toast.error("Payment failed", { description: e?.message ?? "Try again or use EFT" });
             resolve({ ok: false, error: e?.message ?? "error" });
           },
         });
-        console.log("[Paystack Debug] 7. newTransaction called successfully (popup should be opening)");
       } catch (e: any) {
-        console.error("[Paystack Debug] ❌ Exception thrown opening popup:", {
-          name: e?.name,
-          message: e?.message,
-          stack: e?.stack,
-          fullError: e,
-        });
+        fireClose();
+        derr("[Paystack] Exception opening popup:", e);
         const msg: string = e?.message ?? String(e);
         let friendly = "Payment popup failed to open: " + (msg || "Unknown error");
         if (/invalid/i.test(msg)) friendly = "Payment details invalid. Please try EFT payment instead.";
