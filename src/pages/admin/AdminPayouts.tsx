@@ -30,7 +30,7 @@ interface Bid {
   allocated_at: string | null;
   priority_score: number | null;
   payment_ref: string | null;
-  member?: { full_name: string; email: string | null; phone: string; kyc_level: number; bank_name: string | null; bank_account: string | null };
+  member?: { full_name: string; email: string | null; phone: string; kyc_level: number; bank_name: string | null; bank_account: string | null; branch_code?: string | null; account_holder?: string | null };
 }
 
 const daysBetween = (iso?: string | null) => iso ? Math.max(0, Math.floor((Date.now() - new Date(iso).getTime()) / 86400000)) : 0;
