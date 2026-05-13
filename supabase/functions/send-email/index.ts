@@ -219,8 +219,10 @@ function buildEmail(template: TemplateName, data: Record<string, any>) {
     }
     case "custom": {
       const subject = String(data.subject ?? "A message from UMOJA");
-      const body = String(data.body_html ?? "");
-      const html = shell(esc(data.title ?? subject), body, data.cta_label, data.cta_url);
+      const body = sanitizeHtml(String(data.body_html ?? ""));
+      const safeCtaUrl = safeUrl(data.cta_url);
+      const safeCtaLabel = data.cta_label ? esc(data.cta_label) : undefined;
+      const html = shell(esc(data.title ?? subject), body, safeCtaLabel, safeCtaUrl);
       return { subject, html };
     }
   }
