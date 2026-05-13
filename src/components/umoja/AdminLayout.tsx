@@ -1,9 +1,11 @@
+import { useEffect, useState } from "react";
 import { NavLink, Outlet, Link } from "react-router-dom";
 import {
   LayoutDashboard, Users, Coins, ShoppingBag, Car, TrendingUp, Wallet, ArrowLeft, ShieldCheck, Ticket, Gift, Settings, Trophy, Mail, Crown, Rocket, Building2, Landmark,
 } from "lucide-react";
 import { Logo } from "@/components/umoja/Logo";
 import { ThemeToggle } from "@/components/umoja/ThemeToggle";
+import { supabase } from "@/integrations/supabase/client";
 
 const items = [
   { to: "/admin", end: true, label: "Dashboard", icon: LayoutDashboard },
@@ -26,6 +28,20 @@ const items = [
 ];
 
 export default function AdminLayout() {
+  const [pendingPayouts, setPendingPayouts] = useState(0);
+  useEffect(() => {
+    let active = true;
+    const load = async () => {
+      const { count } = await supabase
+        .from("circle_bids")
+        .select("id", { count: "exact", head: true })
+        .eq("status", "matched");
+      if (active) setPendingPayouts(count ?? 0);
+    };
+    load();
+    const t = setInterval(load, 60000);
+    return () => { active = false; clearInterval(t); };
+  }, []);
   return (
     <div className="min-h-screen flex flex-col md:flex-row">
       <Link
@@ -58,6 +74,11 @@ export default function AdminLayout() {
                 >
                   <Icon className="h-4 w-4" />
                   <span>{label}</span>
+                  {to === "/admin/payouts" && pendingPayouts > 0 && (
+                    <span className="ml-auto inline-flex items-center justify-center min-w-[1.25rem] h-5 px-1.5 rounded-full text-[10px] font-semibold bg-gradient-gold text-amber-950">
+                      {pendingPayouts}
+                    </span>
+                  )}
                 </NavLink>
               </li>
             ))}
