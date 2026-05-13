@@ -98,6 +98,7 @@ export function usePaystack() {
           popup.newTransaction({
           ...txParams,
           onSuccess: async (tx: any) => {
+            document.body.classList.remove("paystack-open");
             fireClose();
             dlog("[Paystack] success:", tx?.reference);
             let stashedMeta: Record<string, any> | undefined;
