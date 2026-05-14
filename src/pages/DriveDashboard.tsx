@@ -1,17 +1,19 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
-import { ArrowLeft, Loader2, Trophy, Copy, MessageCircle, Wallet } from "lucide-react";
+import { ArrowLeft, Loader2, Trophy, Copy, MessageCircle, Wallet, CreditCard, Building2, Upload } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { Logo } from "@/components/umoja/Logo";
 import { BottomNav } from "@/components/umoja/BottomNav";
 import { Button } from "@/components/ui/button";
 import {
-  Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter,
+  Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription,
 } from "@/components/ui/dialog";
 import { toast } from "sonner";
+import { usePaystack, buildReference } from "@/hooks/usePaystack";
 
 const fmtR = (n: number) => "R" + Math.round(Number(n || 0)).toLocaleString("en-ZA");
+const COOLDOWN_DAYS = 6;
 
 interface Tier {
   id: string; tier_name: string; display_name: string;
