@@ -403,10 +403,50 @@ Deno.serve(async (req) => {
         audience_filter: { tier, member_ids },
       }).select("id").single();
 
-      const { data: recipients } = await sb.rpc("get_email_recipients", {
-        _audience: audience, _tier: tier ?? null, _ids: member_ids ?? null,
+      // Build recipient list directly with the service-role client (admin already verified above).
+      // Avoids the get_email_recipients RPC which depends on auth.uid() and would deny service-role calls.
+      const emailRegex = "^[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\\.[A-Za-z]{2,}$";
+      let query = sb
+        .from("members")
+        .select("id, email, full_name, email_preferences, has_buyers_club_access")
+        .not("email", "is", null)
+        .neq("email", "")
+        .filter("email", "~*", emailRegex);
+
+      if (audience === "buyers_club") {
+        query = query.eq("has_buyers_club_access", true);
+      } else if (audience === "custom") {
+        const ids = (member_ids ?? []) as string[];
+        if (!ids.length) {
+          return new Response(JSON.stringify({ ok: false, error: "no member_ids provided" }), {
+            status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" },
+          });
+        }
+        query = query.in("id", ids);
+      }
+
+      const { data: rawRecipients, error: recipientsError } = await query.order("created_at", { ascending: false });
+      if (recipientsError) throw recipientsError;
+
+      let scoped = (rawRecipients ?? []) as Array<{ id: string; email: string; full_name: string; email_preferences: Record<string, boolean> | null }>;
+
+      // For 'circle' / 'tier' audiences, filter to members with at least one bid (in given tier)
+      if (audience === "circle" || audience === "tier") {
+        let bidQuery = sb.from("circle_bids").select("member_id");
+        if (audience === "tier" && tier) bidQuery = bidQuery.eq("tier", tier);
+        const { data: bids } = await bidQuery;
+        const bidderIds = new Set((bids ?? []).map((b: any) => b.member_id));
+        scoped = scoped.filter((m) => bidderIds.has(m.id));
+      }
+
+      // Respect marketing preference for blasts (custom template). Default to true if unset.
+      const list = scoped.filter((m) => {
+        const prefs = m.email_preferences ?? {};
+        return prefs.marketing !== false;
       });
-      const list = (recipients ?? []) as Array<{ id: string; email: string; full_name: string }>;
+
+      console.log(`[blast] audience=${audience} tier=${tier ?? "-"} total_members=${rawRecipients?.length ?? 0} after_audience_filter=${scoped.length} after_marketing_filter=${list.length}`);
+
       let sent = 0, failed = 0;
       for (const r of list) {
         const res = await sendOne({
