@@ -201,45 +201,53 @@ export default function Drive() {
         <DialogContent>
           <DialogHeader>
             <DialogTitle>Join {enrollTier?.display_name}</DialogTitle>
-            <DialogDescription>You're about to enroll in the vehicle program.</DialogDescription>
+            <DialogDescription>You'll contribute weekly until you win a car.</DialogDescription>
           </DialogHeader>
-          {enrollTier && (
-            <div className="space-y-4 text-sm">
-              <div className="rounded-xl border border-border p-3 space-y-1">
-                <p className="text-[10px] uppercase tracking-wider text-muted-foreground">Commitment</p>
-                <p>Weekly payment: {fmtR(enrollTier.weekly_payment_before_min)}–{fmtR(enrollTier.weekly_payment_before_max)}</p>
-                <p>Minimum contributed: {fmtR(enrollTier.min_contribution_before)}</p>
-                <p>If you win: {fmtR(enrollTier.weekly_payment_after)}/week for {enrollTier.payback_weeks} weeks</p>
-              </div>
+          {enrollTier && (() => {
+            const weeksToMin = Math.ceil(enrollTier.min_contribution_before / Math.max(1, weeklyAmount));
+            return (
+              <div className="space-y-4 text-sm">
+                <div>
+                  <div className="flex items-center justify-between">
+                    <p className="text-[10px] uppercase tracking-wider text-muted-foreground">Choose your weekly amount</p>
+                    <p className="font-display text-xl">{fmtR(weeklyAmount)}<span className="text-xs text-muted-foreground">/week</span></p>
+                  </div>
+                  <Slider
+                    className="mt-3"
+                    value={[weeklyAmount]}
+                    min={enrollTier.weekly_payment_before_min}
+                    max={enrollTier.weekly_payment_before_max}
+                    step={50}
+                    onValueChange={(v) => setWeeklyAmount(v[0])}
+                  />
+                  <div className="mt-1 flex justify-between text-[11px] text-muted-foreground">
+                    <span>Min {fmtR(enrollTier.weekly_payment_before_min)}</span>
+                    <span>Max {fmtR(enrollTier.weekly_payment_before_max)}</span>
+                  </div>
+                  <p className="mt-2 text-[11px] text-muted-foreground">Higher = faster qualification + higher priority score</p>
+                </div>
 
-              <div>
-                <div className="flex items-center justify-between">
-                  <p className="text-[10px] uppercase tracking-wider text-muted-foreground">Your weekly amount</p>
-                  <p className="font-display text-lg">{fmtR(weeklyAmount)}</p>
+                <div className="rounded-xl border border-border p-3 space-y-1 text-xs">
+                  <p className="text-[10px] uppercase tracking-wider text-muted-foreground">At this rate</p>
+                  <p>Qualify in: <strong>{weeksToMin} weeks</strong> ({fmtR(enrollTier.min_contribution_before)} ÷ {fmtR(weeklyAmount)})</p>
+                  <p className="text-muted-foreground">You can increase this amount anytime. You CANNOT decrease once set.</p>
                 </div>
-                <Slider
-                  className="mt-3"
-                  value={[weeklyAmount]}
-                  min={enrollTier.weekly_payment_before_min}
-                  max={enrollTier.weekly_payment_before_max}
-                  step={50}
-                  onValueChange={(v) => setWeeklyAmount(v[0])}
-                />
-                <div className="mt-1 flex justify-between text-[11px] text-muted-foreground">
-                  <span>{fmtR(enrollTier.weekly_payment_before_min)}</span>
-                  <span>{fmtR(enrollTier.weekly_payment_before_max)}</span>
+
+                <div className="rounded-xl border border-border p-3 space-y-1 text-xs">
+                  <p className="text-[10px] uppercase tracking-wider text-muted-foreground">After you win</p>
+                  <p>Fixed payment: <strong>{fmtR(enrollTier.weekly_payment_after)}/week</strong> for {enrollTier.payback_weeks} weeks</p>
+                  <p>Total payback: <strong>{fmtR(enrollTier.weekly_payment_after * enrollTier.payback_weeks)}</strong></p>
                 </div>
-                <p className="mt-2 text-[11px] text-muted-foreground">
-                  Higher = funds the pool faster and boosts your priority score. You can increase later but not decrease.
-                </p>
+
+                <p className="text-[11px] text-muted-foreground">After enrolling, make your first payment to activate your spot.</p>
               </div>
-            </div>
-          )}
+            );
+          })()}
           <DialogFooter>
             <Button variant="ghost" onClick={() => setEnrollTier(null)}>Cancel</Button>
             <Button onClick={confirmEnroll} disabled={submitting}>
               {submitting ? <Loader2 className="h-4 w-4 animate-spin" /> : <Sparkles className="h-4 w-4" />}
-              Confirm Enrollment
+              Continue with {fmtR(weeklyAmount)}/week
             </Button>
           </DialogFooter>
         </DialogContent>
