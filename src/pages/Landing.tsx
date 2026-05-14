@@ -55,12 +55,17 @@ const Landing = () => {
       <header className="relative z-10 px-5 pt-6">
         <div className="mx-auto flex max-w-md items-center justify-between">
           <Logo />
-          <Link
-            to="/dashboard"
-            className="text-sm font-medium text-muted-foreground hover:text-foreground transition-smooth"
-          >
-            Sign in
-          </Link>
+          <div className="flex items-center gap-4 text-sm">
+            <Link to="/blog" className="font-medium text-muted-foreground hover:text-foreground transition-smooth">
+              Blog
+            </Link>
+            <Link
+              to="/dashboard"
+              className="font-medium text-muted-foreground hover:text-foreground transition-smooth"
+            >
+              Sign in
+            </Link>
+          </div>
         </div>
       </header>
 
