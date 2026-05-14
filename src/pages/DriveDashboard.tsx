@@ -334,18 +334,75 @@ export default function DriveDashboard() {
       <Dialog open={payOpen} onOpenChange={setPayOpen}>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>Week {enrollment.weeks_contributed + 1} payment</DialogTitle>
+            <DialogTitle>Drive Payment — Week {enrollment.weeks_contributed + 1}</DialogTitle>
+            <DialogDescription>
+              {tier.display_name} · Amount due: <strong>{fmtR(enrollment.weekly_amount)}</strong>
+            </DialogDescription>
           </DialogHeader>
-          <div className="space-y-2 text-sm">
-            <p>Amount due: <strong>{fmtR(enrollment.weekly_amount)}</strong></p>
-            <p className="text-muted-foreground">Recording an EFT payment will instantly update your score. Use Paystack from /drive for card payments (coming soon).</p>
+
+          <div className="space-y-3">
+            <div className="grid grid-cols-2 gap-2">
+              <button
+                type="button"
+                onClick={() => setMethod("paystack")}
+                className={`rounded-xl border p-3 text-left text-sm transition ${method === "paystack" ? "border-primary bg-primary/10" : "border-border"}`}
+              >
+                <div className="flex items-center gap-2 font-medium"><CreditCard className="h-4 w-4" /> Card</div>
+                <p className="text-xs text-muted-foreground mt-1">Paystack · Instant ✓</p>
+              </button>
+              <button
+                type="button"
+                onClick={() => setMethod("eft")}
+                className={`rounded-xl border p-3 text-left text-sm transition ${method === "eft" ? "border-primary bg-primary/10" : "border-border"}`}
+              >
+                <div className="flex items-center gap-2 font-medium"><Building2 className="h-4 w-4" /> EFT</div>
+                <p className="text-xs text-muted-foreground mt-1">Requires proof · Admin review</p>
+              </button>
+            </div>
+
+            {method === "eft" && (
+              <div className="space-y-3 text-sm">
+                {bank ? (
+                  <div className="rounded-xl border border-border p-3 space-y-1 text-xs">
+                    <p className="text-[10px] uppercase tracking-wider text-muted-foreground">Bank details</p>
+                    <p>Bank: <strong>{bank.bank_name}</strong></p>
+                    <p>Account: <strong>{bank.account_number}</strong></p>
+                    <p>Branch: <strong>{bank.branch_code}</strong></p>
+                    <p className="pt-1">Reference: <strong>DRIVE-{enrollment.id.slice(0,8)}-WK{enrollment.weeks_contributed + 1}</strong></p>
+                    <p className="text-muted-foreground">Use the exact reference above when transferring.</p>
+                  </div>
+                ) : (
+                  <p className="text-xs text-muted-foreground">Loading bank details…</p>
+                )}
+                <div>
+                  <input
+                    ref={fileRef}
+                    type="file"
+                    accept="image/*,application/pdf"
+                    className="hidden"
+                    onChange={(e) => setProofFile(e.target.files?.[0] ?? null)}
+                  />
+                  <Button variant="secondary" type="button" onClick={() => fileRef.current?.click()} className="w-full">
+                    <Upload className="h-4 w-4" /> {proofFile ? proofFile.name : "Upload proof of payment"}
+                  </Button>
+                </div>
+              </div>
+            )}
           </div>
+
           <DialogFooter>
             <Button variant="ghost" onClick={() => setPayOpen(false)}>Cancel</Button>
-            <Button onClick={handlePay} disabled={paying}>
-              {paying ? <Loader2 className="h-4 w-4 animate-spin" /> : <Wallet className="h-4 w-4" />}
-              Record {fmtR(enrollment.weekly_amount)}
-            </Button>
+            {method === "paystack" ? (
+              <Button onClick={handlePaystackPay} disabled={paying || !paystackReady}>
+                {paying ? <Loader2 className="h-4 w-4 animate-spin" /> : <CreditCard className="h-4 w-4" />}
+                Pay {fmtR(enrollment.weekly_amount)}
+              </Button>
+            ) : (
+              <Button onClick={handleEftSubmit} disabled={paying || !proofFile}>
+                {paying ? <Loader2 className="h-4 w-4 animate-spin" /> : <Upload className="h-4 w-4" />}
+                Submit EFT proof
+              </Button>
+            )}
           </DialogFooter>
         </DialogContent>
       </Dialog>
