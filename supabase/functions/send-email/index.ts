@@ -394,6 +394,46 @@ Deno.serve(async (req) => {
       });
     }
 
+    // Helper: build the recipient list for blasts (used by `blast` and `preview_recipients`).
+    const buildBlastRecipients = async (audience: string, tier?: string | null, member_ids?: string[] | null) => {
+      const emailRegex = "^[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\\.[A-Za-z]{2,}$";
+      let q = sb.from("members")
+        .select("id, email, full_name, email_preferences, has_buyers_club_access, created_at")
+        .not("email", "is", null).neq("email", "").filter("email", "~*", emailRegex);
+      if (audience === "buyers_club") q = q.eq("has_buyers_club_access", true);
+      else if (audience === "custom") {
+        const ids = (member_ids ?? []) as string[];
+        if (!ids.length) throw new Error("no member_ids provided");
+        q = q.in("id", ids);
+      }
+      const { data: rows, error } = await q.order("created_at", { ascending: false });
+      if (error) throw error;
+      let scoped = (rows ?? []) as Array<{ id: string; email: string; full_name: string; email_preferences: Record<string, boolean> | null }>;
+      if (audience === "circle" || audience === "tier") {
+        let bq = sb.from("circle_bids").select("member_id");
+        if (audience === "tier" && tier) bq = bq.eq("tier", tier);
+        const { data: bids } = await bq;
+        const bidderIds = new Set((bids ?? []).map((b: any) => b.member_id));
+        scoped = scoped.filter((m) => bidderIds.has(m.id));
+      }
+      const total_members = rows?.length ?? 0;
+      const eligible = scoped.filter((m) => (m.email_preferences ?? {}).marketing !== false);
+      return { total_members, after_audience: scoped.length, recipients: eligible };
+    };
+
+    if (action === "preview_recipients") {
+      if (!caller.is_admin) return forbid();
+      const { audience, tier, member_ids } = body;
+      const r = await buildBlastRecipients(audience, tier, member_ids);
+      return new Response(JSON.stringify({
+        ok: true,
+        total_members: r.total_members,
+        after_audience_filter: r.after_audience,
+        recipient_count: r.recipients.length,
+        recipients: r.recipients.map((m) => ({ id: m.id, email: m.email, full_name: m.full_name })),
+      }), { headers: { ...corsHeaders, "Content-Type": "application/json" } });
+    }
+
     if (action === "blast") {
       if (!caller.is_admin) return forbid();
       const { subject, body_html, audience, tier, member_ids } = body;
