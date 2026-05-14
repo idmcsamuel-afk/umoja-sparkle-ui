@@ -26,7 +26,7 @@ interface Enrollment {
   referrals_count: number; priority_score: number; enrolled_at: string;
 }
 interface LeaderRow { id: string; member_id: string; priority_score: number; total_contributed: number; weeks_contributed: number; }
-interface Contribution { id: string; week_number: number; amount: number; payment_date: string; is_on_time: boolean; }
+interface Contribution { id: string; week_number: number; amount: number; payment_date: string; is_on_time: boolean; payment_method?: string | null; status?: string | null; }
 
 export default function DriveDashboard() {
   const { user, member } = useAuth();
