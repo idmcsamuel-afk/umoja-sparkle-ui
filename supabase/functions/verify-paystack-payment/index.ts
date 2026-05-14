@@ -248,7 +248,7 @@ Deno.serve(async (req) => {
       if (kind === "CIRCLE") result = await applyToCircle(u.user.id, metaTier || parts[1], reference);
       else if (kind === "PROP") result = await applyToProperty(u.user.id, metaPropertyId || parts[1], reference);
       else if (kind === "BC" || kind === "CLUB") result = await applyToBuyersClub(u.user.id, (metaTier || parts[1] || "bronze").toLowerCase(), reference);
-      else if (kind === "DRIVE") result = await applyToDrive(u.user.id, reference);
+      else if (kind === "DRIVE") result = await applyToDrive(u.user.id, reference, amountZar, clientMeta.enrollment_id);
       else result = { kind: "unknown", applied: false, reason: `unknown_prefix:${prefix}` };
     } catch (e) {
       const msg = e instanceof Error ? e.message : String(e);
