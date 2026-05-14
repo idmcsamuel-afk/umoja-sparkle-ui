@@ -37,6 +37,9 @@ import Waitlist from "./pages/Waitlist.tsx";
 import Referrals from "./pages/Referrals.tsx";
 import Priority from "./pages/Priority.tsx";
 import NotFound from "./pages/NotFound.tsx";
+import Blog from "./pages/Blog.tsx";
+import BlogPost from "./pages/BlogPost.tsx";
+import AdminBlog from "./pages/admin/AdminBlog.tsx";
 import AdminLayout from "./components/umoja/AdminLayout";
 import AdminDashboard from "./pages/admin/AdminDashboard";
 import AdminMembers from "./pages/admin/AdminMembers";
@@ -83,6 +86,8 @@ const App = () => (
               <Route path="/login" element={<Login />} />
               <Route path="/signup" element={<Signup />} />
               <Route path="/waitlist" element={<Waitlist />} />
+              <Route path="/blog" element={<Blog />} />
+              <Route path="/blog/:slug" element={<BlogPost />} />
               <Route element={<MemberLayout />}>
                 <Route path="/dashboard" element={<ProtectedRoute><Dashboard /></ProtectedRoute>} />
                 <Route path="/circle" element={<ProtectedRoute><Circle /></ProtectedRoute>} />
@@ -128,6 +133,7 @@ const App = () => (
                 <Route path="fulfillment" element={<AdminFulfillment />} />
                 <Route path="properties" element={<AdminProperties />} />
                 <Route path="bank-accounts" element={<AdminBankAccounts />} />
+                <Route path="blog" element={<AdminBlog />} />
               </Route>
 
               <Route path="*" element={<NotFound />} />
