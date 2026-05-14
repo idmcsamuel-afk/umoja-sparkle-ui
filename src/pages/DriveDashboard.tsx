@@ -111,30 +111,72 @@ export default function DriveDashboard() {
     return { volume, consistency, referrals, time };
   }, [enrollment, tier, allEnrollments]);
 
-  const handlePay = async () => {
-    if (!user || !enrollment) return;
+  // Cooldown: must be at least 6 days since last contribution
+  const lastContribAt = contributions[0]?.payment_date ? new Date(contributions[0].payment_date).getTime() : 0;
+  const daysSinceLast = lastContribAt ? (Date.now() - lastContribAt) / 86_400_000 : Infinity;
+  const canPayNow = daysSinceLast >= COOLDOWN_DAYS;
+  const daysUntilNext = canPayNow ? 0 : Math.ceil(COOLDOWN_DAYS - daysSinceLast);
+
+  const openPayModal = async () => {
+    if (!enrollment) return;
+    if (!canPayNow) {
+      toast.error(`Next payment available in ${daysUntilNext} day${daysUntilNext === 1 ? "" : "s"}`);
+      return;
+    }
+    setMethod("paystack");
+    setProofFile(null);
+    setPayOpen(true);
+    // Lazy-load bank details for EFT tab
+    if (!bank) {
+      const { data } = await supabase.rpc("get_active_bank_account", { _project: "drive" });
+      const row = Array.isArray(data) ? data[0] : null;
+      if (row) setBank(row as any);
+    }
+  };
+
+  const handlePaystackPay = async () => {
+    if (!user || !enrollment || !tier) return;
+    if (!canPayNow) { toast.error("Cooldown active"); return; }
+    if (!member?.email) { toast.error("Email required for card payment"); return; }
     setPaying(true);
-    const week = enrollment.weeks_contributed + 1;
-    const amount = enrollment.weekly_amount;
-    const { error } = await supabase.from("drive_contributions").insert({
-      enrollment_id: enrollment.id,
-      member_id: user.id,
-      amount,
-      week_number: week,
-      payment_date: new Date().toISOString().slice(0, 10),
-      is_on_time: true,
-      payment_method: "eft",
+    const ref = buildReference("DRIVE", enrollment.id, (member as any)?.referral_code ?? user.id.slice(0, 8));
+    const result = await paystackPay({
+      email: member.email,
+      amountZar: Number(enrollment.weekly_amount),
+      reference: ref,
+      metadata: {
+        payment_type: "drive_contribution",
+        enrollment_id: enrollment.id,
+        member_id: user.id,
+        tier: tier.tier_name,
+      },
     });
-    if (error) { toast.error(error.message); setPaying(false); return; }
-    await supabase.from("drive_enrollments").update({
-      total_contributed: Number(enrollment.total_contributed) + Number(amount),
-      weeks_contributed: enrollment.weeks_contributed + 1,
-      weeks_paid_on_time: enrollment.weeks_paid_on_time + 1,
-    }).eq("id", enrollment.id);
-    await supabase.rpc("calculate_drive_score", { p_enrollment_id: enrollment.id });
-    toast.success(`Week ${week} payment recorded`);
-    setPayOpen(false);
     setPaying(false);
+    if (result.ok) {
+      setPayOpen(false);
+      await load();
+    }
+  };
+
+  const handleEftSubmit = async () => {
+    if (!user || !enrollment) return;
+    if (!canPayNow) { toast.error("Cooldown active"); return; }
+    if (!proofFile) { toast.error("Please upload your proof of payment"); return; }
+    setPaying(true);
+    const ref = `DRIVE-${enrollment.id.slice(0, 8)}-WK${enrollment.weeks_contributed + 1}-${Date.now()}`;
+    const path = `${user.id}/${ref}-${proofFile.name}`.replace(/\s+/g, "_");
+    const up = await supabase.storage.from("drive-payment-proofs").upload(path, proofFile, { upsert: false });
+    if (up.error) { toast.error("Upload failed: " + up.error.message); setPaying(false); return; }
+    const { error } = await supabase.rpc("submit_drive_eft_contribution", {
+      _enrollment: enrollment.id,
+      _amount: Number(enrollment.weekly_amount),
+      _ref: ref,
+      _proof_url: path,
+    });
+    setPaying(false);
+    if (error) { toast.error(error.message); return; }
+    toast.success("EFT proof submitted — awaiting admin review");
+    setPayOpen(false);
     load();
   };
 
