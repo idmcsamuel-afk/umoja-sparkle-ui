@@ -267,16 +267,33 @@ export default function DriveDashboard() {
           <div className="flex items-center justify-between flex-wrap gap-3">
             <div>
               <p className="font-display text-lg">Weekly payment</p>
-              <p className="text-sm text-muted-foreground">Your amount: {fmtR(enrollment.weekly_amount)}</p>
+              <p className="text-sm text-muted-foreground">
+                Week {enrollment.weeks_contributed + 1} · {fmtR(enrollment.weekly_amount)}
+              </p>
+              <p className="text-xs text-muted-foreground mt-1">
+                {contributions[0]
+                  ? `Last payment: Week ${contributions[0].week_number} on ${new Date(contributions[0].payment_date).toLocaleDateString()}`
+                  : "No payments yet"}
+              </p>
             </div>
-            <Button onClick={() => setPayOpen(true)}><Wallet className="h-4 w-4" /> Make Payment</Button>
+            {canPayNow ? (
+              <Button onClick={openPayModal} className="w-full sm:w-auto"><Wallet className="h-4 w-4" /> Make Payment Now</Button>
+            ) : (
+              <div className="text-right">
+                <Button disabled className="w-full sm:w-auto">Next payment in {daysUntilNext} day{daysUntilNext === 1 ? "" : "s"}</Button>
+                <p className="mt-1 text-[11px] text-muted-foreground">Cooldown prevents duplicate payments</p>
+              </div>
+            )}
           </div>
           <div className="mt-4 space-y-2">
             {contributions.length === 0 && <p className="text-sm text-muted-foreground">No payments yet.</p>}
-            {contributions.slice(0, 5).map((c) => (
+            {contributions.slice(0, 5).map((c: any) => (
               <div key={c.id} className="flex items-center justify-between text-sm border-b border-border/50 pb-2 last:border-0">
-                <span>Week {c.week_number} · {new Date(c.payment_date).toLocaleDateString()}</span>
-                <span>{fmtR(c.amount)} {c.is_on_time ? "✓" : "·late"}</span>
+                <span>Week {c.week_number} · {new Date(c.payment_date).toLocaleDateString()} <span className="text-muted-foreground">· {c.payment_method ?? "eft"}</span></span>
+                <span>
+                  {fmtR(c.amount)}
+                  {c.status === "pending" ? <span className="ml-1 text-amber-500">·pending</span> : (c.is_on_time ? " ✓" : " ·late")}
+                </span>
               </div>
             ))}
           </div>
