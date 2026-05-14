@@ -72,8 +72,30 @@ export default function AdminNotifications() {
   const sendBlast = async () => {
     if (!subject || !body) return toast.error("Subject and body required");
     if (audience === "custom" && parsedIds.length === 0) return toast.error("Provide member IDs");
-    if (!confirm(`Send to ${audience}${audience === "tier" ? " · " + tier : ""}?`)) return;
+
+    // Preview recipient count first
     setBusy(true);
+    const { data: preview, error: previewErr } = await supabase.functions.invoke("send-email", {
+      body: {
+        action: "preview_recipients", audience,
+        tier: audience === "tier" ? tier : undefined,
+        member_ids: audience === "custom" ? parsedIds : undefined,
+      },
+    });
+    if (previewErr || !preview?.ok) {
+      setBusy(false);
+      return toast.error("Could not load recipients: " + (previewErr?.message ?? preview?.error));
+    }
+    const count = preview.recipient_count as number;
+    if (count === 0) {
+      setBusy(false);
+      return toast.error(`No eligible recipients (total members in DB: ${preview.total_members}, after audience filter: ${preview.after_audience_filter}).`);
+    }
+    if (!confirm(`This email will be sent to ${count} member${count === 1 ? "" : "s"}.\n\nAudience: ${audience}${audience === "tier" ? " · " + tier : ""}\n\nProceed?`)) {
+      setBusy(false);
+      return;
+    }
+
     const { data, error } = await supabase.functions.invoke("send-email", {
       body: {
         action: "blast",
@@ -83,8 +105,14 @@ export default function AdminNotifications() {
       },
     });
     setBusy(false);
-    if (error || !data?.ok) toast.error("Blast failed: " + (error?.message ?? data?.error));
-    else { toast.success(`Sent to ${data.sent}/${data.recipients} (failed ${data.failed})`); loadLogs(); }
+    if (error || !data?.ok) return toast.error("Blast failed: " + (error?.message ?? data?.error));
+    const failures = (data.failures ?? []) as Array<{ email: string; error: string }>;
+    toast.success(`Sent to ${data.sent}/${data.recipients}${data.failed ? ` · ${data.failed} failed` : ""}${data.suppressed ? ` · ${data.suppressed} suppressed` : ""}`);
+    if (failures.length) {
+      console.warn("[blast] failures:", failures);
+      toast.error(`First failure: ${failures[0].email} — ${failures[0].error}`, { duration: 8000 });
+    }
+    loadLogs();
   };
 
   const retry = async (id: string) => {
