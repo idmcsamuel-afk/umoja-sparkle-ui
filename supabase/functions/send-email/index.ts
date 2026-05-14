@@ -457,15 +457,19 @@ Deno.serve(async (req) => {
           member_id: r.id,
           blast_id: blast?.id,
         });
-        if (res.ok && !res.suppressed) sent++; else if (!res.ok) failed++;
+        if (res.ok && res.suppressed) suppressed++;
+        else if (res.ok) sent++;
+        else { failed++; failures.push({ email: r.email, error: res.error ?? "unknown" }); }
       }
       await sb.from("email_blasts")
         .update({ recipient_count: list.length, sent_count: sent, failed_count: failed,
                   status: "completed", completed_at: new Date().toISOString() })
         .eq("id", blast!.id);
-      return new Response(JSON.stringify({ ok: true, blast_id: blast?.id, recipients: list.length, sent, failed }), {
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
+      return new Response(JSON.stringify({
+        ok: true, blast_id: blast?.id,
+        total_members: built.total_members,
+        recipients: list.length, sent, failed, suppressed, failures,
+      }), { headers: { ...corsHeaders, "Content-Type": "application/json" } });
     }
 
     // default: single send
