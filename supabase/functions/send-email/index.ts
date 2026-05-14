@@ -394,6 +394,46 @@ Deno.serve(async (req) => {
       });
     }
 
+    // Helper: build the recipient list for blasts (used by `blast` and `preview_recipients`).
+    const buildBlastRecipients = async (audience: string, tier?: string | null, member_ids?: string[] | null) => {
+      const emailRegex = "^[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\\.[A-Za-z]{2,}$";
+      let q = sb.from("members")
+        .select("id, email, full_name, email_preferences, has_buyers_club_access, created_at")
+        .not("email", "is", null).neq("email", "").filter("email", "~*", emailRegex);
+      if (audience === "buyers_club") q = q.eq("has_buyers_club_access", true);
+      else if (audience === "custom") {
+        const ids = (member_ids ?? []) as string[];
+        if (!ids.length) throw new Error("no member_ids provided");
+        q = q.in("id", ids);
+      }
+      const { data: rows, error } = await q.order("created_at", { ascending: false });
+      if (error) throw error;
+      let scoped = (rows ?? []) as Array<{ id: string; email: string; full_name: string; email_preferences: Record<string, boolean> | null }>;
+      if (audience === "circle" || audience === "tier") {
+        let bq = sb.from("circle_bids").select("member_id");
+        if (audience === "tier" && tier) bq = bq.eq("tier", tier);
+        const { data: bids } = await bq;
+        const bidderIds = new Set((bids ?? []).map((b: any) => b.member_id));
+        scoped = scoped.filter((m) => bidderIds.has(m.id));
+      }
+      const total_members = rows?.length ?? 0;
+      const eligible = scoped.filter((m) => (m.email_preferences ?? {}).marketing !== false);
+      return { total_members, after_audience: scoped.length, recipients: eligible };
+    };
+
+    if (action === "preview_recipients") {
+      if (!caller.is_admin) return forbid();
+      const { audience, tier, member_ids } = body;
+      const r = await buildBlastRecipients(audience, tier, member_ids);
+      return new Response(JSON.stringify({
+        ok: true,
+        total_members: r.total_members,
+        after_audience_filter: r.after_audience,
+        recipient_count: r.recipients.length,
+        recipients: r.recipients.map((m) => ({ id: m.id, email: m.email, full_name: m.full_name })),
+      }), { headers: { ...corsHeaders, "Content-Type": "application/json" } });
+    }
+
     if (action === "blast") {
       if (!caller.is_admin) return forbid();
       const { subject, body_html, audience, tier, member_ids } = body;
@@ -403,11 +443,12 @@ Deno.serve(async (req) => {
         audience_filter: { tier, member_ids },
       }).select("id").single();
 
-      const { data: recipients } = await sb.rpc("get_email_recipients", {
-        _audience: audience, _tier: tier ?? null, _ids: member_ids ?? null,
-      });
-      const list = (recipients ?? []) as Array<{ id: string; email: string; full_name: string }>;
-      let sent = 0, failed = 0;
+      const built = await buildBlastRecipients(audience, tier, member_ids);
+      const list = built.recipients;
+      console.log(`[blast] audience=${audience} tier=${tier ?? "-"} total_members=${built.total_members} after_audience=${built.after_audience} after_marketing=${list.length}`);
+
+      const failures: Array<{ email: string; error: string }> = [];
+      let sent = 0, failed = 0, suppressed = 0;
       for (const r of list) {
         const res = await sendOne({
           template: "custom",
@@ -416,15 +457,19 @@ Deno.serve(async (req) => {
           member_id: r.id,
           blast_id: blast?.id,
         });
-        if (res.ok && !res.suppressed) sent++; else if (!res.ok) failed++;
+        if (res.ok && res.suppressed) suppressed++;
+        else if (res.ok) sent++;
+        else { failed++; failures.push({ email: r.email, error: res.error ?? "unknown" }); }
       }
       await sb.from("email_blasts")
         .update({ recipient_count: list.length, sent_count: sent, failed_count: failed,
                   status: "completed", completed_at: new Date().toISOString() })
         .eq("id", blast!.id);
-      return new Response(JSON.stringify({ ok: true, blast_id: blast?.id, recipients: list.length, sent, failed }), {
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
+      return new Response(JSON.stringify({
+        ok: true, blast_id: blast?.id,
+        total_members: built.total_members,
+        recipients: list.length, sent, failed, suppressed, failures,
+      }), { headers: { ...corsHeaders, "Content-Type": "application/json" } });
     }
 
     // default: single send
