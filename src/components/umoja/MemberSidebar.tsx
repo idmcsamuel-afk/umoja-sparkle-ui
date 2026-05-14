@@ -1,7 +1,7 @@
 import { NavLink, useLocation } from "react-router-dom";
 import {
   Home, Users, Sparkles, Store, ArrowLeftRight, Car, Building2, Gamepad2,
-  Trophy, Palette, Gift, Calculator as CalcIcon, User as UserIcon, ShieldCheck,
+  Trophy, Palette, Gift, Calculator as CalcIcon, User as UserIcon, ShieldCheck, BookOpen,
 } from "lucide-react";
 import {
   Sidebar, SidebarContent, SidebarGroup, SidebarGroupContent, SidebarGroupLabel,
