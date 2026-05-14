@@ -1848,6 +1848,7 @@ export type Database = {
           streak_count: number | null
           time_waiting_score: number
           total_cycles: number | null
+          tour_banner_dismissed_at: string | null
         }
         Insert: {
           bank_account?: string | null
@@ -1909,6 +1910,7 @@ export type Database = {
           streak_count?: number | null
           time_waiting_score?: number
           total_cycles?: number | null
+          tour_banner_dismissed_at?: string | null
         }
         Update: {
           bank_account?: string | null
@@ -1970,6 +1972,7 @@ export type Database = {
           streak_count?: number | null
           time_waiting_score?: number
           total_cycles?: number | null
+          tour_banner_dismissed_at?: string | null
         }
         Relationships: [
           {
