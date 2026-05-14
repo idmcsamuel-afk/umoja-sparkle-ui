@@ -6,6 +6,7 @@ export const SiteFooter = () => (
     <div className="mx-auto max-w-6xl flex flex-col sm:flex-row items-center justify-between gap-3 text-xs text-muted-foreground">
       <p>© {new Date().getFullYear()} UMOJA. Community Wealth Platform.</p>
       <nav className="flex items-center gap-5">
+        <Link to="/blog" className="hover:text-foreground transition-smooth">Latest Updates</Link>
         <Link to="/terms" className="hover:text-foreground transition-smooth">Terms</Link>
         <Link to="/privacy" className="hover:text-foreground transition-smooth">Privacy</Link>
         <ContactModal
