@@ -133,6 +133,7 @@ const App = () => (
                 <Route path="fulfillment" element={<AdminFulfillment />} />
                 <Route path="properties" element={<AdminProperties />} />
                 <Route path="bank-accounts" element={<AdminBankAccounts />} />
+                <Route path="blog" element={<AdminBlog />} />
               </Route>
 
               <Route path="*" element={<NotFound />} />
