@@ -40,6 +40,11 @@ export default function DriveDashboard() {
   const [contributions, setContributions] = useState<Contribution[]>([]);
   const [payOpen, setPayOpen] = useState(false);
   const [paying, setPaying] = useState(false);
+  const [method, setMethod] = useState<"paystack" | "eft">("paystack");
+  const [bank, setBank] = useState<{ bank_name: string; account_name: string; account_number: string; branch_code: string } | null>(null);
+  const [proofFile, setProofFile] = useState<File | null>(null);
+  const fileRef = useRef<HTMLInputElement | null>(null);
+  const { pay: paystackPay, ready: paystackReady } = usePaystack();
 
   const load = async () => {
     if (!user) return;
