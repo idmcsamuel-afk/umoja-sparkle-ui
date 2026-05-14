@@ -88,7 +88,7 @@ export default function Drive() {
       toast.error(error.message);
       return;
     }
-    toast.success(`Enrolled in ${enrollTier.display_name}!`);
+    toast.success("Enrolled! Make your first payment to activate.");
     setEnrollTier(null);
     // calculate first score
     if (data?.id) {
