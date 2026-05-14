@@ -73,8 +73,33 @@ export default function AdminNotifications() {
     if (!subject || !body) return toast.error("Subject and body required");
     if (audience === "custom" && parsedIds.length === 0) return toast.error("Provide member IDs");
 
-    // Preview recipient count first
     setBusy(true);
+
+    // For "all members" use the dedicated bulk endpoint (simpler, more reliable).
+    if (audience === "all") {
+      const { data: preview, error: previewErr } = await supabase.functions.invoke("send-bulk-email", {
+        body: { preview: true },
+      });
+      if (previewErr || !preview?.count) {
+        setBusy(false);
+        return toast.error("Could not load recipients: " + (previewErr?.message ?? preview?.error ?? "no members found"));
+      }
+      if (!confirm(`This email will be sent to ${preview.count} member${preview.count === 1 ? "" : "s"}.\n\nProceed?`)) {
+        setBusy(false);
+        return;
+      }
+      const { data, error } = await supabase.functions.invoke("send-bulk-email", {
+        body: { subject, body, preview: false },
+      });
+      setBusy(false);
+      if (error || !data || data.error) return toast.error("Send failed: " + (error?.message ?? data?.error));
+      toast.success(`Sent to ${data.sent}/${data.total}${data.failed ? ` · ${data.failed} failed` : ""}`);
+      if (data.failed > 0) console.warn("[bulk] failed emails:", data.failedEmails);
+      loadLogs();
+      return;
+    }
+
+    // Targeted audiences (circle/buyers_club/tier/custom) keep using send-email blast.
     const { data: preview, error: previewErr } = await supabase.functions.invoke("send-email", {
       body: {
         action: "preview_recipients", audience,
@@ -89,7 +114,7 @@ export default function AdminNotifications() {
     const count = preview.recipient_count as number;
     if (count === 0) {
       setBusy(false);
-      return toast.error(`No eligible recipients (total members in DB: ${preview.total_members}, after audience filter: ${preview.after_audience_filter}).`);
+      return toast.error(`No eligible recipients (total: ${preview.total_members}, after filter: ${preview.after_audience_filter}).`);
     }
     if (!confirm(`This email will be sent to ${count} member${count === 1 ? "" : "s"}.\n\nAudience: ${audience}${audience === "tier" ? " · " + tier : ""}\n\nProceed?`)) {
       setBusy(false);
