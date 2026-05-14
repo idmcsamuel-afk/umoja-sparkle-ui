@@ -678,7 +678,9 @@ export type Database = {
           member_id: string
           payment_date: string
           payment_method: string | null
+          payment_proof_url: string | null
           payment_ref: string | null
+          status: string
           week_number: number
         }
         Insert: {
@@ -690,7 +692,9 @@ export type Database = {
           member_id: string
           payment_date?: string
           payment_method?: string | null
+          payment_proof_url?: string | null
           payment_ref?: string | null
+          status?: string
           week_number: number
         }
         Update: {
@@ -702,7 +706,9 @@ export type Database = {
           member_id?: string
           payment_date?: string
           payment_method?: string | null
+          payment_proof_url?: string | null
           payment_ref?: string | null
+          status?: string
           week_number?: number
         }
         Relationships: [
@@ -3293,6 +3299,15 @@ export type Database = {
       submit_buyers_club_payment: {
         Args: { _amount: number; _proof_url: string; _tier: string }
         Returns: undefined
+      }
+      submit_drive_eft_contribution: {
+        Args: {
+          _amount: number
+          _enrollment: string
+          _proof_url: string
+          _ref: string
+        }
+        Returns: string
       }
       touch_last_seen: { Args: never; Returns: undefined }
     }

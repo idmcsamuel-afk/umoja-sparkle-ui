@@ -1,17 +1,19 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
-import { ArrowLeft, Loader2, Trophy, Copy, MessageCircle, Wallet } from "lucide-react";
+import { ArrowLeft, Loader2, Trophy, Copy, MessageCircle, Wallet, CreditCard, Building2, Upload } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { Logo } from "@/components/umoja/Logo";
 import { BottomNav } from "@/components/umoja/BottomNav";
 import { Button } from "@/components/ui/button";
 import {
-  Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter,
+  Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription,
 } from "@/components/ui/dialog";
 import { toast } from "sonner";
+import { usePaystack, buildReference } from "@/hooks/usePaystack";
 
 const fmtR = (n: number) => "R" + Math.round(Number(n || 0)).toLocaleString("en-ZA");
+const COOLDOWN_DAYS = 6;
 
 interface Tier {
   id: string; tier_name: string; display_name: string;
@@ -24,7 +26,7 @@ interface Enrollment {
   referrals_count: number; priority_score: number; enrolled_at: string;
 }
 interface LeaderRow { id: string; member_id: string; priority_score: number; total_contributed: number; weeks_contributed: number; }
-interface Contribution { id: string; week_number: number; amount: number; payment_date: string; is_on_time: boolean; }
+interface Contribution { id: string; week_number: number; amount: number; payment_date: string; is_on_time: boolean; payment_method?: string | null; status?: string | null; }
 
 export default function DriveDashboard() {
   const { user, member } = useAuth();
@@ -38,6 +40,11 @@ export default function DriveDashboard() {
   const [contributions, setContributions] = useState<Contribution[]>([]);
   const [payOpen, setPayOpen] = useState(false);
   const [paying, setPaying] = useState(false);
+  const [method, setMethod] = useState<"paystack" | "eft">("paystack");
+  const [bank, setBank] = useState<{ bank_name: string; account_name: string; account_number: string; branch_code: string } | null>(null);
+  const [proofFile, setProofFile] = useState<File | null>(null);
+  const fileRef = useRef<HTMLInputElement | null>(null);
+  const { pay: paystackPay, ready: paystackReady } = usePaystack();
 
   const load = async () => {
     if (!user) return;
@@ -104,30 +111,72 @@ export default function DriveDashboard() {
     return { volume, consistency, referrals, time };
   }, [enrollment, tier, allEnrollments]);
 
-  const handlePay = async () => {
-    if (!user || !enrollment) return;
+  // Cooldown: must be at least 6 days since last contribution
+  const lastContribAt = contributions[0]?.payment_date ? new Date(contributions[0].payment_date).getTime() : 0;
+  const daysSinceLast = lastContribAt ? (Date.now() - lastContribAt) / 86_400_000 : Infinity;
+  const canPayNow = daysSinceLast >= COOLDOWN_DAYS;
+  const daysUntilNext = canPayNow ? 0 : Math.ceil(COOLDOWN_DAYS - daysSinceLast);
+
+  const openPayModal = async () => {
+    if (!enrollment) return;
+    if (!canPayNow) {
+      toast.error(`Next payment available in ${daysUntilNext} day${daysUntilNext === 1 ? "" : "s"}`);
+      return;
+    }
+    setMethod("paystack");
+    setProofFile(null);
+    setPayOpen(true);
+    // Lazy-load bank details for EFT tab
+    if (!bank) {
+      const { data } = await supabase.rpc("get_active_bank_account", { _project: "drive" });
+      const row = Array.isArray(data) ? data[0] : null;
+      if (row) setBank(row as any);
+    }
+  };
+
+  const handlePaystackPay = async () => {
+    if (!user || !enrollment || !tier) return;
+    if (!canPayNow) { toast.error("Cooldown active"); return; }
+    if (!member?.email) { toast.error("Email required for card payment"); return; }
     setPaying(true);
-    const week = enrollment.weeks_contributed + 1;
-    const amount = enrollment.weekly_amount;
-    const { error } = await supabase.from("drive_contributions").insert({
-      enrollment_id: enrollment.id,
-      member_id: user.id,
-      amount,
-      week_number: week,
-      payment_date: new Date().toISOString().slice(0, 10),
-      is_on_time: true,
-      payment_method: "eft",
+    const ref = buildReference("DRIVE", enrollment.id, (member as any)?.referral_code ?? user.id.slice(0, 8));
+    const result = await paystackPay({
+      email: member.email,
+      amountZar: Number(enrollment.weekly_amount),
+      reference: ref,
+      metadata: {
+        payment_type: "drive_contribution",
+        enrollment_id: enrollment.id,
+        member_id: user.id,
+        tier: tier.tier_name,
+      },
     });
-    if (error) { toast.error(error.message); setPaying(false); return; }
-    await supabase.from("drive_enrollments").update({
-      total_contributed: Number(enrollment.total_contributed) + Number(amount),
-      weeks_contributed: enrollment.weeks_contributed + 1,
-      weeks_paid_on_time: enrollment.weeks_paid_on_time + 1,
-    }).eq("id", enrollment.id);
-    await supabase.rpc("calculate_drive_score", { p_enrollment_id: enrollment.id });
-    toast.success(`Week ${week} payment recorded`);
-    setPayOpen(false);
     setPaying(false);
+    if (result.ok) {
+      setPayOpen(false);
+      await load();
+    }
+  };
+
+  const handleEftSubmit = async () => {
+    if (!user || !enrollment) return;
+    if (!canPayNow) { toast.error("Cooldown active"); return; }
+    if (!proofFile) { toast.error("Please upload your proof of payment"); return; }
+    setPaying(true);
+    const ref = `DRIVE-${enrollment.id.slice(0, 8)}-WK${enrollment.weeks_contributed + 1}-${Date.now()}`;
+    const path = `${user.id}/${ref}-${proofFile.name}`.replace(/\s+/g, "_");
+    const up = await supabase.storage.from("drive-payment-proofs").upload(path, proofFile, { upsert: false });
+    if (up.error) { toast.error("Upload failed: " + up.error.message); setPaying(false); return; }
+    const { error } = await supabase.rpc("submit_drive_eft_contribution", {
+      _enrollment: enrollment.id,
+      _amount: Number(enrollment.weekly_amount),
+      _ref: ref,
+      _proof_url: path,
+    });
+    setPaying(false);
+    if (error) { toast.error(error.message); return; }
+    toast.success("EFT proof submitted — awaiting admin review");
+    setPayOpen(false);
     load();
   };
 
@@ -218,16 +267,33 @@ export default function DriveDashboard() {
           <div className="flex items-center justify-between flex-wrap gap-3">
             <div>
               <p className="font-display text-lg">Weekly payment</p>
-              <p className="text-sm text-muted-foreground">Your amount: {fmtR(enrollment.weekly_amount)}</p>
+              <p className="text-sm text-muted-foreground">
+                Week {enrollment.weeks_contributed + 1} · {fmtR(enrollment.weekly_amount)}
+              </p>
+              <p className="text-xs text-muted-foreground mt-1">
+                {contributions[0]
+                  ? `Last payment: Week ${contributions[0].week_number} on ${new Date(contributions[0].payment_date).toLocaleDateString()}`
+                  : "No payments yet"}
+              </p>
             </div>
-            <Button onClick={() => setPayOpen(true)}><Wallet className="h-4 w-4" /> Make Payment</Button>
+            {canPayNow ? (
+              <Button onClick={openPayModal} className="w-full sm:w-auto"><Wallet className="h-4 w-4" /> Make Payment Now</Button>
+            ) : (
+              <div className="text-right">
+                <Button disabled className="w-full sm:w-auto">Next payment in {daysUntilNext} day{daysUntilNext === 1 ? "" : "s"}</Button>
+                <p className="mt-1 text-[11px] text-muted-foreground">Cooldown prevents duplicate payments</p>
+              </div>
+            )}
           </div>
           <div className="mt-4 space-y-2">
             {contributions.length === 0 && <p className="text-sm text-muted-foreground">No payments yet.</p>}
-            {contributions.slice(0, 5).map((c) => (
+            {contributions.slice(0, 5).map((c: any) => (
               <div key={c.id} className="flex items-center justify-between text-sm border-b border-border/50 pb-2 last:border-0">
-                <span>Week {c.week_number} · {new Date(c.payment_date).toLocaleDateString()}</span>
-                <span>{fmtR(c.amount)} {c.is_on_time ? "✓" : "·late"}</span>
+                <span>Week {c.week_number} · {new Date(c.payment_date).toLocaleDateString()} <span className="text-muted-foreground">· {c.payment_method ?? "eft"}</span></span>
+                <span>
+                  {fmtR(c.amount)}
+                  {c.status === "pending" ? <span className="ml-1 text-amber-500">·pending</span> : (c.is_on_time ? " ✓" : " ·late")}
+                </span>
               </div>
             ))}
           </div>
@@ -268,18 +334,75 @@ export default function DriveDashboard() {
       <Dialog open={payOpen} onOpenChange={setPayOpen}>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>Week {enrollment.weeks_contributed + 1} payment</DialogTitle>
+            <DialogTitle>Drive Payment — Week {enrollment.weeks_contributed + 1}</DialogTitle>
+            <DialogDescription>
+              {tier.display_name} · Amount due: <strong>{fmtR(enrollment.weekly_amount)}</strong>
+            </DialogDescription>
           </DialogHeader>
-          <div className="space-y-2 text-sm">
-            <p>Amount due: <strong>{fmtR(enrollment.weekly_amount)}</strong></p>
-            <p className="text-muted-foreground">Recording an EFT payment will instantly update your score. Use Paystack from /drive for card payments (coming soon).</p>
+
+          <div className="space-y-3">
+            <div className="grid grid-cols-2 gap-2">
+              <button
+                type="button"
+                onClick={() => setMethod("paystack")}
+                className={`rounded-xl border p-3 text-left text-sm transition ${method === "paystack" ? "border-primary bg-primary/10" : "border-border"}`}
+              >
+                <div className="flex items-center gap-2 font-medium"><CreditCard className="h-4 w-4" /> Card</div>
+                <p className="text-xs text-muted-foreground mt-1">Paystack · Instant ✓</p>
+              </button>
+              <button
+                type="button"
+                onClick={() => setMethod("eft")}
+                className={`rounded-xl border p-3 text-left text-sm transition ${method === "eft" ? "border-primary bg-primary/10" : "border-border"}`}
+              >
+                <div className="flex items-center gap-2 font-medium"><Building2 className="h-4 w-4" /> EFT</div>
+                <p className="text-xs text-muted-foreground mt-1">Requires proof · Admin review</p>
+              </button>
+            </div>
+
+            {method === "eft" && (
+              <div className="space-y-3 text-sm">
+                {bank ? (
+                  <div className="rounded-xl border border-border p-3 space-y-1 text-xs">
+                    <p className="text-[10px] uppercase tracking-wider text-muted-foreground">Bank details</p>
+                    <p>Bank: <strong>{bank.bank_name}</strong></p>
+                    <p>Account: <strong>{bank.account_number}</strong></p>
+                    <p>Branch: <strong>{bank.branch_code}</strong></p>
+                    <p className="pt-1">Reference: <strong>DRIVE-{enrollment.id.slice(0,8)}-WK{enrollment.weeks_contributed + 1}</strong></p>
+                    <p className="text-muted-foreground">Use the exact reference above when transferring.</p>
+                  </div>
+                ) : (
+                  <p className="text-xs text-muted-foreground">Loading bank details…</p>
+                )}
+                <div>
+                  <input
+                    ref={fileRef}
+                    type="file"
+                    accept="image/*,application/pdf"
+                    className="hidden"
+                    onChange={(e) => setProofFile(e.target.files?.[0] ?? null)}
+                  />
+                  <Button variant="secondary" type="button" onClick={() => fileRef.current?.click()} className="w-full">
+                    <Upload className="h-4 w-4" /> {proofFile ? proofFile.name : "Upload proof of payment"}
+                  </Button>
+                </div>
+              </div>
+            )}
           </div>
+
           <DialogFooter>
             <Button variant="ghost" onClick={() => setPayOpen(false)}>Cancel</Button>
-            <Button onClick={handlePay} disabled={paying}>
-              {paying ? <Loader2 className="h-4 w-4 animate-spin" /> : <Wallet className="h-4 w-4" />}
-              Record {fmtR(enrollment.weekly_amount)}
-            </Button>
+            {method === "paystack" ? (
+              <Button onClick={handlePaystackPay} disabled={paying || !paystackReady}>
+                {paying ? <Loader2 className="h-4 w-4 animate-spin" /> : <CreditCard className="h-4 w-4" />}
+                Pay {fmtR(enrollment.weekly_amount)}
+              </Button>
+            ) : (
+              <Button onClick={handleEftSubmit} disabled={paying || !proofFile}>
+                {paying ? <Loader2 className="h-4 w-4 animate-spin" /> : <Upload className="h-4 w-4" />}
+                Submit EFT proof
+              </Button>
+            )}
           </DialogFooter>
         </DialogContent>
       </Dialog>
