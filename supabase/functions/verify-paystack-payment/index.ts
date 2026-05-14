@@ -105,22 +105,83 @@ async function applyToBuyersClub(userId: string, tier: string, ref: string) {
   return { kind: "buyers_club", applied: !upd.error, error: upd.error?.message };
 }
 
-async function applyToDrive(userId: string, ref: string) {
-  const { data: m } = await sb
-    .from("drive_members")
+async function applyToDrive(
+  userId: string,
+  ref: string,
+  amountZar: number,
+  enrollmentId?: string,
+) {
+  // Find target enrollment: prefer explicit metadata, else most recent active for member
+  let enrId = enrollmentId;
+  if (!enrId) {
+    const { data: enr } = await sb
+      .from("drive_enrollments")
+      .select("id")
+      .eq("member_id", userId)
+      .order("enrolled_at", { ascending: false })
+      .limit(1)
+      .maybeSingle();
+    enrId = enr?.id;
+  }
+  if (!enrId) return { kind: "drive", applied: false, reason: "no_drive_enrollment" };
+
+  // Idempotency: if this reference is already recorded, skip
+  const { data: existing } = await sb
+    .from("drive_contributions")
     .select("id")
-    .eq("member_id", userId)
-    .order("created_at", { ascending: false })
+    .eq("payment_ref", ref)
+    .maybeSingle();
+  if (existing) return { kind: "drive", applied: true, row_id: existing.id, reason: "already_recorded" };
+
+  const { data: enr } = await sb
+    .from("drive_enrollments")
+    .select("id, member_id, total_contributed, weeks_contributed, weeks_paid_on_time")
+    .eq("id", enrId)
+    .maybeSingle();
+  if (!enr || enr.member_id !== userId) {
+    return { kind: "drive", applied: false, reason: "enrollment_not_owned" };
+  }
+
+  const { data: lastWk } = await sb
+    .from("drive_contributions")
+    .select("week_number")
+    .eq("enrollment_id", enrId)
+    .order("week_number", { ascending: false })
     .limit(1)
     .maybeSingle();
-  if (!m) return { kind: "drive", applied: false, reason: "no_drive_membership" };
-  const upd = await sb.from("drive_members").update({
+  const nextWeek = (lastWk?.week_number ?? 0) + 1;
+
+  const ins = await sb.from("drive_contributions").insert({
+    enrollment_id: enrId,
+    member_id: userId,
+    amount: amountZar,
+    week_number: nextWeek,
+    payment_date: new Date().toISOString().slice(0, 10),
+    is_on_time: true,
     payment_method: "paystack",
-    paystack_reference: ref,
     payment_ref: ref,
+    status: "completed",
+  }).select("id").maybeSingle();
+  if (ins.error) return { kind: "drive", applied: false, error: ins.error.message };
+
+  await sb.from("drive_enrollments").update({
+    total_contributed: Number(enr.total_contributed) + amountZar,
+    weeks_contributed: (enr.weeks_contributed ?? 0) + 1,
+    weeks_paid_on_time: (enr.weeks_paid_on_time ?? 0) + 1,
     status: "active",
-  }).eq("id", m.id);
-  return { kind: "drive", applied: !upd.error, row_id: m.id, error: upd.error?.message };
+  }).eq("id", enrId);
+
+  await sb.rpc("calculate_drive_score", { p_enrollment_id: enrId });
+
+  await sb.from("notifications").insert({
+    member_id: userId,
+    title: "Drive payment confirmed ✓",
+    body: `Week ${nextWeek} payment of R${amountZar} received. Score updated.`,
+    kind: "drive",
+    link: "/drive/dashboard",
+  });
+
+  return { kind: "drive", applied: true, row_id: ins.data?.id, week: nextWeek };
 }
 
 Deno.serve(async (req) => {
