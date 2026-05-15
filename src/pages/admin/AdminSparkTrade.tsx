@@ -213,7 +213,8 @@ export default function AdminSparkTrade() {
   };
 
   return (
-    <div>
+    <div className="space-y-6">
+      <AmazonIntegrationPanel />
       <div className="flex items-start justify-between gap-4 flex-wrap">
         <div>
           <h1 className="font-display text-3xl">Spark Trade Shortlist</h1>
