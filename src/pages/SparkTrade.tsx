@@ -185,7 +185,7 @@ const SparkTrade = () => {
           </div>
           <div className="text-right shrink-0">
             <p className="text-[10px] uppercase tracking-[0.18em] text-muted-foreground">{hasAccess ? `${tierLabel} price` : "Sell at"}</p>
-            <p className="font-display text-base text-gradient-gold">R{tierPrice.toFixed(2)}</p>
+            <p className="font-display text-base text-gradient-gold">{hasAccess ? `R${tierPrice.toFixed(2)}` : "🔒 Locked"}</p>
             {hasAccess && tierBonus > 0 && (
               <p className="text-[10px] text-accent">+{tierBonus}% better margin</p>
             )}
