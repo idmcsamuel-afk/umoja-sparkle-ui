@@ -9,6 +9,7 @@ import { SparksDisclaimer } from "@/components/umoja/SparksDisclaimer";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { toast } from "sonner";
 import { BuyersClubModal } from "@/components/umoja/BuyersClubModal";
+import { AmazonBestsellers } from "@/components/umoja/AmazonBestsellers";
 
 interface Shortlist {
   id: string;
@@ -274,15 +275,18 @@ const SparkTrade = () => {
       <section id="signals" className="px-5 pt-8 scroll-mt-24">
         <div className="mx-auto max-w-md">
           <Tabs defaultValue="now" className="w-full">
-            <TabsList className="grid w-full grid-cols-3 rounded-2xl bg-secondary/60 p-1 h-12">
-              <TabsTrigger value="now" className="rounded-xl data-[state=active]:bg-gradient-primary data-[state=active]:text-primary-foreground data-[state=active]:shadow-glow text-xs">
+            <TabsList className="grid w-full grid-cols-4 rounded-2xl bg-secondary/60 p-1 h-12">
+              <TabsTrigger value="now" className="rounded-xl data-[state=active]:bg-gradient-primary data-[state=active]:text-primary-foreground data-[state=active]:shadow-glow text-[11px]">
                 Buy Now
               </TabsTrigger>
-              <TabsTrigger value="soon" className="rounded-xl data-[state=active]:bg-gradient-primary data-[state=active]:text-primary-foreground text-xs">
+              <TabsTrigger value="soon" className="rounded-xl data-[state=active]:bg-gradient-primary data-[state=active]:text-primary-foreground text-[11px]">
                 Buy Soon
               </TabsTrigger>
-              <TabsTrigger value="wave" className="rounded-xl data-[state=active]:bg-gradient-primary data-[state=active]:text-primary-foreground text-xs">
+              <TabsTrigger value="wave" className="rounded-xl data-[state=active]:bg-gradient-primary data-[state=active]:text-primary-foreground text-[11px]">
                 Coming Wave
+              </TabsTrigger>
+              <TabsTrigger value="amazon" className="rounded-xl data-[state=active]:bg-gradient-primary data-[state=active]:text-primary-foreground text-[11px]">
+                Amazon
               </TabsTrigger>
             </TabsList>
 
@@ -300,6 +304,9 @@ const SparkTrade = () => {
                 </TabsContent>
                 <TabsContent value="wave" className="mt-5 space-y-3">
                   {buckets.wave.length ? buckets.wave.map((p) => <Card key={p.id} p={p} />) : <Empty msg="No new products on the horizon." />}
+                </TabsContent>
+                <TabsContent value="amazon" className="mt-5">
+                  <AmazonBestsellers />
                 </TabsContent>
               </>
             )}

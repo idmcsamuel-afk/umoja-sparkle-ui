@@ -118,6 +118,84 @@ export type Database = {
           },
         ]
       }
+      amazon_integration_settings: {
+        Row: {
+          api_connected: boolean
+          bsr_threshold: number
+          created_at: string
+          exchange_rate_zar_per_usd: number
+          id: string
+          last_sync_at: string | null
+          tracked_categories: string[]
+          updated_at: string
+        }
+        Insert: {
+          api_connected?: boolean
+          bsr_threshold?: number
+          created_at?: string
+          exchange_rate_zar_per_usd?: number
+          id?: string
+          last_sync_at?: string | null
+          tracked_categories?: string[]
+          updated_at?: string
+        }
+        Update: {
+          api_connected?: boolean
+          bsr_threshold?: number
+          created_at?: string
+          exchange_rate_zar_per_usd?: number
+          id?: string
+          last_sync_at?: string | null
+          tracked_categories?: string[]
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      amazon_products: {
+        Row: {
+          asin: string
+          category: string | null
+          created_at: string
+          id: string
+          image_url: string | null
+          last_updated: string
+          price_usd: number | null
+          price_zar: number | null
+          rating: number | null
+          review_count: number | null
+          sales_rank: number | null
+          title: string
+        }
+        Insert: {
+          asin: string
+          category?: string | null
+          created_at?: string
+          id?: string
+          image_url?: string | null
+          last_updated?: string
+          price_usd?: number | null
+          price_zar?: number | null
+          rating?: number | null
+          review_count?: number | null
+          sales_rank?: number | null
+          title: string
+        }
+        Update: {
+          asin?: string
+          category?: string | null
+          created_at?: string
+          id?: string
+          image_url?: string | null
+          last_updated?: string
+          price_usd?: number | null
+          price_zar?: number | null
+          rating?: number | null
+          review_count?: number | null
+          sales_rank?: number | null
+          title?: string
+        }
+        Relationships: []
+      }
       automated_messages: {
         Row: {
           channels: Json
