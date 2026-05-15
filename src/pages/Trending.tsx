@@ -130,22 +130,80 @@ export default function Trending() {
   const banner = () => {
     if (!req) return null;
     const status = req.compliance_status;
+    const spend = Number(req.current_month_spend ?? 0);
+    const minSpend = Number(req.min_monthly_spend ?? 0);
+    const units = Number(req.current_month_units ?? 0);
+    const minUnits = Number(req.min_monthly_units ?? 0);
+    const spendPct = minSpend > 0 ? Math.min(100, (spend / minSpend) * 100) : 100;
+    const unitPct = minUnits > 0 ? Math.min(100, (units / minUnits) * 100) : 100;
+    const overallPct = Math.round(Math.min(spendPct, unitPct));
     const daysLeft = req.next_review_date
       ? Math.max(0, Math.ceil((+new Date(req.next_review_date) - Date.now()) / 86_400_000))
       : 0;
-    if (status === "warning")
-      return (
-        <div className="rounded-xl bg-amber-500/15 border border-amber-500/30 px-4 py-3 text-sm">
-          ⚠️ Purchase requirement: R{req.current_month_spend} / R{req.min_monthly_spend} this month. {daysLeft} days left to maintain access.
+
+    const cfg =
+      status === "suspended"
+        ? {
+            icon: "🚫",
+            label: "Suspended",
+            tone: "bg-destructive/15 border-destructive/40 text-destructive-foreground",
+            barTone: "bg-destructive",
+            title: "Access suspended",
+            msg: `Minimum monthly purchase not met. Restore access by purchasing R${minSpend} through the platform.`,
+          }
+        : status === "warning"
+        ? {
+            icon: "⚠️",
+            label: "Warning",
+            tone: "bg-amber-500/15 border-amber-500/40 text-amber-700 dark:text-amber-300",
+            barTone: "bg-amber-500",
+            title: "Action needed",
+            msg: `You're behind on this month's requirement. ${daysLeft} day${daysLeft === 1 ? "" : "s"} left to maintain access.`,
+          }
+        : {
+            icon: "✅",
+            label: "Compliant",
+            tone: "bg-emerald-500/15 border-emerald-500/40 text-emerald-700 dark:text-emerald-300",
+            barTone: "bg-emerald-500",
+            title: "Access active",
+            msg: `You're meeting this month's requirements. Next review in ${daysLeft} day${daysLeft === 1 ? "" : "s"}.`,
+          };
+
+    return (
+      <div className={`rounded-xl border px-4 py-3 text-sm space-y-2 ${cfg.tone}`}>
+        <div className="flex items-center justify-between gap-3 flex-wrap">
+          <div className="flex items-center gap-2">
+            <span className="text-lg" aria-hidden>{cfg.icon}</span>
+            <div>
+              <div className="font-semibold">{cfg.title}</div>
+              <div className="text-xs opacity-80">{cfg.msg}</div>
+            </div>
+          </div>
+          <Badge variant="outline" className="font-semibold uppercase tracking-wide">{cfg.label}</Badge>
         </div>
-      );
-    if (status === "suspended")
-      return (
-        <div className="rounded-xl bg-destructive/15 border border-destructive/30 px-4 py-3 text-sm">
-          🚫 Access suspended. Minimum monthly purchase not met. Restore access by purchasing R{req.min_monthly_spend} through the platform.
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-1">
+          <div>
+            <div className="flex justify-between text-xs mb-1">
+              <span>Monthly spend</span>
+              <span className="font-medium">R{spend} / R{minSpend}</span>
+            </div>
+            <div className="h-1.5 rounded-full bg-background/50 overflow-hidden">
+              <div className={`h-full ${cfg.barTone}`} style={{ width: `${spendPct}%` }} />
+            </div>
+          </div>
+          <div>
+            <div className="flex justify-between text-xs mb-1">
+              <span>Monthly units</span>
+              <span className="font-medium">{units} / {minUnits}</span>
+            </div>
+            <div className="h-1.5 rounded-full bg-background/50 overflow-hidden">
+              <div className={`h-full ${cfg.barTone}`} style={{ width: `${unitPct}%` }} />
+            </div>
+          </div>
         </div>
-      );
-    return null;
+        <div className="text-[11px] opacity-70 pt-1">Overall progress: {overallPct}%</div>
+      </div>
+    );
   };
 
   return (
