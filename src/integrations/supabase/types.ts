@@ -577,6 +577,62 @@ export type Database = {
           },
         ]
       }
+      china_supplier_prices: {
+        Row: {
+          admin_notes: string | null
+          fob_price_cny: number
+          fob_price_zar: number
+          id: string
+          last_updated: string | null
+          lead_time_days: number | null
+          moq: number | null
+          product_id: string | null
+          shipping_weight_kg: number | null
+          supplier: string
+          supplier_product_id: string | null
+          supplier_url: string | null
+          verified_by_admin: boolean | null
+        }
+        Insert: {
+          admin_notes?: string | null
+          fob_price_cny: number
+          fob_price_zar: number
+          id?: string
+          last_updated?: string | null
+          lead_time_days?: number | null
+          moq?: number | null
+          product_id?: string | null
+          shipping_weight_kg?: number | null
+          supplier: string
+          supplier_product_id?: string | null
+          supplier_url?: string | null
+          verified_by_admin?: boolean | null
+        }
+        Update: {
+          admin_notes?: string | null
+          fob_price_cny?: number
+          fob_price_zar?: number
+          id?: string
+          last_updated?: string | null
+          lead_time_days?: number | null
+          moq?: number | null
+          product_id?: string | null
+          shipping_weight_kg?: number | null
+          supplier?: string
+          supplier_product_id?: string | null
+          supplier_url?: string | null
+          verified_by_admin?: boolean | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "china_supplier_prices_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "trending_products"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       circle_allocation_overrides: {
         Row: {
           applied_to_allocation: string | null
@@ -1917,6 +1973,126 @@ export type Database = {
         }
         Relationships: []
       }
+      group_buy_participants: {
+        Row: {
+          group_buy_id: string | null
+          id: string
+          joined_at: string | null
+          member_id: string | null
+          payment_reference: string | null
+          payment_status: string | null
+          quantity: number
+          total_price_zar: number
+          unit_price_zar: number
+        }
+        Insert: {
+          group_buy_id?: string | null
+          id?: string
+          joined_at?: string | null
+          member_id?: string | null
+          payment_reference?: string | null
+          payment_status?: string | null
+          quantity: number
+          total_price_zar: number
+          unit_price_zar: number
+        }
+        Update: {
+          group_buy_id?: string | null
+          id?: string
+          joined_at?: string | null
+          member_id?: string | null
+          payment_reference?: string | null
+          payment_status?: string | null
+          quantity?: number
+          total_price_zar?: number
+          unit_price_zar?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "group_buy_participants_group_buy_id_fkey"
+            columns: ["group_buy_id"]
+            isOneToOne: false
+            referencedRelation: "group_buys"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "group_buy_participants_member_id_fkey"
+            columns: ["member_id"]
+            isOneToOne: false
+            referencedRelation: "members"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      group_buys: {
+        Row: {
+          admin_id: string | null
+          closes_at: string | null
+          created_at: string | null
+          current_quantity: number | null
+          group_price_zar: number
+          id: string
+          moq: number | null
+          ordered_at: string | null
+          product_id: string | null
+          product_name: string
+          status: string | null
+          supplier_name: string | null
+          supplier_url: string | null
+          target_quantity: number
+          unit_price_zar: number
+        }
+        Insert: {
+          admin_id?: string | null
+          closes_at?: string | null
+          created_at?: string | null
+          current_quantity?: number | null
+          group_price_zar: number
+          id?: string
+          moq?: number | null
+          ordered_at?: string | null
+          product_id?: string | null
+          product_name: string
+          status?: string | null
+          supplier_name?: string | null
+          supplier_url?: string | null
+          target_quantity: number
+          unit_price_zar: number
+        }
+        Update: {
+          admin_id?: string | null
+          closes_at?: string | null
+          created_at?: string | null
+          current_quantity?: number | null
+          group_price_zar?: number
+          id?: string
+          moq?: number | null
+          ordered_at?: string | null
+          product_id?: string | null
+          product_name?: string
+          status?: string | null
+          supplier_name?: string | null
+          supplier_url?: string | null
+          target_quantity?: number
+          unit_price_zar?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "group_buys_admin_id_fkey"
+            columns: ["admin_id"]
+            isOneToOne: false
+            referencedRelation: "members"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "group_buys_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "trending_products"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       health_snapshots: {
         Row: {
           active_bids: number | null
@@ -2132,6 +2308,179 @@ export type Database = {
           {
             foreignKeyName: "market_txns_seller_id_fkey"
             columns: ["seller_id"]
+            isOneToOne: false
+            referencedRelation: "members"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      member_product_tracking: {
+        Row: {
+          created_at: string | null
+          id: string
+          member_id: string | null
+          notes: string | null
+          notify_on_sa_available: boolean | null
+          notify_on_supplier_found: boolean | null
+          product_id: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          id?: string
+          member_id?: string | null
+          notes?: string | null
+          notify_on_sa_available?: boolean | null
+          notify_on_supplier_found?: boolean | null
+          product_id?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          id?: string
+          member_id?: string | null
+          notes?: string | null
+          notify_on_sa_available?: boolean | null
+          notify_on_supplier_found?: boolean | null
+          product_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "member_product_tracking_member_id_fkey"
+            columns: ["member_id"]
+            isOneToOne: false
+            referencedRelation: "members"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "member_product_tracking_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "trending_products"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      member_purchase_requirements: {
+        Row: {
+          access_revoked_at: string | null
+          compliance_status: string | null
+          created_at: string | null
+          current_month_spend: number | null
+          current_month_units: number | null
+          id: string
+          last_purchase_at: string | null
+          member_id: string | null
+          min_monthly_spend: number
+          min_monthly_units: number | null
+          next_review_date: string | null
+          tier: string | null
+          warning_sent_at: string | null
+        }
+        Insert: {
+          access_revoked_at?: string | null
+          compliance_status?: string | null
+          created_at?: string | null
+          current_month_spend?: number | null
+          current_month_units?: number | null
+          id?: string
+          last_purchase_at?: string | null
+          member_id?: string | null
+          min_monthly_spend: number
+          min_monthly_units?: number | null
+          next_review_date?: string | null
+          tier?: string | null
+          warning_sent_at?: string | null
+        }
+        Update: {
+          access_revoked_at?: string | null
+          compliance_status?: string | null
+          created_at?: string | null
+          current_month_spend?: number | null
+          current_month_units?: number | null
+          id?: string
+          last_purchase_at?: string | null
+          member_id?: string | null
+          min_monthly_spend?: number
+          min_monthly_units?: number | null
+          next_review_date?: string | null
+          tier?: string | null
+          warning_sent_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "member_purchase_requirements_member_id_fkey"
+            columns: ["member_id"]
+            isOneToOne: false
+            referencedRelation: "members"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      member_purchases: {
+        Row: {
+          admin_notes: string | null
+          delivered_at: string | null
+          group_buy_id: string | null
+          id: string
+          member_id: string | null
+          order_status: string | null
+          payment_reference: string | null
+          payment_status: string | null
+          product_id: string | null
+          product_name: string
+          product_source: string | null
+          purchased_at: string | null
+          quantity: number
+          supplier: string | null
+          total_price_zar: number
+          unit_price_zar: number
+        }
+        Insert: {
+          admin_notes?: string | null
+          delivered_at?: string | null
+          group_buy_id?: string | null
+          id?: string
+          member_id?: string | null
+          order_status?: string | null
+          payment_reference?: string | null
+          payment_status?: string | null
+          product_id?: string | null
+          product_name: string
+          product_source?: string | null
+          purchased_at?: string | null
+          quantity: number
+          supplier?: string | null
+          total_price_zar: number
+          unit_price_zar: number
+        }
+        Update: {
+          admin_notes?: string | null
+          delivered_at?: string | null
+          group_buy_id?: string | null
+          id?: string
+          member_id?: string | null
+          order_status?: string | null
+          payment_reference?: string | null
+          payment_status?: string | null
+          product_id?: string | null
+          product_name?: string
+          product_source?: string | null
+          purchased_at?: string | null
+          quantity?: number
+          supplier?: string | null
+          total_price_zar?: number
+          unit_price_zar?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "member_purchases_group_buy_id_fkey"
+            columns: ["group_buy_id"]
+            isOneToOne: false
+            referencedRelation: "group_buys"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "member_purchases_member_id_fkey"
+            columns: ["member_id"]
             isOneToOne: false
             referencedRelation: "members"
             referencedColumns: ["id"]
@@ -2788,6 +3137,42 @@ export type Database = {
           },
         ]
       }
+      purchase_requirement_settings: {
+        Row: {
+          auto_enforce: boolean | null
+          created_at: string | null
+          grace_period_days: number | null
+          id: string
+          min_monthly_spend: number
+          min_monthly_units: number | null
+          suspension_duration_days: number | null
+          tier: string
+          updated_at: string | null
+        }
+        Insert: {
+          auto_enforce?: boolean | null
+          created_at?: string | null
+          grace_period_days?: number | null
+          id?: string
+          min_monthly_spend: number
+          min_monthly_units?: number | null
+          suspension_duration_days?: number | null
+          tier: string
+          updated_at?: string | null
+        }
+        Update: {
+          auto_enforce?: boolean | null
+          created_at?: string | null
+          grace_period_days?: number | null
+          id?: string
+          min_monthly_spend?: number
+          min_monthly_units?: number | null
+          suspension_duration_days?: number | null
+          tier?: string
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
       push_subscriptions: {
         Row: {
           auth: string
@@ -2947,6 +3332,39 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      shipping_rates: {
+        Row: {
+          active: boolean | null
+          carrier: string
+          estimated_days: number | null
+          id: string
+          last_updated: string | null
+          rate_per_kg_zar: number
+          weight_from_kg: number
+          weight_to_kg: number
+        }
+        Insert: {
+          active?: boolean | null
+          carrier: string
+          estimated_days?: number | null
+          id?: string
+          last_updated?: string | null
+          rate_per_kg_zar: number
+          weight_from_kg: number
+          weight_to_kg: number
+        }
+        Update: {
+          active?: boolean | null
+          carrier?: string
+          estimated_days?: number | null
+          id?: string
+          last_updated?: string | null
+          rate_per_kg_zar?: number
+          weight_from_kg?: number
+          weight_to_kg?: number
+        }
+        Relationships: []
       }
       spark_exchange: {
         Row: {
@@ -3461,6 +3879,78 @@ export type Database = {
           member_id?: string
           updated_at?: string
           view_count?: number
+        }
+        Relationships: []
+      }
+      trending_products: {
+        Row: {
+          admin_notes: string | null
+          category: string | null
+          created_at: string | null
+          description: string | null
+          estimated_fob_price: number | null
+          estimated_sa_market_price: number | null
+          featured: boolean | null
+          id: string
+          image_url: string | null
+          margin_percentage: number | null
+          product_name: string
+          sa_available: boolean | null
+          source: string | null
+          source_url: string | null
+          supplier_links: Json | null
+          tags: string[] | null
+          trending_score: number | null
+          trending_since: string | null
+          updated_at: string | null
+          views_count: number | null
+          viral_content_links: Json | null
+        }
+        Insert: {
+          admin_notes?: string | null
+          category?: string | null
+          created_at?: string | null
+          description?: string | null
+          estimated_fob_price?: number | null
+          estimated_sa_market_price?: number | null
+          featured?: boolean | null
+          id?: string
+          image_url?: string | null
+          margin_percentage?: number | null
+          product_name: string
+          sa_available?: boolean | null
+          source?: string | null
+          source_url?: string | null
+          supplier_links?: Json | null
+          tags?: string[] | null
+          trending_score?: number | null
+          trending_since?: string | null
+          updated_at?: string | null
+          views_count?: number | null
+          viral_content_links?: Json | null
+        }
+        Update: {
+          admin_notes?: string | null
+          category?: string | null
+          created_at?: string | null
+          description?: string | null
+          estimated_fob_price?: number | null
+          estimated_sa_market_price?: number | null
+          featured?: boolean | null
+          id?: string
+          image_url?: string | null
+          margin_percentage?: number | null
+          product_name?: string
+          sa_available?: boolean | null
+          source?: string | null
+          source_url?: string | null
+          supplier_links?: Json | null
+          tags?: string[] | null
+          trending_score?: number | null
+          trending_since?: string | null
+          updated_at?: string | null
+          views_count?: number | null
+          viral_content_links?: Json | null
         }
         Relationships: []
       }
