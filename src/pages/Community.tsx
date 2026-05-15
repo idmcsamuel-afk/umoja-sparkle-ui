@@ -207,21 +207,42 @@ export default function Community() {
   }, [members]);
 
   const send = async () => {
-    if (!user || !composer.trim() || sending) return;
+    if (!composer.trim() || sending) return;
     setSending(true);
-    const { error } = await supabase.from("chat_messages").insert({
-      member_id: user.id,
-      message: composer.trim().slice(0, 500),
-      message_type: composerType,
-      parent_message_id: replyTo?.id ?? null,
-    });
-    setSending(false);
-    if (error) {
-      toast({ title: "Could not send", description: error.message, variant: "destructive" });
-      return;
+    try {
+      const { data: { user: authUser }, error: authError } = await supabase.auth.getUser();
+      if (authError || !authUser) {
+        console.error("Auth error:", authError);
+        toast({ title: "Please log in to post messages", variant: "destructive" });
+        return;
+      }
+      console.log("Auth user ID:", authUser.id);
+
+      const { data: newMessage, error: insertError } = await supabase
+        .from("chat_messages")
+        .insert({
+          member_id: authUser.id, // members.id = auth user id
+          message: composer.trim().slice(0, 500),
+          message_type: composerType,
+          parent_message_id: replyTo?.id ?? null,
+        })
+        .select()
+        .single();
+
+      if (insertError) {
+        console.error("Insert error:", insertError);
+        toast({ title: "Could not send", description: insertError.message, variant: "destructive" });
+        return;
+      }
+      console.log("Message posted:", newMessage);
+      setComposer("");
+      setReplyTo(null);
+    } catch (error: any) {
+      console.error("Post error:", error);
+      toast({ title: "Failed to post message", variant: "destructive" });
+    } finally {
+      setSending(false);
     }
-    setComposer("");
-    setReplyTo(null);
   };
 
   const toggleLike = async (msg: ChatMsg) => {
