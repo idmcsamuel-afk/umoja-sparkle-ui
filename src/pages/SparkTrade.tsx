@@ -195,18 +195,30 @@ const SparkTrade = () => {
         <div className="mt-4 grid grid-cols-3 gap-2">
           <div className="rounded-2xl bg-secondary/60 p-3">
             <p className="text-[10px] uppercase tracking-wider text-muted-foreground">Margin</p>
-            <p className="mt-1 font-display text-sm">{tierMargin}%</p>
+            <p className="mt-1 font-display text-sm">{hasAccess ? `${tierMargin}%` : "🔒 —"}</p>
           </div>
           <div className="rounded-2xl bg-secondary/60 p-3">
             <p className="text-[10px] uppercase tracking-wider text-muted-foreground">Your profit</p>
-            <p className="mt-1 font-display text-sm">R{tierProfit.toFixed(2)}</p>
+            <p className="mt-1 font-display text-sm">{hasAccess ? `R${tierProfit.toFixed(2)}` : "🔒 —"}</p>
           </div>
           <div className="rounded-2xl bg-secondary/60 p-3">
             <p className="text-[10px] uppercase tracking-wider text-muted-foreground">Sold/mo</p>
             <p className="mt-1 font-display text-sm inline-flex items-center gap-1">
               <TrendingUp className="h-3 w-3 text-accent" />
-              ~{Number(p.estimated_monthly_sales ?? p.sales_velocity ?? 0).toLocaleString()}
+              {hasAccess ? `~${Number(p.estimated_monthly_sales ?? p.sales_velocity ?? 0).toLocaleString()}` : "🔒"}
             </p>
+          </div>
+        </div>
+
+        <div className="mt-4">
+          <div className="flex items-baseline justify-between text-xs text-muted-foreground">
+            <span className="inline-flex items-center gap-1">
+              <Users className="h-3 w-3" /> {hasAccess ? `${joined} / ${target} slots` : "Group buy"}
+            </span>
+            <span>{hasAccess ? `${pct}%` : "Locked"}</span>
+          </div>
+          <div className="mt-2 h-2 w-full rounded-full bg-secondary overflow-hidden">
+            <div className="h-full rounded-full bg-gradient-gold transition-all" style={{ width: `${hasAccess ? pct : 0}%` }} />
           </div>
         </div>
 
