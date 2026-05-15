@@ -45,12 +45,34 @@ const fmtR = (n: number | null | undefined) =>
 
 const SparkTrade = () => {
   const { user, member } = useAuth();
-  const hasAccess = !!member?.has_buyers_club_access;
+  const [access, setAccess] = useState<{ hasAccess: boolean; isGold: boolean; isBuyersClub: boolean }>({
+    hasAccess: false,
+    isGold: false,
+    isBuyersClub: false,
+  });
+  const hasAccess = access.hasAccess;
   const [items, setItems] = useState<Shortlist[]>([]);
   const [orders, setOrders] = useState<Order[]>([]);
   const [loading, setLoading] = useState(true);
   const [joining, setJoining] = useState<string | null>(null);
   const [clubOpen, setClubOpen] = useState(false);
+
+  useEffect(() => {
+    if (!user) return;
+    let active = true;
+    (async () => {
+      const { data: m } = await supabase
+        .from("members")
+        .select("has_buyers_club_access, buyers_club_status, buyers_club_tier")
+        .eq("id", user.id)
+        .maybeSingle();
+      if (!active) return;
+      const isBuyersClub = !!(m?.has_buyers_club_access && m?.buyers_club_status === "active");
+      const isGold = m?.buyers_club_tier === "gold";
+      setAccess({ hasAccess: isBuyersClub || isGold, isGold, isBuyersClub });
+    })();
+    return () => { active = false; };
+  }, [user?.id]);
 
   const load = async () => {
     setLoading(true);
@@ -163,7 +185,7 @@ const SparkTrade = () => {
           </div>
           <div className="text-right shrink-0">
             <p className="text-[10px] uppercase tracking-[0.18em] text-muted-foreground">{hasAccess ? `${tierLabel} price` : "Sell at"}</p>
-            <p className="font-display text-base text-gradient-gold">R{tierPrice.toFixed(2)}</p>
+            <p className="font-display text-base text-gradient-gold">{hasAccess ? `R${tierPrice.toFixed(2)}` : "🔒 Locked"}</p>
             {hasAccess && tierBonus > 0 && (
               <p className="text-[10px] text-accent">+{tierBonus}% better margin</p>
             )}
@@ -173,17 +195,17 @@ const SparkTrade = () => {
         <div className="mt-4 grid grid-cols-3 gap-2">
           <div className="rounded-2xl bg-secondary/60 p-3">
             <p className="text-[10px] uppercase tracking-wider text-muted-foreground">Margin</p>
-            <p className="mt-1 font-display text-sm">{tierMargin}%</p>
+            <p className="mt-1 font-display text-sm">{hasAccess ? `${tierMargin}%` : "🔒 —"}</p>
           </div>
           <div className="rounded-2xl bg-secondary/60 p-3">
             <p className="text-[10px] uppercase tracking-wider text-muted-foreground">Your profit</p>
-            <p className="mt-1 font-display text-sm">R{tierProfit.toFixed(2)}</p>
+            <p className="mt-1 font-display text-sm">{hasAccess ? `R${tierProfit.toFixed(2)}` : "🔒 —"}</p>
           </div>
           <div className="rounded-2xl bg-secondary/60 p-3">
             <p className="text-[10px] uppercase tracking-wider text-muted-foreground">Sold/mo</p>
             <p className="mt-1 font-display text-sm inline-flex items-center gap-1">
               <TrendingUp className="h-3 w-3 text-accent" />
-              ~{Number(p.estimated_monthly_sales ?? p.sales_velocity ?? 0).toLocaleString()}
+              {hasAccess ? `~${Number(p.estimated_monthly_sales ?? p.sales_velocity ?? 0).toLocaleString()}` : "🔒"}
             </p>
           </div>
         </div>
@@ -191,21 +213,24 @@ const SparkTrade = () => {
         <div className="mt-4">
           <div className="flex items-baseline justify-between text-xs text-muted-foreground">
             <span className="inline-flex items-center gap-1">
-              <Users className="h-3 w-3" /> {joined} / {target} slots
+              <Users className="h-3 w-3" /> {hasAccess ? `${joined} / ${target} slots` : "Group buy"}
             </span>
-            <span>{pct}%</span>
+            <span>{hasAccess ? `${pct}%` : "Locked"}</span>
           </div>
           <div className="mt-2 h-2 w-full rounded-full bg-secondary overflow-hidden">
-            <div className="h-full rounded-full bg-gradient-gold transition-all" style={{ width: `${pct}%` }} />
+            <div className="h-full rounded-full bg-gradient-gold transition-all" style={{ width: `${hasAccess ? pct : 0}%` }} />
           </div>
         </div>
 
+
         <button
-          onClick={() => join(p)}
-          disabled={isDemo || joining === p.id || joined >= target}
+          onClick={() => (hasAccess ? join(p) : setClubOpen(true))}
+          disabled={hasAccess && (isDemo || joining === p.id || joined >= target)}
           className="mt-5 w-full h-11 rounded-2xl bg-gradient-primary text-primary-foreground text-sm font-medium shadow-glow inline-flex items-center justify-center gap-1.5 disabled:opacity-60"
         >
-          {joining === p.id ? (
+          {!hasAccess ? (
+            <><Lock className="h-4 w-4" /> Unlock with Buyers Club</>
+          ) : joining === p.id ? (
             <Loader2 className="h-4 w-4 animate-spin" />
           ) : isDemo ? (
             <><Lock className="h-4 w-4" /> Demo only</>
@@ -245,6 +270,11 @@ const SparkTrade = () => {
           <p className="mt-3 text-sm text-muted-foreground">
             Vetted products. Group buying power. Real margins.
           </p>
+          {access.isGold && (
+            <span className="mt-3 inline-flex items-center gap-1.5 text-[10px] uppercase tracking-[0.18em] rounded-full bg-amber-500/20 text-amber-400 px-3 py-1">
+              <Crown className="h-3 w-3" /> Gold Tier — Free Access
+            </span>
+          )}
         </div>
       </section>
 
@@ -255,10 +285,13 @@ const SparkTrade = () => {
               <div className="flex items-start gap-3">
                 <Lock className="h-5 w-5 text-accent shrink-0 mt-0.5" />
                 <div className="min-w-0">
-                  <p className="font-display text-lg leading-tight">Join Buyers Club</p>
+                  <p className="font-display text-lg leading-tight">Spark Trade Members Only</p>
                   <p className="mt-1 text-xs text-accent-soft leading-relaxed">
-                    Unlock real product picks, group buying power and live margin data. The 3 demo products below show what you'll see inside.
+                    Full product details, supplier pricing and group buys are unlocked for paid Buyers Club members. Gold founding-tier members get free access included.
                   </p>
+                  <div className="mt-3 flex flex-wrap gap-2">
+                    <span className="text-[10px] uppercase tracking-[0.18em] rounded-full bg-amber-500/20 text-amber-400 px-2 py-0.5">🏆 Gold tier — free access</span>
+                  </div>
                   <button
                     onClick={() => setClubOpen(true)}
                     className="mt-4 inline-flex h-10 items-center gap-1.5 rounded-2xl bg-gradient-primary px-4 text-sm font-medium text-primary-foreground shadow-glow"
