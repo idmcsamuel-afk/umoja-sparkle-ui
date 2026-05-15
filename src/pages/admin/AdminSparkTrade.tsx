@@ -6,6 +6,7 @@ import { Loader2, Check, X, RefreshCw, Zap, Clock, Globe2, Plus, Calculator, Dow
 import { toast } from "sonner";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { SparkTradeCostCalculator, type CostBreakdown } from "@/components/umoja/SparkTradeCostCalculator";
+import { AmazonIntegrationPanel } from "@/components/umoja/AmazonIntegrationPanel";
 
 interface Row {
   id: string;
