@@ -24,21 +24,37 @@ interface Settings {
   api_connected: boolean;
 }
 
+interface SyncStats {
+  us_fetched: number;
+  sa_matches: number;
+  unique_opportunities: number;
+  avg_opportunity_score: number;
+}
+
 export const AmazonIntegrationPanel = () => {
   const [settings, setSettings] = useState<Settings | null>(null);
   const [productCount, setProductCount] = useState<number>(0);
+  const [highOppCount, setHighOppCount] = useState<number>(0);
+  const [stats, setStats] = useState<SyncStats | null>(null);
+  const [fetchSAComparison, setFetchSAComparison] = useState(true);
+  const [showOnlyHighOpp, setShowOnlyHighOpp] = useState(false);
   const [loading, setLoading] = useState(true);
   const [syncing, setSyncing] = useState(false);
   const [saving, setSaving] = useState(false);
 
   const load = async () => {
     setLoading(true);
-    const [{ data: s }, { count }] = await Promise.all([
+    const [{ data: s }, { count }, { count: highCount }] = await Promise.all([
       supabase.from("amazon_integration_settings").select("*").limit(1).maybeSingle(),
       supabase.from("amazon_products").select("*", { count: "exact", head: true }),
+      supabase
+        .from("amazon_products")
+        .select("*", { count: "exact", head: true })
+        .gte("opportunity_score", 70),
     ]);
     setSettings(s as Settings | null);
     setProductCount(count ?? 0);
+    setHighOppCount(highCount ?? 0);
     setLoading(false);
   };
 
@@ -48,26 +64,23 @@ export const AmazonIntegrationPanel = () => {
 
   const sync = async () => {
     setSyncing(true);
-    const { error } = await supabase.functions.invoke("fetch-amazon-products", {
-      body: {},
-      // edge function reads ?force=true via URL; we trigger a fresh sync here
-    });
-    // Trigger force=true via separate fetch to bypass cache
+    setStats(null);
     try {
       const { data: { session } } = await supabase.auth.getSession();
       const url = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/fetch-amazon-products?force=true`;
-      await fetch(url, {
+      const res = await fetch(url, {
         headers: {
           apikey: import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY,
           Authorization: `Bearer ${session?.access_token ?? import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY}`,
         },
       });
-    } catch {
-      // ignore — initial invoke already syncs when stale
+      const json = await res.json();
+      if (json?.stats) setStats(json.stats as SyncStats);
+      toast.success("Amazon products synced");
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "Sync failed");
     }
     setSyncing(false);
-    if (error) return toast.error(error.message);
-    toast.success("Amazon products synced");
     load();
   };
 
@@ -149,6 +162,56 @@ export const AmazonIntegrationPanel = () => {
         <Stat label="Last sync" value={ago(settings.last_sync_at)} />
         <Stat label="Products cached" value={productCount.toLocaleString()} />
         <Stat label="BSR threshold" value={`#${settings.bsr_threshold.toLocaleString()}`} />
+      </div>
+
+      {/* Sync stats from last run */}
+      {stats && (
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+          <Stat label="US products fetched" value={stats.us_fetched.toLocaleString()} />
+          <Stat label="SA matches found" value={stats.sa_matches.toLocaleString()} />
+          <Stat
+            label="Unique opportunities"
+            value={
+              <span className="text-emerald-300">{stats.unique_opportunities.toLocaleString()}</span>
+            }
+          />
+          <Stat
+            label="Avg opportunity score"
+            value={`${stats.avg_opportunity_score}/100`}
+          />
+        </div>
+      )}
+
+      {/* Toggles */}
+      <div className="grid sm:grid-cols-2 gap-3">
+        <label className="flex items-center justify-between rounded-2xl bg-secondary/40 p-3 cursor-pointer">
+          <div>
+            <p className="text-xs font-medium">Fetch SA comparison data</p>
+            <p className="text-[10px] text-muted-foreground mt-0.5">
+              Cross-check each US bestseller against amazon.co.za.
+            </p>
+          </div>
+          <input
+            type="checkbox"
+            checked={fetchSAComparison}
+            onChange={(e) => setFetchSAComparison(e.target.checked)}
+            className="h-4 w-4 accent-primary"
+          />
+        </label>
+        <label className="flex items-center justify-between rounded-2xl bg-secondary/40 p-3 cursor-pointer">
+          <div>
+            <p className="text-xs font-medium">High-opportunity only (score &gt;70)</p>
+            <p className="text-[10px] text-muted-foreground mt-0.5">
+              {highOppCount.toLocaleString()} products currently match.
+            </p>
+          </div>
+          <input
+            type="checkbox"
+            checked={showOnlyHighOpp}
+            onChange={(e) => setShowOnlyHighOpp(e.target.checked)}
+            className="h-4 w-4 accent-primary"
+          />
+        </label>
       </div>
 
       {!settings.api_connected && (
