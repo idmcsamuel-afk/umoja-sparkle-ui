@@ -222,11 +222,18 @@ export default function Trending() {
     );
   };
 
+  if (!loading && !access.hasAccess) {
+    return <LockedView products={products} />;
+  }
+
   return (
     <div className="container mx-auto p-4 md:p-6 space-y-6 pb-28 md:pb-10">
       <header className="space-y-2">
         <h1 className="text-3xl md:text-4xl font-display font-bold flex items-center gap-2">
           <Flame className="h-8 w-8 text-accent" /> Coming Wave
+          {access.isGold && (
+            <Badge className="ml-2 bg-amber-500/90 text-white">🏆 Gold Tier — Free Access</Badge>
+          )}
         </h1>
         <p className="text-accent font-medium">Viral products before SA market saturation</p>
         <p className="text-sm text-muted-foreground">Early-mover advantage = highest margins. See what's trending before your competition.</p>
