@@ -10,6 +10,7 @@ import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Heart, Calculator, Lock, Flame } from "lucide-react";
 import { toast } from "@/hooks/use-toast";
+import { BuyersClubModal } from "@/components/umoja/BuyersClubModal";
 
 type Product = {
   id: string;
@@ -533,6 +534,7 @@ function DemoProductsGrid() {
 
 function LockedView() {
   const navigate = useNavigate();
+  const [clubOpen, setClubOpen] = useState(false);
 
   return (
     <div className="container mx-auto p-4 md:p-6 space-y-8 pb-28 md:pb-10">
@@ -603,10 +605,11 @@ function LockedView() {
           </Card>
         </div>
         <div className="flex flex-wrap gap-3 pt-1">
-          <Button className="bg-primary text-primary-foreground" onClick={() => navigate("/#founding")}>Upgrade to Spark Trade</Button>
+          <Button className="bg-primary text-primary-foreground" onClick={() => setClubOpen(true)}>Join Buyers Club</Button>
           <Button variant="outline" onClick={() => navigate("/#founding")}>View Founding Tiers</Button>
         </div>
       </Card>
+      <BuyersClubModal open={clubOpen} onOpenChange={setClubOpen} />
     </div>
   );
 }
