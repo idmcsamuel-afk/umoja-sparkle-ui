@@ -224,11 +224,13 @@ const SparkTrade = () => {
 
 
         <button
-          onClick={() => join(p)}
-          disabled={isDemo || joining === p.id || joined >= target}
+          onClick={() => (hasAccess ? join(p) : setClubOpen(true))}
+          disabled={hasAccess && (isDemo || joining === p.id || joined >= target)}
           className="mt-5 w-full h-11 rounded-2xl bg-gradient-primary text-primary-foreground text-sm font-medium shadow-glow inline-flex items-center justify-center gap-1.5 disabled:opacity-60"
         >
-          {joining === p.id ? (
+          {!hasAccess ? (
+            <><Lock className="h-4 w-4" /> Unlock with Buyers Club</>
+          ) : joining === p.id ? (
             <Loader2 className="h-4 w-4 animate-spin" />
           ) : isDemo ? (
             <><Lock className="h-4 w-4" /> Demo only</>
