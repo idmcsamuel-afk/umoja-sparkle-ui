@@ -1,0 +1,1 @@
+UPDATE public.trending_products SET tags = array_append(COALESCE(tags, ARRAY[]::text[]), 'demo'), featured = true WHERE id IN (SELECT id FROM public.trending_products ORDER BY views_count DESC NULLS LAST LIMIT 3) AND NOT ('demo' = ANY(COALESCE(tags, ARRAY[]::text[])));
