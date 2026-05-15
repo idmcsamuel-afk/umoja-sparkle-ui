@@ -5,10 +5,10 @@ import { Home, Users, Sparkles, Car, Store, ArrowLeftRight, Gamepad2, Gift, Pale
 const items: { to: string; label: string; icon: typeof Home; tour?: string }[] = [
   { to: "/dashboard", label: "Home", icon: Home, tour: "dashboard" },
   { to: "/community", label: "Chat", icon: MessageCircle, tour: "community" },
-  { to: "/circle", label: "Circle", icon: Users, tour: "circle" },
-  { to: "/priority", label: "Queue", icon: Trophy },
-  { to: "/spark", label: "Spark", icon: Sparkles, tour: "spark-trade" },
   { to: "/trending", label: "Trending", icon: Flame },
+  { to: "/circle", label: "Circle", icon: Users, tour: "circle" },
+  { to: "/spark", label: "Spark", icon: Sparkles, tour: "spark-trade" },
+  { to: "/priority", label: "Queue", icon: Trophy },
   { to: "/market", label: "Market", icon: Store },
   { to: "/flame-marketing", label: "Create 🎨", icon: Palette },
   { to: "/exchange", label: "Swap", icon: ArrowLeftRight },
