@@ -26,6 +26,7 @@ const items = [
   { to: "/admin/bank-accounts", label: "Bank accounts", icon: Landmark },
   { to: "/admin/blog", label: "Blog", icon: FileText },
   { to: "/admin/community", label: "Community", icon: MessageCircle },
+  { to: "/admin/automations", label: "Automations", icon: Zap },
   { to: "/admin/settings", label: "Settings", icon: Settings },
 ];
 
