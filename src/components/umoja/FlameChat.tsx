@@ -20,6 +20,8 @@ const GREETING: Msg = {
 };
 
 export const FlameChat = () => {
+  const location = useLocation();
+  const onCommunity = location.pathname.startsWith("/community");
   const [open, setOpen] = useState(false);
   const [input, setInput] = useState("");
   const [busy, setBusy] = useState(false);
