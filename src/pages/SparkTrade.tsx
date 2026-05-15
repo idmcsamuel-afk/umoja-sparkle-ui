@@ -222,17 +222,6 @@ const SparkTrade = () => {
           </div>
         </div>
 
-        <div className="mt-4">
-          <div className="flex items-baseline justify-between text-xs text-muted-foreground">
-            <span className="inline-flex items-center gap-1">
-              <Users className="h-3 w-3" /> {joined} / {target} slots
-            </span>
-            <span>{pct}%</span>
-          </div>
-          <div className="mt-2 h-2 w-full rounded-full bg-secondary overflow-hidden">
-            <div className="h-full rounded-full bg-gradient-gold transition-all" style={{ width: `${pct}%` }} />
-          </div>
-        </div>
 
         <button
           onClick={() => join(p)}
