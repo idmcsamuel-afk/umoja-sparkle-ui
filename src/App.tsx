@@ -40,6 +40,8 @@ import NotFound from "./pages/NotFound.tsx";
 import Blog from "./pages/Blog.tsx";
 import BlogPost from "./pages/BlogPost.tsx";
 import AdminBlog from "./pages/admin/AdminBlog.tsx";
+import Community from "./pages/Community.tsx";
+import AdminCommunity from "./pages/admin/AdminCommunity.tsx";
 import AdminLayout from "./components/umoja/AdminLayout";
 import AdminDashboard from "./pages/admin/AdminDashboard";
 import AdminMembers from "./pages/admin/AdminMembers";
@@ -90,6 +92,7 @@ const App = () => (
               <Route path="/blog/:slug" element={<BlogPost />} />
               <Route element={<MemberLayout />}>
                 <Route path="/dashboard" element={<ProtectedRoute><Dashboard /></ProtectedRoute>} />
+                <Route path="/community" element={<ProtectedRoute><Community /></ProtectedRoute>} />
                 <Route path="/circle" element={<ProtectedRoute><Circle /></ProtectedRoute>} />
                 <Route path="/spark" element={<ProtectedRoute><SparkTrade /></ProtectedRoute>} />
                 <Route path="/drive" element={<ProtectedRoute><Drive /></ProtectedRoute>} />
@@ -134,6 +137,7 @@ const App = () => (
                 <Route path="properties" element={<AdminProperties />} />
                 <Route path="bank-accounts" element={<AdminBankAccounts />} />
                 <Route path="blog" element={<AdminBlog />} />
+                <Route path="community" element={<AdminCommunity />} />
               </Route>
 
               <Route path="*" element={<NotFound />} />

@@ -226,6 +226,219 @@ export type Database = {
         }
         Relationships: []
       }
+      chat_likes: {
+        Row: {
+          created_at: string
+          id: string
+          member_id: string
+          message_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          member_id: string
+          message_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          member_id?: string
+          message_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "chat_likes_member_id_fkey"
+            columns: ["member_id"]
+            isOneToOne: false
+            referencedRelation: "members"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "chat_likes_message_id_fkey"
+            columns: ["message_id"]
+            isOneToOne: false
+            referencedRelation: "chat_messages"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      chat_messages: {
+        Row: {
+          created_at: string
+          id: string
+          is_deleted: boolean
+          likes_count: number
+          member_id: string | null
+          message: string
+          message_type: string
+          parent_message_id: string | null
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          is_deleted?: boolean
+          likes_count?: number
+          member_id?: string | null
+          message: string
+          message_type?: string
+          parent_message_id?: string | null
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          is_deleted?: boolean
+          likes_count?: number
+          member_id?: string | null
+          message?: string
+          message_type?: string
+          parent_message_id?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "chat_messages_member_id_fkey"
+            columns: ["member_id"]
+            isOneToOne: false
+            referencedRelation: "members"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "chat_messages_parent_message_id_fkey"
+            columns: ["parent_message_id"]
+            isOneToOne: false
+            referencedRelation: "chat_messages"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      chat_mutes: {
+        Row: {
+          created_at: string
+          id: string
+          member_id: string
+          muted_by: string | null
+          muted_until: string
+          reason: string | null
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          member_id: string
+          muted_by?: string | null
+          muted_until: string
+          reason?: string | null
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          member_id?: string
+          muted_by?: string | null
+          muted_until?: string
+          reason?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "chat_mutes_member_id_fkey"
+            columns: ["member_id"]
+            isOneToOne: false
+            referencedRelation: "members"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "chat_mutes_muted_by_fkey"
+            columns: ["muted_by"]
+            isOneToOne: false
+            referencedRelation: "members"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      chat_notifications: {
+        Row: {
+          created_at: string
+          id: string
+          member_id: string
+          message_id: string
+          read: boolean
+          type: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          member_id: string
+          message_id: string
+          read?: boolean
+          type: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          member_id?: string
+          message_id?: string
+          read?: boolean
+          type?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "chat_notifications_member_id_fkey"
+            columns: ["member_id"]
+            isOneToOne: false
+            referencedRelation: "members"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "chat_notifications_message_id_fkey"
+            columns: ["message_id"]
+            isOneToOne: false
+            referencedRelation: "chat_messages"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      chat_reports: {
+        Row: {
+          created_at: string
+          id: string
+          message_id: string
+          reason: string | null
+          reporter_id: string
+          status: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          message_id: string
+          reason?: string | null
+          reporter_id: string
+          status?: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          message_id?: string
+          reason?: string | null
+          reporter_id?: string
+          status?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "chat_reports_message_id_fkey"
+            columns: ["message_id"]
+            isOneToOne: false
+            referencedRelation: "chat_messages"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "chat_reports_reporter_id_fkey"
+            columns: ["reporter_id"]
+            isOneToOne: false
+            referencedRelation: "members"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       circle_allocation_overrides: {
         Row: {
           applied_to_allocation: string | null
