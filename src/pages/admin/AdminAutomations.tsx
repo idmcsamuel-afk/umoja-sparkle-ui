@@ -204,11 +204,34 @@ export default function AdminAutomations() {
           </Card>
         </TabsContent>
 
-        <TabsContent value="metrics" className="mt-4">
+        <TabsContent value="metrics" className="mt-4 space-y-4">
           <div className="grid grid-cols-3 gap-3">
-            <Card className="p-4"><div className="text-xs text-muted-foreground">Sent (24h)</div><div className="text-2xl font-display mt-1">{stats.today}</div></Card>
-            <Card className="p-4"><div className="text-xs text-muted-foreground">Sent (7d)</div><div className="text-2xl font-display mt-1">{stats.week}</div></Card>
-            <Card className="p-4"><div className="text-xs text-muted-foreground">Failed</div><div className="text-2xl font-display mt-1">{stats.failed}</div></Card>
+            <Card className="p-4"><div className="text-xs text-muted-foreground">Runs (24h)</div><div className="text-2xl font-display mt-1">{stats.today}</div></Card>
+            <Card className="p-4"><div className="text-xs text-muted-foreground">Runs (7d)</div><div className="text-2xl font-display mt-1">{stats.week}</div></Card>
+            <Card className="p-4"><div className="text-xs text-muted-foreground">Failed runs</div><div className="text-2xl font-display mt-1 text-destructive">{stats.failed}</div></Card>
+          </div>
+          <div>
+            <h3 className="text-sm font-medium mb-2">Per-channel delivery</h3>
+            <div className="grid grid-cols-2 gap-3">
+              <Card className="p-4">
+                <div className="text-xs text-muted-foreground">Community chat</div>
+                <div className="flex items-baseline gap-3 mt-1">
+                  <span className="text-2xl font-display text-emerald-500">{stats.chatSent}</span>
+                  <span className="text-xs text-muted-foreground">sent</span>
+                  <span className="text-2xl font-display text-destructive ml-3">{stats.chatFailed}</span>
+                  <span className="text-xs text-muted-foreground">failed</span>
+                </div>
+              </Card>
+              <Card className="p-4">
+                <div className="text-xs text-muted-foreground">Web push</div>
+                <div className="flex items-baseline gap-3 mt-1">
+                  <span className="text-2xl font-display text-emerald-500">{stats.pushSent}</span>
+                  <span className="text-xs text-muted-foreground">delivered</span>
+                  <span className="text-2xl font-display text-destructive ml-3">{stats.pushFailed}</span>
+                  <span className="text-xs text-muted-foreground">failed</span>
+                </div>
+              </Card>
+            </div>
           </div>
         </TabsContent>
       </Tabs>
