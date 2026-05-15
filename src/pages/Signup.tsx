@@ -302,7 +302,7 @@ const Signup = () => {
             </div>
             <div className="space-y-2">
               <Label className="text-xs uppercase tracking-[0.18em] text-muted-foreground">Password</Label>
-              <Input type="password" autoComplete="new-password" value={form.password} onChange={update("password")} className="h-12 rounded-2xl bg-secondary/60 border-border" placeholder="At least 6 characters" required />
+              <PasswordInput autoComplete="new-password" value={form.password} onChange={update("password")} className="h-12 rounded-2xl bg-secondary/60 border-border" placeholder="At least 6 characters" required />
             </div>
 
             <Button type="submit" disabled={busy} className="w-full h-12 rounded-2xl bg-gradient-primary text-primary-foreground shadow-glow hover:opacity-95">
