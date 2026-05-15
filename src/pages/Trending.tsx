@@ -604,10 +604,11 @@ function LockedView() {
           </Card>
         </div>
         <div className="flex flex-wrap gap-3 pt-1">
-          <Button className="bg-primary text-primary-foreground" onClick={() => navigate("/#founding")}>Upgrade to Spark Trade</Button>
+          <Button className="bg-primary text-primary-foreground" onClick={() => setClubOpen(true)}>Join Buyers Club</Button>
           <Button variant="outline" onClick={() => navigate("/#founding")}>View Founding Tiers</Button>
         </div>
       </Card>
+      <BuyersClubModal open={clubOpen} onOpenChange={setClubOpen} />
     </div>
   );
 }
