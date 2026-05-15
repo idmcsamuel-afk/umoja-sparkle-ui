@@ -439,3 +439,116 @@ function Row({ k, v, bold }: { k: string; v: React.ReactNode; bold?: boolean }) 
     </div>
   );
 }
+
+function LockedView({ products }: { products: Product[] }) {
+  const demos = products.filter((p) => (p.tags ?? []).includes("demo")).slice(0, 3);
+  const fallbackDemos = demos.length > 0 ? demos : products.filter((p) => p.featured).slice(0, 3);
+  const previewProducts = fallbackDemos.length > 0 ? fallbackDemos : products.slice(0, 3);
+  const previewIds = new Set(previewProducts.map((p) => p.id));
+  const blurred = products.filter((p) => !previewIds.has(p.id)).slice(0, 8);
+
+  return (
+    <div className="container mx-auto p-4 md:p-6 space-y-8 pb-28 md:pb-10">
+      <header className="space-y-3 text-center max-w-2xl mx-auto">
+        <h1 className="text-3xl md:text-4xl font-display font-bold flex items-center justify-center gap-2">
+          <Flame className="h-8 w-8 text-accent" /> Coming Wave — Spark Trade Members Only
+        </h1>
+        <p className="text-accent font-medium">Early-mover advantage on viral products</p>
+        <Badge className="bg-amber-500/90 text-white">🏆 Gold Members: Free Access Included</Badge>
+        <p className="text-xs text-muted-foreground pt-1">
+          Join 28 members already inside · 12 new products added this week
+        </p>
+      </header>
+
+      <section className="space-y-3">
+        <h2 className="text-lg font-bold flex items-center gap-2">
+          <Badge variant="outline">Preview</Badge> Sample of what's inside
+        </h2>
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+          {previewProducts.map((p) => (
+            <Card key={p.id} className="overflow-hidden flex flex-col">
+              <div className="relative aspect-[4/3] bg-muted">
+                {p.image_url ? (
+                  <img src={p.image_url} alt={p.product_name} className="w-full h-full object-cover" loading="lazy" />
+                ) : (
+                  <div className="w-full h-full flex items-center justify-center text-muted-foreground text-4xl">📦</div>
+                )}
+                <Badge className="absolute top-2 left-2 bg-primary text-primary-foreground">Preview</Badge>
+              </div>
+              <div className="p-3 flex flex-col gap-2 flex-1">
+                <h3 className="font-semibold text-sm line-clamp-2 min-h-[2.5rem]">{p.product_name}</h3>
+                <div className={`text-2xl font-bold ${marginColor(p.margin_percentage)}`}>
+                  {p.margin_percentage ? `${Math.round(p.margin_percentage)}%` : "—"}
+                  <span className="text-xs font-normal text-muted-foreground ml-1">margin</span>
+                </div>
+                <p className="text-xs text-muted-foreground">{fmt(p.views_count)} views</p>
+              </div>
+            </Card>
+          ))}
+        </div>
+      </section>
+
+      {blurred.length > 0 && (
+        <section className="space-y-3 relative">
+          <h2 className="text-lg font-bold">More trending products</h2>
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 select-none">
+            {blurred.map((p) => (
+              <Card key={p.id} className="overflow-hidden flex flex-col blur-sm pointer-events-none">
+                <div className="relative aspect-[4/3] bg-muted">
+                  {p.image_url ? (
+                    <img src={p.image_url} alt="" className="w-full h-full object-cover" loading="lazy" />
+                  ) : (
+                    <div className="w-full h-full flex items-center justify-center text-muted-foreground text-4xl">📦</div>
+                  )}
+                </div>
+                <div className="p-3 flex flex-col gap-2 flex-1">
+                  <h3 className="font-semibold text-sm line-clamp-2 min-h-[2.5rem]">{p.product_name}</h3>
+                  <div className="text-2xl font-bold text-muted-foreground">— %</div>
+                </div>
+              </Card>
+            ))}
+          </div>
+          <div className="absolute inset-0 flex items-center justify-center">
+            <div className="bg-background/80 backdrop-blur-sm border border-border rounded-full px-5 py-2 text-sm font-semibold flex items-center gap-2 shadow-lg">
+              <Lock className="h-4 w-4" /> Unlock with Spark Trade
+            </div>
+          </div>
+        </section>
+      )}
+
+      <Card className="p-6 md:p-8 space-y-5 bg-gradient-to-br from-primary/10 via-accent/5 to-amber-500/10 border-primary/30">
+        <div className="space-y-1">
+          <h2 className="text-2xl font-bold">Unlock Full Trending Intelligence</h2>
+          <p className="text-sm text-muted-foreground">Everything you need to ride the wave before SA catches on.</p>
+        </div>
+        <ul className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-sm">
+          <li>✅ See all trending viral products</li>
+          <li>✅ China supplier pricing (FOB costs)</li>
+          <li>✅ Margin calculators with import costs</li>
+          <li>✅ Track products you're interested in</li>
+          <li>✅ Join group buys for better pricing</li>
+          <li>✅ Access before SA market saturation</li>
+        </ul>
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 pt-2">
+          <Card className="p-4 space-y-1">
+            <div className="text-xs uppercase tracking-wide text-muted-foreground">Bronze</div>
+            <div className="text-xl font-bold">R2,000<span className="text-xs font-normal text-muted-foreground">/mo</span></div>
+          </Card>
+          <Card className="p-4 space-y-1">
+            <div className="text-xs uppercase tracking-wide text-muted-foreground">Silver</div>
+            <div className="text-xl font-bold">R5,000<span className="text-xs font-normal text-muted-foreground">/mo</span></div>
+          </Card>
+          <Card className="p-4 space-y-1 border-amber-500/50 ring-1 ring-amber-500/40">
+            <div className="text-xs uppercase tracking-wide text-amber-600 dark:text-amber-400 font-semibold">Gold 🏆</div>
+            <div className="text-xl font-bold">R10,000<span className="text-xs font-normal text-muted-foreground">/mo</span></div>
+            <div className="text-[11px] text-amber-700 dark:text-amber-300">Includes Trending access FREE</div>
+          </Card>
+        </div>
+        <div className="flex flex-wrap gap-3 pt-1">
+          <a href="/founding"><Button className="bg-primary text-primary-foreground">Upgrade to Spark Trade</Button></a>
+          <a href="/founding"><Button variant="outline">View Founding Tiers</Button></a>
+        </div>
+      </Card>
+    </div>
+  );
+}
