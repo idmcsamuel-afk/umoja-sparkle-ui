@@ -24,21 +24,37 @@ interface Settings {
   api_connected: boolean;
 }
 
+interface SyncStats {
+  us_fetched: number;
+  sa_matches: number;
+  unique_opportunities: number;
+  avg_opportunity_score: number;
+}
+
 export const AmazonIntegrationPanel = () => {
   const [settings, setSettings] = useState<Settings | null>(null);
   const [productCount, setProductCount] = useState<number>(0);
+  const [highOppCount, setHighOppCount] = useState<number>(0);
+  const [stats, setStats] = useState<SyncStats | null>(null);
+  const [fetchSAComparison, setFetchSAComparison] = useState(true);
+  const [showOnlyHighOpp, setShowOnlyHighOpp] = useState(false);
   const [loading, setLoading] = useState(true);
   const [syncing, setSyncing] = useState(false);
   const [saving, setSaving] = useState(false);
 
   const load = async () => {
     setLoading(true);
-    const [{ data: s }, { count }] = await Promise.all([
+    const [{ data: s }, { count }, { count: highCount }] = await Promise.all([
       supabase.from("amazon_integration_settings").select("*").limit(1).maybeSingle(),
       supabase.from("amazon_products").select("*", { count: "exact", head: true }),
+      supabase
+        .from("amazon_products")
+        .select("*", { count: "exact", head: true })
+        .gte("opportunity_score", 70),
     ]);
     setSettings(s as Settings | null);
     setProductCount(count ?? 0);
+    setHighOppCount(highCount ?? 0);
     setLoading(false);
   };
 
