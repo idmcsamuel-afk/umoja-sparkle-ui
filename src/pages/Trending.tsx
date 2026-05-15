@@ -80,6 +80,7 @@ export default function Trending() {
   const [products, setProducts] = useState<Product[]>([]);
   const [tracked, setTracked] = useState<Set<string>>(new Set());
   const [req, setReq] = useState<Requirement | null>(null);
+  const [access, setAccess] = useState<AccessInfo>({ hasAccess: false, isGold: false, isBuyersClub: false });
   const [filter, setFilter] = useState<string>("all");
   const [sort, setSort] = useState<string>("trending");
   const [calcProduct, setCalcProduct] = useState<Product | null>(null);
@@ -89,12 +90,22 @@ export default function Trending() {
     if (!user) return;
     let active = true;
     (async () => {
+      const { data: m } = await supabase
+        .from("members")
+        .select("has_buyers_club_access, buyers_club_status, buyers_club_tier")
+        .eq("id", user.id)
+        .maybeSingle();
+      const isBuyersClub = !!(m?.has_buyers_club_access && m?.buyers_club_status === "active");
+      const isGold = m?.buyers_club_tier === "gold";
+      const hasAccess = isBuyersClub || isGold;
+
       const [{ data: prods }, { data: track }, { data: r }] = await Promise.all([
         supabase.from("trending_products").select("*").order("trending_score", { ascending: false }),
         supabase.from("member_product_tracking").select("product_id").eq("member_id", user.id),
         supabase.from("member_purchase_requirements").select("*").eq("member_id", user.id).maybeSingle(),
       ]);
       if (!active) return;
+      setAccess({ hasAccess, isGold, isBuyersClub });
       setProducts((prods ?? []) as Product[]);
       setTracked(new Set((track ?? []).map((t: any) => t.product_id)));
       setReq(r as Requirement | null);
