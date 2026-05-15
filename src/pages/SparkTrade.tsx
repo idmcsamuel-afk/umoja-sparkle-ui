@@ -45,12 +45,34 @@ const fmtR = (n: number | null | undefined) =>
 
 const SparkTrade = () => {
   const { user, member } = useAuth();
-  const hasAccess = !!member?.has_buyers_club_access;
+  const [access, setAccess] = useState<{ hasAccess: boolean; isGold: boolean; isBuyersClub: boolean }>({
+    hasAccess: false,
+    isGold: false,
+    isBuyersClub: false,
+  });
+  const hasAccess = access.hasAccess;
   const [items, setItems] = useState<Shortlist[]>([]);
   const [orders, setOrders] = useState<Order[]>([]);
   const [loading, setLoading] = useState(true);
   const [joining, setJoining] = useState<string | null>(null);
   const [clubOpen, setClubOpen] = useState(false);
+
+  useEffect(() => {
+    if (!user) return;
+    let active = true;
+    (async () => {
+      const { data: m } = await supabase
+        .from("members")
+        .select("has_buyers_club_access, buyers_club_status, buyers_club_tier")
+        .eq("id", user.id)
+        .maybeSingle();
+      if (!active) return;
+      const isBuyersClub = !!(m?.has_buyers_club_access && m?.buyers_club_status === "active");
+      const isGold = m?.buyers_club_tier === "gold";
+      setAccess({ hasAccess: isBuyersClub || isGold, isGold, isBuyersClub });
+    })();
+    return () => { active = false; };
+  }, [user?.id]);
 
   const load = async () => {
     setLoading(true);
