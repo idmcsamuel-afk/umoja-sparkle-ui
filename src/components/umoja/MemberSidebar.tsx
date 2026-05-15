@@ -13,6 +13,7 @@ import { restartProductTour } from "@/components/umoja/ProductTour";
 
 const main = [
   { to: "/dashboard", label: "Home", icon: Home, tour: "dashboard" },
+  { to: "/community", label: "Community", icon: MessageCircle },
   { to: "/circle", label: "Circle", icon: Users, tour: "circle" },
   { to: "/priority", label: "Priority Queue", icon: Trophy },
   { to: "/spark", label: "Spark Trade", icon: Sparkles, tour: "spark-trade" },
