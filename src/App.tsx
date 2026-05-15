@@ -42,6 +42,7 @@ import BlogPost from "./pages/BlogPost.tsx";
 import AdminBlog from "./pages/admin/AdminBlog.tsx";
 import Community from "./pages/Community.tsx";
 import AdminCommunity from "./pages/admin/AdminCommunity.tsx";
+import AdminAutomations from "./pages/admin/AdminAutomations.tsx";
 import AdminLayout from "./components/umoja/AdminLayout";
 import AdminDashboard from "./pages/admin/AdminDashboard";
 import AdminMembers from "./pages/admin/AdminMembers";
@@ -138,6 +139,7 @@ const App = () => (
                 <Route path="bank-accounts" element={<AdminBankAccounts />} />
                 <Route path="blog" element={<AdminBlog />} />
                 <Route path="community" element={<AdminCommunity />} />
+                <Route path="automations" element={<AdminAutomations />} />
               </Route>
 
               <Route path="*" element={<NotFound />} />

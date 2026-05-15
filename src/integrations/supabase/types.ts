@@ -118,6 +118,51 @@ export type Database = {
           },
         ]
       }
+      automated_messages: {
+        Row: {
+          channels: Json
+          created_at: string
+          enabled: boolean
+          id: string
+          last_triggered_at: string | null
+          message_template: string
+          message_type: string
+          name: string
+          target_audience: string | null
+          trigger_config: Json
+          trigger_type: string
+          updated_at: string
+        }
+        Insert: {
+          channels?: Json
+          created_at?: string
+          enabled?: boolean
+          id?: string
+          last_triggered_at?: string | null
+          message_template: string
+          message_type: string
+          name: string
+          target_audience?: string | null
+          trigger_config?: Json
+          trigger_type: string
+          updated_at?: string
+        }
+        Update: {
+          channels?: Json
+          created_at?: string
+          enabled?: boolean
+          id?: string
+          last_triggered_at?: string | null
+          message_template?: string
+          message_type?: string
+          name?: string
+          target_audience?: string | null
+          trigger_config?: Json
+          trigger_type?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       bank_accounts: {
         Row: {
           account_holder: string
@@ -2718,6 +2763,50 @@ export type Database = {
             columns: ["property_id"]
             isOneToOne: false
             referencedRelation: "properties"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      scheduled_messages: {
+        Row: {
+          automated_message_id: string | null
+          channel: string | null
+          created_at: string
+          error: string | null
+          id: string
+          recipient_count: number | null
+          scheduled_for: string
+          sent_at: string | null
+          status: string
+        }
+        Insert: {
+          automated_message_id?: string | null
+          channel?: string | null
+          created_at?: string
+          error?: string | null
+          id?: string
+          recipient_count?: number | null
+          scheduled_for?: string
+          sent_at?: string | null
+          status?: string
+        }
+        Update: {
+          automated_message_id?: string | null
+          channel?: string | null
+          created_at?: string
+          error?: string | null
+          id?: string
+          recipient_count?: number | null
+          scheduled_for?: string
+          sent_at?: string | null
+          status?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "scheduled_messages_automated_message_id_fkey"
+            columns: ["automated_message_id"]
+            isOneToOne: false
+            referencedRelation: "automated_messages"
             referencedColumns: ["id"]
           },
         ]
