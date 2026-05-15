@@ -136,13 +136,15 @@ export default function AdminAutomations() {
           <h1 className="font-display text-2xl">Automations</h1>
           <p className="text-sm text-muted-foreground">Time-based reminders and event-based engagement messages.</p>
         </div>
-        <Button onClick={runNow} disabled={running}>
-          <Play className="h-4 w-4 mr-2" /> Run cron now
-        </Button>
-        <Button variant="outline" onClick={sendTestPush}>
-          <Zap className="h-4 w-4 mr-2" /> Test push
-        </Button>
+        <div className="flex gap-2">
+          <Button onClick={runNow} disabled={running}>
+            <Play className="h-4 w-4 mr-2" /> Run cron now
+          </Button>
+          <Button variant="outline" onClick={sendTestPush}>
+            <Zap className="h-4 w-4 mr-2" /> Test push
+          </Button>
         </div>
+      </div>
       </div>
 
       <Tabs value={tab} onValueChange={setTab}>
