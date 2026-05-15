@@ -481,6 +481,56 @@ function Row({ k, v, bold }: { k: string; v: React.ReactNode; bold?: boolean }) 
   );
 }
 
+function DemoProductsGrid() {
+  const [products, setProducts] = useState<Product[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    let active = true;
+    (async () => {
+      const { data } = await supabase
+        .from("trending_products")
+        .select("*")
+        .contains("tags", ["demo"])
+        .order("views_count", { ascending: false })
+        .limit(3);
+      if (!active) return;
+      setProducts((data ?? []) as Product[]);
+      setLoading(false);
+    })();
+    return () => { active = false; };
+  }, []);
+
+  if (loading) {
+    return <p className="text-sm text-muted-foreground">Loading preview products…</p>;
+  }
+
+  return (
+    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+      {products.map((p) => (
+        <Card key={p.id} className="overflow-hidden flex flex-col">
+          <div className="relative aspect-[4/3] bg-muted">
+            {p.image_url ? (
+              <img src={p.image_url} alt={p.product_name} className="w-full h-full object-cover" loading="lazy" />
+            ) : (
+              <div className="w-full h-full flex items-center justify-center text-muted-foreground text-4xl">📦</div>
+            )}
+            <Badge className="absolute top-2 left-2 bg-primary text-primary-foreground">Preview</Badge>
+          </div>
+          <div className="p-3 flex flex-col gap-2 flex-1">
+            <h3 className="font-semibold text-sm line-clamp-2 min-h-[2.5rem]">{p.product_name}</h3>
+            <div className={`text-2xl font-bold ${marginColor(p.margin_percentage)}`}>
+              {p.margin_percentage ? `${Math.round(p.margin_percentage)}%` : "—"}
+              <span className="text-xs font-normal text-muted-foreground ml-1">margin</span>
+            </div>
+            <p className="text-xs text-muted-foreground">{fmt(p.views_count)} views</p>
+          </div>
+        </Card>
+      ))}
+    </div>
+  );
+}
+
 function LockedView() {
   const navigate = useNavigate();
 
