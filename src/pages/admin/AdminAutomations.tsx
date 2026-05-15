@@ -35,6 +35,8 @@ type Sched = {
   recipient_count: number | null;
   channel: string | null;
   error: string | null;
+  delivery_stats: Record<string, { sent: number; failed: number }> | null;
+  created_at?: string;
 };
 
 export default function AdminAutomations() {
@@ -102,10 +104,29 @@ export default function AdminAutomations() {
     }
   };
 
+  const sumChan = (key: "chat" | "push", which: "sent" | "failed") =>
+    logs.reduce((n, l) => n + (l.delivery_stats?.[key]?.[which] || 0), 0);
+
   const stats = {
     today: logs.filter((l) => Date.now() - new Date(l.scheduled_for).getTime() < 24 * 3600 * 1000).length,
     week: logs.filter((l) => Date.now() - new Date(l.scheduled_for).getTime() < 7 * 24 * 3600 * 1000).length,
     failed: logs.filter((l) => l.status === "failed").length,
+    chatSent: sumChan("chat", "sent"),
+    chatFailed: sumChan("chat", "failed"),
+    pushSent: sumChan("push", "sent"),
+    pushFailed: sumChan("push", "failed"),
+  };
+
+  const sendTestPush = async () => {
+    try {
+      const { data, error } = await supabase.functions.invoke("send-push", {
+        body: { title: "UMOJA test", message: "Push delivery is working ✅", url: "/community" },
+      });
+      if (error) throw error;
+      toast({ title: "Test push sent", description: `${data?.sent || 0}/${data?.total || 0} devices` });
+    } catch (e: any) {
+      toast({ title: "Push failed", description: e.message, variant: "destructive" });
+    }
   };
 
   return (
@@ -118,6 +139,10 @@ export default function AdminAutomations() {
         <Button onClick={runNow} disabled={running}>
           <Play className="h-4 w-4 mr-2" /> Run cron now
         </Button>
+        <Button variant="outline" onClick={sendTestPush}>
+          <Zap className="h-4 w-4 mr-2" /> Test push
+        </Button>
+        </div>
       </div>
 
       <Tabs value={tab} onValueChange={setTab}>
