@@ -1,0 +1,360 @@
+import { useEffect, useMemo, useState } from "react";
+import { supabase } from "@/integrations/supabase/client";
+import { useAuth } from "@/hooks/useAuth";
+import { Button } from "@/components/ui/button";
+import { Card } from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Badge } from "@/components/ui/badge";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Heart, Calculator, Lock, Flame } from "lucide-react";
+import { toast } from "@/hooks/use-toast";
+
+type Product = {
+  id: string;
+  product_name: string;
+  description: string | null;
+  image_url: string | null;
+  source: string | null;
+  source_url: string | null;
+  views_count: number | null;
+  trending_score: number | null;
+  sa_available: boolean | null;
+  estimated_fob_price: number | null;
+  estimated_sa_market_price: number | null;
+  margin_percentage: number | null;
+  category: string | null;
+  tags: string[] | null;
+  trending_since: string | null;
+  featured: boolean | null;
+  created_at: string;
+};
+
+type Requirement = {
+  compliance_status: string;
+  current_month_spend: number;
+  min_monthly_spend: number;
+  current_month_units: number;
+  min_monthly_units: number;
+  next_review_date: string | null;
+  access_revoked_at: string | null;
+};
+
+const fmt = (n: number | null | undefined) => {
+  if (!n) return "0";
+  if (n >= 1_000_000) return `${(n / 1_000_000).toFixed(1)}M`;
+  if (n >= 1_000) return `${(n / 1_000).toFixed(0)}K`;
+  return String(n);
+};
+
+const marginColor = (m: number | null) => {
+  if (!m) return "text-muted-foreground";
+  if (m > 50) return "text-emerald-500";
+  if (m >= 30) return "text-amber-500";
+  return "text-muted-foreground";
+};
+
+const sourceStyle = (s: string | null) => {
+  if (s === "tiktok") return "bg-pink-500/15 text-pink-500";
+  if (s === "youtube") return "bg-red-500/15 text-red-500";
+  return "bg-muted text-muted-foreground";
+};
+
+const FILTERS = [
+  { key: "all", label: "🔥 All" },
+  { key: "featured", label: "⭐ Featured" },
+  { key: "tiktok", label: "🎵 TikTok Viral" },
+  { key: "youtube", label: "📺 YouTube" },
+  { key: "not_sa", label: "🇿🇦 Not in SA" },
+  { key: "high_margin", label: "💰 High Margin" },
+] as const;
+
+export default function Trending() {
+  const { user } = useAuth();
+  const [products, setProducts] = useState<Product[]>([]);
+  const [tracked, setTracked] = useState<Set<string>>(new Set());
+  const [req, setReq] = useState<Requirement | null>(null);
+  const [filter, setFilter] = useState<string>("all");
+  const [sort, setSort] = useState<string>("trending");
+  const [calcProduct, setCalcProduct] = useState<Product | null>(null);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    if (!user) return;
+    let active = true;
+    (async () => {
+      const [{ data: prods }, { data: track }, { data: r }] = await Promise.all([
+        supabase.from("trending_products").select("*").order("trending_score", { ascending: false }),
+        supabase.from("member_product_tracking").select("product_id").eq("member_id", user.id),
+        supabase.from("member_purchase_requirements").select("*").eq("member_id", user.id).maybeSingle(),
+      ]);
+      if (!active) return;
+      setProducts((prods ?? []) as Product[]);
+      setTracked(new Set((track ?? []).map((t: any) => t.product_id)));
+      setReq(r as Requirement | null);
+      setLoading(false);
+    })();
+    return () => { active = false; };
+  }, [user]);
+
+  const filtered = useMemo(() => {
+    let list = [...products];
+    if (filter === "featured") list = list.filter((p) => p.featured);
+    else if (filter === "tiktok") list = list.filter((p) => p.source === "tiktok");
+    else if (filter === "youtube") list = list.filter((p) => p.source === "youtube");
+    else if (filter === "not_sa") list = list.filter((p) => p.sa_available === false);
+    else if (filter === "high_margin") list = list.filter((p) => (p.margin_percentage ?? 0) > 50);
+
+    if (sort === "margin") list.sort((a, b) => (b.margin_percentage ?? 0) - (a.margin_percentage ?? 0));
+    else if (sort === "views") list.sort((a, b) => (b.views_count ?? 0) - (a.views_count ?? 0));
+    else if (sort === "newest") list.sort((a, b) => +new Date(b.created_at) - +new Date(a.created_at));
+    else list.sort((a, b) => (b.trending_score ?? 0) - (a.trending_score ?? 0));
+    return list;
+  }, [products, filter, sort]);
+
+  const trackedProducts = products.filter((p) => tracked.has(p.id));
+  const suspended = req?.compliance_status === "suspended";
+
+  const toggleTrack = async (productId: string) => {
+    if (!user || suspended) return;
+    if (tracked.has(productId)) {
+      await supabase.from("member_product_tracking").delete().eq("member_id", user.id).eq("product_id", productId);
+      const next = new Set(tracked); next.delete(productId); setTracked(next);
+    } else {
+      await supabase.from("member_product_tracking").insert({ member_id: user.id, product_id: productId });
+      setTracked(new Set([...tracked, productId]));
+      toast({ title: "Tracking added", description: "We'll notify you of updates." });
+    }
+  };
+
+  const banner = () => {
+    if (!req) return null;
+    const status = req.compliance_status;
+    const daysLeft = req.next_review_date
+      ? Math.max(0, Math.ceil((+new Date(req.next_review_date) - Date.now()) / 86_400_000))
+      : 0;
+    if (status === "warning")
+      return (
+        <div className="rounded-xl bg-amber-500/15 border border-amber-500/30 px-4 py-3 text-sm">
+          ⚠️ Purchase requirement: R{req.current_month_spend} / R{req.min_monthly_spend} this month. {daysLeft} days left to maintain access.
+        </div>
+      );
+    if (status === "suspended")
+      return (
+        <div className="rounded-xl bg-destructive/15 border border-destructive/30 px-4 py-3 text-sm">
+          🚫 Access suspended. Minimum monthly purchase not met. Restore access by purchasing R{req.min_monthly_spend} through the platform.
+        </div>
+      );
+    return null;
+  };
+
+  return (
+    <div className="container mx-auto p-4 md:p-6 space-y-6 pb-28 md:pb-10">
+      <header className="space-y-2">
+        <h1 className="text-3xl md:text-4xl font-display font-bold flex items-center gap-2">
+          <Flame className="h-8 w-8 text-accent" /> Coming Wave
+        </h1>
+        <p className="text-accent font-medium">Viral products before SA market saturation</p>
+        <p className="text-sm text-muted-foreground">Early-mover advantage = highest margins. See what's trending before your competition.</p>
+      </header>
+
+      {banner()}
+
+      <div className="flex flex-wrap gap-2">
+        {FILTERS.map((f) => (
+          <button
+            key={f.key}
+            onClick={() => setFilter(f.key)}
+            className={`px-3 py-1.5 rounded-full text-xs font-medium transition-colors ${
+              filter === f.key ? "bg-primary text-primary-foreground" : "bg-muted text-muted-foreground hover:bg-muted/70"
+            }`}
+          >
+            {f.label}
+          </button>
+        ))}
+        <select
+          value={sort}
+          onChange={(e) => setSort(e.target.value)}
+          className="ml-auto px-3 py-1.5 text-xs rounded-full bg-muted text-foreground border border-border"
+        >
+          <option value="trending">Trending score</option>
+          <option value="margin">Margin % (high → low)</option>
+          <option value="views">Views (high → low)</option>
+          <option value="newest">Date added (newest)</option>
+        </select>
+      </div>
+
+      {loading ? (
+        <p className="text-sm text-muted-foreground">Loading…</p>
+      ) : (
+        <div className={`grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 ${suspended ? "relative" : ""}`}>
+          {filtered.map((p) => (
+            <ProductCard
+              key={p.id}
+              product={p}
+              tracked={tracked.has(p.id)}
+              onTrack={() => toggleTrack(p.id)}
+              onCalc={() => setCalcProduct(p)}
+              disabled={suspended}
+            />
+          ))}
+          {suspended && (
+            <div className="absolute inset-0 backdrop-blur-md bg-background/60 flex flex-col items-center justify-center gap-3 rounded-xl">
+              <Lock className="h-10 w-10 text-destructive" />
+              <h3 className="text-xl font-bold">Access Restricted</h3>
+              <p className="text-sm text-muted-foreground text-center max-w-md">
+                Meet monthly purchase minimum to unlock. Required: R{req?.min_monthly_spend} · You: R{req?.current_month_spend}.
+              </p>
+              <a href="mailto:support@umojarise.com" className="text-accent text-sm underline">Contact Support</a>
+            </div>
+          )}
+        </div>
+      )}
+
+      <section className="space-y-3 pt-6">
+        <h2 className="text-xl font-bold">Your Tracked Products ({trackedProducts.length})</h2>
+        {trackedProducts.length === 0 ? (
+          <p className="text-sm text-muted-foreground">Track products to see them here. Click ❤️ on any product above.</p>
+        ) : (
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+            {trackedProducts.map((p) => (
+              <ProductCard key={p.id} product={p} tracked onTrack={() => toggleTrack(p.id)} onCalc={() => setCalcProduct(p)} disabled={suspended} />
+            ))}
+          </div>
+        )}
+      </section>
+
+      <MarginCalcModal product={calcProduct} onClose={() => setCalcProduct(null)} />
+    </div>
+  );
+}
+
+function ProductCard({
+  product: p,
+  tracked,
+  onTrack,
+  onCalc,
+  disabled,
+}: {
+  product: Product;
+  tracked: boolean;
+  onTrack: () => void;
+  onCalc: () => void;
+  disabled?: boolean;
+}) {
+  const isNew =
+    p.trending_since ? Date.now() - +new Date(p.trending_since) < 7 * 86_400_000 : false;
+  return (
+    <Card className="overflow-hidden flex flex-col">
+      <div className="relative aspect-[4/3] bg-muted">
+        {p.image_url ? (
+          <img src={p.image_url} alt={p.product_name} className="w-full h-full object-cover" loading="lazy" />
+        ) : (
+          <div className="w-full h-full flex items-center justify-center text-muted-foreground text-4xl">📦</div>
+        )}
+        <div className="absolute top-2 left-2 flex flex-wrap gap-1">
+          {isNew && <Badge className="bg-orange-500/90 text-white">🔥 Trending</Badge>}
+          {p.featured && <Badge className="bg-amber-500/90 text-white">⭐</Badge>}
+          {p.sa_available === false && <Badge className="bg-emerald-500/90 text-white">🇿🇦 Not in SA</Badge>}
+        </div>
+      </div>
+      <div className="p-3 flex flex-col gap-2 flex-1">
+        <h3 className="font-semibold text-sm line-clamp-2 min-h-[2.5rem]">{p.product_name}</h3>
+        <div className="flex items-center justify-between text-xs">
+          <span className={`px-2 py-0.5 rounded-full font-medium capitalize ${sourceStyle(p.source)}`}>{p.source ?? "manual"}</span>
+          <span className="text-muted-foreground">{fmt(p.views_count)} views</span>
+        </div>
+        <div className={`text-2xl font-bold ${marginColor(p.margin_percentage)}`}>
+          {p.margin_percentage ? `${Math.round(p.margin_percentage)}%` : "—"}
+          <span className="text-xs font-normal text-muted-foreground ml-1">margin</span>
+        </div>
+        <div className="flex gap-2 mt-auto">
+          <Button size="sm" variant={tracked ? "default" : "outline"} onClick={onTrack} disabled={disabled} className="flex-1">
+            <Heart className={`h-4 w-4 ${tracked ? "fill-current" : ""}`} /> {tracked ? "Tracked" : "Track"}
+          </Button>
+          <Button size="sm" variant="secondary" onClick={onCalc} disabled={disabled} className="flex-1">
+            <Calculator className="h-4 w-4" /> Margin
+          </Button>
+        </div>
+      </div>
+    </Card>
+  );
+}
+
+function MarginCalcModal({ product, onClose }: { product: Product | null; onClose: () => void }) {
+  const [qty, setQty] = useState(1);
+  const [sellPrice, setSellPrice] = useState(0);
+
+  useEffect(() => {
+    if (product) {
+      setQty(1);
+      setSellPrice(Number(product.estimated_sa_market_price ?? 0));
+    }
+  }, [product]);
+
+  if (!product) return null;
+  const fob = Number(product.estimated_fob_price ?? 0);
+  const shipping = fob * 0.15;
+  const cif = fob + shipping;
+  const duty = cif * 0.25;
+  const vat = (cif + duty) * 0.15;
+  const landed = cif + duty + vat;
+  const unitProfit = sellPrice - landed;
+  const totalProfit = unitProfit * qty;
+  const margin = sellPrice > 0 ? (unitProfit / sellPrice) * 100 : 0;
+
+  return (
+    <Dialog open onOpenChange={(o) => !o && onClose()}>
+      <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
+        <DialogHeader>
+          <DialogTitle>{product.product_name}</DialogTitle>
+        </DialogHeader>
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-sm">
+          <Card className="p-4 space-y-2">
+            <h4 className="font-bold text-base">Import Cost</h4>
+            <Row k="FOB Price" v={`R${fob.toFixed(2)}`} />
+            <Row k="Shipping (15%)" v={`R${shipping.toFixed(2)}`} />
+            <Row k="CIF Total" v={`R${cif.toFixed(2)}`} />
+            <Row k="Customs Duty (25%)" v={`R${duty.toFixed(2)}`} />
+            <Row k="VAT (15%)" v={`R${vat.toFixed(2)}`} />
+            <hr className="border-border" />
+            <Row k="Total Landed" v={`R${landed.toFixed(2)}`} bold />
+          </Card>
+          <Card className="p-4 space-y-3">
+            <h4 className="font-bold text-base">Your Pricing</h4>
+            <div>
+              <Label className="text-xs">Quantity</Label>
+              <Input type="number" min={1} value={qty} onChange={(e) => setQty(Math.max(1, Number(e.target.value)))} />
+            </div>
+            <div>
+              <Label className="text-xs">Selling Price (R)</Label>
+              <Input type="number" min={0} value={sellPrice} onChange={(e) => setSellPrice(Number(e.target.value))} />
+            </div>
+            <hr className="border-border" />
+            <Row k="Unit Profit" v={`R${unitProfit.toFixed(2)}`} />
+            <Row k="Total Profit" v={`R${totalProfit.toFixed(2)}`} bold />
+            <Row k="Margin %" v={<span className={marginColor(margin)}>{margin.toFixed(1)}%</span>} bold />
+          </Card>
+          <Card className="p-4 space-y-2">
+            <h4 className="font-bold text-base">Market Intel</h4>
+            <Row k="Opportunity Score" v={<Badge>{product.trending_score ?? "—"}</Badge>} />
+            <Row k="SA Availability" v={product.sa_available === false ? "Not in SA ✅" : "Available"} />
+            <Row k="Views" v={fmt(product.views_count)} />
+            <Row k="Trending since" v={product.trending_since ? new Date(product.trending_since).toLocaleDateString() : "—"} />
+            <Row k="Recommended SA price" v={`R${Number(product.estimated_sa_market_price ?? 0).toFixed(2)}`} />
+            <Row k="Expected margin" v={`${Math.round(product.margin_percentage ?? 0)}%`} />
+          </Card>
+        </div>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
+function Row({ k, v, bold }: { k: string; v: React.ReactNode; bold?: boolean }) {
+  return (
+    <div className={`flex items-center justify-between ${bold ? "font-bold text-base" : ""}`}>
+      <span className="text-muted-foreground">{k}</span>
+      <span>{v}</span>
+    </div>
+  );
+}
