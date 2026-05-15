@@ -270,6 +270,11 @@ const SparkTrade = () => {
           <p className="mt-3 text-sm text-muted-foreground">
             Vetted products. Group buying power. Real margins.
           </p>
+          {access.isGold && (
+            <span className="mt-3 inline-flex items-center gap-1.5 text-[10px] uppercase tracking-[0.18em] rounded-full bg-amber-500/20 text-amber-400 px-3 py-1">
+              <Crown className="h-3 w-3" /> Gold Tier — Free Access
+            </span>
+          )}
         </div>
       </section>
 
