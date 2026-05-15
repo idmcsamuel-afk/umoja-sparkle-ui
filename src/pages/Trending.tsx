@@ -139,9 +139,6 @@ export default function Trending() {
     const daysLeft = req?.next_review_date
       ? Math.max(0, Math.ceil((+new Date(req.next_review_date) - Date.now()) / 86_400_000))
       : 0;
-    const daysLeft = req.next_review_date
-      ? Math.max(0, Math.ceil((+new Date(req.next_review_date) - Date.now()) / 86_400_000))
-      : 0;
 
     const cfg =
       status === "suspended"
