@@ -89,23 +89,41 @@ Deno.serve(async (req) => {
 
     let recipients = 0;
     let status: "sent" | "failed" = "sent";
-    let errMsg: string | null = null;
+    const errs: string[] = [];
+    const stats: Record<string, { sent: number; failed: number }> = {};
 
-    try {
-      if (channels.includes("community_chat")) {
+    if (channels.includes("community_chat")) {
+      try {
         const { error: insErr } = await supabase.from("chat_messages").insert({
-          member_id: null,
-          message,
-          message_type: "system",
+          member_id: null, message, message_type: "system",
         });
         if (insErr) throw insErr;
-        recipients = total;
+        stats.chat = { sent: 1, failed: 0 };
+        recipients = Math.max(recipients, total);
+      } catch (e: any) {
+        stats.chat = { sent: 0, failed: 1 };
+        errs.push(`chat:${e.message || e}`);
       }
-      // email/push/sms channels: queued for Phase 2 (no provider wired here)
-    } catch (e) {
-      status = "failed";
-      errMsg = String((e as Error).message || e);
     }
+
+    if (channels.includes("push")) {
+      try {
+        const title = (cfg.push_title as string) || "UMOJA";
+        const url = (cfg.push_url as string) || "/community";
+        const { data: pr, error: pErr } = await supabase.functions.invoke("send-push", {
+          body: { title, message, url },
+        });
+        if (pErr) throw pErr;
+        stats.push = { sent: pr?.sent || 0, failed: pr?.failed || 0 };
+        recipients = Math.max(recipients, pr?.total || 0);
+      } catch (e: any) {
+        stats.push = { sent: 0, failed: 1 };
+        errs.push(`push:${e.message || e}`);
+      }
+    }
+
+    if (errs.length && Object.values(stats).every((s) => s.sent === 0)) status = "failed";
+    const errMsg = errs.length ? errs.join(" | ") : null;
 
     await supabase.from("scheduled_messages").insert({
       automated_message_id: a.id,
@@ -115,6 +133,7 @@ Deno.serve(async (req) => {
       recipient_count: recipients,
       channel: channels.join(","),
       error: errMsg,
+      delivery_stats: stats,
     });
 
     await supabase

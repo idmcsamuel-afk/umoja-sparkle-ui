@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useRef, useState, useCallback } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
+import EnablePushButton from "@/components/umoja/EnablePushButton";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { ScrollArea } from "@/components/ui/scroll-area";
@@ -263,12 +264,15 @@ export default function Community() {
     <div className="flex h-[calc(100vh-3rem)] w-full">
       {/* Sidebar */}
       <aside className="hidden lg:flex w-72 shrink-0 flex-col border-r border-border bg-card/30">
-        <div className="p-4 border-b border-border">
-          <h2 className="font-display text-lg">Community Chat</h2>
-          <p className="text-xs text-muted-foreground mt-1">
-            <span className="inline-block h-2 w-2 rounded-full bg-emerald-500 mr-1.5 align-middle" />
-            {activeCount} online now
-          </p>
+        <div className="p-4 border-b border-border space-y-3">
+          <div>
+            <h2 className="font-display text-lg">Community Chat</h2>
+            <p className="text-xs text-muted-foreground mt-1">
+              <span className="inline-block h-2 w-2 rounded-full bg-emerald-500 mr-1.5 align-middle" />
+              {activeCount} online now
+            </p>
+          </div>
+          <EnablePushButton />
         </div>
         <div className="p-3 space-y-1">
           {FILTERS.map((f) => (
