@@ -10,6 +10,7 @@ import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Heart, Calculator, Lock, Flame } from "lucide-react";
 import { toast } from "@/hooks/use-toast";
+import { BuyersClubModal } from "@/components/umoja/BuyersClubModal";
 
 type Product = {
   id: string;
