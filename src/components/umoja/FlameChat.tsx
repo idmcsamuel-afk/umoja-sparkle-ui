@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from "react";
+import { useLocation } from "react-router-dom";
 import { Flame, X, Send, Loader2, Sparkles } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
@@ -19,6 +20,8 @@ const GREETING: Msg = {
 };
 
 export const FlameChat = () => {
+  const location = useLocation();
+  const onCommunity = location.pathname.startsWith("/community");
   const [open, setOpen] = useState(false);
   const [input, setInput] = useState("");
   const [busy, setBusy] = useState(false);
@@ -62,7 +65,7 @@ export const FlameChat = () => {
       <button
         onClick={() => setOpen((v) => !v)}
         aria-label="Open Flame AI"
-        className={`fixed z-50 bottom-[calc(5.5rem+env(safe-area-inset-bottom))] right-4 grid h-14 w-14 place-items-center rounded-full bg-gradient-primary text-primary-foreground shadow-glow transition-all hover-scale ${open ? "scale-90 opacity-0 pointer-events-none" : ""}`}
+        className={`fixed z-40 ${onCommunity ? "bottom-[calc(10rem+env(safe-area-inset-bottom))] sm:bottom-[calc(5.5rem+env(safe-area-inset-bottom))]" : "bottom-[calc(5.5rem+env(safe-area-inset-bottom))]"} right-4 grid h-14 w-14 place-items-center rounded-full bg-gradient-primary text-primary-foreground shadow-glow transition-all hover-scale ${open ? "scale-90 opacity-0 pointer-events-none" : ""}`}
       >
         <span className="absolute inset-0 rounded-full bg-primary/40 animate-ping" />
         <Flame className="relative h-6 w-6" strokeWidth={2.2} />
