@@ -128,16 +128,15 @@ export default function Trending() {
   };
 
   const banner = () => {
-    if (!req) return null;
-    const status = req.compliance_status;
-    const spend = Number(req.current_month_spend ?? 0);
-    const minSpend = Number(req.min_monthly_spend ?? 0);
-    const units = Number(req.current_month_units ?? 0);
-    const minUnits = Number(req.min_monthly_units ?? 0);
+    const status = req?.compliance_status ?? "compliant";
+    const spend = Number(req?.current_month_spend ?? 0);
+    const minSpend = Number(req?.min_monthly_spend ?? 0);
+    const units = Number(req?.current_month_units ?? 0);
+    const minUnits = Number(req?.min_monthly_units ?? 0);
     const spendPct = minSpend > 0 ? Math.min(100, (spend / minSpend) * 100) : 100;
     const unitPct = minUnits > 0 ? Math.min(100, (units / minUnits) * 100) : 100;
     const overallPct = Math.round(Math.min(spendPct, unitPct));
-    const daysLeft = req.next_review_date
+    const daysLeft = req?.next_review_date
       ? Math.max(0, Math.ceil((+new Date(req.next_review_date) - Date.now()) / 86_400_000))
       : 0;
 
