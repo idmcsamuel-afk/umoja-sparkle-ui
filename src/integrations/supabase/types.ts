@@ -3469,6 +3469,63 @@ export type Database = {
         }
         Relationships: []
       }
+      spark_exchange_mine: {
+        Row: {
+          buyer_id: string | null
+          commission: number | null
+          completed_at: string | null
+          created_at: string | null
+          id: string | null
+          price_per_spark: number | null
+          seller_id: string | null
+          seller_receives: number | null
+          spark_amount: number | null
+          status: string | null
+          total_price: number | null
+        }
+        Insert: {
+          buyer_id?: string | null
+          commission?: number | null
+          completed_at?: string | null
+          created_at?: string | null
+          id?: string | null
+          price_per_spark?: number | null
+          seller_id?: string | null
+          seller_receives?: number | null
+          spark_amount?: number | null
+          status?: string | null
+          total_price?: number | null
+        }
+        Update: {
+          buyer_id?: string | null
+          commission?: number | null
+          completed_at?: string | null
+          created_at?: string | null
+          id?: string | null
+          price_per_spark?: number | null
+          seller_id?: string | null
+          seller_receives?: number | null
+          spark_amount?: number | null
+          status?: string | null
+          total_price?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "spark_exchange_buyer_id_fkey"
+            columns: ["buyer_id"]
+            isOneToOne: false
+            referencedRelation: "members"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "spark_exchange_seller_id_fkey"
+            columns: ["seller_id"]
+            isOneToOne: false
+            referencedRelation: "members"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
     }
     Functions: {
       _flip_contributed: { Args: { _member: string }; Returns: undefined }
@@ -3632,6 +3689,7 @@ export type Database = {
           seed_override_open: boolean
         }[]
       }
+      get_predictor_answer: { Args: { _question: string }; Returns: string }
       increment_storefront_view: {
         Args: { _owner: string }
         Returns: undefined
