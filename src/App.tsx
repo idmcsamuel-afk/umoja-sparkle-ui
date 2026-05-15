@@ -40,6 +40,8 @@ import NotFound from "./pages/NotFound.tsx";
 import Blog from "./pages/Blog.tsx";
 import BlogPost from "./pages/BlogPost.tsx";
 import AdminBlog from "./pages/admin/AdminBlog.tsx";
+import Community from "./pages/Community.tsx";
+import AdminCommunity from "./pages/admin/AdminCommunity.tsx";
 import AdminLayout from "./components/umoja/AdminLayout";
 import AdminDashboard from "./pages/admin/AdminDashboard";
 import AdminMembers from "./pages/admin/AdminMembers";
