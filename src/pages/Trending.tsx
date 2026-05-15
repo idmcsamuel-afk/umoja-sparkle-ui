@@ -533,6 +533,7 @@ function DemoProductsGrid() {
 
 function LockedView() {
   const navigate = useNavigate();
+  const [clubOpen, setClubOpen] = useState(false);
 
   return (
     <div className="container mx-auto p-4 md:p-6 space-y-8 pb-28 md:pb-10">
