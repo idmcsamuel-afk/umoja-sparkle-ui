@@ -1,6 +1,6 @@
 import { Link, useLocation } from "react-router-dom";
 import { useEffect, useRef, useState } from "react";
-import { Home, Users, Sparkles, Car, Store, ArrowLeftRight, Gamepad2, Gift, Palette, ChevronRight, ChevronLeft, Trophy, Building2, MessageCircle } from "lucide-react";
+import { Home, Users, Sparkles, Car, Store, ArrowLeftRight, Gamepad2, Gift, Palette, ChevronRight, ChevronLeft, Trophy, Building2, MessageCircle, Flame } from "lucide-react";
 
 const items: { to: string; label: string; icon: typeof Home; tour?: string }[] = [
   { to: "/dashboard", label: "Home", icon: Home, tour: "dashboard" },
@@ -8,6 +8,7 @@ const items: { to: string; label: string; icon: typeof Home; tour?: string }[] =
   { to: "/circle", label: "Circle", icon: Users, tour: "circle" },
   { to: "/priority", label: "Queue", icon: Trophy },
   { to: "/spark", label: "Spark", icon: Sparkles, tour: "spark-trade" },
+  { to: "/trending", label: "Trending", icon: Flame },
   { to: "/market", label: "Market", icon: Store },
   { to: "/flame-marketing", label: "Create 🎨", icon: Palette },
   { to: "/exchange", label: "Swap", icon: ArrowLeftRight },

@@ -41,7 +41,10 @@ import Blog from "./pages/Blog.tsx";
 import BlogPost from "./pages/BlogPost.tsx";
 import AdminBlog from "./pages/admin/AdminBlog.tsx";
 import Community from "./pages/Community.tsx";
+import Trending from "./pages/Trending.tsx";
 import AdminCommunity from "./pages/admin/AdminCommunity.tsx";
+import AdminTrending from "./pages/admin/AdminTrending.tsx";
+import AdminPurchaseEnforcement from "./pages/admin/AdminPurchaseEnforcement.tsx";
 import AdminAutomations from "./pages/admin/AdminAutomations.tsx";
 import AdminLayout from "./components/umoja/AdminLayout";
 import AdminDashboard from "./pages/admin/AdminDashboard";
@@ -94,6 +97,7 @@ const App = () => (
               <Route element={<MemberLayout />}>
                 <Route path="/dashboard" element={<ProtectedRoute><Dashboard /></ProtectedRoute>} />
                 <Route path="/community" element={<ProtectedRoute><Community /></ProtectedRoute>} />
+                <Route path="/trending" element={<ProtectedRoute><Trending /></ProtectedRoute>} />
                 <Route path="/circle" element={<ProtectedRoute><Circle /></ProtectedRoute>} />
                 <Route path="/spark" element={<ProtectedRoute><SparkTrade /></ProtectedRoute>} />
                 <Route path="/drive" element={<ProtectedRoute><Drive /></ProtectedRoute>} />
@@ -139,6 +143,8 @@ const App = () => (
                 <Route path="bank-accounts" element={<AdminBankAccounts />} />
                 <Route path="blog" element={<AdminBlog />} />
                 <Route path="community" element={<AdminCommunity />} />
+                <Route path="trending" element={<AdminTrending />} />
+                <Route path="purchase-enforcement" element={<AdminPurchaseEnforcement />} />
                 <Route path="automations" element={<AdminAutomations />} />
               </Route>
 
