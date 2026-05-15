@@ -40,6 +40,12 @@ type Requirement = {
   access_revoked_at: string | null;
 };
 
+type AccessInfo = {
+  hasAccess: boolean;
+  isGold: boolean;
+  isBuyersClub: boolean;
+};
+
 const fmt = (n: number | null | undefined) => {
   if (!n) return "0";
   if (n >= 1_000_000) return `${(n / 1_000_000).toFixed(1)}M`;
