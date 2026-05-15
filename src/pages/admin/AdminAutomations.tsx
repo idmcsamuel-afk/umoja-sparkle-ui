@@ -145,7 +145,6 @@ export default function AdminAutomations() {
           </Button>
         </div>
       </div>
-      </div>
 
       <Tabs value={tab} onValueChange={setTab}>
         <TabsList>
