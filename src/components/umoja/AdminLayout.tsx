@@ -25,6 +25,7 @@ const items = [
   { to: "/admin/notifications", label: "Notifications", icon: Mail },
   { to: "/admin/bank-accounts", label: "Bank accounts", icon: Landmark },
   { to: "/admin/blog", label: "Blog", icon: FileText },
+  { to: "/admin/community", label: "Community", icon: MessageCircle },
   { to: "/admin/settings", label: "Settings", icon: Settings },
 ];
 
