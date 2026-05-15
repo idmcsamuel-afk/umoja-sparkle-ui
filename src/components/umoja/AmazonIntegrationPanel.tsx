@@ -164,6 +164,56 @@ export const AmazonIntegrationPanel = () => {
         <Stat label="BSR threshold" value={`#${settings.bsr_threshold.toLocaleString()}`} />
       </div>
 
+      {/* Sync stats from last run */}
+      {stats && (
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+          <Stat label="US products fetched" value={stats.us_fetched.toLocaleString()} />
+          <Stat label="SA matches found" value={stats.sa_matches.toLocaleString()} />
+          <Stat
+            label="Unique opportunities"
+            value={
+              <span className="text-emerald-300">{stats.unique_opportunities.toLocaleString()}</span>
+            }
+          />
+          <Stat
+            label="Avg opportunity score"
+            value={`${stats.avg_opportunity_score}/100`}
+          />
+        </div>
+      )}
+
+      {/* Toggles */}
+      <div className="grid sm:grid-cols-2 gap-3">
+        <label className="flex items-center justify-between rounded-2xl bg-secondary/40 p-3 cursor-pointer">
+          <div>
+            <p className="text-xs font-medium">Fetch SA comparison data</p>
+            <p className="text-[10px] text-muted-foreground mt-0.5">
+              Cross-check each US bestseller against amazon.co.za.
+            </p>
+          </div>
+          <input
+            type="checkbox"
+            checked={fetchSAComparison}
+            onChange={(e) => setFetchSAComparison(e.target.checked)}
+            className="h-4 w-4 accent-primary"
+          />
+        </label>
+        <label className="flex items-center justify-between rounded-2xl bg-secondary/40 p-3 cursor-pointer">
+          <div>
+            <p className="text-xs font-medium">High-opportunity only (score &gt;70)</p>
+            <p className="text-[10px] text-muted-foreground mt-0.5">
+              {highOppCount.toLocaleString()} products currently match.
+            </p>
+          </div>
+          <input
+            type="checkbox"
+            checked={showOnlyHighOpp}
+            onChange={(e) => setShowOnlyHighOpp(e.target.checked)}
+            className="h-4 w-4 accent-primary"
+          />
+        </label>
+      </div>
+
       {!settings.api_connected && (
         <div className="rounded-2xl border border-amber-500/30 bg-amber-500/10 p-4 flex items-start gap-3">
           <KeyRound className="h-4 w-4 text-amber-300 shrink-0 mt-0.5" />
