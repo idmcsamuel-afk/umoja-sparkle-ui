@@ -137,6 +137,7 @@ const App = () => (
                 <Route path="properties" element={<AdminProperties />} />
                 <Route path="bank-accounts" element={<AdminBankAccounts />} />
                 <Route path="blog" element={<AdminBlog />} />
+                <Route path="community" element={<AdminCommunity />} />
               </Route>
 
               <Route path="*" element={<NotFound />} />
