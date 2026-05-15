@@ -64,26 +64,23 @@ export const AmazonIntegrationPanel = () => {
 
   const sync = async () => {
     setSyncing(true);
-    const { error } = await supabase.functions.invoke("fetch-amazon-products", {
-      body: {},
-      // edge function reads ?force=true via URL; we trigger a fresh sync here
-    });
-    // Trigger force=true via separate fetch to bypass cache
+    setStats(null);
     try {
       const { data: { session } } = await supabase.auth.getSession();
       const url = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/fetch-amazon-products?force=true`;
-      await fetch(url, {
+      const res = await fetch(url, {
         headers: {
           apikey: import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY,
           Authorization: `Bearer ${session?.access_token ?? import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY}`,
         },
       });
-    } catch {
-      // ignore — initial invoke already syncs when stale
+      const json = await res.json();
+      if (json?.stats) setStats(json.stats as SyncStats);
+      toast.success("Amazon products synced");
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "Sync failed");
     }
     setSyncing(false);
-    if (error) return toast.error(error.message);
-    toast.success("Amazon products synced");
     load();
   };
 
