@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
+import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { Button } from "@/components/ui/button";
@@ -41,7 +42,7 @@ type Requirement = {
 };
 
 type AccessInfo = {
-  hasAccess: boolean;
+  hasAccess: boolean | null;
   isGold: boolean;
   isBuyersClub: boolean;
 };
@@ -76,11 +77,65 @@ const FILTERS = [
 ] as const;
 
 export default function Trending() {
+  const [access, setAccess] = useState<AccessInfo>({ hasAccess: null, isGold: false, isBuyersClub: false });
+  const [memberData, setMemberData] = useState<any>(null);
+
+  useEffect(() => {
+    let active = true;
+    const checkAccess = async () => {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!active) return;
+      if (!user) {
+        setAccess({ hasAccess: false, isGold: false, isBuyersClub: false });
+        return;
+      }
+
+      const { data: member } = await supabase
+        .from("members")
+        .select("has_buyers_club_access, buyers_club_status, buyers_club_tier")
+        .eq("id", user.id)
+        .single();
+      if (!active) return;
+
+      setMemberData(member);
+      const isBuyersClub = member?.has_buyers_club_access === true && member?.buyers_club_status === "active";
+      const isGold = member?.buyers_club_tier === "gold";
+      const hasAccess = isBuyersClub || isGold;
+
+      console.log("Trending access check:", {
+        has_buyers_club_access: member?.has_buyers_club_access,
+        buyers_club_status: member?.buyers_club_status,
+        buyers_club_tier: member?.buyers_club_tier,
+        hasAccess,
+      });
+
+      setAccess({ hasAccess, isGold, isBuyersClub });
+    };
+
+    checkAccess();
+    return () => { active = false; };
+  }, []);
+
+  if (access.hasAccess === null) {
+    return (
+      <div className="grid min-h-[60vh] place-items-center">
+        <div className="h-10 w-10 rounded-full border-2 border-primary/30 border-t-primary animate-spin" />
+      </div>
+    );
+  }
+
+  if (access.hasAccess === false) {
+    return <LockedView />;
+  }
+
+  return <AllProductsGrid isGold={memberData?.buyers_club_tier === "gold"} />;
+}
+
+function AllProductsGrid({ isGold }: { isGold: boolean }) {
   const { user } = useAuth();
   const [products, setProducts] = useState<Product[]>([]);
   const [tracked, setTracked] = useState<Set<string>>(new Set());
   const [req, setReq] = useState<Requirement | null>(null);
-  const [access, setAccess] = useState<AccessInfo>({ hasAccess: false, isGold: false, isBuyersClub: false });
   const [filter, setFilter] = useState<string>("all");
   const [sort, setSort] = useState<string>("trending");
   const [calcProduct, setCalcProduct] = useState<Product | null>(null);
@@ -90,22 +145,12 @@ export default function Trending() {
     if (!user) return;
     let active = true;
     (async () => {
-      const { data: m } = await supabase
-        .from("members")
-        .select("has_buyers_club_access, buyers_club_status, buyers_club_tier")
-        .eq("id", user.id)
-        .maybeSingle();
-      const isBuyersClub = !!(m?.has_buyers_club_access && m?.buyers_club_status === "active");
-      const isGold = m?.buyers_club_tier === "gold";
-      const hasAccess = isBuyersClub || isGold;
-
       const [{ data: prods }, { data: track }, { data: r }] = await Promise.all([
         supabase.from("trending_products").select("*").order("trending_score", { ascending: false }),
         supabase.from("member_product_tracking").select("product_id").eq("member_id", user.id),
         supabase.from("member_purchase_requirements").select("*").eq("member_id", user.id).maybeSingle(),
       ]);
       if (!active) return;
-      setAccess({ hasAccess, isGold, isBuyersClub });
       setProducts((prods ?? []) as Product[]);
       setTracked(new Set((track ?? []).map((t: any) => t.product_id)));
       setReq(r as Requirement | null);
@@ -231,7 +276,7 @@ export default function Trending() {
       <header className="space-y-2">
         <h1 className="text-3xl md:text-4xl font-display font-bold flex items-center gap-2">
           <Flame className="h-8 w-8 text-accent" /> Coming Wave
-          {access.isGold && (
+          {isGold && (
             <Badge className="ml-2 bg-amber-500/90 text-white">🏆 Gold Tier — Free Access</Badge>
           )}
         </h1>
