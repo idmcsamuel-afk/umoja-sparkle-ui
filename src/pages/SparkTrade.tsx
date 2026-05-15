@@ -9,6 +9,7 @@ import { SparksDisclaimer } from "@/components/umoja/SparksDisclaimer";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { toast } from "sonner";
 import { BuyersClubModal } from "@/components/umoja/BuyersClubModal";
+import { AmazonBestsellers } from "@/components/umoja/AmazonBestsellers";
 
 interface Shortlist {
   id: string;
