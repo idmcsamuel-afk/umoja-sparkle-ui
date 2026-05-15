@@ -92,6 +92,7 @@ const App = () => (
               <Route path="/blog/:slug" element={<BlogPost />} />
               <Route element={<MemberLayout />}>
                 <Route path="/dashboard" element={<ProtectedRoute><Dashboard /></ProtectedRoute>} />
+                <Route path="/community" element={<ProtectedRoute><Community /></ProtectedRoute>} />
                 <Route path="/circle" element={<ProtectedRoute><Circle /></ProtectedRoute>} />
                 <Route path="/spark" element={<ProtectedRoute><SparkTrade /></ProtectedRoute>} />
                 <Route path="/drive" element={<ProtectedRoute><Drive /></ProtectedRoute>} />
