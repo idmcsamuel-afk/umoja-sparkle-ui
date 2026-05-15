@@ -158,11 +158,16 @@ export type Database = {
           created_at: string
           id: string
           image_url: string | null
+          import_cost_zar: number | null
           last_updated: string
+          opportunity_score: number | null
+          price_advantage: number | null
           price_usd: number | null
           price_zar: number | null
           rating: number | null
           review_count: number | null
+          sa_available: boolean | null
+          sa_price_zar: number | null
           sales_rank: number | null
           title: string
         }
@@ -172,11 +177,16 @@ export type Database = {
           created_at?: string
           id?: string
           image_url?: string | null
+          import_cost_zar?: number | null
           last_updated?: string
+          opportunity_score?: number | null
+          price_advantage?: number | null
           price_usd?: number | null
           price_zar?: number | null
           rating?: number | null
           review_count?: number | null
+          sa_available?: boolean | null
+          sa_price_zar?: number | null
           sales_rank?: number | null
           title: string
         }
@@ -186,11 +196,16 @@ export type Database = {
           created_at?: string
           id?: string
           image_url?: string | null
+          import_cost_zar?: number | null
           last_updated?: string
+          opportunity_score?: number | null
+          price_advantage?: number | null
           price_usd?: number | null
           price_zar?: number | null
           rating?: number | null
           review_count?: number | null
+          sa_available?: boolean | null
+          sa_price_zar?: number | null
           sales_rank?: number | null
           title?: string
         }
