@@ -336,7 +336,7 @@ export default function FlameMarketing() {
                 <div className="mt-3 rounded-xl border border-amber-400/30 bg-amber-500/10 p-3 space-y-2">
                   <p className="text-xs text-amber-100">Want unlimited? Upgrade to <b>Buyers Club Pro</b> for R999/month.</p>
                   <Button asChild size="sm" className="w-full bg-amber-500 text-black hover:bg-amber-400">
-                    <Link to="/spark-trade">View Buyers Club Tiers →</Link>
+                    <Link to="/spark">View Buyers Club Tiers →</Link>
                   </Button>
                 </div>
               </div>
