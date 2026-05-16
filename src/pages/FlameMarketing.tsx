@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { Flame, Copy, RefreshCw, Sparkles, Loader2, Crown, Download, ImageIcon, Type } from "lucide-react";
+import { Flame, Copy, RefreshCw, Sparkles, Loader2, Crown, Download, ImageIcon, Type, Video } from "lucide-react";
 import { BottomNav } from "@/components/umoja/BottomNav";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
@@ -9,6 +9,9 @@ import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { toast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
+import { TikTokSymphonyCard } from "@/components/umoja/flame/TikTokSymphonyCard";
+import { AvatarVideoCard } from "@/components/umoja/flame/AvatarVideoCard";
+import { SlideshowCreator } from "@/components/umoja/flame/SlideshowCreator";
 
 // ───────────────────────── TEXT GENERATOR ─────────────────────────
 
@@ -282,12 +285,15 @@ export default function FlameMarketing() {
 
       <main className="px-5 space-y-5 max-w-2xl mx-auto">
         <Tabs defaultValue="text" className="w-full">
-          <TabsList className="grid grid-cols-2 w-full bg-card/60 border border-amber-500/20">
+          <TabsList className="grid grid-cols-3 w-full bg-card/60 border border-amber-500/20">
             <TabsTrigger value="text" className="data-[state=active]:bg-amber-500/15 data-[state=active]:text-amber-200">
               <Type className="h-4 w-4" /> Text
             </TabsTrigger>
             <TabsTrigger value="graphics" className="data-[state=active]:bg-amber-500/15 data-[state=active]:text-amber-200">
               <ImageIcon className="h-4 w-4" /> Graphics 🎨
+            </TabsTrigger>
+            <TabsTrigger value="video" className="data-[state=active]:bg-amber-500/15 data-[state=active]:text-amber-200">
+              <Video className="h-4 w-4" /> Video 🎬
             </TabsTrigger>
           </TabsList>
 
@@ -508,6 +514,15 @@ e.g. Modern apartment living room with LED cloud lamp glowing purple on coffee t
                 )}
               </Card>
             )}
+          </TabsContent>
+
+          {/* ───────── VIDEO TAB ───────── */}
+          <TabsContent value="video" className="space-y-5 mt-4">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <TikTokSymphonyCard />
+              <AvatarVideoCard />
+            </div>
+            <SlideshowCreator />
           </TabsContent>
         </Tabs>
 
