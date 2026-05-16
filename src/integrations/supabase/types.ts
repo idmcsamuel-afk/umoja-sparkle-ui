@@ -4340,7 +4340,7 @@ export type Database = {
           volume_score: number
         }[]
       }
-      flame_graphics_count_today: { Args: never; Returns: number }
+      flame_graphics_count_week: { Args: never; Returns: number }
       flame_video_count_week: { Args: never; Returns: number }
       gen_referral_code: { Args: { _seed?: string }; Returns: string }
       get_active_bank_account: {
