@@ -123,18 +123,26 @@ export default function FlameMarketing() {
   const [gfxImage, setGfxImage] = useState<string | null>(null);
   const [gfxRevised, setGfxRevised] = useState<string | null>(null);
   const [gfxUsed, setGfxUsed] = useState<number>(0);
+  const [videoUsed, setVideoUsed] = useState<number>(0);
 
   const template = TEMPLATES.find((t) => t.id === gfxTemplate)!;
   const gfxRemaining = Math.max(0, GFX_WEEKLY_LIMIT - gfxUsed);
   const gfxAtLimit = !isPro && gfxUsed >= GFX_WEEKLY_LIMIT;
+  const VIDEO_WEEKLY_LIMIT = 2;
+  const videoRemaining = Math.max(0, VIDEO_WEEKLY_LIMIT - videoUsed);
 
   // Fetch this week's usage on mount (skip for Pro — unlimited)
   useEffect(() => {
     if (isPro) return;
     let active = true;
     (async () => {
-      const { data } = await supabase.rpc("flame_graphics_count_week");
-      if (active && typeof data === "number") setGfxUsed(data);
+      const [{ data: g }, { data: v }] = await Promise.all([
+        supabase.rpc("flame_graphics_count_week"),
+        supabase.rpc("flame_video_count_week"),
+      ]);
+      if (!active) return;
+      if (typeof g === "number") setGfxUsed(g);
+      if (typeof v === "number") setVideoUsed(v);
     })();
     return () => { active = false; };
   }, [isPro]);
