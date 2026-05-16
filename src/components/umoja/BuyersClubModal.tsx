@@ -148,20 +148,46 @@ export function BuyersClubModal({ open, onOpenChange, onSuccess }: { open: boole
             {plans.map((p) => {
               const meta = TIER_META[p.tier_name] ?? { ring: "ring-border", tagline: "" };
               const featList = Array.isArray(p.features) ? p.features : [];
+              const includesFlame = p.tier_name === "pro" || p.tier_name === "fulfilled";
+              const isFlameFeature = (s: string) => /flame pro|unlimited graphic|unlimited slideshow|no watermark|brand kit|batch generation|creative library/i.test(s);
               return (
-                <div key={p.id} className={`relative rounded-2xl p-4 border bg-secondary/40 ring-1 ${meta.ring} ${meta.featured ? "border-accent/60" : "border-border"}`}>
+                <div
+                  key={p.id}
+                  className={`relative rounded-2xl p-4 border bg-secondary/40 ring-1 ${meta.ring} ${meta.featured ? "border-accent/60 shadow-[0_20px_60px_-20px_hsl(45_90%_50%/0.5)] scale-[1.02]" : "border-border"}`}
+                >
+                  {includesFlame && (
+                    <div className="-mt-1 mb-3 -mx-1 rounded-xl bg-gradient-to-r from-amber-300 via-yellow-400 to-amber-500 px-3 py-1.5 text-center shadow-[0_8px_24px_-8px_hsl(45_90%_50%/0.6)]">
+                      <p className="text-[10px] font-bold tracking-[0.18em] text-emerald-950">
+                        ✨ INCLUDES FLAME PRO <span className="font-semibold opacity-80">(R249 value)</span>
+                      </p>
+                    </div>
+                  )}
                   {meta.featured && (
-                    <span className="absolute -top-2 right-3 text-[10px] uppercase tracking-[0.18em] rounded-full bg-accent text-accent-foreground px-2 py-0.5">⭐ Most popular</span>
+                    <div className="flex items-center gap-1.5 mb-2">
+                      <span className="text-[10px] uppercase tracking-[0.18em] rounded-full bg-accent text-accent-foreground px-2 py-0.5">⭐ Most popular</span>
+                      <span className="text-[10px] uppercase tracking-[0.18em] rounded-full bg-emerald-500/20 text-emerald-300 border border-emerald-400/40 px-2 py-0.5">Best value</span>
+                    </div>
                   )}
                   <div className="flex items-baseline justify-between gap-3">
                     <p className="font-display text-lg">{p.display_name}</p>
                     <p className="text-gradient-gold font-display">R{Number(p.monthly_price).toLocaleString()}<span className="text-xs text-muted-foreground font-sans"> / month</span></p>
                   </div>
                   {meta.tagline && <p className="text-xs italic text-muted-foreground mt-1">{meta.tagline}</p>}
-                  <ul className="mt-2 space-y-1 text-xs text-muted-foreground">
-                    {featList.map((b) => (
-                      <li key={b} className="flex items-start gap-1.5"><Check className="h-3 w-3 mt-0.5 text-accent shrink-0" /> <span>{b}</span></li>
-                    ))}
+                  <ul className="mt-2 space-y-1 text-xs">
+                    {featList.map((b) => {
+                      const flame = isFlameFeature(b);
+                      return flame ? (
+                        <li key={b} className="flex items-start gap-1.5 text-sm font-bold text-amber-400">
+                          <span className="shrink-0">🔥</span>
+                          <span>{b}</span>
+                        </li>
+                      ) : (
+                        <li key={b} className="flex items-start gap-1.5 text-muted-foreground">
+                          <Check className="h-3 w-3 mt-0.5 text-accent shrink-0" />
+                          <span>{b}</span>
+                        </li>
+                      );
+                    })}
                   </ul>
                   {meta.note && <p className="text-[11px] text-amber-500 mt-2">⚠️ {meta.note}</p>}
                   <Button className="mt-3 w-full bg-gradient-primary text-primary-foreground" onClick={() => { setSelectedPlanId(p.id); setStep(2); }}>
