@@ -1,12 +1,15 @@
 import { useEffect, useRef, useState } from "react";
-import { Loader2, Upload, X, GripVertical, Download, RefreshCw, Film } from "lucide-react";
+import { Link } from "react-router-dom";
+import { Loader2, Upload, X, GripVertical, Download, RefreshCw, Film, Crown, Lock } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Slider } from "@/components/ui/slider";
+import { Switch } from "@/components/ui/switch";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { toast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
+import type { FlameTier } from "@/hooks/useFlameTier";
 
 type SizeId = "square" | "vertical" | "landscape";
 const SIZES: { id: SizeId; label: string; w: number; h: number }[] = [
@@ -36,21 +39,24 @@ type ImageSlide = {
   overlay: string;
 };
 
-export function SlideshowCreator() {
+export function SlideshowCreator({ tier = "free" }: { tier?: FlameTier }) {
+  const isPro = tier === "pro";
   const { user } = useAuth();
   const [slides, setSlides] = useState<ImageSlide[]>([]);
   const [music, setMusic] = useState<MusicId>("none");
   const [duration, setDuration] = useState(3);
   const [size, setSize] = useState<SizeId>("vertical");
+  const [watermark, setWatermark] = useState(true); // Pro can toggle off
   const [busy, setBusy] = useState(false);
   const [stage, setStage] = useState<string>("");
   const [resultUrl, setResultUrl] = useState<string | null>(null);
   const [used, setUsed] = useState(0);
   const dragIdx = useRef<number | null>(null);
 
+  const showWatermark = isPro ? watermark : true; // forced on for free
   const dim = SIZES.find((s) => s.id === size)!;
   const remaining = Math.max(0, WEEKLY_LIMIT - used);
-  const atLimit = used >= WEEKLY_LIMIT;
+  const atLimit = !isPro && used >= WEEKLY_LIMIT;
 
   useEffect(() => {
     let alive = true;
@@ -130,6 +136,11 @@ export function SlideshowCreator() {
       // text overlay
       if (slide.overlay.trim()) {
         drawOverlayText(ctx, slide.overlay.trim(), dim.w, dim.h);
+      }
+
+      // UMOJA watermark (forced for free, toggleable for pro)
+      if (showWatermark) {
+        drawWatermark(ctx, dim.w, dim.h);
       }
 
       const blob: Blob = await new Promise((resolve) =>
@@ -247,9 +258,15 @@ export function SlideshowCreator() {
 
       <div className="flex items-center justify-between rounded-xl bg-black/30 border border-amber-500/15 px-3 py-2">
         <span className="text-xs text-muted-foreground">This week</span>
-        <span className={`text-xs font-semibold tabular-nums ${atLimit ? "text-destructive" : "text-amber-200"}`}>
-          {used}/{WEEKLY_LIMIT}
-        </span>
+        {isPro ? (
+          <span className="text-xs font-semibold text-amber-200 flex items-center gap-1">
+            <Crown className="h-3 w-3" /> Unlimited
+          </span>
+        ) : (
+          <span className={`text-xs font-semibold tabular-nums ${atLimit ? "text-destructive" : "text-amber-200"}`}>
+            {used}/{WEEKLY_LIMIT}
+          </span>
+        )}
       </div>
 
       {/* Image dropzone */}
@@ -336,6 +353,21 @@ export function SlideshowCreator() {
         </Select>
       </div>
 
+      {/* Watermark (Pro toggle / Free forced) */}
+      <div className="flex items-center justify-between rounded-xl bg-black/20 border border-border/40 px-3 py-2">
+        <div className="text-xs">
+          <div className="font-semibold text-foreground/90">UMOJA watermark</div>
+          <div className="text-[10px] text-muted-foreground">
+            {isPro ? "Toggle off to export clean" : "Free tier — always on"}
+          </div>
+        </div>
+        {isPro ? (
+          <Switch checked={watermark} onCheckedChange={setWatermark} />
+        ) : (
+          <Lock className="h-4 w-4 text-amber-400/70" />
+        )}
+      </div>
+
       <Button
         onClick={generate}
         disabled={busy || slides.length < MIN_IMAGES || atLimit}
@@ -345,8 +377,14 @@ export function SlideshowCreator() {
       </Button>
 
       {atLimit && (
-        <div className="rounded-xl border border-amber-400/40 bg-amber-500/10 p-3 text-xs text-amber-100">
-          Video limit: {used}/{WEEKLY_LIMIT} this week. Resets every Monday. Upgrade to <b>Flame Pro</b> for unlimited.
+        <div className="rounded-xl border border-amber-400/40 bg-amber-500/10 p-3 text-xs text-amber-100 space-y-2">
+          <p>Video limit: {used}/{WEEKLY_LIMIT} this week. Resets every Monday.</p>
+          <Link to="/spark-trade" className="inline-block">
+            <Button size="sm" className="bg-gradient-to-r from-emerald-600 to-amber-500 text-black border-0 font-semibold">
+              Upgrade to Buyers Club Pro →
+            </Button>
+          </Link>
+          <p className="text-[10px] text-amber-100/80">R999/month — includes Spark Trade + Flame Pro unlimited.</p>
         </div>
       )}
 
@@ -428,4 +466,22 @@ function wrapText(ctx: CanvasRenderingContext2D, text: string, maxWidth: number)
   }
   if (current) lines.push(current);
   return lines.slice(0, 3); // cap at 3 lines
+}
+
+function drawWatermark(ctx: CanvasRenderingContext2D, w: number, h: number) {
+  const fontSize = Math.round(Math.min(w, h) * 0.028);
+  const padding = Math.round(w * 0.025);
+  ctx.save();
+  ctx.font = `800 ${fontSize}px Inter, system-ui, sans-serif`;
+  ctx.textAlign = "right";
+  ctx.textBaseline = "bottom";
+  ctx.shadowColor = "rgba(0,0,0,0.7)";
+  ctx.shadowBlur = Math.round(fontSize * 0.4);
+  // gold gradient
+  const grad = ctx.createLinearGradient(0, h - fontSize - padding, 0, h - padding);
+  grad.addColorStop(0, "#fde68a");
+  grad.addColorStop(1, "#f59e0b");
+  ctx.fillStyle = grad;
+  ctx.fillText("UMOJA", w - padding, h - padding);
+  ctx.restore();
 }
