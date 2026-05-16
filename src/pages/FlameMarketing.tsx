@@ -97,6 +97,9 @@ const GFX_OVERLAY_MAX = 50;
 const GFX_DAILY_LIMIT = 5;
 
 export default function FlameMarketing() {
+  const { tier } = useFlameTier();
+  const isPro = tier === "pro";
+
   // text state
   const [biz, setBiz] = useState("");
   const [typeId, setTypeId] = useState<ContentType>("ig_caption");
