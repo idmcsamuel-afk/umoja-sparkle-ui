@@ -3882,6 +3882,42 @@ export type Database = {
         }
         Relationships: []
       }
+      subscription_plans: {
+        Row: {
+          created_at: string | null
+          display_name: string
+          features: Json | null
+          id: string
+          is_active: boolean | null
+          monthly_price: number
+          paystack_plan_code: string
+          tier_name: string
+          updated_at: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          display_name: string
+          features?: Json | null
+          id?: string
+          is_active?: boolean | null
+          monthly_price: number
+          paystack_plan_code: string
+          tier_name: string
+          updated_at?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          display_name?: string
+          features?: Json | null
+          id?: string
+          is_active?: boolean | null
+          monthly_price?: number
+          paystack_plan_code?: string
+          tier_name?: string
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
       trending_products: {
         Row: {
           admin_notes: string | null
