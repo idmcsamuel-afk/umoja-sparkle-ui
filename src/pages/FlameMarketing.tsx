@@ -95,7 +95,7 @@ const STYLE_HINTS: Record<GfxStyle, { hint: string; dalle: "natural" | "vivid" }
 
 const GFX_PROMPT_MAX = 500;
 const GFX_OVERLAY_MAX = 50;
-const GFX_DAILY_LIMIT = 5;
+const GFX_WEEKLY_LIMIT = 3;
 
 export default function FlameMarketing() {
   const { tier } = useFlameTier();
