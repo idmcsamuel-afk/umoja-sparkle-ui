@@ -515,6 +515,15 @@ e.g. Modern apartment living room with LED cloud lamp glowing purple on coffee t
               </Card>
             )}
           </TabsContent>
+
+          {/* ───────── VIDEO TAB ───────── */}
+          <TabsContent value="video" className="space-y-5 mt-4">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <TikTokSymphonyCard />
+              <AvatarVideoCard />
+            </div>
+            <SlideshowCreator />
+          </TabsContent>
         </Tabs>
 
         {/* Flame Pro upgrade banner */}
