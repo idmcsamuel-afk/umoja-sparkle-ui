@@ -21,6 +21,7 @@ import Drive from "./pages/Drive.tsx";
 import DriveDashboard from "./pages/DriveDashboard.tsx";
 import Predictor from "./pages/Predictor.tsx";
 import Profile from "./pages/Profile.tsx";
+import Banking from "./pages/Banking.tsx";
 import Calculator from "./pages/Calculator.tsx";
 import Market from "./pages/Market.tsx";
 import Exchange from "./pages/Exchange.tsx";
@@ -108,6 +109,8 @@ const App = () => (
                 <Route path="/drive/dashboard" element={<ProtectedRoute><DriveDashboard /></ProtectedRoute>} />
                 <Route path="/predictor" element={<ProtectedRoute><Predictor /></ProtectedRoute>} />
                 <Route path="/profile" element={<ProtectedRoute><Profile /></ProtectedRoute>} />
+                <Route path="/profile/banking" element={<ProtectedRoute><Banking /></ProtectedRoute>} />
+                <Route path="/payouts" element={<ProtectedRoute><Banking /></ProtectedRoute>} />
                 <Route path="/calculator" element={<ProtectedRoute><Calculator /></ProtectedRoute>} />
                 <Route path="/market" element={<ProtectedRoute><Market /></ProtectedRoute>} />
                 <Route path="/exchange" element={<ProtectedRoute><Exchange /></ProtectedRoute>} />
