@@ -138,6 +138,11 @@ export function SlideshowCreator({ tier = "free" }: { tier?: FlameTier }) {
         drawOverlayText(ctx, slide.overlay.trim(), dim.w, dim.h);
       }
 
+      // UMOJA watermark (forced for free, toggleable for pro)
+      if (showWatermark) {
+        drawWatermark(ctx, dim.w, dim.h);
+      }
+
       const blob: Blob = await new Promise((resolve) =>
         canvas.toBlob((b) => resolve(b!), "image/png", 0.95),
       );
