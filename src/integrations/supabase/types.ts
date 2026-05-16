@@ -1703,6 +1703,39 @@ export type Database = {
         }
         Relationships: []
       }
+      flame_video_usage: {
+        Row: {
+          created_at: string
+          duration_seconds: number | null
+          id: string
+          image_count: number | null
+          kind: string
+          member_id: string
+          size: string
+          video_url: string | null
+        }
+        Insert: {
+          created_at?: string
+          duration_seconds?: number | null
+          id?: string
+          image_count?: number | null
+          kind?: string
+          member_id: string
+          size: string
+          video_url?: string | null
+        }
+        Update: {
+          created_at?: string
+          duration_seconds?: number | null
+          id?: string
+          image_count?: number | null
+          kind?: string
+          member_id?: string
+          size?: string
+          video_url?: string | null
+        }
+        Relationships: []
+      }
       fulfillment_applications: {
         Row: {
           account_number: string
@@ -4308,6 +4341,7 @@ export type Database = {
         }[]
       }
       flame_graphics_count_today: { Args: never; Returns: number }
+      flame_video_count_week: { Args: never; Returns: number }
       gen_referral_code: { Args: { _seed?: string }; Returns: string }
       get_active_bank_account: {
         Args: { _project: string }
