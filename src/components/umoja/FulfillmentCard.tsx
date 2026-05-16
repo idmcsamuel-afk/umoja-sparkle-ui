@@ -81,9 +81,10 @@ export function FulfillmentCard() {
           </div>
         ) : (
           <Button onClick={() => setOpen(true)} className="w-full bg-gradient-gold text-amber-950 hover:opacity-90">
-            Apply for Fulfillment
+            Apply for Fulfilled Service →
           </Button>
         )}
+        <p className="text-[11px] text-muted-foreground text-center mt-2">Application required. Limited spots.</p>
       </div>
 
       <FulfillmentApplyModal open={open} onOpenChange={setOpen} onSubmitted={load} />
