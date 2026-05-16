@@ -53,7 +53,7 @@ serve(async (req) => {
 
     return new Response(
       JSON.stringify({
-        image_url: data.data[0].url,
+        image_url: data.data[0].url ?? (data.data[0].b64_json ? `data:image/png;base64,${data.data[0].b64_json}` : null),
         revised_prompt: data.data[0].revised_prompt || prompt,
       }),
       { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
