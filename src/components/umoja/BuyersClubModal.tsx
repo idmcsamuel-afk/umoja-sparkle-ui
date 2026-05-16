@@ -134,21 +134,36 @@ export function BuyersClubModal({ open, onOpenChange, onSuccess }: { open: boole
         {step === 1 && (
           <div className="space-y-3 mt-2">
             {TIERS.map((t) => (
-              <div key={t.id} className={`rounded-2xl p-4 border border-border bg-secondary/40 ring-1 ${t.ring}`}>
+              <div key={t.id} className={`relative rounded-2xl p-4 border bg-secondary/40 ring-1 ${t.ring} ${t.featured ? "border-accent/60" : "border-border"}`}>
+                {t.featured && (
+                  <span className="absolute -top-2 right-3 text-[10px] uppercase tracking-[0.18em] rounded-full bg-accent text-accent-foreground px-2 py-0.5">⭐ Most popular</span>
+                )}
                 <div className="flex items-baseline justify-between gap-3">
                   <p className="font-display text-lg">{t.name}</p>
                   <p className="text-gradient-gold font-display">R{t.price.toLocaleString()}<span className="text-xs text-muted-foreground font-sans"> / month</span></p>
                 </div>
+                <p className="text-xs italic text-muted-foreground mt-1">{t.tagline}</p>
                 <ul className="mt-2 space-y-1 text-xs text-muted-foreground">
                   {t.benefits.map((b) => (
-                    <li key={b} className="inline-flex items-center gap-1.5"><Check className="h-3 w-3 text-accent" /> {b}</li>
+                    <li key={b} className="flex items-start gap-1.5"><Check className="h-3 w-3 mt-0.5 text-accent shrink-0" /> <span>{b}</span></li>
                   ))}
                 </ul>
+                {t.note && <p className="text-[11px] text-amber-500 mt-2">⚠️ {t.note}</p>}
                 <Button className="mt-3 w-full bg-gradient-primary text-primary-foreground" onClick={() => { setTier(t.id); setStep(2); }}>
-                  Select tier
+                  {t.cta ?? "Select tier"} — R{t.price.toLocaleString()}/month
                 </Button>
               </div>
             ))}
+            <div className="rounded-xl bg-secondary/40 p-3 text-[11px] text-muted-foreground space-y-1 mt-2">
+              <p>💡 Gold founding members receive FREE Buyers Club Pro access (R999/mo value)</p>
+              <p>⚠️ All members must meet monthly purchase minimums to maintain access (anti-spy protection)</p>
+              <p>✅ Cancel anytime. No long-term commitment.</p>
+            </div>
+            <div className="rounded-xl border border-border/60 p-3 text-[11px] text-muted-foreground space-y-1">
+              <p className="font-semibold text-foreground">Not to be confused with Founding Tiers</p>
+              <p>Founding Tiers (one-time support): Bronze R2K · Silver R5K · Gold R10K</p>
+              <p>Buyers Club (monthly subscription): Basic R499/mo · Pro R999/mo · Fulfilled R1,999/mo</p>
+            </div>
           </div>
         )}
 
