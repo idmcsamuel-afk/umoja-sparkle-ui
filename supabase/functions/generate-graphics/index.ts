@@ -41,7 +41,7 @@ Deno.serve(async (req) => {
 
     return json({
       image_url: data.data[0].url,
-      revised_prompt: data.data[0].revised_prompt,
+      revised_prompt: data.data[0].revised_prompt ?? prompt,
     });
   } catch (error) {
     console.error('Error:', error);
