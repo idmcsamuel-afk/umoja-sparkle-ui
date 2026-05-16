@@ -5,19 +5,34 @@ Deno.serve(async (req) => {
 
   console.log('Graphics generation started');
 
+  let body: any;
   try {
-    const { prompt } = await req.json();
+    body = await req.json();
+  } catch (e) {
+    console.error('Invalid JSON body:', e);
+    return json({ error: 'Invalid JSON body' }, 400);
+  }
 
-    if (!prompt) {
-      return json({ error: 'Prompt required' }, 400);
-    }
+  console.log('Request body:', body);
 
-    const openaiKey = Deno.env.get('OPENAI_API_KEY');
-    if (!openaiKey) {
-      console.error('OPENAI_API_KEY missing');
-      return json({ error: 'OpenAI key not configured' }, 500);
-    }
+  const { prompt, size, style } = body ?? {};
 
+  if (!prompt || typeof prompt !== 'string') {
+    return json({ error: 'Prompt is required', received: body }, 400);
+  }
+
+  const openaiKey = Deno.env.get('OPENAI_API_KEY');
+  if (!openaiKey) {
+    console.error('OPENAI_API_KEY missing');
+    return json({ error: 'OpenAI key not configured' }, 500);
+  }
+
+  // DALL-E 2 only supports 256x256, 512x512, 1024x1024
+  const allowed = new Set(['256x256', '512x512', '1024x1024']);
+  const imageSize = allowed.has(size) ? size : '1024x1024';
+  const fullPrompt = style ? `${prompt}\n\nStyle: ${style}` : prompt;
+
+  try {
     const response = await fetch('https://api.openai.com/v1/images/generations', {
       method: 'POST',
       headers: {
@@ -26,9 +41,9 @@ Deno.serve(async (req) => {
       },
       body: JSON.stringify({
         model: 'dall-e-2',
-        prompt,
+        prompt: fullPrompt,
         n: 1,
-        size: '1024x1024',
+        size: imageSize,
       }),
     });
 
@@ -41,7 +56,7 @@ Deno.serve(async (req) => {
 
     return json({
       image_url: data.data[0].url,
-      revised_prompt: data.data[0].revised_prompt ?? prompt,
+      revised_prompt: data.data[0].revised_prompt ?? fullPrompt,
     });
   } catch (error) {
     console.error('Error:', error);
