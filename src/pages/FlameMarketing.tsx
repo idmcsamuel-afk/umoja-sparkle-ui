@@ -485,15 +485,19 @@ e.g. Modern apartment living room with LED cloud lamp glowing purple on coffee t
                 {gfxLoading ? (
                   <><Loader2 className="h-5 w-5 animate-spin" /> Generating your graphic…</>
                 ) : gfxAtLimit ? (
-                  <>Daily limit reached (5/5)</>
+                  <>Weekly limit reached ({GFX_WEEKLY_LIMIT}/{GFX_WEEKLY_LIMIT})</>
                 ) : (
                   <>Generate Graphics 🎨</>
                 )}
               </Button>
 
               {gfxAtLimit && (
-                <div className="rounded-xl border border-amber-400/40 bg-amber-500/10 p-3 text-xs text-amber-100">
-                  Daily limit reached (5/5). Upgrade to <b>Flame Pro</b> for unlimited graphics.
+                <div className="rounded-xl border border-amber-400/40 bg-amber-500/10 p-3 text-xs text-amber-100 space-y-2">
+                  <p className="font-semibold">Weekly limit reached ({GFX_WEEKLY_LIMIT}/{GFX_WEEKLY_LIMIT})</p>
+                  <p>Upgrade to Buyers Club Pro for unlimited graphics.</p>
+                  <Button asChild size="sm" className="w-full bg-amber-500 text-black hover:bg-amber-400">
+                    <a href="/spark-trade">Upgrade to Pro · R999/month →</a>
+                  </Button>
                 </div>
               )}
             </Card>
