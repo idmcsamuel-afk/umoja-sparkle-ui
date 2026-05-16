@@ -1667,6 +1667,42 @@ export type Database = {
           },
         ]
       }
+      flame_graphics_usage: {
+        Row: {
+          created_at: string
+          id: string
+          image_url: string | null
+          member_id: string
+          prompt: string
+          revised_prompt: string | null
+          size: string
+          style: string | null
+          template: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          image_url?: string | null
+          member_id: string
+          prompt: string
+          revised_prompt?: string | null
+          size: string
+          style?: string | null
+          template: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          image_url?: string | null
+          member_id?: string
+          prompt?: string
+          revised_prompt?: string | null
+          size?: string
+          style?: string | null
+          template?: string
+        }
+        Relationships: []
+      }
       fulfillment_applications: {
         Row: {
           account_number: string
@@ -4271,6 +4307,7 @@ export type Database = {
           volume_score: number
         }[]
       }
+      flame_graphics_count_today: { Args: never; Returns: number }
       gen_referral_code: { Args: { _seed?: string }; Returns: string }
       get_active_bank_account: {
         Args: { _project: string }
