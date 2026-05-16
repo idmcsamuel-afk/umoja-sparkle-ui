@@ -522,11 +522,18 @@ e.g. Modern apartment living room with LED cloud lamp glowing purple on coffee t
 
           {/* ───────── VIDEO TAB ───────── */}
           <TabsContent value="video" className="space-y-5 mt-4">
+            <div className={`rounded-2xl border p-3 text-xs ${isPro ? "border-emerald-400/40 bg-emerald-500/10 text-emerald-100" : "border-amber-400/40 bg-amber-500/10 text-amber-100"}`}>
+              {isPro ? (
+                <><b>Flame Pro active ✨</b> — Unlimited slideshows, no watermark, avatar add-ons unlocked.</>
+              ) : (
+                <><b>Free tier</b> — TikTok Symphony (unlimited) + 2 slideshows / week. <Link to="/spark-trade" className="underline font-semibold">Upgrade →</Link></>
+              )}
+            </div>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <TikTokSymphonyCard />
-              <AvatarVideoCard />
+              <AvatarVideoCard tier={tier} />
             </div>
-            <SlideshowCreator />
+            <SlideshowCreator tier={tier} />
           </TabsContent>
         </Tabs>
 
