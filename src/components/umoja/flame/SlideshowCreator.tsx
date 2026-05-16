@@ -467,3 +467,21 @@ function wrapText(ctx: CanvasRenderingContext2D, text: string, maxWidth: number)
   if (current) lines.push(current);
   return lines.slice(0, 3); // cap at 3 lines
 }
+
+function drawWatermark(ctx: CanvasRenderingContext2D, w: number, h: number) {
+  const fontSize = Math.round(Math.min(w, h) * 0.028);
+  const padding = Math.round(w * 0.025);
+  ctx.save();
+  ctx.font = `800 ${fontSize}px Inter, system-ui, sans-serif`;
+  ctx.textAlign = "right";
+  ctx.textBaseline = "bottom";
+  ctx.shadowColor = "rgba(0,0,0,0.7)";
+  ctx.shadowBlur = Math.round(fontSize * 0.4);
+  // gold gradient
+  const grad = ctx.createLinearGradient(0, h - fontSize - padding, 0, h - padding);
+  grad.addColorStop(0, "#fde68a");
+  grad.addColorStop(1, "#f59e0b");
+  ctx.fillStyle = grad;
+  ctx.fillText("UMOJA", w - padding, h - padding);
+  ctx.restore();
+}
