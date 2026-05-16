@@ -379,7 +379,7 @@ export function SlideshowCreator({ tier = "free" }: { tier?: FlameTier }) {
       {atLimit && (
         <div className="rounded-xl border border-amber-400/40 bg-amber-500/10 p-3 text-xs text-amber-100 space-y-2">
           <p>Video limit: {used}/{WEEKLY_LIMIT} this week. Resets every Monday.</p>
-          <Link to="/spark-trade" className="inline-block">
+          <Link to="/spark" className="inline-block">
             <Button size="sm" className="bg-gradient-to-r from-emerald-600 to-amber-500 text-black border-0 font-semibold">
               Upgrade to Buyers Club Pro →
             </Button>

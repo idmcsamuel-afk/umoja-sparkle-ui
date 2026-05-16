@@ -547,7 +547,7 @@ e.g. Modern apartment living room with LED cloud lamp glowing purple on coffee t
                   <p className="font-semibold">Weekly limit reached ({GFX_WEEKLY_LIMIT}/{GFX_WEEKLY_LIMIT})</p>
                   <p>Upgrade to Buyers Club Pro for unlimited graphics.</p>
                   <Button asChild size="sm" className="w-full bg-amber-500 text-black hover:bg-amber-400">
-                    <a href="/spark-trade">Upgrade to Pro · R999/month →</a>
+                    <a href="/spark">Upgrade to Pro · R999/month →</a>
                   </Button>
                 </div>
               )}
@@ -592,7 +592,7 @@ e.g. Modern apartment living room with LED cloud lamp glowing purple on coffee t
               {isPro ? (
                 <><b>Flame Pro active ✨</b> — Unlimited slideshows, no watermark, avatar add-ons unlocked.</>
               ) : (
-                <><b>Free tier</b> — TikTok Symphony (unlimited) + 2 slideshows / week. <Link to="/spark-trade" className="underline font-semibold">Upgrade →</Link></>
+                <><b>Free tier</b> — TikTok Symphony (unlimited) + 2 slideshows / week. <Link to="/spark" className="underline font-semibold">Upgrade →</Link></>
               )}
             </div>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
