@@ -11,32 +11,52 @@ import { usePaystack, buildReference } from "@/hooks/usePaystack";
 type Tier = "bronze" | "silver" | "gold";
 
 const TIERS: Array<{
-  id: Tier; name: string; price: number; benefits: string[]; ring: string;
+  id: Tier; name: string; price: number; tagline: string; benefits: string[]; ring: string; featured?: boolean; note?: string; cta?: string;
 }> = [
-  { id: "bronze", name: "BRONZE CLUB", price: 199, ring: "ring-amber-700/50",
+  { id: "bronze", name: "SPARK TRADE BASIC", price: 499, ring: "ring-amber-700/50",
+    tagline: "UMOJA sources everything. You just choose what to buy.",
     benefits: [
-      "Access to all real products",
-      "Join buying groups (MOQ pooling)",
-      "Standard delivery (6–8 weeks)",
-      "2 concurrent orders",
-      "Baseline profit margins",
+      "Weekly validated product shortlist (7 proven products every Sunday)",
+      "Join buying groups — pool orders with members",
+      "UMOJA handles all sourcing from China",
+      "Consolidated shipping to SA",
+      "True margin calculator per product",
+      "Stock delivered to your door",
+      "Access to Trending products intelligence",
+      "Track products you're interested in",
     ] },
-  { id: "silver", name: "SILVER CLUB", price: 399, ring: "ring-zinc-300/50",
+  { id: "silver", name: "SPARK TRADE PRO", price: 999, ring: "ring-accent/60", featured: true,
+    tagline: "For serious traders ready to scale.",
     benefits: [
-      "All Bronze benefits",
-      "+5% better margins on every product",
-      "Priority placement when MOQ fills",
-      "Early access to Buy Soon",
-      "3 concurrent orders",
+      "Everything in Basic",
+      "Real-time alerts — first in buying groups",
+      "90-day trend forecasting",
+      "Coming Wave early access (see trends before SA)",
+      "Finzite seller health dashboard",
+      "Connect Takealot/Amazon for competitive intelligence",
+      "Import financing eligibility",
+      "Dedicated WhatsApp sourcing support",
+      "Monthly live sourcing webinar",
+      "+5% better margins on group buys",
+      "5 concurrent orders (vs 2 on Basic)",
     ] },
-  { id: "gold", name: "GOLD CLUB", price: 799, ring: "ring-accent/60",
+  { id: "gold", name: "FULFILLED BY UMOJA", price: 1999, ring: "ring-amber-400/60",
+    tagline: "You provide capital. We do everything else.",
+    note: "Fulfilled tier requires application and approval.",
+    cta: "Apply for Fulfilled",
     benefits: [
-      "All Silver benefits",
-      "+10% better margins (15% vs Bronze)",
-      "VIP queue — first when MOQ hits",
-      "5 concurrent orders",
+      "Everything in Pro",
+      "Complete hands-off fulfilment service",
+      "UMOJA stores your inventory (warehouse)",
+      "UMOJA lists products on marketplace",
+      "UMOJA packs and ships all orders",
+      "UMOJA handles returns and customer service",
+      "Member storefront page (your branded shop)",
       "Dedicated account manager",
-      "Member storefront page",
+      "VIP queue — first when MOQ hits",
+      "+10% better margins (15% total vs Basic)",
+      "Unlimited concurrent orders",
+      "Monthly performance reports",
     ] },
 ];
 
@@ -114,21 +134,36 @@ export function BuyersClubModal({ open, onOpenChange, onSuccess }: { open: boole
         {step === 1 && (
           <div className="space-y-3 mt-2">
             {TIERS.map((t) => (
-              <div key={t.id} className={`rounded-2xl p-4 border border-border bg-secondary/40 ring-1 ${t.ring}`}>
+              <div key={t.id} className={`relative rounded-2xl p-4 border bg-secondary/40 ring-1 ${t.ring} ${t.featured ? "border-accent/60" : "border-border"}`}>
+                {t.featured && (
+                  <span className="absolute -top-2 right-3 text-[10px] uppercase tracking-[0.18em] rounded-full bg-accent text-accent-foreground px-2 py-0.5">⭐ Most popular</span>
+                )}
                 <div className="flex items-baseline justify-between gap-3">
                   <p className="font-display text-lg">{t.name}</p>
                   <p className="text-gradient-gold font-display">R{t.price.toLocaleString()}<span className="text-xs text-muted-foreground font-sans"> / month</span></p>
                 </div>
+                <p className="text-xs italic text-muted-foreground mt-1">{t.tagline}</p>
                 <ul className="mt-2 space-y-1 text-xs text-muted-foreground">
                   {t.benefits.map((b) => (
-                    <li key={b} className="inline-flex items-center gap-1.5"><Check className="h-3 w-3 text-accent" /> {b}</li>
+                    <li key={b} className="flex items-start gap-1.5"><Check className="h-3 w-3 mt-0.5 text-accent shrink-0" /> <span>{b}</span></li>
                   ))}
                 </ul>
+                {t.note && <p className="text-[11px] text-amber-500 mt-2">⚠️ {t.note}</p>}
                 <Button className="mt-3 w-full bg-gradient-primary text-primary-foreground" onClick={() => { setTier(t.id); setStep(2); }}>
-                  Select tier
+                  {t.cta ?? "Select tier"} — R{t.price.toLocaleString()}/month
                 </Button>
               </div>
             ))}
+            <div className="rounded-xl bg-secondary/40 p-3 text-[11px] text-muted-foreground space-y-1 mt-2">
+              <p>💡 Gold founding members receive FREE Buyers Club Pro access (R999/mo value)</p>
+              <p>⚠️ All members must meet monthly purchase minimums to maintain access (anti-spy protection)</p>
+              <p>✅ Cancel anytime. No long-term commitment.</p>
+            </div>
+            <div className="rounded-xl border border-border/60 p-3 text-[11px] text-muted-foreground space-y-1">
+              <p className="font-semibold text-foreground">Not to be confused with Founding Tiers</p>
+              <p>Founding Tiers (one-time support): Bronze R2K · Silver R5K · Gold R10K</p>
+              <p>Buyers Club (monthly subscription): Basic R499/mo · Pro R999/mo · Fulfilled R1,999/mo</p>
+            </div>
           </div>
         )}
 
