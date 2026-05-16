@@ -258,9 +258,15 @@ export function SlideshowCreator({ tier = "free" }: { tier?: FlameTier }) {
 
       <div className="flex items-center justify-between rounded-xl bg-black/30 border border-amber-500/15 px-3 py-2">
         <span className="text-xs text-muted-foreground">This week</span>
-        <span className={`text-xs font-semibold tabular-nums ${atLimit ? "text-destructive" : "text-amber-200"}`}>
-          {used}/{WEEKLY_LIMIT}
-        </span>
+        {isPro ? (
+          <span className="text-xs font-semibold text-amber-200 flex items-center gap-1">
+            <Crown className="h-3 w-3" /> Unlimited
+          </span>
+        ) : (
+          <span className={`text-xs font-semibold tabular-nums ${atLimit ? "text-destructive" : "text-amber-200"}`}>
+            {used}/{WEEKLY_LIMIT}
+          </span>
+        )}
       </div>
 
       {/* Image dropzone */}
