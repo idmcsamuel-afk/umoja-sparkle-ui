@@ -125,18 +125,19 @@ export default function FlameMarketing() {
   const [gfxUsed, setGfxUsed] = useState<number>(0);
 
   const template = TEMPLATES.find((t) => t.id === gfxTemplate)!;
-  const gfxRemaining = Math.max(0, GFX_DAILY_LIMIT - gfxUsed);
-  const gfxAtLimit = gfxUsed >= GFX_DAILY_LIMIT;
+  const gfxRemaining = Math.max(0, GFX_WEEKLY_LIMIT - gfxUsed);
+  const gfxAtLimit = !isPro && gfxUsed >= GFX_WEEKLY_LIMIT;
 
-  // Fetch today's usage on mount
+  // Fetch this week's usage on mount (skip for Pro — unlimited)
   useEffect(() => {
+    if (isPro) return;
     let active = true;
     (async () => {
-      const { data } = await supabase.rpc("flame_graphics_count_today");
+      const { data } = await supabase.rpc("flame_graphics_count_week");
       if (active && typeof data === "number") setGfxUsed(data);
     })();
     return () => { active = false; };
-  }, []);
+  }, [isPro]);
 
   const generate = async () => {
     const trimmed = biz.trim();
