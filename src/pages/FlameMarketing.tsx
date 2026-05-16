@@ -123,18 +123,26 @@ export default function FlameMarketing() {
   const [gfxImage, setGfxImage] = useState<string | null>(null);
   const [gfxRevised, setGfxRevised] = useState<string | null>(null);
   const [gfxUsed, setGfxUsed] = useState<number>(0);
+  const [videoUsed, setVideoUsed] = useState<number>(0);
 
   const template = TEMPLATES.find((t) => t.id === gfxTemplate)!;
   const gfxRemaining = Math.max(0, GFX_WEEKLY_LIMIT - gfxUsed);
   const gfxAtLimit = !isPro && gfxUsed >= GFX_WEEKLY_LIMIT;
+  const VIDEO_WEEKLY_LIMIT = 2;
+  const videoRemaining = Math.max(0, VIDEO_WEEKLY_LIMIT - videoUsed);
 
   // Fetch this week's usage on mount (skip for Pro — unlimited)
   useEffect(() => {
     if (isPro) return;
     let active = true;
     (async () => {
-      const { data } = await supabase.rpc("flame_graphics_count_week");
-      if (active && typeof data === "number") setGfxUsed(data);
+      const [{ data: g }, { data: v }] = await Promise.all([
+        supabase.rpc("flame_graphics_count_week"),
+        supabase.rpc("flame_video_count_week"),
+      ]);
+      if (!active) return;
+      if (typeof g === "number") setGfxUsed(g);
+      if (typeof v === "number") setVideoUsed(v);
     })();
     return () => { active = false; };
   }, [isPro]);
@@ -293,6 +301,49 @@ export default function FlameMarketing() {
       </header>
 
       <main className="px-5 space-y-5 max-w-2xl mx-auto">
+        {/* Tier status banner */}
+        {isPro ? (
+          <div className="relative overflow-hidden rounded-2xl border-2 border-amber-400/50 bg-gradient-to-br from-emerald-950 via-emerald-900 to-amber-950 p-4 shadow-[0_20px_60px_-20px_hsl(45_90%_50%/0.5)]">
+            <div className="absolute -right-10 -top-10 h-32 w-32 rounded-full bg-amber-400/20 blur-3xl" />
+            <div className="relative flex items-start gap-3">
+              <div className="grid h-10 w-10 shrink-0 place-items-center rounded-xl bg-gradient-to-br from-amber-300 to-amber-600 text-emerald-950">
+                <Crown className="h-5 w-5" />
+              </div>
+              <div className="flex-1 min-w-0">
+                <h3 className="font-display text-base text-amber-200">✨ Flame Pro — UNLIMITED</h3>
+                <ul className="mt-2 space-y-1 text-xs text-amber-100/90">
+                  <li>✅ Unlimited graphics & videos</li>
+                  <li>✅ No watermarks</li>
+                  <li>✅ Brand kit & batch generation</li>
+                </ul>
+                <p className="mt-2 text-[11px] text-amber-300/80">Included with Buyers Club Pro</p>
+              </div>
+            </div>
+          </div>
+        ) : (
+          <div className="rounded-2xl border border-amber-500/30 bg-gradient-to-br from-card to-emerald-950/40 p-4">
+            <div className="flex items-start gap-3">
+              <div className="grid h-10 w-10 shrink-0 place-items-center rounded-xl bg-amber-500/15 text-amber-300 text-lg">
+                🎯
+              </div>
+              <div className="flex-1 min-w-0">
+                <h3 className="font-display text-base text-amber-200">Flame Studio (Limited)</h3>
+                <p className="text-[11px] text-muted-foreground mt-0.5">Your limits this week (resets Monday)</p>
+                <ul className="mt-2 space-y-1 text-xs text-foreground/90">
+                  <li>• Graphics: <span className="font-semibold tabular-nums">{gfxRemaining}/{GFX_WEEKLY_LIMIT}</span> remaining</li>
+                  <li>• Slideshows: <span className="font-semibold tabular-nums">{videoRemaining}/{VIDEO_WEEKLY_LIMIT}</span> remaining</li>
+                </ul>
+                <div className="mt-3 rounded-xl border border-amber-400/30 bg-amber-500/10 p-3 space-y-2">
+                  <p className="text-xs text-amber-100">Want unlimited? Upgrade to <b>Buyers Club Pro</b> for R999/month.</p>
+                  <Button asChild size="sm" className="w-full bg-amber-500 text-black hover:bg-amber-400">
+                    <Link to="/spark-trade">View Buyers Club Tiers →</Link>
+                  </Button>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
+
         <Tabs defaultValue="text" className="w-full">
           <TabsList className="grid grid-cols-3 w-full bg-card/60 border border-amber-500/20">
             <TabsTrigger value="text" className="data-[state=active]:bg-amber-500/15 data-[state=active]:text-amber-200">
@@ -552,27 +603,6 @@ e.g. Modern apartment living room with LED cloud lamp glowing purple on coffee t
           </TabsContent>
         </Tabs>
 
-        {/* Flame Pro upgrade banner */}
-        <div className="relative overflow-hidden rounded-3xl border-2 border-amber-400/50 bg-gradient-to-br from-emerald-950 via-emerald-900 to-amber-950 p-5 shadow-[0_20px_60px_-20px_hsl(45_90%_50%/0.5)]">
-          <div className="absolute -right-10 -top-10 h-40 w-40 rounded-full bg-amber-400/20 blur-3xl" />
-          <div className="relative flex items-start gap-4">
-            <div className="grid h-12 w-12 shrink-0 place-items-center rounded-2xl bg-gradient-to-br from-amber-300 to-amber-600 text-emerald-950 shadow-lg">
-              <Crown className="h-6 w-6" />
-            </div>
-            <div className="flex-1 min-w-0">
-              <div className="flex items-center gap-2 flex-wrap">
-                <h3 className="font-display text-lg text-amber-200">🎬 Flame Pro</h3>
-                <span className="rounded-full bg-amber-400/20 border border-amber-400/40 px-2 py-0.5 text-[10px] font-semibold text-amber-200 uppercase tracking-wider">Coming Soon</span>
-              </div>
-              <p className="mt-1 text-sm text-amber-100/80">
-                Want AI video content + automated posting? Upgrade to <b>Flame Pro</b> for UGC reels, scheduled drops, and brand-kit visuals.
-              </p>
-              <div className="mt-3 flex items-center gap-1.5 text-xs text-amber-300/90">
-                <Sparkles className="h-3.5 w-3.5" /> Join waitlist when it drops
-              </div>
-            </div>
-          </div>
-        </div>
       </main>
 
       <BottomNav />
