@@ -1,12 +1,15 @@
 import { useEffect, useRef, useState } from "react";
-import { Loader2, Upload, X, GripVertical, Download, RefreshCw, Film } from "lucide-react";
+import { Link } from "react-router-dom";
+import { Loader2, Upload, X, GripVertical, Download, RefreshCw, Film, Crown, Lock } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Slider } from "@/components/ui/slider";
+import { Switch } from "@/components/ui/switch";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { toast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
+import type { FlameTier } from "@/hooks/useFlameTier";
 
 type SizeId = "square" | "vertical" | "landscape";
 const SIZES: { id: SizeId; label: string; w: number; h: number }[] = [
