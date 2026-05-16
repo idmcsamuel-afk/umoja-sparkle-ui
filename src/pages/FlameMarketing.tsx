@@ -408,10 +408,16 @@ export default function FlameMarketing() {
           <TabsContent value="graphics" className="space-y-5 mt-4">
             <Card className="p-4 space-y-5 border-amber-500/20 bg-card/80 backdrop-blur">
               <div className="flex items-center justify-between rounded-xl bg-black/30 border border-amber-500/15 px-3 py-2">
-                <span className="text-xs text-muted-foreground">Today's usage</span>
-                <span className={`text-xs font-semibold tabular-nums ${gfxAtLimit ? "text-destructive" : "text-amber-200"}`}>
-                  {gfxUsed}/{GFX_DAILY_LIMIT}
+                <span className="text-xs text-muted-foreground">
+                  {isPro ? "Buyers Club Pro" : "Graphics this week"}
                 </span>
+                {isPro ? (
+                  <span className="text-xs font-semibold text-amber-200">Unlimited ✨</span>
+                ) : (
+                  <span className={`text-xs font-semibold tabular-nums ${gfxAtLimit ? "text-destructive" : "text-amber-200"}`}>
+                    {gfxUsed}/{GFX_WEEKLY_LIMIT} <span className="text-muted-foreground font-normal">(resets Monday)</span>
+                  </span>
+                )}
               </div>
 
               <div>
