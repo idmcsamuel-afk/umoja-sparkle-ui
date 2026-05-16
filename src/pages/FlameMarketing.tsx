@@ -12,6 +12,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { TikTokSymphonyCard } from "@/components/umoja/flame/TikTokSymphonyCard";
 import { AvatarVideoCard } from "@/components/umoja/flame/AvatarVideoCard";
 import { SlideshowCreator } from "@/components/umoja/flame/SlideshowCreator";
+import { useFlameTier } from "@/hooks/useFlameTier";
 
 // ───────────────────────── TEXT GENERATOR ─────────────────────────
 
