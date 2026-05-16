@@ -54,7 +54,7 @@ export function AvatarVideoCard({ tier = "free" }: { tier?: FlameTier }) {
               R150 per video · or R399/month for 5
             </div>
           </div>
-          <Link to="/spark-trade" className="mt-3 block">
+          <Link to="/spark" className="mt-3 block">
             <Button variant="outline" className="w-full border-amber-400/50 text-amber-200">
               Upgrade to Pro to Unlock
             </Button>

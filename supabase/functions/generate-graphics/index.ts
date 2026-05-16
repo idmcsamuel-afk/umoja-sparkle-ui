@@ -65,7 +65,7 @@ Deno.serve(async (req) => {
           message: "Weekly limit reached (3/3). Upgrade to Buyers Club Pro for unlimited graphics.",
           used,
           limit: WEEKLY_LIMIT,
-          upgrade_url: "/spark-trade",
+          upgrade_url: "/spark",
         }, 429);
       }
     }
@@ -79,7 +79,6 @@ Deno.serve(async (req) => {
         n: 1,
         size,
         quality: "standard",
-        style,
       }),
     });
 
