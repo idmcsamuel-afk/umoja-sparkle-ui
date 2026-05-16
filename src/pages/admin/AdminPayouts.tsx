@@ -3,422 +3,707 @@ import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
+import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Loader2, CheckCircle2, ShieldAlert, ShieldCheck, Download, Search, Copy, Inbox } from "lucide-react";
-import { Checkbox } from "@/components/ui/checkbox";
-import { toast } from "sonner";
 import {
-  Dialog, DialogContent, DialogDescription, DialogFooter,
-  DialogHeader, DialogTitle,
+  Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
+} from "@/components/ui/select";
+import {
+  Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle, DialogDescription,
 } from "@/components/ui/dialog";
+import {
+  Table, TableBody, TableCell, TableHead, TableHeader, TableRow,
+} from "@/components/ui/table";
+import {
+  Loader2, CheckCircle2, XCircle, Eye, ShieldCheck, ShieldAlert,
+  Copy, Download, Plus, Calculator as CalcIcon,
+} from "lucide-react";
+import { toast } from "sonner";
 
-const PLATFORM_FEE = 0.02;
-const UBUNTU_FUND = 0.03;
+type Payout = {
+  id: string;
+  circle_id: string | null;
+  circle_tier: string | null;
+  member_id: string;
+  payout_amount: number;
+  payout_period: string;
+  status: string;
+  paid_at: string | null;
+  payment_reference: string | null;
+  notes: string | null;
+  created_at: string;
+  member?: { full_name: string | null; email: string | null; phone: string | null };
+  banking?: BankingRow | null;
+};
 
-const fmtR = (n: number) => "R" + Math.round(n).toLocaleString("en-ZA");
-
-interface Bid {
+type BankingRow = {
   id: string;
   member_id: string;
-  tier: string;
-  fiat_amount: number;
-  net_amount: number;
-  payout_amount: number | null;
-  payout_date: string | null;
-  status: string | null;
-  vault_end: string | null;
-  allocated_at: string | null;
-  priority_score: number | null;
-  payment_ref: string | null;
-  member?: { full_name: string; email: string | null; phone: string; kyc_level: number; bank_name: string | null; bank_account: string | null; branch_code?: string | null; account_holder?: string | null };
-}
+  bank_name: string;
+  account_holder_name: string;
+  account_number: string;
+  account_type: string | null;
+  branch_code: string | null;
+  verified: boolean;
+  member?: { full_name: string | null; email: string | null; phone: string | null };
+};
 
-const daysBetween = (iso?: string | null) => iso ? Math.max(0, Math.floor((Date.now() - new Date(iso).getTime()) / 86400000)) : 0;
+const fmtR = (n: number) =>
+  "R" + Number(n ?? 0).toLocaleString("en-ZA", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+
+const mask = (acc: string) =>
+  acc ? "•••• " + acc.slice(-4) : "—";
+
+const statusTone: Record<string, string> = {
+  pending: "bg-secondary text-muted-foreground",
+  processing: "bg-accent/15 text-accent-soft",
+  paid: "bg-primary/15 text-primary",
+  failed: "bg-destructive/15 text-destructive",
+};
 
 export default function AdminPayouts() {
-  const [pending, setPending] = useState<Bid[]>([]);
-  const [paid, setPaid] = useState<Bid[]>([]);
   const [loading, setLoading] = useState(true);
-  const [confirm, setConfirm] = useState<Bid | null>(null);
+  const [payouts, setPayouts] = useState<Payout[]>([]);
+  const [banking, setBanking] = useState<BankingRow[]>([]);
+  const [filterStatus, setFilterStatus] = useState<string>("all");
+  const [filterPeriod, setFilterPeriod] = useState<string>("all");
+  const [filterTier, setFilterTier] = useState<string>("all");
+
+  // dialogs
+  const [markPaid, setMarkPaid] = useState<Payout | null>(null);
+  const [markFailed, setMarkFailed] = useState<Payout | null>(null);
+  const [viewFull, setViewFull] = useState<Payout | null>(null);
+  const [viewBanking, setViewBanking] = useState<BankingRow | null>(null);
+  const [genOpen, setGenOpen] = useState(false);
+
   const [busy, setBusy] = useState(false);
-
-  // Mark-paid form
-  const [payAmount, setPayAmount] = useState("");
-  const [payMethod, setPayMethod] = useState<"EFT" | "Cash" | "Paystack">("EFT");
-  const [payRef, setPayRef] = useState("");
-  const [payDate, setPayDate] = useState(() => new Date().toISOString().slice(0, 10));
-
-  const [confirmCheck, setConfirmCheck] = useState(false);
-
-  // Filters
-  const [tierFilter, setTierFilter] = useState<"all" | "seed" | "growth" | "harvest">("all");
-  const [search, setSearch] = useState("");
-  const [dateRange, setDateRange] = useState<"7" | "30" | "90" | "all">("30");
 
   const load = async () => {
     setLoading(true);
-    const [{ data: matched }, { data: paidRows }] = await Promise.all([
-      supabase.from("circle_bids")
-        .select("id, member_id, tier, fiat_amount, net_amount, payout_amount, payout_date, status, vault_end, allocated_at, priority_score, payment_ref")
-        .eq("status", "matched")
-        .order("priority_score", { ascending: false, nullsFirst: false })
-        .limit(300),
-      supabase.from("circle_bids")
-        .select("id, member_id, tier, fiat_amount, net_amount, payout_amount, payout_date, status, vault_end, allocated_at, priority_score, payment_ref")
-        .eq("status", "paid")
-        .order("payout_date", { ascending: false })
-        .limit(200),
+    const [p, b] = await Promise.all([
+      supabase.from("circle_payouts").select("*").order("created_at", { ascending: false }),
+      supabase.from("member_banking_details").select("*").order("created_at", { ascending: false }),
     ]);
-    const all = [...(matched ?? []), ...(paidRows ?? [])];
-    const ids = Array.from(new Set(all.map((b: any) => b.member_id)));
-    let mm = new Map<string, any>();
-    if (ids.length) {
-      const { data: members } = await supabase.from("members")
-        .select("id, full_name, email, phone, kyc_level, bank_name, bank_account, bank_branch").in("id", ids);
-      mm = new Map((members ?? []).map((m: any) => [m.id, m]));
-    }
-    const join = (rows: any[]) => rows.map((b) => ({ ...b, member: mm.get(b.member_id) })) as Bid[];
-    setPending(join(matched ?? []));
-    setPaid(join(paidRows ?? []));
+    const memberIds = Array.from(new Set([
+      ...(p.data ?? []).map((x: any) => x.member_id),
+      ...(b.data ?? []).map((x: any) => x.member_id),
+    ]));
+    const { data: members } = memberIds.length
+      ? await supabase.from("members").select("id, full_name, email, phone").in("id", memberIds)
+      : { data: [] as any[] };
+    const mmap = new Map((members ?? []).map((m: any) => [m.id, m]));
+    const bmap = new Map((b.data ?? []).map((x: any) => [x.member_id, x]));
+    setPayouts((p.data ?? []).map((x: any) => ({
+      ...x,
+      member: mmap.get(x.member_id),
+      banking: bmap.get(x.member_id) ?? null,
+    })));
+    setBanking((b.data ?? []).map((x: any) => ({ ...x, member: mmap.get(x.member_id) })));
     setLoading(false);
   };
+
   useEffect(() => { load(); }, []);
 
-  const filtered = useMemo(() => {
-    const q = search.trim().toLowerCase();
-    return pending.filter(b =>
-      (tierFilter === "all" || b.tier === tierFilter) &&
-      (q === "" || (b.member?.full_name?.toLowerCase().includes(q) ?? false))
-    );
-  }, [pending, tierFilter, search]);
+  const periods = useMemo(
+    () => Array.from(new Set(payouts.map((p) => p.payout_period))).sort(),
+    [payouts],
+  );
+  const tiers = useMemo(
+    () => Array.from(new Set(payouts.map((p) => p.circle_tier).filter(Boolean))) as string[],
+    [payouts],
+  );
 
-  const paidFiltered = useMemo(() => {
-    if (dateRange === "all") return paid;
-    const days = Number(dateRange);
-    const cutoff = Date.now() - days * 86400000;
-    return paid.filter(b => b.payout_date && new Date(b.payout_date).getTime() >= cutoff);
-  }, [paid, dateRange]);
+  const pending = payouts.filter((p) => p.status === "pending" || p.status === "processing");
+  const history = payouts.filter((p) => {
+    if (filterStatus !== "all" && p.status !== filterStatus) return false;
+    if (filterPeriod !== "all" && p.payout_period !== filterPeriod) return false;
+    if (filterTier !== "all" && p.circle_tier !== filterTier) return false;
+    return true;
+  });
 
-  const kpis = useMemo(() => {
-    const gross = pending.reduce((s, b) => s + Number(b.fiat_amount ?? 0), 0);
-    const net = pending.reduce((s, b) => s + Number(b.payout_amount ?? b.net_amount ?? 0), 0);
-    const platform = +(gross * PLATFORM_FEE).toFixed(2);
-    const ubuntu = +(gross * UBUNTU_FUND).toFixed(2);
-    const oldest = pending.reduce((m, b) => Math.max(m, daysBetween(b.allocated_at)), 0);
-    return { net, platform, ubuntu, oldest, count: pending.length };
-  }, [pending]);
-
-  const openConfirm = (b: Bid) => {
-    if ((b.member?.kyc_level ?? 0) < 3) {
-      toast.error("Member not KYC verified — cannot process payout.");
-      return;
-    }
-    const gross = Number(b.fiat_amount ?? 0);
-    const net = +(gross * (1 - PLATFORM_FEE - UBUNTU_FUND)).toFixed(2);
-    setPayAmount(String(b.payout_amount ?? net));
-    setPayMethod("EFT");
-    setPayRef("");
-    setPayDate(new Date().toISOString().slice(0, 10));
-    setConfirmCheck(false);
-    setConfirm(b);
+  const doMarkPaid = async (ref: string, notes: string) => {
+    if (!markPaid) return;
+    if (!ref.trim()) { toast.error("Payment reference required"); return; }
+    setBusy(true);
+    const { error } = await supabase
+      .from("circle_payouts")
+      .update({
+        status: "paid",
+        paid_at: new Date().toISOString(),
+        payment_reference: ref.trim(),
+        notes: notes || null,
+      })
+      .eq("id", markPaid.id);
+    setBusy(false);
+    if (error) { toast.error(error.message); return; }
+    toast.success("Marked as paid");
+    setMarkPaid(null);
+    load();
   };
 
-  const markPaid = async () => {
-    if (!confirm) return;
-    if (!confirmCheck) return toast.error("Please confirm the payment was made");
-    const amt = Number(payAmount);
-    if (!Number.isFinite(amt) || amt <= 0) return toast.error("Enter a valid amount");
-    if (!payRef.trim()) return toast.error("Enter a payment reference");
+  const doMarkFailed = async (notes: string) => {
+    if (!markFailed) return;
     setBusy(true);
-    const { error } = await supabase.rpc("record_circle_payout", {
-      _bid_id: confirm.id,
-      _net_amount: amt,
-      _method: payMethod,
-      _reference: payRef.trim(),
-      _paid_on: new Date(payDate).toISOString(),
-    });
-    if (!error && confirm.member?.email) {
-      supabase.functions.invoke("send-email", {
-        body: {
-          template: "allocation_winner",
-          to: confirm.member.email,
-          member_id: confirm.member_id,
-          bypass_prefs: true,
-          data: {
-            name: confirm.member.full_name,
-            circle_name: `${confirm.tier} Circle`,
-            amount: Math.round(amt).toLocaleString("en-ZA"),
-            payout_date: new Date(payDate).toLocaleDateString("en-ZA"),
-          },
-        },
-      }).catch(() => {});
-    }
+    const { error } = await supabase
+      .from("circle_payouts")
+      .update({ status: "failed", notes: notes || null })
+      .eq("id", markFailed.id);
     setBusy(false);
-    if (error) return toast.error(error.message);
-    toast.success(`Payment recorded for ${confirm.member?.full_name ?? "member"}`);
-    setConfirm(null);
+    if (error) { toast.error(error.message); return; }
+    toast.success("Marked as failed");
+    setMarkFailed(null);
+    load();
+  };
+
+  const verifyBanking = async (row: BankingRow) => {
+    const { error } = await supabase
+      .from("member_banking_details")
+      .update({ verified: true })
+      .eq("id", row.id);
+    if (error) { toast.error(error.message); return; }
+    // best-effort notification
+    await supabase.from("notifications").insert({
+      member_id: row.member_id,
+      title: "Banking details verified ✅",
+      body: "Your bank account has been verified. You're ready to receive payouts.",
+      kind: "payout",
+      link: "/profile/banking",
+    }).then(() => {}, () => {});
+    toast.success("Verified & notified member");
+    load();
+  };
+
+  const flagBanking = async (row: BankingRow) => {
+    const { error } = await supabase
+      .from("member_banking_details")
+      .update({ verified: false })
+      .eq("id", row.id);
+    if (error) { toast.error(error.message); return; }
+    toast.success("Flagged for review");
     load();
   };
 
   const exportCsv = () => {
-    const rows = [["Date", "Member", "Tier", "Amount", "Method/Ref"]];
-    paid.forEach((b) => {
-      rows.push([
-        b.payout_date ? new Date(b.payout_date).toLocaleDateString() : "",
-        b.member?.full_name ?? b.member_id,
-        b.tier,
-        String(b.payout_amount ?? b.net_amount ?? ""),
-        b.payment_ref ?? "",
-      ]);
-    });
+    const rows = [
+      ["Period", "Tier", "Member", "Email", "Amount", "Status", "Paid At", "Reference"],
+      ...history.map((p) => [
+        p.payout_period,
+        p.circle_tier ?? "",
+        p.member?.full_name ?? "",
+        p.member?.email ?? "",
+        String(p.payout_amount),
+        p.status,
+        p.paid_at ?? "",
+        p.payment_reference ?? "",
+      ]),
+    ];
     const csv = rows.map((r) => r.map((c) => `"${String(c).replace(/"/g, '""')}"`).join(",")).join("\n");
     const blob = new Blob([csv], { type: "text/csv" });
     const url = URL.createObjectURL(blob);
     const a = document.createElement("a");
-    a.href = url; a.download = `umoja-payouts-${new Date().toISOString().slice(0, 10)}.csv`;
-    a.click();
+    a.href = url; a.download = `payouts-${new Date().toISOString().slice(0, 10)}.csv`; a.click();
     URL.revokeObjectURL(url);
   };
 
   return (
-    <div>
-      <h1 className="font-display text-3xl">Manual payouts</h1>
-      <p className="text-sm text-muted-foreground mt-1">Track, calculate fees, and record member payouts.</p>
-
-      {/* KPI cards */}
-      <div className="mt-6 grid grid-cols-2 lg:grid-cols-5 gap-3">
-        {[
-          { label: "Total pending (net)", value: fmtR(kpis.net) },
-          { label: "Members waiting", value: String(kpis.count) },
-          { label: "Oldest pending", value: `${kpis.oldest}d` },
-          { label: "Platform fees due", value: fmtR(kpis.platform) },
-          { label: "Ubuntu fund due", value: fmtR(kpis.ubuntu) },
-        ].map((k) => (
-          <div key={k.label} className="rounded-3xl border border-border bg-gradient-card p-4">
-            <p className="text-[10px] uppercase tracking-wider text-muted-foreground">{k.label}</p>
-            <p className="mt-2 font-display text-2xl text-gradient-gold">{k.value}</p>
-          </div>
-        ))}
+    <div className="space-y-6">
+      <div className="flex items-center justify-between gap-3 flex-wrap">
+        <div>
+          <p className="text-[11px] uppercase tracking-[0.22em] text-accent">Admin</p>
+          <h1 className="font-display text-3xl">Circle payouts</h1>
+        </div>
+        <Button onClick={() => setGenOpen(true)} className="rounded-2xl bg-gradient-primary text-primary-foreground">
+          <Plus className="h-4 w-4 mr-2" /> Generate payouts
+        </Button>
       </div>
 
-      <Tabs defaultValue="pending" className="mt-6">
-        <TabsList className="rounded-2xl bg-secondary/60 p-1 h-12">
-          <TabsTrigger value="pending" className="rounded-xl px-5">Pending ({pending.length})</TabsTrigger>
-          <TabsTrigger value="paid" className="rounded-xl px-5">Paid history ({paid.length})</TabsTrigger>
-        </TabsList>
+      {loading ? (
+        <div className="flex justify-center py-20"><Loader2 className="h-6 w-6 animate-spin text-primary" /></div>
+      ) : (
+        <Tabs defaultValue="pending">
+          <TabsList>
+            <TabsTrigger value="pending">Pending ({pending.length})</TabsTrigger>
+            <TabsTrigger value="history">History</TabsTrigger>
+            <TabsTrigger value="banking">Banking ({banking.length})</TabsTrigger>
+          </TabsList>
 
-        <TabsContent value="pending" className="mt-5">
-          <div className="flex flex-wrap items-center gap-2 mb-3">
-            <div className="relative flex-1 min-w-[200px]">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-              <Input value={search} onChange={(e) => setSearch(e.target.value)} placeholder="Search member name…" className="pl-9 h-10 rounded-xl" />
+          {/* PENDING */}
+          <TabsContent value="pending" className="mt-4">
+            <div className="rounded-2xl border border-border overflow-x-auto bg-gradient-card">
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Period</TableHead>
+                    <TableHead>Circle</TableHead>
+                    <TableHead>Member</TableHead>
+                    <TableHead>Amount</TableHead>
+                    <TableHead>Status</TableHead>
+                    <TableHead>Bank</TableHead>
+                    <TableHead className="text-right">Actions</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {pending.length === 0 ? (
+                    <TableRow><TableCell colSpan={7} className="text-center text-muted-foreground py-8">No pending payouts.</TableCell></TableRow>
+                  ) : pending.map((p) => (
+                    <TableRow key={p.id}>
+                      <TableCell className="font-medium">{p.payout_period}</TableCell>
+                      <TableCell className="capitalize">{p.circle_tier ?? "—"}</TableCell>
+                      <TableCell>
+                        <div className="text-sm">{p.member?.full_name ?? "—"}</div>
+                        <div className="text-xs text-muted-foreground">{p.member?.email}</div>
+                      </TableCell>
+                      <TableCell className="font-display text-gradient-gold">{fmtR(p.payout_amount)}</TableCell>
+                      <TableCell><Badge className={`${statusTone[p.status]} border-0 capitalize`}>{p.status}</Badge></TableCell>
+                      <TableCell className="text-xs">
+                        {p.banking ? (
+                          <div>
+                            <div>{p.banking.bank_name}</div>
+                            <div className="text-muted-foreground">{mask(p.banking.account_number)}</div>
+                          </div>
+                        ) : <span className="text-destructive">Missing</span>}
+                      </TableCell>
+                      <TableCell className="text-right whitespace-nowrap">
+                        <Button size="sm" variant="outline" onClick={() => setViewFull(p)} className="mr-1"><Eye className="h-3.5 w-3.5" /></Button>
+                        <Button size="sm" onClick={() => setMarkPaid(p)} className="mr-1 bg-primary text-primary-foreground">
+                          <CheckCircle2 className="h-3.5 w-3.5 mr-1" /> Paid
+                        </Button>
+                        <Button size="sm" variant="destructive" onClick={() => setMarkFailed(p)}>
+                          <XCircle className="h-3.5 w-3.5" />
+                        </Button>
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
             </div>
-            <select value={tierFilter} onChange={(e) => setTierFilter(e.target.value as any)} className="h-10 rounded-xl border border-border bg-secondary/60 px-3 text-sm">
-              <option value="all">All tiers</option>
-              <option value="seed">Seed</option>
-              <option value="growth">Growth</option>
-              <option value="harvest">Harvest</option>
-            </select>
-          </div>
+          </TabsContent>
 
-          {loading ? (
-            <div className="mt-10 grid place-items-center"><Loader2 className="h-6 w-6 animate-spin text-primary" /></div>
-          ) : (
-            <div className="rounded-3xl border border-border bg-gradient-card overflow-x-auto">
-              <table className="w-full text-sm min-w-[900px]">
-                <thead>
-                  <tr className="text-[10px] uppercase tracking-[0.18em] text-muted-foreground border-b border-border">
-                    <th className="text-left p-3">Member</th>
-                    <th className="text-left p-3">Tier</th>
-                    <th className="text-right p-3">Gross</th>
-                    <th className="text-right p-3">Fees</th>
-                    <th className="text-right p-3">Net payout</th>
-                    <th className="text-left p-3">Matched</th>
-                    <th className="text-right p-3">Score</th>
-                    <th className="text-left p-3">Bank</th>
-                    <th className="text-right p-3">Action</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {filtered.map((r) => {
-                    const gross = Number(r.fiat_amount ?? 0);
-                    const platform = +(gross * PLATFORM_FEE).toFixed(2);
-                    const ubuntu = +(gross * UBUNTU_FUND).toFixed(2);
-                    const net = Number(r.payout_amount ?? r.net_amount ?? +(gross * 0.95).toFixed(2));
-                    const verified = (r.member?.kyc_level ?? 0) >= 3;
-                    return (
-                      <tr key={r.id} className="border-b border-border/50 last:border-0">
-                        <td className="p-3">
-                          <div className="font-medium">{r.member?.full_name ?? r.member_id.slice(0, 8) + "…"}</div>
-                          <div className="text-[11px] text-muted-foreground">{r.member?.email ?? r.member?.phone}</div>
-                        </td>
-                        <td className="p-3 capitalize">{r.tier}</td>
-                        <td className="p-3 text-right">{fmtR(gross)}</td>
-                        <td className="p-3 text-right text-[11px] text-muted-foreground">
-                          <div>−{fmtR(platform)} platform</div>
-                          <div>−{fmtR(ubuntu)} ubuntu</div>
-                        </td>
-                        <td className="p-3 text-right text-accent-soft font-medium">{fmtR(net)}</td>
-                        <td className="p-3 text-xs">
-                          {r.allocated_at ? new Date(r.allocated_at).toLocaleDateString() : "—"}
-                          <div className="text-muted-foreground">{daysBetween(r.allocated_at)}d ago</div>
-                        </td>
-                        <td className="p-3 text-right">{r.priority_score != null ? Number(r.priority_score).toFixed(1) : "—"}</td>
-                        <td className="p-3 text-[11px]">
-                          <div>{r.member?.bank_name ?? "—"}</div>
-                          <div className="text-muted-foreground">{r.member?.bank_account ? "•••• " + r.member.bank_account.slice(-4) : ""}</div>
-                        </td>
-                        <td className="p-3 text-right">
-                          {verified ? (
-                            <Button size="sm" className="bg-gradient-gold text-amber-950 hover:opacity-95" onClick={() => openConfirm(r)}>
-                              <CheckCircle2 className="h-3.5 w-3.5 mr-1" /> Mark paid
-                            </Button>
-                          ) : (
-                            <span className="text-[11px] text-destructive inline-flex items-center gap-1">
-                              <ShieldAlert className="h-3 w-3" /> Not verified
-                            </span>
-                          )}
-                        </td>
-                      </tr>
-                    );
-                  })}
-                  {filtered.length === 0 && (
-                    <tr><td colSpan={9} className="p-8 text-center text-sm text-muted-foreground">No pending payouts.</td></tr>
-                  )}
-                </tbody>
-              </table>
-            </div>
-          )}
-        </TabsContent>
-
-        <TabsContent value="paid" className="mt-5">
-          <div className="flex flex-wrap items-center justify-between gap-2 mb-3">
-            <select
-              value={dateRange}
-              onChange={(e) => setDateRange(e.target.value as any)}
-              className="h-10 rounded-xl border border-border bg-secondary/60 px-3 text-sm"
-            >
-              <option value="7">Last 7 days</option>
-              <option value="30">Last 30 days</option>
-              <option value="90">Last 90 days</option>
-              <option value="all">All time</option>
-            </select>
-            <Button variant="outline" onClick={exportCsv} className="rounded-xl">
-              <Download className="h-4 w-4 mr-1.5" /> Export CSV
-            </Button>
-          </div>
-          <div className="rounded-3xl border border-border bg-gradient-card overflow-x-auto">
-            <table className="w-full text-sm min-w-[700px]">
-              <thead>
-                <tr className="text-[10px] uppercase tracking-[0.18em] text-muted-foreground border-b border-border">
-                  <th className="text-left p-3">Paid date</th>
-                  <th className="text-left p-3">Member</th>
-                  <th className="text-left p-3">Tier</th>
-                  <th className="text-right p-3">Amount</th>
-                  <th className="text-left p-3">Reference</th>
-                </tr>
-              </thead>
-              <tbody>
-                {paidFiltered.map((r) => (
-                  <tr key={r.id} className="border-b border-border/50 last:border-0">
-                    <td className="p-3 text-xs">{r.payout_date ? new Date(r.payout_date).toLocaleString() : "—"}</td>
-                    <td className="p-3">{r.member?.full_name ?? r.member_id.slice(0, 8) + "…"}</td>
-                    <td className="p-3 capitalize">{r.tier}</td>
-                    <td className="p-3 text-right text-accent-soft">{fmtR(Number(r.payout_amount ?? r.net_amount ?? 0))}</td>
-                    <td className="p-3 text-xs text-muted-foreground">{r.payment_ref ?? "—"}</td>
-                  </tr>
-                ))}
-                {paidFiltered.length === 0 && (
-                  <tr><td colSpan={5} className="p-10 text-center text-sm text-muted-foreground">
-                    <Inbox className="h-6 w-6 mx-auto mb-2 opacity-60" />
-                    No payments found in this period.
-                  </td></tr>
-                )}
-              </tbody>
-            </table>
-          </div>
-        </TabsContent>
-      </Tabs>
-
-      {/* Fast-track modal */}
-      <Dialog open={!!confirm} onOpenChange={(o) => !o && !busy && setConfirm(null)}>
-        <DialogContent className="max-w-md rounded-3xl max-h-[90vh] overflow-y-auto">
-          <DialogHeader>
-            <DialogTitle>Fast-track payout {confirm ? `for ${confirm.member?.full_name ?? "member"}` : ""}</DialogTitle>
-            <DialogDescription>
-              {confirm && (
-                <>Confirm the <b className="capitalize">{confirm.tier}</b> circle payout below.</>
-              )}
-            </DialogDescription>
-          </DialogHeader>
-          {confirm && (() => {
-            const gross = Number(confirm.fiat_amount ?? 0);
-            const platform = +(gross * PLATFORM_FEE).toFixed(2);
-            const ubuntu = +(gross * UBUNTU_FUND).toFixed(2);
-            const net = +(gross - platform - ubuntu).toFixed(2);
-            return (
-              <div className="rounded-2xl border border-border bg-secondary/30 p-3 text-sm">
-                <div className="flex justify-between"><span className="text-muted-foreground">Gross amount</span><span>{fmtR(gross)}</span></div>
-                <div className="flex justify-between text-muted-foreground"><span>Platform fee (2%)</span><span>−{fmtR(platform)}</span></div>
-                <div className="flex justify-between text-muted-foreground"><span>Ubuntu fund (3%)</span><span>−{fmtR(ubuntu)}</span></div>
-                <div className="border-t border-border my-2" />
-                <div className="flex justify-between font-semibold text-accent-soft text-base"><span>Net payout</span><span>{fmtR(net)}</span></div>
-              </div>
-            );
-          })()}
-          {confirm && payMethod === "EFT" && (confirm.member?.bank_name || confirm.member?.bank_account) && (
-            <div className="rounded-2xl border border-border bg-background/40 p-3 text-xs space-y-1">
-              <div className="flex justify-between"><span className="text-muted-foreground">Bank</span><span>{confirm.member?.bank_name ?? "—"}</span></div>
-              <div className="flex justify-between"><span className="text-muted-foreground">Account</span><span>{confirm.member?.bank_account ?? "—"}</span></div>
-              <div className="flex justify-between"><span className="text-muted-foreground">Branch</span><span>{(confirm.member as any)?.bank_branch ?? "—"}</span></div>
-              <div className="flex justify-between"><span className="text-muted-foreground">Holder</span><span>{confirm.member?.full_name ?? "—"}</span></div>
-              <Button
-                type="button" size="sm" variant="ghost"
-                className="mt-1 h-7 px-2 text-[11px]"
-                onClick={() => {
-                  const m: any = confirm.member ?? {};
-                  const txt = `Bank: ${m.bank_name ?? ""}\nAccount: ${m.bank_account ?? ""}\nBranch: ${m.bank_branch ?? ""}\nHolder: ${m.full_name ?? ""}`;
-                  navigator.clipboard.writeText(txt).then(() => toast.success("Bank details copied"));
-                }}
-              >
-                <Copy className="h-3 w-3 mr-1" /> Copy bank details
+          {/* HISTORY */}
+          <TabsContent value="history" className="mt-4 space-y-3">
+            <div className="flex flex-wrap gap-2 items-center">
+              <Select value={filterStatus} onValueChange={setFilterStatus}>
+                <SelectTrigger className="w-[160px]"><SelectValue placeholder="Status" /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All statuses</SelectItem>
+                  <SelectItem value="pending">Pending</SelectItem>
+                  <SelectItem value="processing">Processing</SelectItem>
+                  <SelectItem value="paid">Paid</SelectItem>
+                  <SelectItem value="failed">Failed</SelectItem>
+                </SelectContent>
+              </Select>
+              <Select value={filterPeriod} onValueChange={setFilterPeriod}>
+                <SelectTrigger className="w-[180px]"><SelectValue placeholder="Period" /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All periods</SelectItem>
+                  {periods.map((p) => <SelectItem key={p} value={p}>{p}</SelectItem>)}
+                </SelectContent>
+              </Select>
+              <Select value={filterTier} onValueChange={setFilterTier}>
+                <SelectTrigger className="w-[160px]"><SelectValue placeholder="Circle" /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All circles</SelectItem>
+                  {tiers.map((t) => <SelectItem key={t} value={t} className="capitalize">{t}</SelectItem>)}
+                </SelectContent>
+              </Select>
+              <Button variant="outline" onClick={exportCsv} className="ml-auto">
+                <Download className="h-4 w-4 mr-2" /> Export CSV
               </Button>
             </div>
-          )}
-          <div className="space-y-3">
-            <div>
-              <Label className="text-xs">Net amount (R)</Label>
-              <Input type="number" value={payAmount} onChange={(e) => setPayAmount(e.target.value)} className="mt-1 h-11 rounded-xl" />
+
+            <div className="rounded-2xl border border-border overflow-x-auto bg-gradient-card">
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Period</TableHead>
+                    <TableHead>Circle</TableHead>
+                    <TableHead>Member</TableHead>
+                    <TableHead>Amount</TableHead>
+                    <TableHead>Status</TableHead>
+                    <TableHead>Paid</TableHead>
+                    <TableHead>Reference</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {history.length === 0 ? (
+                    <TableRow><TableCell colSpan={7} className="text-center text-muted-foreground py-8">No payouts match these filters.</TableCell></TableRow>
+                  ) : history.map((p) => (
+                    <TableRow key={p.id}>
+                      <TableCell>{p.payout_period}</TableCell>
+                      <TableCell className="capitalize">{p.circle_tier ?? "—"}</TableCell>
+                      <TableCell>
+                        <div>{p.member?.full_name ?? "—"}</div>
+                        <div className="text-xs text-muted-foreground">{p.member?.email}</div>
+                      </TableCell>
+                      <TableCell>{fmtR(p.payout_amount)}</TableCell>
+                      <TableCell><Badge className={`${statusTone[p.status]} border-0 capitalize`}>{p.status}</Badge></TableCell>
+                      <TableCell className="text-xs">{p.paid_at ? new Date(p.paid_at).toLocaleDateString() : "—"}</TableCell>
+                      <TableCell className="text-xs font-mono">{p.payment_reference ?? "—"}</TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
             </div>
-            <div>
-              <Label className="text-xs">Payment method</Label>
-              <select value={payMethod} onChange={(e) => setPayMethod(e.target.value as any)} className="mt-1 w-full h-11 rounded-xl border border-border bg-secondary/60 px-3 text-sm">
-                <option value="EFT">EFT Transfer</option>
-                <option value="Cash">Cash Payment</option>
-                <option value="Paystack">Paystack Transfer</option>
-              </select>
+          </TabsContent>
+
+          {/* BANKING */}
+          <TabsContent value="banking" className="mt-4">
+            <div className="rounded-2xl border border-border overflow-x-auto bg-gradient-card">
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Member</TableHead>
+                    <TableHead>Bank</TableHead>
+                    <TableHead>Account</TableHead>
+                    <TableHead>Type</TableHead>
+                    <TableHead>Status</TableHead>
+                    <TableHead className="text-right">Actions</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {banking.length === 0 ? (
+                    <TableRow><TableCell colSpan={6} className="text-center text-muted-foreground py-8">No banking details on file.</TableCell></TableRow>
+                  ) : banking.map((b) => (
+                    <TableRow key={b.id}>
+                      <TableCell>
+                        <div>{b.member?.full_name ?? "—"}</div>
+                        <div className="text-xs text-muted-foreground">{b.member?.email}</div>
+                      </TableCell>
+                      <TableCell>{b.bank_name}</TableCell>
+                      <TableCell className="font-mono text-xs">{mask(b.account_number)}</TableCell>
+                      <TableCell className="capitalize">{b.account_type ?? "—"}</TableCell>
+                      <TableCell>
+                        {b.verified ? (
+                          <Badge className="bg-primary/15 text-primary border-0"><ShieldCheck className="h-3 w-3 mr-1" />Verified</Badge>
+                        ) : (
+                          <Badge className="bg-accent/15 text-accent-soft border-0"><ShieldAlert className="h-3 w-3 mr-1" />Pending</Badge>
+                        )}
+                      </TableCell>
+                      <TableCell className="text-right whitespace-nowrap">
+                        <Button size="sm" variant="outline" onClick={() => setViewBanking(b)} className="mr-1"><Eye className="h-3.5 w-3.5" /></Button>
+                        {!b.verified ? (
+                          <Button size="sm" onClick={() => verifyBanking(b)} className="bg-primary text-primary-foreground">Verify</Button>
+                        ) : (
+                          <Button size="sm" variant="outline" onClick={() => flagBanking(b)}>Flag</Button>
+                        )}
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
             </div>
-            <div>
-              <Label className="text-xs">Payment reference</Label>
-              <Input value={payRef} onChange={(e) => setPayRef(e.target.value)} placeholder="EFT reference, receipt no…" className="mt-1 h-11 rounded-xl" />
-            </div>
-            <div>
-              <Label className="text-xs">Payment date</Label>
-              <Input type="date" value={payDate} onChange={(e) => setPayDate(e.target.value)} className="mt-1 h-11 rounded-xl" />
-            </div>
-            <label className="flex items-start gap-2 text-xs cursor-pointer">
-              <Checkbox checked={confirmCheck} onCheckedChange={(v) => setConfirmCheck(!!v)} className="mt-0.5" />
-              <span>I confirm payment of <b>R{Math.round(Number(payAmount) || 0).toLocaleString("en-ZA")}</b> has been made to this member.</span>
-            </label>
-          </div>
-          <DialogFooter>
-            <Button variant="ghost" disabled={busy} onClick={() => setConfirm(null)}>Cancel</Button>
-            <Button disabled={busy || !confirmCheck} onClick={markPaid} className="bg-gradient-gold text-amber-950">
-              {busy ? <Loader2 className="h-4 w-4 animate-spin" /> : "Process payout"}
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+          </TabsContent>
+        </Tabs>
+      )}
+
+      {/* MARK PAID */}
+      <MarkPaidDialog
+        payout={markPaid}
+        onClose={() => setMarkPaid(null)}
+        onConfirm={doMarkPaid}
+        busy={busy}
+      />
+
+      {/* MARK FAILED */}
+      <MarkFailedDialog
+        payout={markFailed}
+        onClose={() => setMarkFailed(null)}
+        onConfirm={doMarkFailed}
+        busy={busy}
+      />
+
+      {/* VIEW FULL */}
+      <ViewFullDialog payout={viewFull} onClose={() => setViewFull(null)} />
+      <ViewBankingDialog row={viewBanking} onClose={() => setViewBanking(null)} />
+
+      {/* GENERATE */}
+      <GenerateDialog open={genOpen} onClose={() => { setGenOpen(false); load(); }} />
     </div>
+  );
+}
+
+// ---------- Dialogs ----------
+
+function MarkPaidDialog({ payout, onClose, onConfirm, busy }: { payout: Payout | null; onClose: () => void; onConfirm: (ref: string, notes: string) => void; busy: boolean }) {
+  const [ref, setRef] = useState("");
+  const [notes, setNotes] = useState("");
+  useEffect(() => { if (payout) { setRef(""); setNotes(""); } }, [payout]);
+  return (
+    <Dialog open={!!payout} onOpenChange={(v) => !v && onClose()}>
+      <DialogContent>
+        <DialogHeader>
+          <DialogTitle>Mark as paid</DialogTitle>
+          <DialogDescription>
+            {payout && <>Confirm payment of <b>{fmtR(payout.payout_amount)}</b> to {payout.member?.full_name} for {payout.payout_period}.</>}
+          </DialogDescription>
+        </DialogHeader>
+        <div className="space-y-3">
+          <div className="space-y-2">
+            <Label>Payment reference *</Label>
+            <Input value={ref} onChange={(e) => setRef(e.target.value)} placeholder="EFT reference / bank confirmation" />
+          </div>
+          <div className="space-y-2">
+            <Label>Notes (optional)</Label>
+            <Textarea value={notes} onChange={(e) => setNotes(e.target.value)} placeholder="Internal notes" />
+          </div>
+        </div>
+        <DialogFooter>
+          <Button variant="outline" onClick={onClose}>Cancel</Button>
+          <Button disabled={busy} onClick={() => onConfirm(ref, notes)} className="bg-primary text-primary-foreground">
+            {busy ? <Loader2 className="h-4 w-4 animate-spin" /> : "Confirm paid"}
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
+function MarkFailedDialog({ payout, onClose, onConfirm, busy }: { payout: Payout | null; onClose: () => void; onConfirm: (notes: string) => void; busy: boolean }) {
+  const [notes, setNotes] = useState("");
+  useEffect(() => { if (payout) setNotes(""); }, [payout]);
+  return (
+    <Dialog open={!!payout} onOpenChange={(v) => !v && onClose()}>
+      <DialogContent>
+        <DialogHeader>
+          <DialogTitle>Mark as failed</DialogTitle>
+          <DialogDescription>Record why this payout couldn't be sent.</DialogDescription>
+        </DialogHeader>
+        <Textarea value={notes} onChange={(e) => setNotes(e.target.value)} placeholder="Reason (e.g. invalid account)" />
+        <DialogFooter>
+          <Button variant="outline" onClick={onClose}>Cancel</Button>
+          <Button disabled={busy} variant="destructive" onClick={() => onConfirm(notes)}>
+            {busy ? <Loader2 className="h-4 w-4 animate-spin" /> : "Confirm failed"}
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
+function ViewFullDialog({ payout, onClose }: { payout: Payout | null; onClose: () => void }) {
+  const [history, setHistory] = useState<Payout[]>([]);
+  useEffect(() => {
+    if (!payout) return;
+    supabase.from("circle_payouts").select("*").eq("member_id", payout.member_id)
+      .order("created_at", { ascending: false }).limit(20)
+      .then(({ data }) => setHistory((data ?? []) as Payout[]));
+  }, [payout]);
+  if (!payout) return null;
+  const b = payout.banking;
+  return (
+    <Dialog open onOpenChange={(v) => !v && onClose()}>
+      <DialogContent className="max-w-2xl">
+        <DialogHeader>
+          <DialogTitle>{payout.member?.full_name ?? "Member"} · {payout.payout_period}</DialogTitle>
+          <DialogDescription>Full payout details</DialogDescription>
+        </DialogHeader>
+        <div className="grid sm:grid-cols-2 gap-3">
+          <div className="rounded-2xl border border-border p-4">
+            <p className="text-[10px] uppercase tracking-wider text-muted-foreground">Amount</p>
+            <p className="font-display text-2xl text-gradient-gold">{fmtR(payout.payout_amount)}</p>
+          </div>
+          <div className="rounded-2xl border border-border p-4">
+            <p className="text-[10px] uppercase tracking-wider text-muted-foreground">Status</p>
+            <Badge className={`${statusTone[payout.status]} border-0 capitalize mt-1`}>{payout.status}</Badge>
+          </div>
+        </div>
+
+        <div className="rounded-2xl border border-border p-4 space-y-1 text-sm">
+          <p className="text-[10px] uppercase tracking-wider text-muted-foreground mb-2">Contact</p>
+          <div className="flex justify-between"><span className="text-muted-foreground">Email</span><span>{payout.member?.email ?? "—"}</span></div>
+          <div className="flex justify-between"><span className="text-muted-foreground">Phone</span><span>{payout.member?.phone ?? "—"}</span></div>
+          <div className="flex justify-between"><span className="text-muted-foreground">Circle</span><span className="capitalize">{payout.circle_tier ?? "—"}</span></div>
+        </div>
+
+        <div className="rounded-2xl border border-border p-4 space-y-1 text-sm">
+          <div className="flex items-center justify-between mb-2">
+            <p className="text-[10px] uppercase tracking-wider text-muted-foreground">Banking</p>
+            {b?.verified && <Badge className="bg-primary/15 text-primary border-0 text-[10px]">Verified</Badge>}
+          </div>
+          {!b ? <p className="text-destructive text-xs">No banking details on file.</p> : (
+            <>
+              <div className="flex justify-between"><span className="text-muted-foreground">Bank</span><span>{b.bank_name}</span></div>
+              <div className="flex justify-between"><span className="text-muted-foreground">Holder</span><span>{b.account_holder_name}</span></div>
+              <div className="flex justify-between items-center">
+                <span className="text-muted-foreground">Account</span>
+                <span className="font-mono flex items-center gap-2">
+                  {b.account_number}
+                  <button onClick={() => { navigator.clipboard.writeText(b.account_number); toast.success("Copied"); }} className="text-muted-foreground hover:text-foreground">
+                    <Copy className="h-3 w-3" />
+                  </button>
+                </span>
+              </div>
+              <div className="flex justify-between"><span className="text-muted-foreground">Branch</span><span className="font-mono">{b.branch_code ?? "—"}</span></div>
+              <div className="flex justify-between"><span className="text-muted-foreground">Type</span><span className="capitalize">{b.account_type ?? "—"}</span></div>
+            </>
+          )}
+        </div>
+
+        {history.length > 1 && (
+          <div className="rounded-2xl border border-border p-4">
+            <p className="text-[10px] uppercase tracking-wider text-muted-foreground mb-2">Previous payouts</p>
+            <ul className="divide-y divide-border max-h-48 overflow-auto">
+              {history.filter((h) => h.id !== payout.id).map((h) => (
+                <li key={h.id} className="flex justify-between py-2 text-sm">
+                  <span>{h.payout_period}</span>
+                  <span className="text-muted-foreground capitalize">{h.status}</span>
+                  <span>{fmtR(h.payout_amount)}</span>
+                </li>
+              ))}
+            </ul>
+          </div>
+        )}
+      </DialogContent>
+    </Dialog>
+  );
+}
+
+function ViewBankingDialog({ row, onClose }: { row: BankingRow | null; onClose: () => void }) {
+  if (!row) return null;
+  return (
+    <Dialog open onOpenChange={(v) => !v && onClose()}>
+      <DialogContent>
+        <DialogHeader>
+          <DialogTitle>{row.member?.full_name ?? "Member"}</DialogTitle>
+          <DialogDescription>{row.member?.email}</DialogDescription>
+        </DialogHeader>
+        <div className="rounded-2xl border border-border p-4 space-y-1 text-sm">
+          <div className="flex justify-between"><span className="text-muted-foreground">Bank</span><span>{row.bank_name}</span></div>
+          <div className="flex justify-between"><span className="text-muted-foreground">Holder</span><span>{row.account_holder_name}</span></div>
+          <div className="flex justify-between items-center">
+            <span className="text-muted-foreground">Account</span>
+            <span className="font-mono flex items-center gap-2">
+              {row.account_number}
+              <button onClick={() => { navigator.clipboard.writeText(row.account_number); toast.success("Copied"); }} className="text-muted-foreground hover:text-foreground">
+                <Copy className="h-3 w-3" />
+              </button>
+            </span>
+          </div>
+          <div className="flex justify-between"><span className="text-muted-foreground">Branch</span><span className="font-mono">{row.branch_code ?? "—"}</span></div>
+          <div className="flex justify-between"><span className="text-muted-foreground">Type</span><span className="capitalize">{row.account_type ?? "—"}</span></div>
+          <div className="flex justify-between"><span className="text-muted-foreground">Verified</span><span>{row.verified ? "Yes" : "No"}</span></div>
+        </div>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
+function GenerateDialog({ open, onClose }: { open: boolean; onClose: () => void }) {
+  const [period, setPeriod] = useState(() => {
+    const d = new Date();
+    return d.toLocaleString("en-ZA", { month: "long", year: "numeric" });
+  });
+  const [tier, setTier] = useState<string>("all");
+  const [preview, setPreview] = useState<{ member_id: string; full_name: string; tier: string; bid_id: string; amount: number }[] | null>(null);
+  const [busy, setBusy] = useState(false);
+
+  const calculate = async () => {
+    setBusy(true);
+    let q = supabase
+      .from("circle_bids")
+      .select("id, member_id, tier, payout_amount")
+      .eq("status", "matched")
+      .not("payout_amount", "is", null);
+    if (tier !== "all") q = q.eq("tier", tier);
+    const { data, error } = await q;
+    setBusy(false);
+    if (error) { toast.error(error.message); return; }
+    const memberIds = Array.from(new Set((data ?? []).map((d: any) => d.member_id)));
+    const { data: members } = memberIds.length
+      ? await supabase.from("members").select("id, full_name").in("id", memberIds)
+      : { data: [] as any[] };
+    const mmap = new Map((members ?? []).map((m: any) => [m.id, m.full_name]));
+    setPreview((data ?? []).map((d: any) => ({
+      member_id: d.member_id,
+      full_name: mmap.get(d.member_id) ?? "Member",
+      tier: d.tier,
+      bid_id: d.id,
+      amount: Number(d.payout_amount),
+    })));
+  };
+
+  const confirm = async () => {
+    if (!preview?.length) return;
+    setBusy(true);
+    const rows = preview.map((p) => ({
+      member_id: p.member_id,
+      circle_id: p.bid_id,
+      circle_tier: p.tier,
+      payout_amount: p.amount,
+      payout_period: period,
+      status: "pending",
+    }));
+    const { error } = await supabase.from("circle_payouts").insert(rows);
+    setBusy(false);
+    if (error) { toast.error(error.message); return; }
+    toast.success(`Created ${rows.length} payouts`);
+    setPreview(null);
+    onClose();
+  };
+
+  useEffect(() => { if (!open) setPreview(null); }, [open]);
+
+  return (
+    <Dialog open={open} onOpenChange={(v) => !v && onClose()}>
+      <DialogContent className="max-w-2xl">
+        <DialogHeader>
+          <DialogTitle>Generate payouts</DialogTitle>
+          <DialogDescription>Creates pending payout records for matched circle bids.</DialogDescription>
+        </DialogHeader>
+
+        <div className="grid sm:grid-cols-2 gap-3">
+          <div className="space-y-2">
+            <Label>Period</Label>
+            <Input value={period} onChange={(e) => setPeriod(e.target.value)} placeholder="e.g. January 2026" />
+          </div>
+          <div className="space-y-2">
+            <Label>Circle tier</Label>
+            <Select value={tier} onValueChange={setTier}>
+              <SelectTrigger><SelectValue /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">All active circles</SelectItem>
+                <SelectItem value="seed">Seed</SelectItem>
+                <SelectItem value="growth">Growth</SelectItem>
+                <SelectItem value="harvest">Harvest</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+        </div>
+
+        {!preview ? (
+          <Button onClick={calculate} disabled={busy} className="rounded-2xl bg-gradient-primary text-primary-foreground">
+            {busy ? <Loader2 className="h-4 w-4 animate-spin" /> : <><CalcIcon className="h-4 w-4 mr-2" /> Calculate payouts</>}
+          </Button>
+        ) : (
+          <>
+            <div className="rounded-2xl border border-border max-h-72 overflow-auto">
+              <Table>
+                <TableHeader>
+                  <TableRow><TableHead>Member</TableHead><TableHead>Circle</TableHead><TableHead className="text-right">Amount</TableHead></TableRow>
+                </TableHeader>
+                <TableBody>
+                  {preview.length === 0 ? (
+                    <TableRow><TableCell colSpan={3} className="text-center text-muted-foreground py-6">No matched bids ready for payout.</TableCell></TableRow>
+                  ) : preview.map((p) => (
+                    <TableRow key={p.bid_id}>
+                      <TableCell>{p.full_name}</TableCell>
+                      <TableCell className="capitalize">{p.tier}</TableCell>
+                      <TableCell className="text-right">{fmtR(p.amount)}</TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            </div>
+            <DialogFooter>
+              <Button variant="outline" onClick={() => setPreview(null)}>Back</Button>
+              <Button onClick={confirm} disabled={busy || preview.length === 0} className="bg-primary text-primary-foreground">
+                {busy ? <Loader2 className="h-4 w-4 animate-spin" /> : `Create ${preview.length} payouts`}
+              </Button>
+            </DialogFooter>
+          </>
+        )}
+      </DialogContent>
+    </Dialog>
   );
 }
