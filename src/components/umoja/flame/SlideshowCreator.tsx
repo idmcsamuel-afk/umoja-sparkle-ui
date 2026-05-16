@@ -39,21 +39,24 @@ type ImageSlide = {
   overlay: string;
 };
 
-export function SlideshowCreator() {
+export function SlideshowCreator({ tier = "free" }: { tier?: FlameTier }) {
+  const isPro = tier === "pro";
   const { user } = useAuth();
   const [slides, setSlides] = useState<ImageSlide[]>([]);
   const [music, setMusic] = useState<MusicId>("none");
   const [duration, setDuration] = useState(3);
   const [size, setSize] = useState<SizeId>("vertical");
+  const [watermark, setWatermark] = useState(true); // Pro can toggle off
   const [busy, setBusy] = useState(false);
   const [stage, setStage] = useState<string>("");
   const [resultUrl, setResultUrl] = useState<string | null>(null);
   const [used, setUsed] = useState(0);
   const dragIdx = useRef<number | null>(null);
 
+  const showWatermark = isPro ? watermark : true; // forced on for free
   const dim = SIZES.find((s) => s.id === size)!;
   const remaining = Math.max(0, WEEKLY_LIMIT - used);
-  const atLimit = used >= WEEKLY_LIMIT;
+  const atLimit = !isPro && used >= WEEKLY_LIMIT;
 
   useEffect(() => {
     let alive = true;
