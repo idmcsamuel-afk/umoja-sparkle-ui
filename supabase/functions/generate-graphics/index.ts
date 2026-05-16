@@ -25,11 +25,10 @@ Deno.serve(async (req) => {
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
-        model: 'dall-e-3',
+        model: 'dall-e-2',
         prompt,
         n: 1,
         size: '1024x1024',
-        quality: 'standard',
       }),
     });
 
@@ -42,7 +41,7 @@ Deno.serve(async (req) => {
 
     return json({
       image_url: data.data[0].url,
-      revised_prompt: data.data[0].revised_prompt,
+      revised_prompt: data.data[0].revised_prompt ?? prompt,
     });
   } catch (error) {
     console.error('Error:', error);
