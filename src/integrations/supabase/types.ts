@@ -1703,6 +1703,35 @@ export type Database = {
         }
         Relationships: []
       }
+      flame_usage: {
+        Row: {
+          asset_type: string
+          created_at: string | null
+          id: string
+          member_id: string | null
+        }
+        Insert: {
+          asset_type: string
+          created_at?: string | null
+          id?: string
+          member_id?: string | null
+        }
+        Update: {
+          asset_type?: string
+          created_at?: string | null
+          id?: string
+          member_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "flame_usage_member_id_fkey"
+            columns: ["member_id"]
+            isOneToOne: false
+            referencedRelation: "members"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       flame_video_usage: {
         Row: {
           created_at: string
