@@ -353,6 +353,21 @@ export function SlideshowCreator({ tier = "free" }: { tier?: FlameTier }) {
         </Select>
       </div>
 
+      {/* Watermark (Pro toggle / Free forced) */}
+      <div className="flex items-center justify-between rounded-xl bg-black/20 border border-border/40 px-3 py-2">
+        <div className="text-xs">
+          <div className="font-semibold text-foreground/90">UMOJA watermark</div>
+          <div className="text-[10px] text-muted-foreground">
+            {isPro ? "Toggle off to export clean" : "Free tier — always on"}
+          </div>
+        </div>
+        {isPro ? (
+          <Switch checked={watermark} onCheckedChange={setWatermark} />
+        ) : (
+          <Lock className="h-4 w-4 text-amber-400/70" />
+        )}
+      </div>
+
       <Button
         onClick={generate}
         disabled={busy || slides.length < MIN_IMAGES || atLimit}
@@ -362,8 +377,14 @@ export function SlideshowCreator({ tier = "free" }: { tier?: FlameTier }) {
       </Button>
 
       {atLimit && (
-        <div className="rounded-xl border border-amber-400/40 bg-amber-500/10 p-3 text-xs text-amber-100">
-          Video limit: {used}/{WEEKLY_LIMIT} this week. Resets every Monday. Upgrade to <b>Flame Pro</b> for unlimited.
+        <div className="rounded-xl border border-amber-400/40 bg-amber-500/10 p-3 text-xs text-amber-100 space-y-2">
+          <p>Video limit: {used}/{WEEKLY_LIMIT} this week. Resets every Monday.</p>
+          <Link to="/spark-trade" className="inline-block">
+            <Button size="sm" className="bg-gradient-to-r from-emerald-600 to-amber-500 text-black border-0 font-semibold">
+              Upgrade to Buyers Club Pro →
+            </Button>
+          </Link>
+          <p className="text-[10px] text-amber-100/80">R999/month — includes Spark Trade + Flame Pro unlimited.</p>
         </div>
       )}
 
