@@ -591,17 +591,18 @@ function LockedView() {
         </ul>
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 pt-2">
           <Card className="p-4 space-y-1">
-            <div className="text-xs uppercase tracking-wide text-muted-foreground">Bronze</div>
-            <div className="text-xl font-bold">R2,000<span className="text-xs font-normal text-muted-foreground">/mo</span></div>
+            <div className="text-xs uppercase tracking-wide text-muted-foreground">Spark Trade Basic</div>
+            <div className="text-xl font-bold">R499<span className="text-xs font-normal text-muted-foreground">/mo</span></div>
           </Card>
-          <Card className="p-4 space-y-1">
-            <div className="text-xs uppercase tracking-wide text-muted-foreground">Silver</div>
-            <div className="text-xl font-bold">R5,000<span className="text-xs font-normal text-muted-foreground">/mo</span></div>
+          <Card className="p-4 space-y-1 border-accent/40 ring-1 ring-accent/30">
+            <div className="text-xs uppercase tracking-wide text-accent font-semibold">Spark Trade Pro ⭐</div>
+            <div className="text-xl font-bold">R999<span className="text-xs font-normal text-muted-foreground">/mo</span></div>
+            <div className="text-[11px] text-muted-foreground">Most popular</div>
           </Card>
           <Card className="p-4 space-y-1 border-amber-500/50 ring-1 ring-amber-500/40">
-            <div className="text-xs uppercase tracking-wide text-amber-600 dark:text-amber-400 font-semibold">Gold 🏆</div>
-            <div className="text-xl font-bold">R10,000<span className="text-xs font-normal text-muted-foreground">/mo</span></div>
-            <div className="text-[11px] text-amber-700 dark:text-amber-300">Includes Trending access FREE</div>
+            <div className="text-xs uppercase tracking-wide text-amber-600 dark:text-amber-400 font-semibold">Fulfilled by UMOJA 🏆</div>
+            <div className="text-xl font-bold">R1,999<span className="text-xs font-normal text-muted-foreground">/mo</span></div>
+            <div className="text-[11px] text-amber-700 dark:text-amber-300">Hands-off fulfilment</div>
           </Card>
         </div>
         <div className="flex flex-wrap gap-3 pt-1">
