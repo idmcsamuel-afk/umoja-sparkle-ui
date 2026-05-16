@@ -88,7 +88,10 @@ export default function Profile() {
             <div className="flex justify-between"><span className="text-muted-foreground">Member since</span><span>{user?.created_at ? new Date(user.created_at).toLocaleDateString() : "—"}</span></div>
             <div className="flex justify-between"><span className="text-muted-foreground">Sparks balance</span><span className="text-accent-soft font-display">{Math.round(balance)} SP</span></div>
           </div>
-          <Button variant="outline" className="mt-4 w-full rounded-2xl" onClick={signOut}>Sign out</Button>
+          <Link to="/profile/banking" className="mt-4 block">
+            <Button variant="outline" className="w-full rounded-2xl">Banking & payouts</Button>
+          </Link>
+          <Button variant="outline" className="mt-3 w-full rounded-2xl" onClick={signOut}>Sign out</Button>
 
           <div className="mt-6 rounded-3xl glass p-5">
             <h3 className="font-display text-lg flex items-center gap-2"><Mail className="h-4 w-4 text-accent" /> Email preferences</h3>

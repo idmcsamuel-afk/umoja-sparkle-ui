@@ -38,9 +38,9 @@ export default function AdminLayout() {
     let active = true;
     const load = async () => {
       const { count } = await supabase
-        .from("circle_bids")
+        .from("circle_payouts")
         .select("id", { count: "exact", head: true })
-        .eq("status", "matched");
+        .eq("status", "pending");
       if (active) setPendingPayouts(count ?? 0);
     };
     load();
