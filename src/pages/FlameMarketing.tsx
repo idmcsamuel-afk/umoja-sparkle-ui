@@ -603,27 +603,6 @@ e.g. Modern apartment living room with LED cloud lamp glowing purple on coffee t
           </TabsContent>
         </Tabs>
 
-        {/* Flame Pro upgrade banner */}
-        <div className="relative overflow-hidden rounded-3xl border-2 border-amber-400/50 bg-gradient-to-br from-emerald-950 via-emerald-900 to-amber-950 p-5 shadow-[0_20px_60px_-20px_hsl(45_90%_50%/0.5)]">
-          <div className="absolute -right-10 -top-10 h-40 w-40 rounded-full bg-amber-400/20 blur-3xl" />
-          <div className="relative flex items-start gap-4">
-            <div className="grid h-12 w-12 shrink-0 place-items-center rounded-2xl bg-gradient-to-br from-amber-300 to-amber-600 text-emerald-950 shadow-lg">
-              <Crown className="h-6 w-6" />
-            </div>
-            <div className="flex-1 min-w-0">
-              <div className="flex items-center gap-2 flex-wrap">
-                <h3 className="font-display text-lg text-amber-200">🎬 Flame Pro</h3>
-                <span className="rounded-full bg-amber-400/20 border border-amber-400/40 px-2 py-0.5 text-[10px] font-semibold text-amber-200 uppercase tracking-wider">Coming Soon</span>
-              </div>
-              <p className="mt-1 text-sm text-amber-100/80">
-                Want AI video content + automated posting? Upgrade to <b>Flame Pro</b> for UGC reels, scheduled drops, and brand-kit visuals.
-              </p>
-              <div className="mt-3 flex items-center gap-1.5 text-xs text-amber-300/90">
-                <Sparkles className="h-3.5 w-3.5" /> Join waitlist when it drops
-              </div>
-            </div>
-          </div>
-        </div>
       </main>
 
       <BottomNav />
