@@ -40,29 +40,23 @@ export function FulfillmentCard() {
       <div className="rounded-2xl border border-accent/40 bg-gradient-to-br from-primary/10 via-card to-accent/10 p-5 shadow-elegant">
         <div className="flex items-center gap-2 mb-2">
           <Rocket className="h-5 w-5 text-accent" />
-          <h3 className="font-display text-lg">Hands-Free Marketplace Sales 🚀</h3>
+          <h3 className="font-display text-lg">Fulfilled by UMOJA 🏭</h3>
         </div>
         <p className="text-xs text-muted-foreground mb-4">
-          We manage your Amazon, Takealot, and Makro accounts. You focus on profits, we handle everything else.
+          We source, store, list, ship, and fulfill for you. You provide capital. We do the rest.
         </p>
 
-        <div className="rounded-xl bg-background/50 border border-border/50 p-3 mb-4 text-xs space-y-1.5">
-          <div className="flex justify-between font-medium"><span>Monthly</span><span className="text-accent">R1,500/month</span></div>
-          <div className="border-t border-border/40 pt-1.5 space-y-0.5 text-muted-foreground">
-            <div className="flex justify-between"><span>Small (&lt;2kg)</span><span>R15/order</span></div>
-            <div className="flex justify-between"><span>Medium (2-5kg)</span><span>R25/order</span></div>
-            <div className="flex justify-between"><span>Large (5kg+)</span><span>R45/order</span></div>
-            <div className="flex justify-between"><span>Handling</span><span>R5/item</span></div>
-          </div>
-        </div>
-
         <ul className="text-xs space-y-1 mb-4 text-muted-foreground">
-          <li>✓ We manage your seller accounts</li>
-          <li>✓ We store inventory in our warehouse</li>
-          <li>✓ We ship to your customers</li>
-          <li>✓ We handle customer service</li>
-          <li>✓ Profit deposited to your bank</li>
+          <li>✅ Complete hands-off e-commerce service</li>
+          <li>✅ Amazon, Takealot &amp; Makro account management</li>
+          <li>✅ Warehousing &amp; fulfillment</li>
+          <li>✅ Dedicated account manager</li>
         </ul>
+
+        <div className="rounded-xl bg-background/50 border border-border/50 p-3 mb-4 text-xs">
+          <div className="flex justify-between font-medium"><span>Starting at</span><span className="text-accent">R1,999/month</span></div>
+          <p className="text-[11px] text-muted-foreground mt-1">Part of the Buyers Club Fulfilled tier.</p>
+        </div>
 
         {isActive ? (
           <Link to="/fulfillment/dashboard" className="flex items-center justify-between rounded-xl border border-primary/40 bg-primary/10 p-3 transition-smooth hover:border-primary/70">
