@@ -213,7 +213,7 @@ export default function FlameMarketing() {
       return;
     }
     if (gfxAtLimit) {
-      toast({ title: "Daily limit reached", description: `${GFX_DAILY_LIMIT}/${GFX_DAILY_LIMIT} used. Resets at midnight UTC.`, variant: "destructive" });
+      toast({ title: "Weekly limit reached", description: `${GFX_WEEKLY_LIMIT}/${GFX_WEEKLY_LIMIT} used. Resets Monday. Upgrade to Buyers Club Pro for unlimited.`, variant: "destructive" });
       return;
     }
     setGfxLoading(true);
@@ -232,16 +232,19 @@ export default function FlameMarketing() {
       });
       if (error) throw error;
       const payload = data as any;
-      if (payload?.error === "daily_limit_reached") {
-        setGfxUsed(GFX_DAILY_LIMIT);
-        toast({ title: "Daily limit reached", description: `${GFX_DAILY_LIMIT}/${GFX_DAILY_LIMIT} used today.`, variant: "destructive" });
+      if (payload?.error === "weekly_limit_reached" || payload?.error === "daily_limit_reached") {
+        setGfxUsed(GFX_WEEKLY_LIMIT);
+        toast({ title: "Weekly limit reached", description: payload?.message ?? `${GFX_WEEKLY_LIMIT}/${GFX_WEEKLY_LIMIT} used this week.`, variant: "destructive" });
         return;
       }
       if (payload?.error) throw new Error(payload.error);
       setGfxImage(payload.image_url);
       setGfxRevised(payload.revised_prompt ?? null);
       if (typeof payload.used === "number") setGfxUsed(payload.used);
-      toast({ title: "Graphic ready 🎨", description: `${payload.remaining ?? gfxRemaining - 1} generations left today.` });
+      const desc = payload.unlimited
+        ? "Unlimited generations — Buyers Club Pro ✨"
+        : `${payload.remaining ?? gfxRemaining - 1} generations left this week.`;
+      toast({ title: "Graphic ready 🎨", description: desc });
     } catch (e: any) {
       toast({ title: "Generation failed", description: String(e?.message ?? e), variant: "destructive" });
     } finally {
