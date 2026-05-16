@@ -79,7 +79,6 @@ Deno.serve(async (req) => {
         n: 1,
         size,
         quality: "standard",
-        style,
       }),
     });
 
