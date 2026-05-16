@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { Link } from "react-router-dom";
 import { Flame, Copy, RefreshCw, Sparkles, Loader2, Crown, Download, ImageIcon, Type, Video } from "lucide-react";
 import { BottomNav } from "@/components/umoja/BottomNav";
 import { Button } from "@/components/ui/button";
