@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { Flame, Copy, RefreshCw, Sparkles, Loader2, Crown, Download, ImageIcon, Type } from "lucide-react";
+import { Flame, Copy, RefreshCw, Sparkles, Loader2, Crown, Download, ImageIcon, Type, Video } from "lucide-react";
 import { BottomNav } from "@/components/umoja/BottomNav";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
@@ -9,6 +9,9 @@ import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { toast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
+import { TikTokSymphonyCard } from "@/components/umoja/flame/TikTokSymphonyCard";
+import { AvatarVideoCard } from "@/components/umoja/flame/AvatarVideoCard";
+import { SlideshowCreator } from "@/components/umoja/flame/SlideshowCreator";
 
 // ───────────────────────── TEXT GENERATOR ─────────────────────────
 
