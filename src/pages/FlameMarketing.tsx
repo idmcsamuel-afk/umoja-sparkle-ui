@@ -95,7 +95,7 @@ const STYLE_HINTS: Record<GfxStyle, { hint: string; dalle: "natural" | "vivid" }
 
 const GFX_PROMPT_MAX = 500;
 const GFX_OVERLAY_MAX = 50;
-const GFX_DAILY_LIMIT = 5;
+const GFX_WEEKLY_LIMIT = 3;
 
 export default function FlameMarketing() {
   const { tier } = useFlameTier();
@@ -125,18 +125,19 @@ export default function FlameMarketing() {
   const [gfxUsed, setGfxUsed] = useState<number>(0);
 
   const template = TEMPLATES.find((t) => t.id === gfxTemplate)!;
-  const gfxRemaining = Math.max(0, GFX_DAILY_LIMIT - gfxUsed);
-  const gfxAtLimit = gfxUsed >= GFX_DAILY_LIMIT;
+  const gfxRemaining = Math.max(0, GFX_WEEKLY_LIMIT - gfxUsed);
+  const gfxAtLimit = !isPro && gfxUsed >= GFX_WEEKLY_LIMIT;
 
-  // Fetch today's usage on mount
+  // Fetch this week's usage on mount (skip for Pro — unlimited)
   useEffect(() => {
+    if (isPro) return;
     let active = true;
     (async () => {
-      const { data } = await supabase.rpc("flame_graphics_count_today");
+      const { data } = await supabase.rpc("flame_graphics_count_week");
       if (active && typeof data === "number") setGfxUsed(data);
     })();
     return () => { active = false; };
-  }, []);
+  }, [isPro]);
 
   const generate = async () => {
     const trimmed = biz.trim();
@@ -212,7 +213,7 @@ export default function FlameMarketing() {
       return;
     }
     if (gfxAtLimit) {
-      toast({ title: "Daily limit reached", description: `${GFX_DAILY_LIMIT}/${GFX_DAILY_LIMIT} used. Resets at midnight UTC.`, variant: "destructive" });
+      toast({ title: "Weekly limit reached", description: `${GFX_WEEKLY_LIMIT}/${GFX_WEEKLY_LIMIT} used. Resets Monday. Upgrade to Buyers Club Pro for unlimited.`, variant: "destructive" });
       return;
     }
     setGfxLoading(true);
@@ -231,16 +232,19 @@ export default function FlameMarketing() {
       });
       if (error) throw error;
       const payload = data as any;
-      if (payload?.error === "daily_limit_reached") {
-        setGfxUsed(GFX_DAILY_LIMIT);
-        toast({ title: "Daily limit reached", description: `${GFX_DAILY_LIMIT}/${GFX_DAILY_LIMIT} used today.`, variant: "destructive" });
+      if (payload?.error === "weekly_limit_reached" || payload?.error === "daily_limit_reached") {
+        setGfxUsed(GFX_WEEKLY_LIMIT);
+        toast({ title: "Weekly limit reached", description: payload?.message ?? `${GFX_WEEKLY_LIMIT}/${GFX_WEEKLY_LIMIT} used this week.`, variant: "destructive" });
         return;
       }
       if (payload?.error) throw new Error(payload.error);
       setGfxImage(payload.image_url);
       setGfxRevised(payload.revised_prompt ?? null);
       if (typeof payload.used === "number") setGfxUsed(payload.used);
-      toast({ title: "Graphic ready 🎨", description: `${payload.remaining ?? gfxRemaining - 1} generations left today.` });
+      const desc = payload.unlimited
+        ? "Unlimited generations — Buyers Club Pro ✨"
+        : `${payload.remaining ?? gfxRemaining - 1} generations left this week.`;
+      toast({ title: "Graphic ready 🎨", description: desc });
     } catch (e: any) {
       toast({ title: "Generation failed", description: String(e?.message ?? e), variant: "destructive" });
     } finally {
@@ -404,10 +408,16 @@ export default function FlameMarketing() {
           <TabsContent value="graphics" className="space-y-5 mt-4">
             <Card className="p-4 space-y-5 border-amber-500/20 bg-card/80 backdrop-blur">
               <div className="flex items-center justify-between rounded-xl bg-black/30 border border-amber-500/15 px-3 py-2">
-                <span className="text-xs text-muted-foreground">Today's usage</span>
-                <span className={`text-xs font-semibold tabular-nums ${gfxAtLimit ? "text-destructive" : "text-amber-200"}`}>
-                  {gfxUsed}/{GFX_DAILY_LIMIT}
+                <span className="text-xs text-muted-foreground">
+                  {isPro ? "Buyers Club Pro" : "Graphics this week"}
                 </span>
+                {isPro ? (
+                  <span className="text-xs font-semibold text-amber-200">Unlimited ✨</span>
+                ) : (
+                  <span className={`text-xs font-semibold tabular-nums ${gfxAtLimit ? "text-destructive" : "text-amber-200"}`}>
+                    {gfxUsed}/{GFX_WEEKLY_LIMIT} <span className="text-muted-foreground font-normal">(resets Monday)</span>
+                  </span>
+                )}
               </div>
 
               <div>
@@ -475,15 +485,19 @@ e.g. Modern apartment living room with LED cloud lamp glowing purple on coffee t
                 {gfxLoading ? (
                   <><Loader2 className="h-5 w-5 animate-spin" /> Generating your graphic…</>
                 ) : gfxAtLimit ? (
-                  <>Daily limit reached (5/5)</>
+                  <>Weekly limit reached ({GFX_WEEKLY_LIMIT}/{GFX_WEEKLY_LIMIT})</>
                 ) : (
                   <>Generate Graphics 🎨</>
                 )}
               </Button>
 
               {gfxAtLimit && (
-                <div className="rounded-xl border border-amber-400/40 bg-amber-500/10 p-3 text-xs text-amber-100">
-                  Daily limit reached (5/5). Upgrade to <b>Flame Pro</b> for unlimited graphics.
+                <div className="rounded-xl border border-amber-400/40 bg-amber-500/10 p-3 text-xs text-amber-100 space-y-2">
+                  <p className="font-semibold">Weekly limit reached ({GFX_WEEKLY_LIMIT}/{GFX_WEEKLY_LIMIT})</p>
+                  <p>Upgrade to Buyers Club Pro for unlimited graphics.</p>
+                  <Button asChild size="sm" className="w-full bg-amber-500 text-black hover:bg-amber-400">
+                    <a href="/spark-trade">Upgrade to Pro · R999/month →</a>
+                  </Button>
                 </div>
               )}
             </Card>

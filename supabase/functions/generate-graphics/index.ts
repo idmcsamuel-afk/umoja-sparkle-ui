@@ -1,8 +1,10 @@
-// Flame Graphics — DALL·E 3 image generation with per-member daily limit
+// Flame Graphics — DALL·E 3 image generation
+// Free tier: 3 graphics / week (resets Monday UTC)
+// Buyers Club Pro / Fulfilled / Gold: unlimited
 import { corsHeaders } from "npm:@supabase/supabase-js@2/cors";
 import { createClient } from "npm:@supabase/supabase-js@2";
 
-const DAILY_LIMIT = 5;
+const WEEKLY_LIMIT = 3;
 const VALID_SIZES = new Set(["1024x1024", "1024x1792", "1792x1024"]);
 
 Deno.serve(async (req) => {
@@ -39,14 +41,33 @@ Deno.serve(async (req) => {
       return json({ error: "invalid size" }, 400);
     }
 
-    // Daily limit check
-    const { data: countData, error: countErr } = await supa.rpc("flame_graphics_count_today");
-    if (countErr) {
-      console.error("[generate-graphics] count error:", countErr);
-    }
-    const used = typeof countData === "number" ? countData : 0;
-    if (used >= DAILY_LIMIT) {
-      return json({ error: "daily_limit_reached", used, limit: DAILY_LIMIT }, 429);
+    // Tier check — Buyers Club Pro/Fulfilled/Gold bypass the limit
+    const { data: member } = await supa
+      .from("members")
+      .select("buyers_club_tier, buyers_club_status")
+      .eq("id", user.id)
+      .maybeSingle();
+
+    const tier = member?.buyers_club_tier ?? null;
+    const status = member?.buyers_club_status ?? null;
+    const hasFlamePro =
+      ((tier === "pro" || tier === "fulfilled") && status === "active") ||
+      tier === "gold";
+
+    let used = 0;
+    if (!hasFlamePro) {
+      const { data: countData, error: countErr } = await supa.rpc("flame_graphics_count_week");
+      if (countErr) console.error("[generate-graphics] count error:", countErr);
+      used = typeof countData === "number" ? countData : 0;
+      if (used >= WEEKLY_LIMIT) {
+        return json({
+          error: "weekly_limit_reached",
+          message: "Weekly limit reached (3/3). Upgrade to Buyers Club Pro for unlimited graphics.",
+          used,
+          limit: WEEKLY_LIMIT,
+          upgrade_url: "/spark-trade",
+        }, 429);
+      }
     }
 
     const res = await fetch("https://api.openai.com/v1/images/generations", {
@@ -86,9 +107,10 @@ Deno.serve(async (req) => {
     return json({
       image_url,
       revised_prompt,
-      used: used + 1,
-      limit: DAILY_LIMIT,
-      remaining: DAILY_LIMIT - (used + 1),
+      used: hasFlamePro ? 0 : used + 1,
+      limit: hasFlamePro ? null : WEEKLY_LIMIT,
+      remaining: hasFlamePro ? null : WEEKLY_LIMIT - (used + 1),
+      unlimited: hasFlamePro,
     });
   } catch (e) {
     console.error("[generate-graphics] server error:", e);
