@@ -865,6 +865,59 @@ export type Database = {
           },
         ]
       }
+      circle_payouts: {
+        Row: {
+          circle_id: string | null
+          circle_tier: string | null
+          created_at: string
+          id: string
+          member_id: string
+          notes: string | null
+          paid_at: string | null
+          payment_reference: string | null
+          payout_amount: number
+          payout_period: string
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          circle_id?: string | null
+          circle_tier?: string | null
+          created_at?: string
+          id?: string
+          member_id: string
+          notes?: string | null
+          paid_at?: string | null
+          payment_reference?: string | null
+          payout_amount: number
+          payout_period: string
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          circle_id?: string | null
+          circle_tier?: string | null
+          created_at?: string
+          id?: string
+          member_id?: string
+          notes?: string | null
+          paid_at?: string | null
+          payment_reference?: string | null
+          payout_amount?: number
+          payout_period?: string
+          status?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "circle_payouts_member_id_fkey"
+            columns: ["member_id"]
+            isOneToOne: false
+            referencedRelation: "members"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       circle_score_snapshots: {
         Row: {
           allocation_id: string | null
@@ -2407,6 +2460,53 @@ export type Database = {
             foreignKeyName: "market_txns_seller_id_fkey"
             columns: ["seller_id"]
             isOneToOne: false
+            referencedRelation: "members"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      member_banking_details: {
+        Row: {
+          account_holder_name: string
+          account_number: string
+          account_type: string | null
+          bank_name: string
+          branch_code: string | null
+          created_at: string
+          id: string
+          member_id: string
+          updated_at: string
+          verified: boolean
+        }
+        Insert: {
+          account_holder_name: string
+          account_number: string
+          account_type?: string | null
+          bank_name: string
+          branch_code?: string | null
+          created_at?: string
+          id?: string
+          member_id: string
+          updated_at?: string
+          verified?: boolean
+        }
+        Update: {
+          account_holder_name?: string
+          account_number?: string
+          account_type?: string | null
+          bank_name?: string
+          branch_code?: string | null
+          created_at?: string
+          id?: string
+          member_id?: string
+          updated_at?: string
+          verified?: boolean
+        }
+        Relationships: [
+          {
+            foreignKeyName: "member_banking_details_member_id_fkey"
+            columns: ["member_id"]
+            isOneToOne: true
             referencedRelation: "members"
             referencedColumns: ["id"]
           },
