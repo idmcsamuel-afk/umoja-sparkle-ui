@@ -21,6 +21,7 @@ import { PaymentMethodSelector, type PaymentMethod } from "@/components/umoja/Pa
 import { usePaystack, buildReference } from "@/hooks/usePaystack";
 import { cn } from "@/lib/utils";
 import { CircleTierCard } from "@/components/umoja/CircleTierCard";
+import { ReferralPromo } from "@/components/umoja/ReferralPromo";
 
 interface Tier {
   tier: string;
