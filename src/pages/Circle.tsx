@@ -129,24 +129,25 @@ const Circle = () => {
 
   const load = async () => {
     setLoading(true);
-    const [tiersRes, bidsRes, allBidsRes, settingsRes] = await Promise.all([
+    // Best-effort: expire any unpaid bids whose deadline has passed.
+    supabase.rpc("expire_unpaid_bids").then(() => {}).catch(() => {});
+
+    const [tiersRes, bidsRes, statsRes, settingsRes] = await Promise.all([
       supabase.from("circle_tiers").select("*").order("min_entry"),
       user
         ? supabase
             .from("circle_bids")
-            .select("id, tier, fiat_amount, net_amount, status, created_at, vault_end, payout_amount")
+            .select("id, tier, fiat_amount, net_amount, status, created_at, vault_end, payout_amount, payment_deadline, payment_proof_url, payment_reference")
             .eq("member_id", user.id)
             .order("created_at", { ascending: false })
         : Promise.resolve({ data: [], error: null } as const),
-      supabase
-        .from("circle_bids")
-        .select("tier, net_amount, member_id, status")
-        .in("status", ["pending", "payment_pending", "active", "matched"]),
+      supabase.rpc("circle_tier_stats"),
       supabase.rpc("get_member_platform_settings"),
     ]);
 
     if (tiersRes.error) console.error(tiersRes.error);
     if (bidsRes.error) console.error(bidsRes.error);
+    if (statsRes.error) console.error(statsRes.error);
 
     const t = (tiersRes.data ?? []) as Tier[];
     setTiers(t);
@@ -162,14 +163,11 @@ const Circle = () => {
         target: Number(tier.max_entry) * Number(tier.daily_velocity_cap || 1),
       };
     }
-    const seen: Record<string, Set<string>> = {};
-    for (const b of (allBidsRes.data ?? []) as { tier: string; net_amount: number; member_id: string }[]) {
-      if (!grouped[b.tier]) continue;
-      grouped[b.tier].pool += Number(b.net_amount || 0);
-      seen[b.tier] = seen[b.tier] ?? new Set();
-      seen[b.tier].add(b.member_id);
+    for (const row of (statsRes.data ?? []) as { tier: string; pool: number | string; members: number | string }[]) {
+      if (!grouped[row.tier]) continue;
+      grouped[row.tier].pool = Number(row.pool || 0);
+      grouped[row.tier].members = Number(row.members || 0);
     }
-    for (const k of Object.keys(grouped)) grouped[k].members = seen[k]?.size ?? 0;
     setStats(grouped);
     setLoading(false);
   };
