@@ -10,7 +10,7 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2.45.4";
 
 const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
 const SERVICE_ROLE = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
-const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
+const ANTHROPIC_API_KEY = Deno.env.get("ANTHROPIC_API_KEY");
 const HEYGEN_API_KEY = Deno.env.get("HEYGEN_API_KEY");
 
 const supabase = createClient(SUPABASE_URL, SERVICE_ROLE);
@@ -18,32 +18,32 @@ const supabase = createClient(SUPABASE_URL, SERVICE_ROLE);
 const SYSTEM_PROMPT = `You are the Content Director for UMOJA, a South African savings circle platform. Generate authentic UGC video scripts (30-60s) that highlight 15% returns in 5 days, no credit checks, community-first, and the 100 Sparks per friend referral. Address South African objections (scam fears, trust). Persona angles: 1) Uber driver 2) Spaza owner 3) Young pro 4) Single parent 5) Student.`;
 
 async function generateScripts(count: number, campaignId: string | null) {
-  if (!LOVABLE_API_KEY) {
-    console.warn("[director] LOVABLE_API_KEY missing — skipping script gen");
+  if (!ANTHROPIC_API_KEY) {
+    console.warn("[director] ANTHROPIC_API_KEY missing — skipping script gen");
     return [];
   }
   const userPrompt = `Generate ${count} unique scripts. Each: 30-60s spoken text, a 5-second hook, a persona (1-5), and a type (problem_solution|results|community|objection). Return ONLY a JSON array of objects with keys: script, persona, type, hook. No prose, no code fences.`;
 
-  const res = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
+  const res = await fetch("https://api.anthropic.com/v1/messages", {
     method: "POST",
     headers: {
-      "Content-Type": "application/json",
-      Authorization: `Bearer ${LOVABLE_API_KEY}`,
+      "x-api-key": ANTHROPIC_API_KEY,
+      "anthropic-version": "2023-06-01",
+      "content-type": "application/json",
     },
     body: JSON.stringify({
-      model: "google/gemini-2.5-flash",
-      messages: [
-        { role: "system", content: SYSTEM_PROMPT },
-        { role: "user", content: userPrompt },
-      ],
+      model: "claude-sonnet-4-20250514",
+      max_tokens: 4096,
+      system: SYSTEM_PROMPT,
+      messages: [{ role: "user", content: userPrompt }],
     }),
   });
   if (!res.ok) {
-    console.error("[director] gateway error", res.status, await res.text());
+    console.error("[director] anthropic error", res.status, await res.text());
     return [];
   }
   const data = await res.json();
-  const raw = data.choices?.[0]?.message?.content ?? "[]";
+  const raw = data?.content?.[0]?.text ?? "[]";
   const cleaned = raw.replace(/```json\n?|```/g, "").trim();
   try {
     const parsed = JSON.parse(cleaned);
