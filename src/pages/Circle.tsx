@@ -547,7 +547,7 @@ const Circle = () => {
                   <DialogTitle className="font-display text-2xl capitalize">{open?.tier} Circle</DialogTitle>
                   <DialogDescription>
                     Bid between {open && fmtR(open.min_entry)} and {open && fmtR(open.max_entry)}.
-                    A 2% platform fee and 3% Ubuntu fund cut apply.
+                    5% total fees (2% platform + 3% Ubuntu fund) apply to your gross payout.
                   </DialogDescription>
                 </DialogHeader>
                 <div className="space-y-2">
@@ -559,6 +559,30 @@ const Circle = () => {
                     onChange={(e) => setAmount(e.target.value)}
                     className="h-12 rounded-2xl bg-secondary/60 border-border text-lg"
                   />
+                  {open && Number(amount) > 0 && (() => {
+                    const amt = Number(amount);
+                    const grossRate = Number(open.growth_rate) || 0;
+                    const gross = amt * (1 + grossRate);
+                    const fees = gross * 0.05;
+                    const net = gross - fees;
+                    const profit = net - amt;
+                    const netPct = amt > 0 ? (profit / amt) * 100 : 0;
+                    return (
+                      <div className="rounded-2xl border border-accent/30 bg-accent/5 p-3 text-xs space-y-1">
+                        <div className="flex justify-between"><span className="text-muted-foreground">You contribute</span><span>{fmtR(amt)}</span></div>
+                        <div className="flex justify-between"><span className="text-muted-foreground">Gross payout (+{Math.round(grossRate * 100)}%)</span><span>{fmtR(gross)}</span></div>
+                        <div className="flex justify-between"><span className="text-muted-foreground">Total fees (5%)</span><span>-{fmtR(fees)}</span></div>
+                        <div className="flex justify-between border-t border-border pt-1 mt-1">
+                          <span className="text-foreground">You receive</span>
+                          <span className="font-display text-gradient-gold">{fmtR(net)}</span>
+                        </div>
+                        <div className="flex justify-between">
+                          <span className="text-muted-foreground">Net profit</span>
+                          <span className="text-emerald-400">+{fmtR(profit)} (+{netPct.toFixed(1)}%)</span>
+                        </div>
+                      </div>
+                    );
+                  })()}
                 </div>
               </div>
               <div className="sticky bottom-0 z-10 flex gap-3 border-t border-border bg-background/95 backdrop-blur p-4">
