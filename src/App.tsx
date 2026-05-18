@@ -69,6 +69,9 @@ import StorefrontPublic from "./pages/StorefrontPublic";
 import FulfillmentDashboard from "./pages/FulfillmentDashboard";
 import AdminFulfillment from "./pages/admin/AdminFulfillment";
 import MemberLayout from "./components/umoja/MemberLayout";
+import AdminContentDirector from "./pages/admin/AdminContentDirector.tsx";
+import MemberVideoCreate from "./pages/MemberVideoCreate.tsx";
+import MemberVideos from "./pages/MemberVideos.tsx";
 
 const queryClient = new QueryClient();
 
@@ -127,6 +130,8 @@ const App = () => (
                 <Route path="/priority" element={<ProtectedRoute><Priority /></ProtectedRoute>} />
                 <Route path="/storefront/edit" element={<ProtectedRoute><StorefrontEdit /></ProtectedRoute>} />
                 <Route path="/fulfillment/dashboard" element={<ProtectedRoute><FulfillmentDashboard /></ProtectedRoute>} />
+                <Route path="/create-video" element={<ProtectedRoute><MemberVideoCreate /></ProtectedRoute>} />
+                <Route path="/my-videos" element={<ProtectedRoute><MemberVideos /></ProtectedRoute>} />
               </Route>
               <Route path="/shop/:code" element={<StorefrontPublic />} />
 
@@ -152,6 +157,7 @@ const App = () => (
                 <Route path="community" element={<AdminCommunity />} />
                 <Route path="trending" element={<AdminTrending />} />
                 <Route path="purchase-enforcement" element={<AdminPurchaseEnforcement />} />
+                <Route path="content-director" element={<AdminContentDirector />} />
                 <Route path="automations" element={<AdminAutomations />} />
               </Route>
 
