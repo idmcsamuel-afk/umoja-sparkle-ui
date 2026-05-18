@@ -25,6 +25,8 @@ interface Props {
   delayMs?: number;
   onBidMin: () => void;
   onBidMax: () => void;
+  payoutsThisWeek?: number;
+  liveBidders?: number;
 }
 
 const fmtR = (n: number) => "R" + Math.round(n).toLocaleString("en-ZA");
@@ -163,6 +165,8 @@ export function CircleTierCard({
   delayMs = 0,
   onBidMin,
   onBidMax,
+  payoutsThisWeek = 0,
+  liveBidders = 0,
 }: Props) {
   const locked = !tier.is_active;
   const disabled = locked || !sessionOpen;
