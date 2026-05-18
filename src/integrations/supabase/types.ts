@@ -83,6 +83,274 @@ export type Database = {
         }
         Relationships: []
       }
+      ai_avatars: {
+        Row: {
+          created_at: string
+          heygen_avatar_id: string | null
+          id: string
+          is_active: boolean
+          member_selectable: boolean
+          name: string
+          performance_score: number
+          persona_description: string | null
+          preview_image_url: string | null
+          times_used: number
+          updated_at: string
+          voice_id: string | null
+        }
+        Insert: {
+          created_at?: string
+          heygen_avatar_id?: string | null
+          id?: string
+          is_active?: boolean
+          member_selectable?: boolean
+          name: string
+          performance_score?: number
+          persona_description?: string | null
+          preview_image_url?: string | null
+          times_used?: number
+          updated_at?: string
+          voice_id?: string | null
+        }
+        Update: {
+          created_at?: string
+          heygen_avatar_id?: string | null
+          id?: string
+          is_active?: boolean
+          member_selectable?: boolean
+          name?: string
+          performance_score?: number
+          persona_description?: string | null
+          preview_image_url?: string | null
+          times_used?: number
+          updated_at?: string
+          voice_id?: string | null
+        }
+        Relationships: []
+      }
+      ai_content_campaigns: {
+        Row: {
+          autonomous_settings: Json
+          created_at: string
+          created_by: string | null
+          id: string
+          name: string
+          platforms: Json
+          started_at: string
+          status: string
+          target_posts_per_day: number
+          target_videos_per_day: number
+          updated_at: string
+        }
+        Insert: {
+          autonomous_settings?: Json
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          name: string
+          platforms?: Json
+          started_at?: string
+          status?: string
+          target_posts_per_day?: number
+          target_videos_per_day?: number
+          updated_at?: string
+        }
+        Update: {
+          autonomous_settings?: Json
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          name?: string
+          platforms?: Json
+          started_at?: string
+          status?: string
+          target_posts_per_day?: number
+          target_videos_per_day?: number
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ai_content_campaigns_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "members"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      ai_generated_scripts: {
+        Row: {
+          campaign_id: string | null
+          created_at: string
+          generated_by: string
+          hook: string | null
+          id: string
+          member_template: boolean
+          performance_score: number | null
+          persona_index: number | null
+          script_text: string
+          script_type: string | null
+          template_title: string | null
+          used_count: number
+        }
+        Insert: {
+          campaign_id?: string | null
+          created_at?: string
+          generated_by?: string
+          hook?: string | null
+          id?: string
+          member_template?: boolean
+          performance_score?: number | null
+          persona_index?: number | null
+          script_text: string
+          script_type?: string | null
+          template_title?: string | null
+          used_count?: number
+        }
+        Update: {
+          campaign_id?: string | null
+          created_at?: string
+          generated_by?: string
+          hook?: string | null
+          id?: string
+          member_template?: boolean
+          performance_score?: number | null
+          persona_index?: number | null
+          script_text?: string
+          script_type?: string | null
+          template_title?: string | null
+          used_count?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ai_generated_scripts_campaign_id_fkey"
+            columns: ["campaign_id"]
+            isOneToOne: false
+            referencedRelation: "ai_content_campaigns"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      ai_generated_videos: {
+        Row: {
+          avatar_id: string | null
+          campaign_id: string | null
+          created_at: string
+          duration_seconds: number | null
+          error_message: string | null
+          generation_status: string
+          heygen_video_id: string | null
+          id: string
+          script_id: string | null
+          thumbnail_url: string | null
+          updated_at: string
+          video_caption: string | null
+          video_title: string | null
+          video_url: string | null
+        }
+        Insert: {
+          avatar_id?: string | null
+          campaign_id?: string | null
+          created_at?: string
+          duration_seconds?: number | null
+          error_message?: string | null
+          generation_status?: string
+          heygen_video_id?: string | null
+          id?: string
+          script_id?: string | null
+          thumbnail_url?: string | null
+          updated_at?: string
+          video_caption?: string | null
+          video_title?: string | null
+          video_url?: string | null
+        }
+        Update: {
+          avatar_id?: string | null
+          campaign_id?: string | null
+          created_at?: string
+          duration_seconds?: number | null
+          error_message?: string | null
+          generation_status?: string
+          heygen_video_id?: string | null
+          id?: string
+          script_id?: string | null
+          thumbnail_url?: string | null
+          updated_at?: string
+          video_caption?: string | null
+          video_title?: string | null
+          video_url?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ai_generated_videos_avatar_id_fkey"
+            columns: ["avatar_id"]
+            isOneToOne: false
+            referencedRelation: "ai_avatars"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ai_generated_videos_campaign_id_fkey"
+            columns: ["campaign_id"]
+            isOneToOne: false
+            referencedRelation: "ai_content_campaigns"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ai_generated_videos_script_id_fkey"
+            columns: ["script_id"]
+            isOneToOne: false
+            referencedRelation: "ai_generated_scripts"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      ai_scheduled_posts: {
+        Row: {
+          created_at: string
+          engagement_metrics: Json | null
+          error_message: string | null
+          id: string
+          platform: string
+          post_status: string
+          post_url: string | null
+          posted_at: string | null
+          scheduled_for: string
+          video_id: string | null
+        }
+        Insert: {
+          created_at?: string
+          engagement_metrics?: Json | null
+          error_message?: string | null
+          id?: string
+          platform: string
+          post_status?: string
+          post_url?: string | null
+          posted_at?: string | null
+          scheduled_for: string
+          video_id?: string | null
+        }
+        Update: {
+          created_at?: string
+          engagement_metrics?: Json | null
+          error_message?: string | null
+          id?: string
+          platform?: string
+          post_status?: string
+          post_url?: string | null
+          posted_at?: string | null
+          scheduled_for?: string
+          video_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ai_scheduled_posts_video_id_fkey"
+            columns: ["video_id"]
+            isOneToOne: false
+            referencedRelation: "ai_generated_videos"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       ai_subscriptions: {
         Row: {
           id: string
@@ -2527,6 +2795,94 @@ export type Database = {
           },
         ]
       }
+      member_generated_videos: {
+        Row: {
+          avatar_id: string | null
+          caption: string | null
+          created_at: string
+          download_count: number
+          error_message: string | null
+          generation_status: string
+          heygen_video_id: string | null
+          id: string
+          member_id: string
+          referral_code: string | null
+          referral_link: string | null
+          script_id: string | null
+          script_text: string
+          share_count: number
+          signups_attributed: number
+          thumbnail_url: string | null
+          updated_at: string
+          video_url: string | null
+          view_count: number
+        }
+        Insert: {
+          avatar_id?: string | null
+          caption?: string | null
+          created_at?: string
+          download_count?: number
+          error_message?: string | null
+          generation_status?: string
+          heygen_video_id?: string | null
+          id?: string
+          member_id: string
+          referral_code?: string | null
+          referral_link?: string | null
+          script_id?: string | null
+          script_text: string
+          share_count?: number
+          signups_attributed?: number
+          thumbnail_url?: string | null
+          updated_at?: string
+          video_url?: string | null
+          view_count?: number
+        }
+        Update: {
+          avatar_id?: string | null
+          caption?: string | null
+          created_at?: string
+          download_count?: number
+          error_message?: string | null
+          generation_status?: string
+          heygen_video_id?: string | null
+          id?: string
+          member_id?: string
+          referral_code?: string | null
+          referral_link?: string | null
+          script_id?: string | null
+          script_text?: string
+          share_count?: number
+          signups_attributed?: number
+          thumbnail_url?: string | null
+          updated_at?: string
+          video_url?: string | null
+          view_count?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "member_generated_videos_avatar_id_fkey"
+            columns: ["avatar_id"]
+            isOneToOne: false
+            referencedRelation: "ai_avatars"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "member_generated_videos_member_id_fkey"
+            columns: ["member_id"]
+            isOneToOne: false
+            referencedRelation: "members"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "member_generated_videos_script_id_fkey"
+            columns: ["script_id"]
+            isOneToOne: false
+            referencedRelation: "ai_generated_scripts"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       member_product_tracking: {
         Row: {
           created_at: string | null
@@ -4458,6 +4814,10 @@ export type Database = {
         Returns: Json
       }
       award_kyc_referral_bonus: { Args: { _member?: string }; Returns: boolean }
+      bump_member_video_metric: {
+        Args: { _id: string; _metric: string }
+        Returns: undefined
+      }
       calculate_drive_score: {
         Args: { p_enrollment_id: string }
         Returns: number
@@ -4550,6 +4910,16 @@ export type Database = {
         }[]
       }
       mark_contributed: { Args: { _member?: string }; Returns: undefined }
+      member_video_leaderboard: {
+        Args: { _limit?: number }
+        Returns: {
+          full_name: string
+          member_id: string
+          total_shares: number
+          total_signups: number
+          videos_count: number
+        }[]
+      }
       my_referred_members: {
         Args: never
         Returns: {
