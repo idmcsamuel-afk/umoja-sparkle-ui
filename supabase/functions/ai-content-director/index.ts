@@ -221,13 +221,25 @@ Deno.serve(async (req) => {
     let scriptsCreated = 0;
     let videosCreated = 0;
 
-    if (queue < targetMin && settings.auto_videos !== false) {
+    console.log("[director] campaign:", campaign ? { id: campaign.id, status: campaign.status, name: campaign.name } : "NONE");
+    console.log("[director] queue size:", queue, "targetMin:", targetMin, "targetMax:", targetMax);
+    console.log("[director] settings:", settings);
+    console.log("[director] ANTHROPIC_API_KEY set:", !!ANTHROPIC_API_KEY, "HEYGEN_API_KEY set:", !!HEYGEN_API_KEY);
+
+    const willGenerate = queue < targetMin && settings.auto_videos !== false;
+    console.log("[director] will generate videos:", willGenerate, `(queue ${queue} < targetMin ${targetMin}: ${queue < targetMin}, auto_videos !== false: ${settings.auto_videos !== false})`);
+
+    if (willGenerate) {
       videosNeeded = targetMax - queue;
       const scriptsNeeded = Math.max(5, Math.ceil(videosNeeded / 3));
+      console.log("[director] videosNeeded:", videosNeeded, "scriptsNeeded:", scriptsNeeded);
 
       if (settings.auto_scripts !== false) {
         const newScripts = await generateScripts(scriptsNeeded, campaignId);
         scriptsCreated = newScripts.length;
+        console.log("[director] scriptsCreated:", scriptsCreated);
+      } else {
+        console.log("[director] auto_scripts disabled, skipping script generation");
       }
 
       // Pull recent unused scripts
