@@ -496,14 +496,10 @@ const Circle = () => {
             <div className="mt-4 space-y-3">
               {tiers.map((t, i) => {
                 const s = stats[t.tier] ?? { pool: 0, members: 0, target: 1 };
-                const pct = Math.min(100, Math.round((s.pool / Math.max(1, s.target)) * 100));
-                const locked = !t.is_active;
                 const myBids = bids.filter((b) => b.tier === t.tier);
                 const myTotal = myBids.reduce((sum, b) => sum + Number(b.fiat_amount ?? 0), 0);
-                const niceName = `${t.tier.charAt(0).toUpperCase() + t.tier.slice(1)} Circle`;
                 const sess = sessionFor(t.tier);
                 const sessionOpen = !sess || sess.status === "open";
-                const disabled = locked || !sessionOpen;
                 const sessionLabel = sess
                   ? sess.status === "open"
                     ? `🟢 Session open — closes in ${fmtCountdown(sess.target - now)}`
@@ -511,92 +507,19 @@ const Circle = () => {
                   : null;
 
                 return (
-                  <article
+                  <CircleTierCard
                     key={t.tier}
-                    style={{ animationDelay: `${i * 60}ms` }}
-                    className={cn(
-                      "group relative overflow-hidden rounded-3xl glass p-5 animate-slide-up transition-all",
-                      locked && "opacity-80",
-                      !locked && sessionOpen && "border-2 border-emerald-500/70 shadow-[0_0_40px_rgba(16,185,129,0.35)] bg-emerald-500/[0.04] animate-pulse-glow",
-                    )}
-                  >
-                    <div className="flex items-start justify-between">
-                      <div>
-                        <p className="text-[10px] uppercase tracking-[0.18em] text-accent">
-                          Vault {t.vault_days}d · +{Math.round(Number(t.growth_rate) * 100)}%
-                        </p>
-                        <p className="mt-1 font-display text-xl">{niceName}</p>
-                        <p className="mt-1 text-xs text-muted-foreground">
-                          {fmtR(Number(t.min_entry))} – {fmtR(Number(t.max_entry))}
-                        </p>
-                      </div>
-                      <div className="flex flex-col items-end gap-1">
-                        <span className={`inline-flex items-center gap-1 text-[10px] uppercase tracking-wider rounded-full px-2 py-1 ${locked ? "bg-muted text-muted-foreground" : sessionOpen ? "bg-emerald-500/20 text-emerald-400" : "bg-primary/15 text-primary"}`}>
-                          {locked ? <><Lock className="h-3 w-3" /> Locked</> : sessionOpen ? <><span className="h-1.5 w-1.5 rounded-full bg-emerald-400 animate-pulse" /> Live</> : "Active"}
-                        </span>
-                        <p className="font-display text-base text-gradient-gold">{fmtR(s.pool)}</p>
-                      </div>
-                    </div>
-
-                    <div className="mt-4">
-                      <div className="flex items-baseline justify-between text-xs text-muted-foreground">
-                        <span className="inline-flex items-center gap-1">
-                          <Users className="h-3 w-3" /> {s.members} member{s.members === 1 ? "" : "s"}
-                        </span>
-                        <span>{pct}% of {fmtR(s.target)}</span>
-                      </div>
-                      <div className="mt-2 h-2 w-full rounded-full bg-secondary overflow-hidden">
-                        <div className="h-full rounded-full bg-gradient-gold transition-all" style={{ width: `${pct}%` }} />
-                      </div>
-                    </div>
-
-                    <div className="mt-4">
-                      <CircleSessionTimer tier={t.tier} />
-                    </div>
-                    {myTotal > 0 && (
-                      <div className="mt-3 flex items-center justify-end text-xs">
-                        <span className="inline-flex items-center gap-1 text-accent-soft">
-                          <Flame className="h-3 w-3" /> Your stake {fmtR(myTotal)}
-                        </span>
-                      </div>
-                    )}
-
-                    {sessionLabel && !locked && (
-                      <p className={`mt-3 text-[11px] text-center font-medium ${sessionOpen ? "text-primary" : "text-destructive"}`}>
-                        {sessionLabel}
-                      </p>
-                    )}
-
-                    <div className="mt-4 flex gap-2">
-                      <button
-                        disabled={disabled}
-                        onClick={() => startBid(t, t.min_entry)}
-                        className={cn(
-                          "flex-1 rounded-2xl text-sm font-medium inline-flex items-center justify-center gap-1.5 disabled:opacity-50 disabled:cursor-not-allowed transition-all",
-                          disabled
-                            ? "h-11 bg-secondary text-muted-foreground border border-border"
-                            : sessionOpen
-                              ? "h-12 bg-gradient-to-r from-emerald-500 to-emerald-600 text-white shadow-[0_8px_32px_rgba(16,185,129,0.45)] font-semibold tracking-wide"
-                              : "h-11 bg-gradient-primary text-primary-foreground shadow-glow",
-                        )}
-                      >
-                        {locked ? (
-                          <><Lock className="h-4 w-4" /> Locked</>
-                        ) : !sessionOpen ? (
-                          <><Lock className="h-4 w-4" /> Session closed</>
-                        ) : (
-                          <><Plus className="h-4 w-4" /> Enter {niceName}</>
-                        )}
-                      </button>
-                      <button
-                        disabled={disabled}
-                        onClick={() => startBid(t, t.max_entry)}
-                        className="h-11 px-5 rounded-2xl border border-border text-sm font-medium hover:bg-secondary transition-smooth inline-flex items-center gap-1 disabled:opacity-50 disabled:cursor-not-allowed"
-                      >
-                        Bid <ChevronRight className="h-3 w-3" />
-                      </button>
-                    </div>
-                  </article>
+                    tier={t}
+                    pool={s.pool}
+                    members={s.members}
+                    target={s.target}
+                    myTotal={myTotal}
+                    sessionOpen={sessionOpen}
+                    sessionLabel={sessionLabel}
+                    delayMs={i * 60}
+                    onBidMin={() => startBid(t, t.min_entry)}
+                    onBidMax={() => startBid(t, t.max_entry)}
+                  />
                 );
               })}
             </div>
