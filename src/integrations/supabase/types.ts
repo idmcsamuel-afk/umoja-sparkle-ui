@@ -744,18 +744,23 @@ export type Database = {
           consistency_percentage: number | null
           created_at: string | null
           days_waiting: number | null
+          expiration_notified: boolean | null
           fiat_amount: number
           id: string
           matched_to: string | null
           member_id: string
           net_amount: number
+          payment_completed_at: string | null
           payment_confirmed_at: string | null
           payment_confirmed_by: string | null
+          payment_deadline: string | null
           payment_method: string | null
           payment_proof_url: string | null
           payment_ref: string | null
           payment_reference: string | null
+          payment_status: string | null
           payment_submitted_at: string | null
+          payment_window_hours: number | null
           payout_amount: number | null
           payout_date: string | null
           payout_rank: number | null
@@ -778,18 +783,23 @@ export type Database = {
           consistency_percentage?: number | null
           created_at?: string | null
           days_waiting?: number | null
+          expiration_notified?: boolean | null
           fiat_amount: number
           id?: string
           matched_to?: string | null
           member_id: string
           net_amount: number
+          payment_completed_at?: string | null
           payment_confirmed_at?: string | null
           payment_confirmed_by?: string | null
+          payment_deadline?: string | null
           payment_method?: string | null
           payment_proof_url?: string | null
           payment_ref?: string | null
           payment_reference?: string | null
+          payment_status?: string | null
           payment_submitted_at?: string | null
+          payment_window_hours?: number | null
           payout_amount?: number | null
           payout_date?: string | null
           payout_rank?: number | null
@@ -812,18 +822,23 @@ export type Database = {
           consistency_percentage?: number | null
           created_at?: string | null
           days_waiting?: number | null
+          expiration_notified?: boolean | null
           fiat_amount?: number
           id?: string
           matched_to?: string | null
           member_id?: string
           net_amount?: number
+          payment_completed_at?: string | null
           payment_confirmed_at?: string | null
           payment_confirmed_by?: string | null
+          payment_deadline?: string | null
           payment_method?: string | null
           payment_proof_url?: string | null
           payment_ref?: string | null
           payment_reference?: string | null
+          payment_status?: string | null
           payment_submitted_at?: string | null
+          payment_window_hours?: number | null
           payout_amount?: number | null
           payout_date?: string | null
           payout_rank?: number | null
@@ -4469,6 +4484,7 @@ export type Database = {
           volume_score: number
         }[]
       }
+      expire_unpaid_bids: { Args: never; Returns: undefined }
       flame_graphics_count_week: { Args: never; Returns: number }
       flame_video_count_week: { Args: never; Returns: number }
       gen_referral_code: { Args: { _seed?: string }; Returns: string }
