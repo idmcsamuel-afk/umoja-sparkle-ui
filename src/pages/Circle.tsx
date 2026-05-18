@@ -21,6 +21,7 @@ import { PaymentMethodSelector, type PaymentMethod } from "@/components/umoja/Pa
 import { usePaystack, buildReference } from "@/hooks/usePaystack";
 import { cn } from "@/lib/utils";
 import { CircleTierCard } from "@/components/umoja/CircleTierCard";
+import { ReferralPromo } from "@/components/umoja/ReferralPromo";
 
 interface Tier {
   tier: string;
@@ -473,6 +474,13 @@ const Circle = () => {
               })}
             </ul>
           )}
+        </div>
+      </section>
+
+      {/* Referral promo */}
+      <section className="px-5 pt-8">
+        <div className="mx-auto max-w-md">
+          <ReferralPromo />
         </div>
       </section>
 
