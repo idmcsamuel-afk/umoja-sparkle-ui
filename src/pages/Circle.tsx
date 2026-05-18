@@ -41,6 +41,9 @@ interface Bid {
   created_at: string | null;
   vault_end: string | null;
   payout_amount: number | null;
+  payment_deadline: string | null;
+  payment_proof_url: string | null;
+  payment_reference: string | null;
 }
 
 interface TierStats { pool: number; members: number; target: number; }
@@ -126,24 +129,25 @@ const Circle = () => {
 
   const load = async () => {
     setLoading(true);
-    const [tiersRes, bidsRes, allBidsRes, settingsRes] = await Promise.all([
+    // Best-effort: expire any unpaid bids whose deadline has passed.
+    try { await supabase.rpc("expire_unpaid_bids"); } catch {}
+
+    const [tiersRes, bidsRes, statsRes, settingsRes] = await Promise.all([
       supabase.from("circle_tiers").select("*").order("min_entry"),
       user
         ? supabase
             .from("circle_bids")
-            .select("id, tier, fiat_amount, net_amount, status, created_at, vault_end, payout_amount")
+            .select("id, tier, fiat_amount, net_amount, status, created_at, vault_end, payout_amount, payment_deadline, payment_proof_url, payment_reference")
             .eq("member_id", user.id)
             .order("created_at", { ascending: false })
         : Promise.resolve({ data: [], error: null } as const),
-      supabase
-        .from("circle_bids")
-        .select("tier, net_amount, member_id, status")
-        .in("status", ["pending", "payment_pending", "active", "matched"]),
+      supabase.rpc("circle_tier_stats"),
       supabase.rpc("get_member_platform_settings"),
     ]);
 
     if (tiersRes.error) console.error(tiersRes.error);
     if (bidsRes.error) console.error(bidsRes.error);
+    if (statsRes.error) console.error(statsRes.error);
 
     const t = (tiersRes.data ?? []) as Tier[];
     setTiers(t);
@@ -159,14 +163,11 @@ const Circle = () => {
         target: Number(tier.max_entry) * Number(tier.daily_velocity_cap || 1),
       };
     }
-    const seen: Record<string, Set<string>> = {};
-    for (const b of (allBidsRes.data ?? []) as { tier: string; net_amount: number; member_id: string }[]) {
-      if (!grouped[b.tier]) continue;
-      grouped[b.tier].pool += Number(b.net_amount || 0);
-      seen[b.tier] = seen[b.tier] ?? new Set();
-      seen[b.tier].add(b.member_id);
+    for (const row of (statsRes.data ?? []) as { tier: string; pool: number | string; members: number | string }[]) {
+      if (!grouped[row.tier]) continue;
+      grouped[row.tier].pool = Number(row.pool || 0);
+      grouped[row.tier].members = Number(row.members || 0);
     }
-    for (const k of Object.keys(grouped)) grouped[k].members = seen[k]?.size ?? 0;
     setStats(grouped);
     setLoading(false);
   };
@@ -418,21 +419,57 @@ const Circle = () => {
             </div>
           ) : (
             <ul className="mt-4 divide-y divide-border rounded-3xl border border-border bg-gradient-card overflow-hidden">
-              {bids.slice(0, 5).map((b) => (
-                <li key={b.id} className="flex items-center gap-4 p-4 animate-fade-in">
-                  <div className="grid h-10 w-10 shrink-0 place-items-center rounded-2xl bg-secondary text-primary">
-                    <Flame className="h-4 w-4" />
-                  </div>
-                  <div className="min-w-0 flex-1">
-                    <p className="truncate text-sm font-medium capitalize">{b.tier}</p>
-                    <p className="truncate text-xs text-muted-foreground inline-flex items-center gap-1">
-                      <Clock className="h-3 w-3" />
-                      {b.status ?? "pending"} · {b.created_at ? new Date(b.created_at).toLocaleDateString() : ""}
-                    </p>
-                  </div>
-                  <span className="text-sm font-display text-gradient-gold">{fmtR(Number(b.fiat_amount))}</span>
-                </li>
-              ))}
+              {bids.slice(0, 5).map((b) => {
+                const status = b.status ?? "pending";
+                const deadlineMs = b.payment_deadline ? new Date(b.payment_deadline).getTime() : null;
+                const hoursLeft = deadlineMs ? (deadlineMs - now) / 3_600_000 : null;
+                const awaiting = status === "pending" || status === "payment_pending";
+
+                let badge: { text: string; cls: string } | null = null;
+                if (status === "active" || status === "matched") badge = { text: "✅ Paid", cls: "bg-emerald-500/15 text-emerald-400" };
+                else if (status === "expired") badge = { text: "⏰ Expired", cls: "bg-destructive/15 text-destructive" };
+                else if (status === "rejected" || status === "cancelled" || status === "refunded") badge = { text: `🚫 ${status}`, cls: "bg-destructive/15 text-destructive" };
+                else if (awaiting && hoursLeft !== null) {
+                  if (hoursLeft <= 0) badge = { text: "⏰ Deadline passed", cls: "bg-destructive/15 text-destructive" };
+                  else if (hoursLeft <= 6) badge = { text: `⚠️ ${Math.max(1, Math.floor(hoursLeft))}h left to pay`, cls: "bg-amber-500/15 text-amber-400" };
+                  else badge = { text: `⏳ ${Math.floor(hoursLeft)}h to pay`, cls: "bg-primary/15 text-primary" };
+                } else {
+                  badge = { text: status, cls: "bg-secondary text-muted-foreground" };
+                }
+
+                return (
+                  <li key={b.id} className="flex flex-col gap-2 p-4 animate-fade-in">
+                    <div className="flex items-center gap-4">
+                      <div className="grid h-10 w-10 shrink-0 place-items-center rounded-2xl bg-secondary text-primary">
+                        <Flame className="h-4 w-4" />
+                      </div>
+                      <div className="min-w-0 flex-1">
+                        <p className="truncate text-sm font-medium capitalize">{b.tier}</p>
+                        <p className="truncate text-xs text-muted-foreground inline-flex items-center gap-1">
+                          <Clock className="h-3 w-3" />
+                          {b.created_at ? new Date(b.created_at).toLocaleDateString() : ""}
+                        </p>
+                      </div>
+                      <span className="text-sm font-display text-gradient-gold">{fmtR(Number(b.fiat_amount))}</span>
+                    </div>
+                    <div className="flex flex-wrap items-center justify-between gap-2 pl-14">
+                      {badge && (
+                        <span className={`inline-flex items-center rounded-full px-2 py-0.5 text-[10px] font-medium ${badge.cls}`}>
+                          {badge.text}
+                        </span>
+                      )}
+                      {awaiting && deadlineMs && hoursLeft !== null && hoursLeft > 0 && (
+                        <span className="text-[10px] text-muted-foreground">
+                          Pay by {new Date(deadlineMs).toLocaleString()}
+                        </span>
+                      )}
+                      {b.payment_proof_url && (
+                        <span className="text-[10px] text-emerald-400">✅ Proof uploaded</span>
+                      )}
+                    </div>
+                  </li>
+                );
+              })}
             </ul>
           )}
         </div>
@@ -476,7 +513,11 @@ const Circle = () => {
                   <article
                     key={t.tier}
                     style={{ animationDelay: `${i * 60}ms` }}
-                    className={`group relative overflow-hidden rounded-3xl glass p-5 animate-slide-up ${locked ? "opacity-80" : ""}`}
+                    className={cn(
+                      "group relative overflow-hidden rounded-3xl glass p-5 animate-slide-up transition-all",
+                      locked && "opacity-80",
+                      !locked && sessionOpen && "border-2 border-emerald-500/70 shadow-[0_0_40px_rgba(16,185,129,0.35)] bg-emerald-500/[0.04] animate-pulse-glow",
+                    )}
                   >
                     <div className="flex items-start justify-between">
                       <div>
@@ -489,8 +530,8 @@ const Circle = () => {
                         </p>
                       </div>
                       <div className="flex flex-col items-end gap-1">
-                        <span className={`inline-flex items-center gap-1 text-[10px] uppercase tracking-wider rounded-full px-2 py-1 ${locked ? "bg-muted text-muted-foreground" : "bg-primary/15 text-primary"}`}>
-                          {locked ? <><Lock className="h-3 w-3" /> Locked</> : "Active"}
+                        <span className={`inline-flex items-center gap-1 text-[10px] uppercase tracking-wider rounded-full px-2 py-1 ${locked ? "bg-muted text-muted-foreground" : sessionOpen ? "bg-emerald-500/20 text-emerald-400" : "bg-primary/15 text-primary"}`}>
+                          {locked ? <><Lock className="h-3 w-3" /> Locked</> : sessionOpen ? <><span className="h-1.5 w-1.5 rounded-full bg-emerald-400 animate-pulse" /> Live</> : "Active"}
                         </span>
                         <p className="font-display text-base text-gradient-gold">{fmtR(s.pool)}</p>
                       </div>
@@ -529,11 +570,14 @@ const Circle = () => {
                       <button
                         disabled={disabled}
                         onClick={() => startBid(t, t.min_entry)}
-                        className={`flex-1 h-11 rounded-2xl text-sm font-medium inline-flex items-center justify-center gap-1.5 disabled:opacity-50 disabled:cursor-not-allowed ${
+                        className={cn(
+                          "flex-1 rounded-2xl text-sm font-medium inline-flex items-center justify-center gap-1.5 disabled:opacity-50 disabled:cursor-not-allowed transition-all",
                           disabled
-                            ? "bg-secondary text-muted-foreground border border-border"
-                            : "bg-gradient-primary text-primary-foreground shadow-glow"
-                        }`}
+                            ? "h-11 bg-secondary text-muted-foreground border border-border"
+                            : sessionOpen
+                              ? "h-12 bg-gradient-to-r from-emerald-500 to-emerald-600 text-white shadow-[0_8px_32px_rgba(16,185,129,0.45)] font-semibold tracking-wide"
+                              : "h-11 bg-gradient-primary text-primary-foreground shadow-glow",
+                        )}
                       >
                         {locked ? (
                           <><Lock className="h-4 w-4" /> Locked</>
