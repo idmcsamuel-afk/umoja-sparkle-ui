@@ -9,6 +9,7 @@ import { Input } from "@/components/ui/input";
 import { PasswordInput } from "@/components/ui/password-input";
 import { Label } from "@/components/ui/label";
 import { toast } from "sonner";
+import { useSocialProof, fmtR } from "@/hooks/useSocialProof";
 
 const schema = z.object({
   full_name: z.string().trim().min(2, "Enter your full name").max(100),
@@ -20,6 +21,7 @@ const schema = z.object({
 
 const Signup = () => {
   const nav = useNavigate();
+  const proof = useSocialProof();
   const [params] = useSearchParams();
   const urlRef = (params.get("ref") ?? "").trim().toUpperCase().slice(0, 8);
   // Persist referral code so it survives navigation (email confirmation, etc.)
@@ -257,6 +259,17 @@ const Signup = () => {
           <h1 className="mt-5 font-display text-[40px] leading-[1.05] tracking-tight">
             Join the <span className="text-gradient-gold italic font-[450]">circle.</span>
           </h1>
+
+          <div className="mt-4 rounded-2xl border border-emerald-500/25 bg-emerald-500/[0.06] p-3">
+            <p className="text-xs text-foreground/90 inline-flex items-center gap-1.5">
+              <span className="h-1.5 w-1.5 rounded-full bg-emerald-400 animate-pulse" />
+              Join <strong className="text-foreground">{proof.membersCount.toLocaleString("en-ZA")}</strong> members building wealth together
+            </p>
+            <div className="mt-2 grid grid-cols-2 gap-2 text-[11px]">
+              <span className="rounded-lg bg-background/40 px-2 py-1 text-foreground/85">💰 {fmtR(proof.paidThisMonth)} paid out this month</span>
+              <span className="rounded-lg bg-background/40 px-2 py-1 text-foreground/85">⚡ {proof.sparksThisWeek.toLocaleString("en-ZA")} Sparks earned this week</span>
+            </div>
+          </div>
 
           <div className="mt-5 rounded-2xl border border-accent/30 bg-accent/5 p-4 flex gap-3">
             <Lock className="h-4 w-4 text-accent shrink-0 mt-0.5" />
