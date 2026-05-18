@@ -20,6 +20,7 @@ import { TimezoneSelector } from "@/components/umoja/TimezoneSelector";
 import { PaymentMethodSelector, type PaymentMethod } from "@/components/umoja/PaymentMethodSelector";
 import { usePaystack, buildReference } from "@/hooks/usePaystack";
 import { cn } from "@/lib/utils";
+import { CircleTierCard } from "@/components/umoja/CircleTierCard";
 
 interface Tier {
   tier: string;
