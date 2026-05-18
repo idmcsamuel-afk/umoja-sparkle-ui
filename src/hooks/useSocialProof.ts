@@ -36,8 +36,6 @@ const SEEDED_ACTIVITY: ActivityItem[] = [
   { id: "s5", kind: "payout",   message: "Sipho cashed out R2,400 from Growth Circle",               at: new Date(Date.now() - 5 * 3600_000).toISOString() },
 ];
 
-const rand = "name=eq.dummy"; // noop string for sketches
-
 function firstName(full: string | null | undefined) {
   if (!full) return "A member";
   return full.trim().split(/\s+/)[0];
