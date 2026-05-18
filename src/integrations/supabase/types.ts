@@ -4462,6 +4462,14 @@ export type Database = {
         Args: { p_enrollment_id: string }
         Returns: number
       }
+      circle_tier_stats: {
+        Args: never
+        Returns: {
+          members: number
+          pool: number
+          tier: string
+        }[]
+      }
       claim_signup_bonus: { Args: never; Returns: number }
       compute_session_scores: {
         Args: { _tier: string }
@@ -4484,7 +4492,7 @@ export type Database = {
           volume_score: number
         }[]
       }
-      expire_unpaid_bids: { Args: never; Returns: undefined }
+      expire_unpaid_bids: { Args: never; Returns: number }
       flame_graphics_count_week: { Args: never; Returns: number }
       flame_video_count_week: { Args: never; Returns: number }
       gen_referral_code: { Args: { _seed?: string }; Returns: string }
