@@ -570,6 +570,12 @@ const Circle = () => {
                     5% total fees (2% platform + 3% Ubuntu fund) apply to your gross payout.
                   </DialogDescription>
                 </DialogHeader>
+                {open && (proof.liveBiddersByTier[open.tier] ?? 0) > 0 && (
+                  <div className="rounded-2xl border border-emerald-500/30 bg-emerald-500/[0.06] px-3 py-2 text-xs text-emerald-400 inline-flex items-center gap-2">
+                    <span className="h-1.5 w-1.5 rounded-full bg-emerald-400 animate-pulse" />
+                    🔥 LIVE: {proof.liveBiddersByTier[open.tier]} member{proof.liveBiddersByTier[open.tier] === 1 ? "" : "s"} bidding right now
+                  </div>
+                )}
                 <div className="space-y-2">
                   <Label className="text-xs uppercase tracking-[0.18em] text-muted-foreground">Bid amount (R)</Label>
                   <Input
