@@ -18,6 +18,25 @@ async function notify(member_id: string, title: string, body: string) {
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response("ok", { headers: corsHeaders });
 
+  // Authorize: require CRON_SECRET header, service-role JWT, or admin JWT
+  const cronSecret = Deno.env.get("CRON_SECRET");
+  if (!cronSecret || req.headers.get("x-cron-secret") !== cronSecret) {
+    const authHeader = req.headers.get("Authorization");
+    if (!authHeader?.startsWith("Bearer ")) {
+      return new Response(JSON.stringify({ error: "Unauthorized" }), { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+    }
+    const token = authHeader.replace("Bearer ", "");
+    const anon = createClient(SUPABASE_URL, Deno.env.get("SUPABASE_ANON_KEY")!);
+    const { data, error } = await anon.auth.getClaims(token);
+    if (error || !data?.claims) {
+      return new Response(JSON.stringify({ error: "Unauthorized" }), { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+    }
+    if (data.claims.role !== "service_role") {
+      const { data: row } = await sb.from("admin_users").select("user_id").eq("user_id", data.claims.sub).maybeSingle();
+      if (!row) return new Response(JSON.stringify({ error: "Forbidden" }), { status: 403, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+    }
+  }
+
   const today = new Date();
   const day = today.getUTCDate();
   const lastDay = new Date(today.getUTCFullYear(), today.getUTCMonth() + 1, 0).getUTCDate();
