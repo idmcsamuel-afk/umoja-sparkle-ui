@@ -100,17 +100,18 @@ export function CircleStatusBanner() {
   if (open) {
     const remaining = open.target - now;
     return (
-      <div className="rounded-3xl border border-primary/50 bg-primary/15 p-4 text-center animate-pulse">
+      <div className="rounded-3xl border-2 border-emerald-400/60 bg-gradient-to-br from-emerald-500 to-emerald-600 p-5 text-center text-white shadow-[0_8px_32px_rgba(16,185,129,0.45)] animate-pulse-glow">
         <div className="flex items-center justify-center gap-2">
-          <p className="text-[10px] uppercase tracking-[0.22em] text-primary">
-            🟢 {LABELS[open.tier]} session open now
+          <span className="text-lg animate-pulse">🔥</span>
+          <p className="text-[11px] uppercase tracking-[0.24em] font-bold text-white">
+            {LABELS[open.tier]} session live — bid now
           </p>
           <HelpDot />
         </div>
-        <p className="mt-1 font-mono font-display text-2xl text-primary">
+        <p className="mt-2 font-mono font-display text-3xl text-white drop-shadow">
           closes in {fmt(remaining, false)}
         </p>
-        <p className="mt-1 text-[10px] text-muted-foreground">
+        <p className="mt-1 text-[10px] text-white/80">
           closes {formatTime(open.target, tz)} {tzAbbrev(open.target, tz)}
           {showBoth && <> · {formatTime(open.target, SAST)} SAST</>}
         </p>
