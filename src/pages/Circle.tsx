@@ -513,7 +513,11 @@ const Circle = () => {
                   <article
                     key={t.tier}
                     style={{ animationDelay: `${i * 60}ms` }}
-                    className={`group relative overflow-hidden rounded-3xl glass p-5 animate-slide-up ${locked ? "opacity-80" : ""}`}
+                    className={cn(
+                      "group relative overflow-hidden rounded-3xl glass p-5 animate-slide-up transition-all",
+                      locked && "opacity-80",
+                      !locked && sessionOpen && "border-2 border-emerald-500/70 shadow-[0_0_40px_rgba(16,185,129,0.35)] bg-emerald-500/[0.04] animate-pulse-glow",
+                    )}
                   >
                     <div className="flex items-start justify-between">
                       <div>
@@ -526,8 +530,8 @@ const Circle = () => {
                         </p>
                       </div>
                       <div className="flex flex-col items-end gap-1">
-                        <span className={`inline-flex items-center gap-1 text-[10px] uppercase tracking-wider rounded-full px-2 py-1 ${locked ? "bg-muted text-muted-foreground" : "bg-primary/15 text-primary"}`}>
-                          {locked ? <><Lock className="h-3 w-3" /> Locked</> : "Active"}
+                        <span className={`inline-flex items-center gap-1 text-[10px] uppercase tracking-wider rounded-full px-2 py-1 ${locked ? "bg-muted text-muted-foreground" : sessionOpen ? "bg-emerald-500/20 text-emerald-400" : "bg-primary/15 text-primary"}`}>
+                          {locked ? <><Lock className="h-3 w-3" /> Locked</> : sessionOpen ? <><span className="h-1.5 w-1.5 rounded-full bg-emerald-400 animate-pulse" /> Live</> : "Active"}
                         </span>
                         <p className="font-display text-base text-gradient-gold">{fmtR(s.pool)}</p>
                       </div>
