@@ -22,6 +22,8 @@ import { usePaystack, buildReference } from "@/hooks/usePaystack";
 import { cn } from "@/lib/utils";
 import { CircleTierCard } from "@/components/umoja/CircleTierCard";
 import { ReferralPromo } from "@/components/umoja/ReferralPromo";
+import { LiveActivityTicker } from "@/components/umoja/LiveActivityTicker";
+import { useSocialProof } from "@/hooks/useSocialProof";
 
 interface Tier {
   tier: string;
@@ -74,6 +76,7 @@ const KNOWN_TIERS = new Set(["seed", "growth", "harvest"]);
 
 const Circle = () => {
   const { user } = useAuth();
+  const proof = useSocialProof();
   const [tiers, setTiers] = useState<Tier[]>([]);
   const [bids, setBids] = useState<Bid[]>([]);
   const [stats, setStats] = useState<Record<string, TierStats>>({});
@@ -477,8 +480,15 @@ const Circle = () => {
         </div>
       </section>
 
+      {/* Live activity ticker */}
+      <section className="px-5 pt-6">
+        <div className="mx-auto max-w-md">
+          <LiveActivityTicker />
+        </div>
+      </section>
+
       {/* Referral promo */}
-      <section className="px-5 pt-8">
+      <section className="px-5 pt-6">
         <div className="mx-auto max-w-md">
           <ReferralPromo />
         </div>
@@ -527,6 +537,8 @@ const Circle = () => {
                     delayMs={i * 60}
                     onBidMin={() => startBid(t, t.min_entry)}
                     onBidMax={() => startBid(t, t.max_entry)}
+                    payoutsThisWeek={proof.payoutsThisWeekByTier[t.tier] ?? 0}
+                    liveBidders={proof.liveBiddersByTier[t.tier] ?? 0}
                   />
                 );
               })}
@@ -558,6 +570,12 @@ const Circle = () => {
                     5% total fees (2% platform + 3% Ubuntu fund) apply to your gross payout.
                   </DialogDescription>
                 </DialogHeader>
+                {open && (proof.liveBiddersByTier[open.tier] ?? 0) > 0 && (
+                  <div className="rounded-2xl border border-emerald-500/30 bg-emerald-500/[0.06] px-3 py-2 text-xs text-emerald-400 inline-flex items-center gap-2">
+                    <span className="h-1.5 w-1.5 rounded-full bg-emerald-400 animate-pulse" />
+                    🔥 LIVE: {proof.liveBiddersByTier[open.tier]} member{proof.liveBiddersByTier[open.tier] === 1 ? "" : "s"} bidding right now
+                  </div>
+                )}
                 <div className="space-y-2">
                   <Label className="text-xs uppercase tracking-[0.18em] text-muted-foreground">Bid amount (R)</Label>
                   <Input

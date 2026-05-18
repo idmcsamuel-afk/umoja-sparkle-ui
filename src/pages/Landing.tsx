@@ -3,6 +3,7 @@ import { ArrowRight, Users, Sparkles, Car, TrendingUp, ShieldCheck, Globe2, Crow
 import { Button } from "@/components/ui/button";
 import { Logo } from "@/components/umoja/Logo";
 import { SiteFooter } from "@/components/umoja/SiteFooter";
+import { useSocialProof, fmtR } from "@/hooks/useSocialProof";
 import hero from "@/assets/hero.jpg";
 import pattern from "@/assets/pattern.jpg";
 
@@ -40,6 +41,7 @@ const stats = [
 ];
 
 const Landing = () => {
+  const proof = useSocialProof();
   return (
     <main className="relative min-h-screen overflow-hidden">
       {/* Ambient background */}
@@ -79,6 +81,11 @@ const Landing = () => {
             <span className="inline-flex items-center gap-1 text-accent-soft">
               <Star className="h-3 w-3 fill-current" /> 4.9
             </span>
+          </div>
+
+          <div className="mt-3 inline-flex items-center gap-2 rounded-full border border-emerald-500/30 bg-emerald-500/10 px-3 py-1.5 text-xs text-emerald-400 animate-fade-in">
+            <span className="h-1.5 w-1.5 rounded-full bg-emerald-400 animate-pulse" />
+            🔥 {proof.membersCount.toLocaleString("en-ZA")} members earned {fmtR(proof.paidThisMonth)} this month
           </div>
 
           <h1 className="mt-5 font-display text-[44px] leading-[1.02] font-semibold tracking-tight animate-slide-up">
