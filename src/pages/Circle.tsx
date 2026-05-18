@@ -41,6 +41,9 @@ interface Bid {
   created_at: string | null;
   vault_end: string | null;
   payout_amount: number | null;
+  payment_deadline: string | null;
+  payment_proof_url: string | null;
+  payment_reference: string | null;
 }
 
 interface TierStats { pool: number; members: number; target: number; }
