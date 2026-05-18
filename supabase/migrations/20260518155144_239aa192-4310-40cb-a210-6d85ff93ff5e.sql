@@ -1,0 +1,1 @@
+REVOKE EXECUTE ON FUNCTION public.circle_tier_stats() FROM anon;
