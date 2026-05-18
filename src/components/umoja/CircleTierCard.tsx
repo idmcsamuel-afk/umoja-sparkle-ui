@@ -266,6 +266,20 @@ export function CircleTierCard({
           />
         </div>
         <p className="mt-1 text-right text-[10px] text-muted-foreground">{pct}% of target</p>
+        <p className="mt-2 text-[11px] text-foreground/85 inline-flex items-center gap-1.5">
+          <span aria-hidden>👥</span>
+          <span className="font-medium">{members}</span>
+          <span className="text-muted-foreground">earning</span>
+          <span className="mx-1 text-muted-foreground">·</span>
+          <span className="font-medium">{payoutsThisWeek}</span>
+          <span className="text-muted-foreground">payout{payoutsThisWeek === 1 ? "" : "s"} this week</span>
+        </p>
+        {liveBidders > 0 && sessionOpen && (
+          <p className="mt-1 text-[11px] inline-flex items-center gap-1.5 text-emerald-400">
+            <span className="h-1.5 w-1.5 rounded-full bg-emerald-400 animate-pulse" />
+            🔥 LIVE: {liveBidders} member{liveBidders === 1 ? "" : "s"} bidding right now
+          </p>
+        )}
       </div>
 
       {/* Session timer */}
