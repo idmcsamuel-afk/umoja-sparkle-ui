@@ -231,8 +231,9 @@ Deno.serve(async (req) => {
 
     if (willGenerate) {
       videosNeeded = targetMax - queue;
-      const scriptsNeeded = Math.max(5, Math.ceil(videosNeeded / 3));
+      const scriptsNeeded = Math.min(20, Math.max(5, Math.ceil(videosNeeded / 3)));
       console.log("[director] videosNeeded:", videosNeeded, "scriptsNeeded:", scriptsNeeded);
+      console.log("[director] generating batch of:", scriptsNeeded, "scripts");
 
       if (settings.auto_scripts !== false) {
         const newScripts = await generateScripts(scriptsNeeded, campaignId);
