@@ -476,6 +476,13 @@ const Circle = () => {
         </div>
       </section>
 
+      {/* Referral promo */}
+      <section className="px-5 pt-8">
+        <div className="mx-auto max-w-md">
+          <ReferralPromo />
+        </div>
+      </section>
+
       {/* Active circles */}
       <section className="px-5 pt-8">
         <div className="mx-auto max-w-md">
