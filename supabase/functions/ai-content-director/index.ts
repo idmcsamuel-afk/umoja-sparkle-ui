@@ -44,7 +44,7 @@ async function generateScripts(count: number, campaignId: string | null) {
   }
   const data = await res.json();
   const raw = data?.content?.[0]?.text ?? "[]";
-  const cleaned = raw.replace(/```json\n?|```/g, "").trim();
+  const cleaned = raw.replace(/```json\n?|\n?```/g, "").trim();
   try {
     const parsed = JSON.parse(cleaned);
     if (!Array.isArray(parsed)) return [];
