@@ -130,7 +130,7 @@ const Circle = () => {
   const load = async () => {
     setLoading(true);
     // Best-effort: expire any unpaid bids whose deadline has passed.
-    supabase.rpc("expire_unpaid_bids").then(() => {}).catch(() => {});
+    try { await supabase.rpc("expire_unpaid_bids"); } catch {}
 
     const [tiersRes, bidsRes, statsRes, settingsRes] = await Promise.all([
       supabase.from("circle_tiers").select("*").order("min_entry"),
