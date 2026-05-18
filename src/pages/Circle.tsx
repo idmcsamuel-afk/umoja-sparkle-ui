@@ -570,11 +570,14 @@ const Circle = () => {
                       <button
                         disabled={disabled}
                         onClick={() => startBid(t, t.min_entry)}
-                        className={`flex-1 h-11 rounded-2xl text-sm font-medium inline-flex items-center justify-center gap-1.5 disabled:opacity-50 disabled:cursor-not-allowed ${
+                        className={cn(
+                          "flex-1 rounded-2xl text-sm font-medium inline-flex items-center justify-center gap-1.5 disabled:opacity-50 disabled:cursor-not-allowed transition-all",
                           disabled
-                            ? "bg-secondary text-muted-foreground border border-border"
-                            : "bg-gradient-primary text-primary-foreground shadow-glow"
-                        }`}
+                            ? "h-11 bg-secondary text-muted-foreground border border-border"
+                            : sessionOpen
+                              ? "h-12 bg-gradient-to-r from-emerald-500 to-emerald-600 text-white shadow-[0_8px_32px_rgba(16,185,129,0.45)] font-semibold tracking-wide"
+                              : "h-11 bg-gradient-primary text-primary-foreground shadow-glow",
+                        )}
                       >
                         {locked ? (
                           <><Lock className="h-4 w-4" /> Locked</>
