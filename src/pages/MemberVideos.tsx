@@ -66,7 +66,7 @@ export default function MemberVideos() {
   };
 
   return (
-    <div className="max-w-5xl mx-auto p-4 md:p-8 space-y-6">
+    <div className="max-w-5xl mx-auto p-4 md:p-8 space-y-6 pb-28 md:pb-8">
       <header className="flex items-center justify-between flex-wrap gap-3">
         <div>
           <p className="text-[11px] uppercase tracking-[0.22em] text-accent">My videos</p>
