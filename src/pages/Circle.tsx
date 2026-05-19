@@ -576,15 +576,27 @@ const Circle = () => {
                     🔥 LIVE: {proof.liveBiddersByTier[open.tier]} member{proof.liveBiddersByTier[open.tier] === 1 ? "" : "s"} bidding right now
                   </div>
                 )}
-                <div className="space-y-2">
-                  <Label className="text-xs uppercase tracking-[0.18em] text-muted-foreground">Bid amount (R)</Label>
-                  <Input
-                    type="number"
-                    inputMode="numeric"
-                    value={amount}
-                    onChange={(e) => setAmount(e.target.value)}
-                    className="h-12 rounded-2xl bg-secondary/60 border-border text-lg"
-                  />
+                <div className="space-y-2 rounded-2xl border-2 border-accent/40 bg-accent/[0.04] p-4 sm:p-5 shadow-soft">
+                  <Label htmlFor="bid-amount-input" className="flex items-center justify-between text-xs uppercase tracking-[0.18em] text-accent font-semibold">
+                    <span>💰 Enter your bid amount</span>
+                    <span className="text-[10px] text-muted-foreground normal-case tracking-normal">in Rands</span>
+                  </Label>
+                  <div className="relative">
+                    <span className="pointer-events-none absolute left-4 top-1/2 -translate-y-1/2 font-display text-xl text-muted-foreground">R</span>
+                    <Input
+                      id="bid-amount-input"
+                      type="number"
+                      inputMode="numeric"
+                      autoFocus
+                      placeholder={open ? String(open.min_entry) : "0"}
+                      value={amount}
+                      onChange={(e) => setAmount(e.target.value)}
+                      className="h-16 pl-10 rounded-2xl bg-background border-2 border-accent/50 text-2xl font-display font-semibold focus-visible:ring-2 focus-visible:ring-accent focus-visible:border-accent"
+                    />
+                  </div>
+                  <p className="text-[11px] text-muted-foreground">
+                    Min {open && fmtR(open.min_entry)} · Max {open && fmtR(open.max_entry)}
+                  </p>
                   {open && Number(amount) > 0 && (() => {
                     const amt = Number(amount);
                     const grossRate = Number(open.growth_rate) || 0;
