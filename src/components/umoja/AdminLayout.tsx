@@ -30,6 +30,7 @@ const items = [
   { to: "/admin/community", label: "Community", icon: MessageCircle },
   { to: "/admin/automations", label: "Automations", icon: Zap },
   { to: "/admin/content-director", label: "Content Director 🤖", icon: Bot },
+  { to: "/admin/ugc-submissions", label: "UGC Submissions 🎬", icon: Bot },
   { to: "/admin/settings", label: "Settings", icon: Settings },
 ];
 
