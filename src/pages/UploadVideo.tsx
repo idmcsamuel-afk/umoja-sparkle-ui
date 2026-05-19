@@ -12,6 +12,7 @@ import { z } from "zod";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { Upload, ArrowLeft, ArrowRight, CheckCircle2, Video } from "lucide-react";
+import { BottomNav } from "@/components/umoja/BottomNav";
 
 const MAX_BYTES = 100 * 1024 * 1024;
 const ALLOWED = ["video/mp4", "video/quicktime", "video/mov", "video/webm"];
@@ -96,7 +97,7 @@ export default function UploadVideo() {
   };
 
   return (
-    <div className="max-w-2xl mx-auto p-4 md:p-8 space-y-6">
+    <div className="max-w-2xl mx-auto p-4 md:p-8 space-y-6 pb-28 md:pb-8">
       <header>
         <p className="text-[11px] uppercase tracking-[0.22em] text-accent">Upload & earn</p>
         <h1 className="font-display text-2xl md:text-3xl mt-1">🎥 Upload your video & earn 200 Sparks</h1>
@@ -245,6 +246,7 @@ export default function UploadVideo() {
       <p className="text-xs text-center text-muted-foreground">
         <Link to="/my-videos" className="underline">View my submissions →</Link>
       </p>
+      <BottomNav />
     </div>
   );
 }
