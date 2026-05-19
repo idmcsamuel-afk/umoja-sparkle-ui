@@ -6,9 +6,10 @@ import { Progress } from "@/components/ui/progress";
 import { Switch } from "@/components/ui/switch";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
-import { Bot, Pause, Play, RefreshCw, Sparkles, Video, Calendar, TrendingUp, Plus } from "lucide-react";
+import { Bot, Pause, Play, RefreshCw, Sparkles, Video, Calendar, TrendingUp, Plus, Download, Share2 } from "lucide-react";
 
 type Stats = {
   videosGenerated: number;
@@ -23,13 +24,15 @@ export default function AdminContentDirector() {
   const [stats, setStats] = useState<Stats>({ videosGenerated: 0, videosReady: 0, videosPostedToday: 0, scriptsQueue: 0, postsToday: 0 });
   const [avatars, setAvatars] = useState<any[]>([]);
   const [schedule, setSchedule] = useState<any[]>([]);
+  const [readyVideos, setReadyVideos] = useState<any[]>([]);
+  const [playing, setPlaying] = useState<any>(null);
   const [running, setRunning] = useState(false);
   const [loading, setLoading] = useState(true);
   const [newCampaign, setNewCampaign] = useState("");
 
   const load = async () => {
     const startOfDay = new Date(); startOfDay.setHours(0, 0, 0, 0);
-    const [c, ready, today, postedToday, scripts, av, sched] = await Promise.all([
+    const [c, ready, today, postedToday, scripts, av, sched, readyList] = await Promise.all([
       supabase.from("ai_content_campaigns").select("*").eq("status", "active").order("started_at", { ascending: false }).limit(1).maybeSingle(),
       supabase.from("ai_generated_videos").select("id", { count: "exact", head: true }).eq("generation_status", "ready"),
       supabase.from("ai_generated_videos").select("id", { count: "exact", head: true }).gte("created_at", startOfDay.toISOString()),
@@ -37,6 +40,7 @@ export default function AdminContentDirector() {
       supabase.from("ai_generated_scripts").select("id", { count: "exact", head: true }).lt("used_count", 3),
       supabase.from("ai_avatars").select("*").order("performance_score", { ascending: false }).limit(5),
       supabase.from("ai_scheduled_posts").select("id, platform, scheduled_for").eq("post_status", "scheduled").gte("scheduled_for", new Date().toISOString()).lte("scheduled_for", new Date(Date.now() + 86400_000).toISOString()).order("scheduled_for"),
+      supabase.from("ai_generated_videos").select("*, ai_avatars(name), ai_generated_scripts(script_text, hook)").eq("generation_status", "ready").order("created_at", { ascending: false }).limit(20),
     ]);
     setCampaign(c.data);
     setStats({
@@ -48,6 +52,7 @@ export default function AdminContentDirector() {
     });
     setAvatars(av.data ?? []);
     setSchedule(sched.data ?? []);
+    setReadyVideos(readyList.data ?? []);
     setLoading(false);
   };
   useEffect(() => { load(); }, []);
@@ -132,6 +137,59 @@ export default function AdminContentDirector() {
         <StatCard icon={Calendar} label="Posted Today" value={stats.postsToday} sub={`Target ${campaign?.target_posts_per_day ?? 5}/day`} />
         <StatCard icon={TrendingUp} label="Script Bank" value={stats.scriptsQueue} sub="Unused scripts" />
       </div>
+
+      <Card>
+        <CardHeader><CardTitle className="text-base flex items-center gap-2"><Video className="h-4 w-4" /> Ready Videos (Last 20)</CardTitle></CardHeader>
+        <CardContent>
+          {readyVideos.length === 0 ? (
+            <p className="text-sm text-muted-foreground">No ready videos yet.</p>
+          ) : (
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+              {readyVideos.map((v) => {
+                const scriptText = v.ai_generated_scripts?.script_text ?? v.ai_generated_scripts?.hook ?? v.video_caption ?? "";
+                const snippet = scriptText.slice(0, 50) + (scriptText.length > 50 ? "…" : "");
+                return (
+                  <div key={v.id} className="border rounded-lg overflow-hidden bg-card flex flex-col">
+                    <div className="aspect-[9/16] bg-muted relative">
+                      {v.thumbnail_url ? (
+                        <img src={v.thumbnail_url} alt={v.video_title ?? "video"} className="w-full h-full object-cover" loading="lazy" />
+                      ) : (
+                        <div className="w-full h-full flex items-center justify-center text-muted-foreground"><Video className="h-8 w-8" /></div>
+                      )}
+                    </div>
+                    <div className="p-3 space-y-2 flex-1 flex flex-col">
+                      <p className="text-xs font-medium line-clamp-1">{v.video_title ?? "Untitled"}</p>
+                      <p className="text-[11px] text-muted-foreground">{v.ai_avatars?.name ?? "Unknown avatar"}</p>
+                      <p className="text-[11px] text-muted-foreground line-clamp-2 flex-1">{snippet || "—"}</p>
+                      <div className="flex gap-1 pt-1">
+                        <Button size="sm" variant="outline" className="flex-1 h-8 px-2" onClick={() => setPlaying(v)} disabled={!v.video_url}>
+                          <Play className="h-3 w-3" />
+                        </Button>
+                        <Button size="sm" variant="outline" className="flex-1 h-8 px-2" asChild disabled={!v.video_url}>
+                          <a href={v.video_url ?? "#"} download target="_blank" rel="noopener noreferrer"><Download className="h-3 w-3" /></a>
+                        </Button>
+                        <Button size="sm" variant="outline" className="flex-1 h-8 px-2" onClick={() => toast.info("Posting to social coming soon")}>
+                          <Share2 className="h-3 w-3" />
+                        </Button>
+                      </div>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          )}
+        </CardContent>
+      </Card>
+
+      <Dialog open={!!playing} onOpenChange={(o) => !o && setPlaying(null)}>
+        <DialogContent className="max-w-md">
+          <DialogHeader><DialogTitle>{playing?.video_title ?? "Video"}</DialogTitle></DialogHeader>
+          {playing?.video_url && (
+            <video src={playing.video_url} controls autoPlay className="w-full rounded-lg aspect-[9/16] bg-black" />
+          )}
+        </DialogContent>
+      </Dialog>
+
 
       <Card>
         <CardHeader><CardTitle className="text-base">Video Queue</CardTitle></CardHeader>
