@@ -310,6 +310,7 @@ export default function BrowseVideos() {
           )}
         </DialogContent>
       </Dialog>
+      <BottomNav />
     </div>
   );
 }
