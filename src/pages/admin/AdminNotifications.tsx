@@ -46,6 +46,55 @@ export default function AdminNotifications() {
   const [busy, setBusy] = useState(false);
   const [logs, setLogs] = useState<LogRow[]>([]);
   const [loadingLogs, setLoadingLogs] = useState(true);
+  const [lastSaved, setLastSaved] = useState<Date | null>(null);
+  const [draftPrompt, setDraftPrompt] = useState<{ subject: string; body: string; timestamp: number } | null>(null);
+  const [draftLoaded, setDraftLoaded] = useState(false);
+
+  // Load draft on mount
+  useEffect(() => {
+    try {
+      const raw = localStorage.getItem(DRAFT_KEY);
+      if (raw) {
+        const parsed = JSON.parse(raw);
+        if (parsed && Date.now() - parsed.timestamp < DRAFT_MAX_AGE_MS && (parsed.subject || parsed.body)) {
+          setDraftPrompt(parsed);
+        } else {
+          localStorage.removeItem(DRAFT_KEY);
+        }
+      }
+    } catch {
+      localStorage.removeItem(DRAFT_KEY);
+    }
+    setDraftLoaded(true);
+  }, []);
+
+  // Auto-save draft every 3s after typing stops
+  useEffect(() => {
+    if (!draftLoaded || draftPrompt) return;
+    if (!subject && !body) return;
+    const timer = setTimeout(() => {
+      localStorage.setItem(DRAFT_KEY, JSON.stringify({ subject, body, timestamp: Date.now() }));
+      setLastSaved(new Date());
+    }, 3000);
+    return () => clearTimeout(timer);
+  }, [subject, body, draftLoaded, draftPrompt]);
+
+  const restoreDraft = () => {
+    if (!draftPrompt) return;
+    setSubject(draftPrompt.subject);
+    setBody(draftPrompt.body);
+    setLastSaved(new Date(draftPrompt.timestamp));
+    setDraftPrompt(null);
+  };
+  const discardDraft = () => {
+    localStorage.removeItem(DRAFT_KEY);
+    setDraftPrompt(null);
+    setLastSaved(null);
+  };
+  const clearDraft = () => {
+    localStorage.removeItem(DRAFT_KEY);
+    setLastSaved(null);
+  };
 
   const loadLogs = async () => {
     setLoadingLogs(true);
