@@ -143,9 +143,9 @@ export default function BrowseVideos() {
       </div>
 
       <Card>
-        <CardContent className="p-4 flex flex-wrap items-center gap-3">
+        <CardContent className="p-4 flex flex-col sm:flex-row sm:flex-wrap sm:items-center gap-3">
           <Select value={avatarFilter} onValueChange={setAvatarFilter}>
-            <SelectTrigger className="w-44"><SelectValue placeholder="All avatars" /></SelectTrigger>
+            <SelectTrigger className="w-full sm:w-44"><SelectValue placeholder="All avatars" /></SelectTrigger>
             <SelectContent>
               <SelectItem value="all">All avatars</SelectItem>
               {avatars.map((a) => (
@@ -154,13 +154,13 @@ export default function BrowseVideos() {
             </SelectContent>
           </Select>
           <Select value={sort} onValueChange={(v) => setSort(v as any)}>
-            <SelectTrigger className="w-40"><SelectValue /></SelectTrigger>
+            <SelectTrigger className="w-full sm:w-40"><SelectValue /></SelectTrigger>
             <SelectContent>
               <SelectItem value="newest">Newest first</SelectItem>
               <SelectItem value="oldest">Oldest first</SelectItem>
             </SelectContent>
           </Select>
-          <span className="text-xs text-muted-foreground ml-auto">{filtered.length} videos</span>
+          <span className="text-xs text-muted-foreground sm:ml-auto">{filtered.length} videos</span>
         </CardContent>
       </Card>
 
@@ -169,7 +169,7 @@ export default function BrowseVideos() {
       ) : visible.length === 0 ? (
         <Card><CardContent className="p-8 text-center text-sm text-muted-foreground">No videos yet. Check back soon.</CardContent></Card>
       ) : (
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
           {visible.map((v) => (
             <Card key={v.id} className="overflow-hidden">
               <div className="aspect-[9/16] bg-secondary relative group">
@@ -227,7 +227,7 @@ export default function BrowseVideos() {
 
       {/* Share modal */}
       <Dialog open={!!share} onOpenChange={(o) => !o && setShare(null)}>
-        <DialogContent className="max-w-lg max-h-[90vh] overflow-y-auto">
+        <DialogContent className="max-w-lg w-screen h-screen sm:w-full sm:h-auto sm:max-h-[90vh] rounded-none sm:rounded-lg overflow-y-auto">
           <DialogHeader><DialogTitle>📱 Share this video</DialogTitle></DialogHeader>
           {share && (
             <div className="space-y-4">
@@ -293,11 +293,11 @@ export default function BrowseVideos() {
               <div className="space-y-2 border rounded-lg p-3">
                 <div className="text-sm font-medium">📥 Download</div>
                 <div className="flex flex-col sm:flex-row gap-2">
-                  <Button size="sm" variant="outline" className="flex-1" onClick={() => download(share, false)}>
-                    <Download className="h-3.5 w-3.5" /> Video only
+                  <Button size="lg" variant="outline" className="flex-1 h-12" onClick={() => download(share, false)}>
+                    <Download className="h-4 w-4" /> Video only
                   </Button>
-                  <Button size="sm" className="flex-1" onClick={() => download(share, true)}>
-                    <Download className="h-3.5 w-3.5" /> Video + captions
+                  <Button size="lg" className="flex-1 h-12" onClick={() => download(share, true)}>
+                    <Download className="h-4 w-4" /> Video + captions
                   </Button>
                 </div>
               </div>
