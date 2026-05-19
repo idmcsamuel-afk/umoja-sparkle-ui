@@ -138,7 +138,7 @@ export function usePaystack() {
               toast.warning("Payment received — verification pending", {
                 description: `${msg}. Ref: ${tx.reference}`,
               });
-              resolve({ ok: false, reference: tx.reference, error: msg });
+              settle({ ok: false, reference: tx.reference, error: msg });
               return;
             }
             if (d.applied === false) {
@@ -148,20 +148,20 @@ export function usePaystack() {
             } else {
               toast.success("Payment successful ✓", { description: `Ref: ${tx.reference}` });
             }
-            resolve({ ok: true, reference: tx.reference });
+            settle({ ok: true, reference: tx.reference });
           },
           onCancel: () => {
             document.body.classList.remove("paystack-open");
             fireClose();
             toast.message("Payment cancelled");
-            resolve({ ok: false, error: "cancelled" });
+            settle({ ok: false, error: "cancelled" });
           },
           onError: (e: any) => {
             document.body.classList.remove("paystack-open");
             fireClose();
             derr("[Paystack] onError:", e);
             toast.error("Payment failed", { description: e?.message ?? "Try again or use EFT" });
-            resolve({ ok: false, error: e?.message ?? "error" });
+            settle({ ok: false, error: e?.message ?? "error" });
           },
         });
         } catch (e: any) {
