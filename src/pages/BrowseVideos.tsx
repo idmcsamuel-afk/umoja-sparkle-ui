@@ -123,7 +123,7 @@ export default function BrowseVideos() {
   };
 
   return (
-    <div className="max-w-6xl mx-auto p-4 md:p-8 space-y-6">
+    <div className="max-w-6xl mx-auto p-4 md:p-8 space-y-6 pb-28 md:pb-8">
       <header>
         <p className="text-[11px] uppercase tracking-[0.22em] text-accent">Video library</p>
         <h1 className="font-display text-2xl md:text-3xl mt-1">🎬 Share & Earn</h1>
