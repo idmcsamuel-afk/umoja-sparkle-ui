@@ -562,7 +562,7 @@ const Circle = () => {
         >
           {step === "amount" ? (
             <>
-              <div className="flex-1 overflow-y-auto p-6 space-y-4">
+              <div className="flex-1 overflow-y-auto p-6 pb-8 sm:pb-10 space-y-4">
                 <DialogHeader>
                   <DialogTitle className="font-display text-2xl capitalize">{open?.tier} Circle</DialogTitle>
                   <DialogDescription>
