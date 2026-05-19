@@ -8,7 +8,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
-import { Play, Copy, Share2, Download, Instagram, Music2, Facebook } from "lucide-react";
+import { Play, Copy, Share2, Download, Instagram, Music2, Facebook, MessageCircle, Twitter } from "lucide-react";
 
 type Video = {
   id: string;
