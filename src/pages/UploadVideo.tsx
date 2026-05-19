@@ -12,6 +12,7 @@ import { z } from "zod";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { Upload, ArrowLeft, ArrowRight, CheckCircle2, Video } from "lucide-react";
+import { BottomNav } from "@/components/umoja/BottomNav";
 
 const MAX_BYTES = 100 * 1024 * 1024;
 const ALLOWED = ["video/mp4", "video/quicktime", "video/mov", "video/webm"];
