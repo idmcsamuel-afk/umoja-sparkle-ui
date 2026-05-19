@@ -72,6 +72,7 @@ import MemberLayout from "./components/umoja/MemberLayout";
 import AdminContentDirector from "./pages/admin/AdminContentDirector.tsx";
 import MemberVideoCreate from "./pages/MemberVideoCreate.tsx";
 import MemberVideos from "./pages/MemberVideos.tsx";
+import BrowseVideos from "./pages/BrowseVideos.tsx";
 
 const queryClient = new QueryClient();
 
