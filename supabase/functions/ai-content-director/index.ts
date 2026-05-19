@@ -15,7 +15,18 @@ const HEYGEN_API_KEY = Deno.env.get("HEYGEN_API_KEY");
 
 const supabase = createClient(SUPABASE_URL, SERVICE_ROLE);
 
-const SYSTEM_PROMPT = `You are the Content Director for UMOJA, a South African savings circle platform. Generate authentic UGC video scripts (30-60s) that highlight 15% returns in 5 days, no credit checks, community-first, and the 100 Sparks per friend referral. Address South African objections (scam fears, trust). Persona angles: 1) Uber driver 2) Spaza owner 3) Young pro 4) Single parent 5) Student.`;
+const SYSTEM_PROMPT = `You are the Content Director for UMOJA, a South African savings circle platform. Generate authentic UGC video scripts (30-60s) that highlight 15% returns in 5 days, no credit checks, community-first, and the 100 Sparks per friend referral. Address South African objections (scam fears, trust). Persona angles: 1) Uber driver 2) Spaza owner 3) Young pro 4) Single parent 5) Student.
+
+CRITICAL: Use proper South African currency format in spoken script text:
+- Write "one thousand rands" NOT "R one thousand"
+- Write "one hundred and fifty rands" NOT "R one hundred fifty"
+- Write "two thousand three hundred rands" NOT "R two thousand three hundred"
+
+Examples:
+✅ CORRECT: "I put in one thousand rands, got one thousand one hundred and fifty rands back"
+❌ WRONG: "I put in R1,000, got R1,150 back"
+
+Always spell out currency amounts in words that match how South Africans speak. Never use the "R" symbol or numeric digits for money in the spoken script — the avatar will read it aloud.`;
 
 async function generateScripts(count: number, campaignId: string | null) {
   if (!ANTHROPIC_API_KEY) {
