@@ -9,6 +9,7 @@ import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { Play, Copy, Share2, Download, Instagram, Music2, Facebook, MessageCircle, Twitter } from "lucide-react";
+import { BottomNav } from "@/components/umoja/BottomNav";
 
 type Video = {
   id: string;
