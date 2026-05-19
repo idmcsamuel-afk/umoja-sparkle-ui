@@ -181,7 +181,8 @@ export function CircleTierCard({
 
   return (
     <article
-      style={{ animationDelay: `${delayMs}ms` }}
+      id={`tier-${tier.tier}`}
+      style={{ animationDelay: `${delayMs}ms`, scrollMarginTop: "96px" }}
       className={cn(
         "group relative overflow-hidden rounded-3xl glass p-5 animate-slide-up transition-all",
         locked && "opacity-80",

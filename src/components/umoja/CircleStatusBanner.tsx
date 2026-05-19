@@ -99,12 +99,28 @@ export function CircleStatusBanner() {
 
   if (open) {
     const remaining = open.target - now;
+    const handleJump = () => {
+      const goTo = () => {
+        const el = document.getElementById(`tier-${open.tier}`);
+        if (el) el.scrollIntoView({ behavior: "smooth", block: "start" });
+      };
+      if (window.location.pathname !== "/circle") {
+        window.location.href = `/circle#tier-${open.tier}`;
+      } else {
+        goTo();
+      }
+    };
     return (
-      <div className="rounded-3xl border-2 border-emerald-400/60 bg-gradient-to-br from-emerald-500 to-emerald-600 p-5 text-center text-white shadow-[0_8px_32px_rgba(16,185,129,0.45)] animate-pulse-glow">
+      <button
+        type="button"
+        onClick={handleJump}
+        aria-label={`Jump to ${LABELS[open.tier]} circle — session live`}
+        className="w-full text-left rounded-3xl border-2 border-emerald-400/60 bg-gradient-to-br from-emerald-500 to-emerald-600 p-5 text-center text-white shadow-[0_8px_32px_rgba(16,185,129,0.45)] animate-pulse-glow cursor-pointer transition-smooth hover:brightness-110 hover:scale-[1.01] focus:outline-none focus-visible:ring-2 focus-visible:ring-white/70"
+      >
         <div className="flex items-center justify-center gap-2">
           <span className="text-lg animate-pulse">🔥</span>
           <p className="text-[11px] uppercase tracking-[0.24em] font-bold text-white">
-            {LABELS[open.tier]} session live — bid now
+            {LABELS[open.tier]} session live — click to bid →
           </p>
           <HelpDot />
         </div>
@@ -115,7 +131,7 @@ export function CircleStatusBanner() {
           closes {formatTime(open.target, tz)} {tzAbbrev(open.target, tz)}
           {showBoth && <> · {formatTime(open.target, SAST)} SAST</>}
         </p>
-      </div>
+      </button>
     );
   }
 
