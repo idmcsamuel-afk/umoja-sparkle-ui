@@ -198,6 +198,7 @@ export default function AdminNotifications() {
       console.warn("[blast] failures:", failures);
       toast.error(`First failure: ${failures[0].email} — ${failures[0].error}`, { duration: 8000 });
     }
+    clearDraft();
     loadLogs();
   };
 
