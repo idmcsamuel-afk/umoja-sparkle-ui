@@ -3068,6 +3068,72 @@ export type Database = {
           },
         ]
       }
+      member_ugc_submissions: {
+        Row: {
+          admin_notes: string | null
+          caption_used: string | null
+          created_at: string
+          id: string
+          member_id: string
+          platform: string
+          reviewed_at: string | null
+          reviewed_by: string | null
+          rewarded_at: string | null
+          social_media_link: string
+          sparks_rewarded: number
+          submission_status: string
+          video_path: string | null
+          video_url: string
+        }
+        Insert: {
+          admin_notes?: string | null
+          caption_used?: string | null
+          created_at?: string
+          id?: string
+          member_id: string
+          platform: string
+          reviewed_at?: string | null
+          reviewed_by?: string | null
+          rewarded_at?: string | null
+          social_media_link: string
+          sparks_rewarded?: number
+          submission_status?: string
+          video_path?: string | null
+          video_url: string
+        }
+        Update: {
+          admin_notes?: string | null
+          caption_used?: string | null
+          created_at?: string
+          id?: string
+          member_id?: string
+          platform?: string
+          reviewed_at?: string | null
+          reviewed_by?: string | null
+          rewarded_at?: string | null
+          social_media_link?: string
+          sparks_rewarded?: number
+          submission_status?: string
+          video_path?: string | null
+          video_url?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "member_ugc_submissions_member_id_fkey"
+            columns: ["member_id"]
+            isOneToOne: false
+            referencedRelation: "members"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "member_ugc_submissions_reviewed_by_fkey"
+            columns: ["reviewed_by"]
+            isOneToOne: false
+            referencedRelation: "members"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       member_video_shares: {
         Row: {
           caption_used: string | null
@@ -4853,6 +4919,15 @@ export type Database = {
       admin_reject_fulfillment: {
         Args: { _application_id: string; _reason: string }
         Returns: undefined
+      }
+      admin_review_ugc_submission: {
+        Args: {
+          _decision: string
+          _notes?: string
+          _reward?: number
+          _submission_id: string
+        }
+        Returns: Json
       }
       admin_top_referrers_month: {
         Args: { _limit?: number }
