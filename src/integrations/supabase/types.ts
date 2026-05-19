@@ -3068,6 +3068,57 @@ export type Database = {
           },
         ]
       }
+      member_video_shares: {
+        Row: {
+          caption_used: string | null
+          created_at: string
+          id: string
+          member_id: string
+          platform: string
+          referrals_generated: number
+          shared_at: string
+          video_id: string
+          views_tracked: number
+        }
+        Insert: {
+          caption_used?: string | null
+          created_at?: string
+          id?: string
+          member_id: string
+          platform?: string
+          referrals_generated?: number
+          shared_at?: string
+          video_id: string
+          views_tracked?: number
+        }
+        Update: {
+          caption_used?: string | null
+          created_at?: string
+          id?: string
+          member_id?: string
+          platform?: string
+          referrals_generated?: number
+          shared_at?: string
+          video_id?: string
+          views_tracked?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "member_video_shares_member_id_fkey"
+            columns: ["member_id"]
+            isOneToOne: false
+            referencedRelation: "members"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "member_video_shares_video_id_fkey"
+            columns: ["video_id"]
+            isOneToOne: false
+            referencedRelation: "ai_generated_videos"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       members: {
         Row: {
           bank_account: string | null
