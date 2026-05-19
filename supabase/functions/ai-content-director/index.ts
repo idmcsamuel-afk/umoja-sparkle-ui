@@ -271,7 +271,7 @@ Deno.serve(async (req) => {
 
       const { data: avatars } = await supabase
         .from("ai_avatars").select("*").eq("is_active", true)
-        .order("performance_score", { ascending: false }).limit(3);
+        .order("performance_score", { ascending: false }).limit(testMode ? 1 : 3);
 
       if (scripts && avatars && avatars.length > 0) {
         for (const script of scripts) {
