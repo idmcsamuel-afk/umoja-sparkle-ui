@@ -1,5 +1,5 @@
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { BrowserRouter, Route, Routes } from "react-router-dom";
+import { BrowserRouter, Navigate, Route, Routes } from "react-router-dom";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { FlameChat } from "@/components/umoja/FlameChat";
 import { Toaster } from "@/components/ui/toaster";
@@ -71,7 +71,7 @@ import AdminFulfillment from "./pages/admin/AdminFulfillment";
 import MemberLayout from "./components/umoja/MemberLayout";
 import AdminContentDirector from "./pages/admin/AdminContentDirector.tsx";
 import MemberVideos from "./pages/MemberVideos.tsx";
-import { Navigate } from "react-router-dom";
+
 import BrowseVideos from "./pages/BrowseVideos.tsx";
 
 const queryClient = new QueryClient();
