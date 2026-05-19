@@ -133,6 +133,7 @@ const App = () => (
                 <Route path="/fulfillment/dashboard" element={<ProtectedRoute><FulfillmentDashboard /></ProtectedRoute>} />
                 <Route path="/create-video" element={<ProtectedRoute><MemberVideoCreate /></ProtectedRoute>} />
                 <Route path="/my-videos" element={<ProtectedRoute><MemberVideos /></ProtectedRoute>} />
+                <Route path="/browse-videos" element={<ProtectedRoute><BrowseVideos /></ProtectedRoute>} />
               </Route>
               <Route path="/shop/:code" element={<StorefrontPublic />} />
 
