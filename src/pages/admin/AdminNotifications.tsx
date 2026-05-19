@@ -9,8 +9,19 @@ import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
-import { Loader2, Send, RefreshCw, Mail, AlertCircle, CheckCircle2, BellRing } from "lucide-react";
+import { Loader2, Send, RefreshCw, Mail, AlertCircle, CheckCircle2, BellRing, FileText, X } from "lucide-react";
 import { toast } from "sonner";
+
+const DRAFT_KEY = "email_draft";
+const DRAFT_MAX_AGE_MS = 24 * 60 * 60 * 1000;
+
+function timeAgo(ts: number) {
+  const s = Math.floor((Date.now() - ts) / 1000);
+  if (s < 60) return `${s}s ago`;
+  if (s < 3600) return `${Math.floor(s / 60)}m ago`;
+  if (s < 86400) return `${Math.floor(s / 3600)}h ago`;
+  return `${Math.floor(s / 86400)}d ago`;
+}
 
 type Audience = "all" | "circle" | "buyers_club" | "tier" | "custom";
 
@@ -35,6 +46,55 @@ export default function AdminNotifications() {
   const [busy, setBusy] = useState(false);
   const [logs, setLogs] = useState<LogRow[]>([]);
   const [loadingLogs, setLoadingLogs] = useState(true);
+  const [lastSaved, setLastSaved] = useState<Date | null>(null);
+  const [draftPrompt, setDraftPrompt] = useState<{ subject: string; body: string; timestamp: number } | null>(null);
+  const [draftLoaded, setDraftLoaded] = useState(false);
+
+  // Load draft on mount
+  useEffect(() => {
+    try {
+      const raw = localStorage.getItem(DRAFT_KEY);
+      if (raw) {
+        const parsed = JSON.parse(raw);
+        if (parsed && Date.now() - parsed.timestamp < DRAFT_MAX_AGE_MS && (parsed.subject || parsed.body)) {
+          setDraftPrompt(parsed);
+        } else {
+          localStorage.removeItem(DRAFT_KEY);
+        }
+      }
+    } catch {
+      localStorage.removeItem(DRAFT_KEY);
+    }
+    setDraftLoaded(true);
+  }, []);
+
+  // Auto-save draft every 3s after typing stops
+  useEffect(() => {
+    if (!draftLoaded || draftPrompt) return;
+    if (!subject && !body) return;
+    const timer = setTimeout(() => {
+      localStorage.setItem(DRAFT_KEY, JSON.stringify({ subject, body, timestamp: Date.now() }));
+      setLastSaved(new Date());
+    }, 3000);
+    return () => clearTimeout(timer);
+  }, [subject, body, draftLoaded, draftPrompt]);
+
+  const restoreDraft = () => {
+    if (!draftPrompt) return;
+    setSubject(draftPrompt.subject);
+    setBody(draftPrompt.body);
+    setLastSaved(new Date(draftPrompt.timestamp));
+    setDraftPrompt(null);
+  };
+  const discardDraft = () => {
+    localStorage.removeItem(DRAFT_KEY);
+    setDraftPrompt(null);
+    setLastSaved(null);
+  };
+  const clearDraft = () => {
+    localStorage.removeItem(DRAFT_KEY);
+    setLastSaved(null);
+  };
 
   const loadLogs = async () => {
     setLoadingLogs(true);
@@ -95,6 +155,7 @@ export default function AdminNotifications() {
       if (error || !data || data.error) return toast.error("Send failed: " + (error?.message ?? data?.error));
       toast.success(`Sent to ${data.sent}/${data.total}${data.failed ? ` · ${data.failed} failed` : ""}`);
       if (data.failed > 0) console.warn("[bulk] failed emails:", data.failedEmails);
+      clearDraft();
       loadLogs();
       return;
     }
@@ -137,6 +198,7 @@ export default function AdminNotifications() {
       console.warn("[blast] failures:", failures);
       toast.error(`First failure: ${failures[0].email} — ${failures[0].error}`, { duration: 8000 });
     }
+    clearDraft();
     loadLogs();
   };
 
@@ -157,6 +219,22 @@ export default function AdminNotifications() {
 
       <section className="rounded-3xl border border-border bg-gradient-card p-6 space-y-5">
         <h2 className="font-display text-xl flex items-center gap-2"><Mail className="h-4 w-4 text-accent" /> Send Email to Members</h2>
+
+        {draftPrompt && (
+          <div className="rounded-2xl border border-accent/40 bg-accent/10 p-4 flex flex-wrap items-center gap-3">
+            <FileText className="h-4 w-4 text-accent shrink-0" />
+            <div className="flex-1 min-w-[180px] text-sm">
+              <div className="font-medium">Draft found from {timeAgo(draftPrompt.timestamp)}</div>
+              <div className="text-xs text-muted-foreground truncate">
+                {draftPrompt.subject || "(no subject)"}
+              </div>
+            </div>
+            <Button size="sm" className="rounded-xl" onClick={restoreDraft}>Restore draft</Button>
+            <Button size="sm" variant="ghost" className="rounded-xl" onClick={discardDraft}>
+              <X className="h-3 w-3" /> Discard
+            </Button>
+          </div>
+        )}
 
         <div className="grid sm:grid-cols-2 gap-4">
           <div>
@@ -202,6 +280,11 @@ export default function AdminNotifications() {
           <Textarea value={body} onChange={(e) => setBody(e.target.value)} className="mt-1 rounded-2xl" rows={8}
             placeholder="<p>Hi members,</p><p>Here is what's new...</p>" />
           <p className="text-[11px] text-muted-foreground mt-1">Wraps automatically in dark green/gold UMOJA template. Marketing recipients filtered by member preference.</p>
+          {lastSaved && (
+            <p className="text-[11px] text-muted-foreground mt-1 flex items-center gap-1">
+              <CheckCircle2 className="h-3 w-3 text-primary" /> Draft saved at {lastSaved.toLocaleTimeString([], { hour: "numeric", minute: "2-digit" })}
+            </p>
+          )}
         </div>
 
         <div className="flex flex-wrap gap-2">
