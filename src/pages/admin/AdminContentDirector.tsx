@@ -52,6 +52,7 @@ export default function AdminContentDirector() {
     });
     setAvatars(av.data ?? []);
     setSchedule(sched.data ?? []);
+    setReadyVideos(readyList.data ?? []);
     setLoading(false);
   };
   useEffect(() => { load(); }, []);
