@@ -212,6 +212,15 @@ Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response("ok", { headers: corsHeaders });
 
   try {
+    let testMode = false;
+    if (req.method === "POST") {
+      try {
+        const body = await req.json();
+        testMode = body?.test_mode === true;
+      } catch { /* no body */ }
+    }
+    console.log("[director] test_mode:", testMode);
+
     // Find active campaign (most recent)
     const { data: campaigns } = await supabase
       .from("ai_content_campaigns").select("*").eq("status", "active")
