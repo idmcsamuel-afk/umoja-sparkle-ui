@@ -144,10 +144,21 @@ export default function AdminContentDirector() {
           {readyVideos.length === 0 ? (
             <p className="text-sm text-muted-foreground">No ready videos yet.</p>
           ) : (
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
               {readyVideos.map((v) => {
                 const scriptText = v.ai_generated_scripts?.script_text ?? v.ai_generated_scripts?.hook ?? v.video_caption ?? "";
                 const snippet = scriptText.slice(0, 50) + (scriptText.length > 50 ? "…" : "");
+                const captions: { label: string; value: string | null }[] = [
+                  { label: "Instagram", value: v.caption_instagram },
+                  { label: "TikTok", value: v.caption_tiktok },
+                  { label: "Facebook", value: v.caption_facebook },
+                ];
+                const copy = async (label: string, text: string | null) => {
+                  if (!text) return toast.error(`No ${label} caption`);
+                  const withTags = v.hashtags ? `${text}\n\n${v.hashtags}` : text;
+                  await navigator.clipboard.writeText(withTags);
+                  toast.success(`${label} caption copied`);
+                };
                 return (
                   <div key={v.id} className="border rounded-lg overflow-hidden bg-card flex flex-col">
                     <div className="aspect-[9/16] bg-muted relative">
@@ -160,7 +171,7 @@ export default function AdminContentDirector() {
                     <div className="p-3 space-y-2 flex-1 flex flex-col">
                       <p className="text-xs font-medium line-clamp-1">{v.video_title ?? "Untitled"}</p>
                       <p className="text-[11px] text-muted-foreground">{v.ai_avatars?.name ?? "Unknown avatar"}</p>
-                      <p className="text-[11px] text-muted-foreground line-clamp-2 flex-1">{snippet || "—"}</p>
+                      <p className="text-[11px] text-muted-foreground line-clamp-2">{snippet || "—"}</p>
                       <div className="flex gap-1 pt-1">
                         <Button size="sm" variant="outline" className="flex-1 h-8 px-2" onClick={() => setPlaying(v)} disabled={!v.video_url}>
                           <Play className="h-3 w-3" />
@@ -171,6 +182,22 @@ export default function AdminContentDirector() {
                         <Button size="sm" variant="outline" className="flex-1 h-8 px-2" onClick={() => toast.info("Posting to social coming soon")}>
                           <Share2 className="h-3 w-3" />
                         </Button>
+                      </div>
+                      <div className="space-y-1.5 pt-2 border-t mt-1">
+                        {captions.map((c) => (
+                          <div key={c.label} className="space-y-1">
+                            <div className="flex items-center justify-between gap-2">
+                              <span className="text-[10px] uppercase tracking-wider text-muted-foreground">{c.label}</span>
+                              <Button size="sm" variant="ghost" className="h-6 px-2 text-[10px]" onClick={() => copy(c.label, c.value)} disabled={!c.value}>
+                                <Copy className="h-3 w-3 mr-1" /> Copy
+                              </Button>
+                            </div>
+                            <p className="text-[10px] text-muted-foreground line-clamp-2 leading-snug">{c.value || "—"}</p>
+                          </div>
+                        ))}
+                        {v.hashtags && (
+                          <p className="text-[10px] text-accent line-clamp-1 pt-1">{v.hashtags}</p>
+                        )}
                       </div>
                     </div>
                   </div>
