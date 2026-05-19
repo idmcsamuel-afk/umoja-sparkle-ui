@@ -155,6 +155,7 @@ export default function AdminNotifications() {
       if (error || !data || data.error) return toast.error("Send failed: " + (error?.message ?? data?.error));
       toast.success(`Sent to ${data.sent}/${data.total}${data.failed ? ` · ${data.failed} failed` : ""}`);
       if (data.failed > 0) console.warn("[bulk] failed emails:", data.failedEmails);
+      clearDraft();
       loadLogs();
       return;
     }
