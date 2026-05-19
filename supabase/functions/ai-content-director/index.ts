@@ -212,6 +212,15 @@ Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response("ok", { headers: corsHeaders });
 
   try {
+    let testMode = false;
+    if (req.method === "POST") {
+      try {
+        const body = await req.json();
+        testMode = body?.test_mode === true;
+      } catch { /* no body */ }
+    }
+    console.log("[director] test_mode:", testMode);
+
     // Find active campaign (most recent)
     const { data: campaigns } = await supabase
       .from("ai_content_campaigns").select("*").eq("status", "active")
@@ -237,12 +246,12 @@ Deno.serve(async (req) => {
     console.log("[director] settings:", settings);
     console.log("[director] ANTHROPIC_API_KEY set:", !!ANTHROPIC_API_KEY, "HEYGEN_API_KEY set:", !!HEYGEN_API_KEY);
 
-    const willGenerate = queue < targetMin && settings.auto_videos !== false;
-    console.log("[director] will generate videos:", willGenerate, `(queue ${queue} < targetMin ${targetMin}: ${queue < targetMin}, auto_videos !== false: ${settings.auto_videos !== false})`);
+    const willGenerate = testMode || (queue < targetMin && settings.auto_videos !== false);
+    console.log("[director] will generate videos:", willGenerate, `(queue ${queue} < targetMin ${targetMin}: ${queue < targetMin}, auto_videos !== false: ${settings.auto_videos !== false}, test_mode: ${testMode})`);
 
     if (willGenerate) {
-      videosNeeded = targetMax - queue;
-      const scriptsNeeded = Math.min(20, Math.max(5, Math.ceil(videosNeeded / 3)));
+      videosNeeded = testMode ? 5 : (targetMax - queue);
+      const scriptsNeeded = testMode ? 5 : Math.min(20, Math.max(5, Math.ceil(videosNeeded / 3)));
       console.log("[director] videosNeeded:", videosNeeded, "scriptsNeeded:", scriptsNeeded);
       console.log("[director] generating batch of:", scriptsNeeded, "scripts");
 
@@ -262,7 +271,7 @@ Deno.serve(async (req) => {
 
       const { data: avatars } = await supabase
         .from("ai_avatars").select("*").eq("is_active", true)
-        .order("performance_score", { ascending: false }).limit(3);
+        .order("performance_score", { ascending: false }).limit(testMode ? 1 : 3);
 
       if (scripts && avatars && avatars.length > 0) {
         for (const script of scripts) {
