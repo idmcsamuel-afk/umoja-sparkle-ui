@@ -1,7 +1,7 @@
 import { NavLink, useLocation } from "react-router-dom";
 import {
   Home, Users, Sparkles, Store, ArrowLeftRight, Car, Building2, Gamepad2,
-  Trophy, Palette, Gift, Calculator as CalcIcon, User as UserIcon, ShieldCheck, BookOpen, MessageCircle, Flame,
+  Trophy, Palette, Gift, Calculator as CalcIcon, User as UserIcon, ShieldCheck, BookOpen, MessageCircle, Flame, Video, BarChart3,
 } from "lucide-react";
 import {
   Sidebar, SidebarContent, SidebarGroup, SidebarGroupContent, SidebarGroupLabel,
@@ -27,9 +27,8 @@ const main = [
 
 const tools = [
   { to: "/flame-marketing", label: "Create Marketing", icon: Palette },
-  { to: "/browse-videos", label: "Browse Videos 🎬", icon: Palette },
-  { to: "/create-video", label: "Create My Video", icon: Sparkles },
-  { to: "/my-videos", label: "My Videos", icon: Palette },
+  { to: "/browse-videos", label: "🎬 Videos", icon: Video },
+  { to: "/my-videos", label: "📊 My Stats", icon: BarChart3 },
   { to: "/blog", label: "Blog", icon: BookOpen },
   { to: "/calculator", label: "Calculator", icon: CalcIcon },
   { to: "/referrals", label: "Invite Friends", icon: Gift, tour: "referrals" },

@@ -70,8 +70,8 @@ import FulfillmentDashboard from "./pages/FulfillmentDashboard";
 import AdminFulfillment from "./pages/admin/AdminFulfillment";
 import MemberLayout from "./components/umoja/MemberLayout";
 import AdminContentDirector from "./pages/admin/AdminContentDirector.tsx";
-import MemberVideoCreate from "./pages/MemberVideoCreate.tsx";
 import MemberVideos from "./pages/MemberVideos.tsx";
+import { Navigate } from "react-router-dom";
 import BrowseVideos from "./pages/BrowseVideos.tsx";
 
 const queryClient = new QueryClient();
@@ -131,7 +131,7 @@ const App = () => (
                 <Route path="/priority" element={<ProtectedRoute><Priority /></ProtectedRoute>} />
                 <Route path="/storefront/edit" element={<ProtectedRoute><StorefrontEdit /></ProtectedRoute>} />
                 <Route path="/fulfillment/dashboard" element={<ProtectedRoute><FulfillmentDashboard /></ProtectedRoute>} />
-                <Route path="/create-video" element={<ProtectedRoute><MemberVideoCreate /></ProtectedRoute>} />
+                <Route path="/create-video" element={<Navigate to="/browse-videos" replace />} />
                 <Route path="/my-videos" element={<ProtectedRoute><MemberVideos /></ProtectedRoute>} />
                 <Route path="/browse-videos" element={<ProtectedRoute><BrowseVideos /></ProtectedRoute>} />
               </Route>
