@@ -24,6 +24,8 @@ export default function AdminContentDirector() {
   const [stats, setStats] = useState<Stats>({ videosGenerated: 0, videosReady: 0, videosPostedToday: 0, scriptsQueue: 0, postsToday: 0 });
   const [avatars, setAvatars] = useState<any[]>([]);
   const [schedule, setSchedule] = useState<any[]>([]);
+  const [readyVideos, setReadyVideos] = useState<any[]>([]);
+  const [playing, setPlaying] = useState<any>(null);
   const [running, setRunning] = useState(false);
   const [loading, setLoading] = useState(true);
   const [newCampaign, setNewCampaign] = useState("");
