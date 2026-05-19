@@ -246,6 +246,7 @@ export default function UploadVideo() {
       <p className="text-xs text-center text-muted-foreground">
         <Link to="/my-videos" className="underline">View my submissions →</Link>
       </p>
+      <BottomNav />
     </div>
   );
 }
