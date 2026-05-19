@@ -613,8 +613,7 @@ const Circle = () => {
                         <div className="flex justify-between border-t border-border pt-1 mt-1">
                           <span className="text-foreground">You receive</span>
                           <span className="font-display text-gradient-gold">{fmtR(net)}</span>
-                </div>
-                </div>
+                        </div>
                         <div className="flex justify-between">
                           <span className="text-muted-foreground">Net profit</span>
                           <span className="text-emerald-400">+{fmtR(profit)} (+{netPct.toFixed(1)}%)</span>
