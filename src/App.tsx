@@ -70,7 +70,9 @@ import FulfillmentDashboard from "./pages/FulfillmentDashboard";
 import AdminFulfillment from "./pages/admin/AdminFulfillment";
 import MemberLayout from "./components/umoja/MemberLayout";
 import AdminContentDirector from "./pages/admin/AdminContentDirector.tsx";
+import AdminUgcSubmissions from "./pages/admin/AdminUgcSubmissions.tsx";
 import MemberVideos from "./pages/MemberVideos.tsx";
+import UploadVideo from "./pages/UploadVideo.tsx";
 
 import BrowseVideos from "./pages/BrowseVideos.tsx";
 
@@ -131,7 +133,8 @@ const App = () => (
                 <Route path="/priority" element={<ProtectedRoute><Priority /></ProtectedRoute>} />
                 <Route path="/storefront/edit" element={<ProtectedRoute><StorefrontEdit /></ProtectedRoute>} />
                 <Route path="/fulfillment/dashboard" element={<ProtectedRoute><FulfillmentDashboard /></ProtectedRoute>} />
-                <Route path="/create-video" element={<Navigate to="/browse-videos" replace />} />
+                <Route path="/create-video" element={<Navigate to="/upload-video" replace />} />
+                <Route path="/upload-video" element={<ProtectedRoute><UploadVideo /></ProtectedRoute>} />
                 <Route path="/my-videos" element={<ProtectedRoute><MemberVideos /></ProtectedRoute>} />
                 <Route path="/browse-videos" element={<ProtectedRoute><BrowseVideos /></ProtectedRoute>} />
               </Route>
