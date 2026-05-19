@@ -246,12 +246,12 @@ Deno.serve(async (req) => {
     console.log("[director] settings:", settings);
     console.log("[director] ANTHROPIC_API_KEY set:", !!ANTHROPIC_API_KEY, "HEYGEN_API_KEY set:", !!HEYGEN_API_KEY);
 
-    const willGenerate = queue < targetMin && settings.auto_videos !== false;
-    console.log("[director] will generate videos:", willGenerate, `(queue ${queue} < targetMin ${targetMin}: ${queue < targetMin}, auto_videos !== false: ${settings.auto_videos !== false})`);
+    const willGenerate = testMode || (queue < targetMin && settings.auto_videos !== false);
+    console.log("[director] will generate videos:", willGenerate, `(queue ${queue} < targetMin ${targetMin}: ${queue < targetMin}, auto_videos !== false: ${settings.auto_videos !== false}, test_mode: ${testMode})`);
 
     if (willGenerate) {
-      videosNeeded = targetMax - queue;
-      const scriptsNeeded = Math.min(20, Math.max(5, Math.ceil(videosNeeded / 3)));
+      videosNeeded = testMode ? 5 : (targetMax - queue);
+      const scriptsNeeded = testMode ? 5 : Math.min(20, Math.max(5, Math.ceil(videosNeeded / 3)));
       console.log("[director] videosNeeded:", videosNeeded, "scriptsNeeded:", scriptsNeeded);
       console.log("[director] generating batch of:", scriptsNeeded, "scripts");
 
