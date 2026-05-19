@@ -7,6 +7,7 @@ import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { Video, Share2, Sparkles, Users, Upload, ExternalLink } from "lucide-react";
+import { BottomNav } from "@/components/umoja/BottomNav";
 
 type ShareRow = {
   id: string;
