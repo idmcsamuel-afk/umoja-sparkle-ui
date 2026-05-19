@@ -90,6 +90,27 @@ export function usePaystack() {
       const fireOpen = () => window.dispatchEvent(new Event("paystack-popup-open"));
       const fireClose = () => window.dispatchEvent(new Event("paystack-popup-close"));
 
+      let settled = false;
+      const settle = (v: { ok: boolean; reference?: string; error?: string }) => {
+        if (settled) return;
+        settled = true;
+        clearTimeout(watchdog);
+        resolve(v);
+      };
+
+      // Watchdog: if the popup never opens or hangs (CSP block, network, etc.)
+      // surface an error instead of spinning the caller's loading state forever.
+      const watchdog = setTimeout(() => {
+        if (settled) return;
+        document.body.classList.remove("paystack-open");
+        fireClose();
+        derr("[Paystack] Watchdog timeout — popup did not respond in 25s");
+        toast.error("Payment gateway not responding", {
+          description: "It may be blocked by your browser or network. Try EFT, or refresh and retry.",
+        });
+        settle({ ok: false, error: "timeout" });
+      }, 25000);
+
       const openPopup = () => {
         try {
           document.body.classList.add("paystack-open");
