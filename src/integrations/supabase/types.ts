@@ -235,10 +235,14 @@ export type Database = {
         Row: {
           avatar_id: string | null
           campaign_id: string | null
+          caption_facebook: string | null
+          caption_instagram: string | null
+          caption_tiktok: string | null
           created_at: string
           duration_seconds: number | null
           error_message: string | null
           generation_status: string
+          hashtags: string | null
           heygen_video_id: string | null
           id: string
           script_id: string | null
@@ -251,10 +255,14 @@ export type Database = {
         Insert: {
           avatar_id?: string | null
           campaign_id?: string | null
+          caption_facebook?: string | null
+          caption_instagram?: string | null
+          caption_tiktok?: string | null
           created_at?: string
           duration_seconds?: number | null
           error_message?: string | null
           generation_status?: string
+          hashtags?: string | null
           heygen_video_id?: string | null
           id?: string
           script_id?: string | null
@@ -267,10 +275,14 @@ export type Database = {
         Update: {
           avatar_id?: string | null
           campaign_id?: string | null
+          caption_facebook?: string | null
+          caption_instagram?: string | null
+          caption_tiktok?: string | null
           created_at?: string
           duration_seconds?: number | null
           error_message?: string | null
           generation_status?: string
+          hashtags?: string | null
           heygen_video_id?: string | null
           id?: string
           script_id?: string | null

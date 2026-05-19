@@ -6,7 +6,7 @@ import { Badge } from "@/components/ui/badge";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
-import { Plus, Share2, Download, Trophy, Eye } from "lucide-react";
+import { Plus, Share2, Download, Trophy, Eye, Copy } from "lucide-react";
 
 export default function MemberVideos() {
   const { user } = useAuth();
@@ -94,10 +94,24 @@ export default function MemberVideos() {
                       <span><Share2 className="inline h-3 w-3" /> {v.share_count ?? 0}</span>
                       <span><Download className="inline h-3 w-3" /> {v.download_count ?? 0}</span>
                     </div>
-                    <div className="flex gap-2 mt-3">
+                    <div className="flex gap-2 mt-3 flex-wrap">
                       <Button size="sm" variant="outline" disabled={v.generation_status !== "ready"} onClick={() => share(v)}><Share2 className="h-4 w-4" /> Share</Button>
                       <Button size="sm" variant="outline" disabled={v.generation_status !== "ready"} onClick={() => download(v)}><Download className="h-4 w-4" /> Download</Button>
                     </div>
+                    {(v.caption || v.caption_instagram) && (
+                      <div className="flex gap-2 mt-2 flex-wrap">
+                        {(["Instagram", "TikTok", "Facebook"] as const).map((p) => {
+                          const key = `caption_${p.toLowerCase()}` as const;
+                          const text = (v as any)[key] || v.caption || "";
+                          return (
+                            <Button key={p} size="sm" variant="ghost" className="text-xs h-7" disabled={!text}
+                              onClick={async () => { await navigator.clipboard.writeText(text); toast.success(`${p} caption copied`); }}>
+                              <Copy className="h-3 w-3 mr-1" /> {p}
+                            </Button>
+                          );
+                        })}
+                      </div>
+                    )}
                   </div>
                 </li>
               ))}
