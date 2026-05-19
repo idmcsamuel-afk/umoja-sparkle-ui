@@ -4,12 +4,12 @@ import { Home, Users, Sparkles, Car, Store, ArrowLeftRight, Gamepad2, Gift, Pale
 
 const items: { to: string; label: string; icon: typeof Home; tour?: string }[] = [
   { to: "/dashboard", label: "Home", icon: Home, tour: "dashboard" },
-  { to: "/community", label: "Chat", icon: MessageCircle, tour: "community" },
+  { to: "/circle", label: "Circles", icon: Users, tour: "circle" },
   { to: "/browse-videos", label: "Videos", icon: Video },
   { to: "/upload-video", label: "Upload", icon: Upload },
   { to: "/my-videos", label: "My Vids", icon: BarChart3 },
+  { to: "/community", label: "Chat", icon: MessageCircle, tour: "community" },
   { to: "/trending", label: "Trending", icon: Flame },
-  { to: "/circle", label: "Circle", icon: Users, tour: "circle" },
   { to: "/spark", label: "Spark", icon: Sparkles, tour: "spark-trade" },
   { to: "/priority", label: "Queue", icon: Trophy },
   { to: "/market", label: "Market", icon: Store },
