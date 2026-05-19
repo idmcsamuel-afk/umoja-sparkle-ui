@@ -258,6 +258,38 @@ export default function BrowseVideos() {
                 );
               })}
 
+              {/* One-tap share */}
+              <div className="space-y-2 border rounded-lg p-3">
+                <div className="text-sm font-medium">⚡ One-tap share</div>
+                <p className="text-xs text-muted-foreground">Uses your Facebook caption with your referral link.</p>
+                <div className="grid grid-cols-3 gap-2">
+                  {(() => {
+                    const raw = share.caption_facebook || share.video_caption || "";
+                    const text = personalize(raw, code, share.hashtags);
+                    const link = code ? `https://umojarise.com/join?ref=${code}` : "https://umojarise.com";
+                    const encText = encodeURIComponent(text);
+                    const encLink = encodeURIComponent(link);
+                    const open = (url: string, platform: string) => {
+                      window.open(url, "_blank", "noopener,noreferrer");
+                      recordShare(share, platform, text);
+                    };
+                    return (
+                      <>
+                        <Button size="sm" variant="outline" onClick={() => open(`https://wa.me/?text=${encText}`, "whatsapp")}>
+                          <MessageCircle className="h-3.5 w-3.5" /> WhatsApp
+                        </Button>
+                        <Button size="sm" variant="outline" onClick={() => open(`https://twitter.com/intent/tweet?text=${encText}`, "twitter")}>
+                          <Twitter className="h-3.5 w-3.5" /> X
+                        </Button>
+                        <Button size="sm" variant="outline" onClick={() => open(`https://www.facebook.com/sharer/sharer.php?u=${encLink}&quote=${encText}`, "facebook")}>
+                          <Facebook className="h-3.5 w-3.5" /> Facebook
+                        </Button>
+                      </>
+                    );
+                  })()}
+                </div>
+              </div>
+
               <div className="space-y-2 border rounded-lg p-3">
                 <div className="text-sm font-medium">📥 Download</div>
                 <div className="flex flex-col sm:flex-row gap-2">
