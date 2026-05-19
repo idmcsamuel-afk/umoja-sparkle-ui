@@ -173,6 +173,7 @@ export default function MemberVideos() {
           </Card>
         </TabsContent>
       </Tabs>
+      <BottomNav />
     </div>
   );
 }
