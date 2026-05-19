@@ -220,6 +220,22 @@ export default function AdminNotifications() {
       <section className="rounded-3xl border border-border bg-gradient-card p-6 space-y-5">
         <h2 className="font-display text-xl flex items-center gap-2"><Mail className="h-4 w-4 text-accent" /> Send Email to Members</h2>
 
+        {draftPrompt && (
+          <div className="rounded-2xl border border-accent/40 bg-accent/10 p-4 flex flex-wrap items-center gap-3">
+            <FileText className="h-4 w-4 text-accent shrink-0" />
+            <div className="flex-1 min-w-[180px] text-sm">
+              <div className="font-medium">Draft found from {timeAgo(draftPrompt.timestamp)}</div>
+              <div className="text-xs text-muted-foreground truncate">
+                {draftPrompt.subject || "(no subject)"}
+              </div>
+            </div>
+            <Button size="sm" className="rounded-xl" onClick={restoreDraft}>Restore draft</Button>
+            <Button size="sm" variant="ghost" className="rounded-xl" onClick={discardDraft}>
+              <X className="h-3 w-3" /> Discard
+            </Button>
+          </div>
+        )}
+
         <div className="grid sm:grid-cols-2 gap-4">
           <div>
             <Label className="text-xs uppercase tracking-wider text-muted-foreground">Recipients</Label>
