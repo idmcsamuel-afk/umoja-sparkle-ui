@@ -78,6 +78,55 @@ async function generateScripts(count: number, campaignId: string | null) {
   }
 }
 
+async function generateCaptions(scriptText: string): Promise<{ instagram: string; tiktok: string; facebook: string; hashtags: string } | null> {
+  if (!ANTHROPIC_API_KEY) return null;
+  const userPrompt = `Based on this video script: "${scriptText}"
+
+Generate 3 social media captions for a South African savings circle (UMOJA):
+
+1. INSTAGRAM (120 chars max, casual, emojis): Hook in first line, call-to-action, 3-5 hashtags
+2. TIKTOK (150 chars max, punchy, trending): Attention-grabbing, relatable, viral-style
+3. FACEBOOK (200 chars max, conversational): Storytelling tone, longer context, community feel
+
+Include the placeholder [REFERRAL_LINK] in each caption where the member's link should go.
+
+Return ONLY JSON, no prose, no code fences:
+{"instagram":"...","tiktok":"...","facebook":"...","hashtags":"#UMOJAcircles #FinancialFreedom #SouthAfrica #PassiveIncome #StokvelModern"}`;
+
+  try {
+    const res = await fetch("https://api.anthropic.com/v1/messages", {
+      method: "POST",
+      headers: {
+        "x-api-key": ANTHROPIC_API_KEY,
+        "anthropic-version": "2023-06-01",
+        "content-type": "application/json",
+      },
+      body: JSON.stringify({
+        model: "claude-sonnet-4-20250514",
+        max_tokens: 1000,
+        messages: [{ role: "user", content: userPrompt }],
+      }),
+    });
+    if (!res.ok) {
+      console.error("[director] caption gen error", res.status);
+      return null;
+    }
+    const data = await res.json();
+    const raw = data?.content?.[0]?.text ?? "{}";
+    const cleaned = raw.replace(/```json\n?|\n?```/g, "").trim();
+    const parsed = JSON.parse(cleaned);
+    return {
+      instagram: String(parsed.instagram ?? ""),
+      tiktok: String(parsed.tiktok ?? ""),
+      facebook: String(parsed.facebook ?? ""),
+      hashtags: String(parsed.hashtags ?? "#UMOJAcircles #FinancialFreedom #SouthAfrica"),
+    };
+  } catch (e) {
+    console.error("[director] caption gen parse failed", e);
+    return null;
+  }
+}
+
 async function createHeygenVideo(avatar: any, script: any, campaignId: string | null) {
   let heygenVideoId: string | null = null;
   let status = "pending";
@@ -117,14 +166,19 @@ async function createHeygenVideo(avatar: any, script: any, campaignId: string | 
     errorMessage = "HEYGEN_API_KEY not configured";
   }
 
-  const caption = generateCaption(script.script_text);
+  const captions = await generateCaptions(script.script_text);
+  const fallback = generateCaption(script.script_text);
   await supabase.from("ai_generated_videos").insert({
     campaign_id: campaignId,
     avatar_id: avatar.id,
     script_id: script.id,
     heygen_video_id: heygenVideoId,
     generation_status: status,
-    video_caption: caption,
+    video_caption: captions?.instagram || fallback,
+    caption_instagram: captions?.instagram ?? null,
+    caption_tiktok: captions?.tiktok ?? null,
+    caption_facebook: captions?.facebook ?? null,
+    hashtags: captions?.hashtags ?? null,
     error_message: errorMessage,
   });
 }
@@ -134,7 +188,7 @@ function generateCaption(script: string): string {
   return `${firstSentence}. 💰
 
 Join UMOJA Circles — earn 15% in 5 days. No credit checks, just community 🤝
-Link in bio 👆
+Link in bio 👆 [REFERRAL_LINK]
 
 #UMOJAcircles #FinancialFreedom #SouthAfrica #PassiveIncome`;
 }
