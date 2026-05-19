@@ -90,6 +90,27 @@ export function usePaystack() {
       const fireOpen = () => window.dispatchEvent(new Event("paystack-popup-open"));
       const fireClose = () => window.dispatchEvent(new Event("paystack-popup-close"));
 
+      let settled = false;
+      const settle = (v: { ok: boolean; reference?: string; error?: string }) => {
+        if (settled) return;
+        settled = true;
+        clearTimeout(watchdog);
+        resolve(v);
+      };
+
+      // Watchdog: if the popup never opens or hangs (CSP block, network, etc.)
+      // surface an error instead of spinning the caller's loading state forever.
+      const watchdog = setTimeout(() => {
+        if (settled) return;
+        document.body.classList.remove("paystack-open");
+        fireClose();
+        derr("[Paystack] Watchdog timeout — popup did not respond in 25s");
+        toast.error("Payment gateway not responding", {
+          description: "It may be blocked by your browser or network. Try EFT, or refresh and retry.",
+        });
+        settle({ ok: false, error: "timeout" });
+      }, 25000);
+
       const openPopup = () => {
         try {
           document.body.classList.add("paystack-open");
@@ -117,7 +138,7 @@ export function usePaystack() {
               toast.warning("Payment received — verification pending", {
                 description: `${msg}. Ref: ${tx.reference}`,
               });
-              resolve({ ok: false, reference: tx.reference, error: msg });
+              settle({ ok: false, reference: tx.reference, error: msg });
               return;
             }
             if (d.applied === false) {
@@ -127,20 +148,20 @@ export function usePaystack() {
             } else {
               toast.success("Payment successful ✓", { description: `Ref: ${tx.reference}` });
             }
-            resolve({ ok: true, reference: tx.reference });
+            settle({ ok: true, reference: tx.reference });
           },
           onCancel: () => {
             document.body.classList.remove("paystack-open");
             fireClose();
             toast.message("Payment cancelled");
-            resolve({ ok: false, error: "cancelled" });
+            settle({ ok: false, error: "cancelled" });
           },
           onError: (e: any) => {
             document.body.classList.remove("paystack-open");
             fireClose();
             derr("[Paystack] onError:", e);
             toast.error("Payment failed", { description: e?.message ?? "Try again or use EFT" });
-            resolve({ ok: false, error: e?.message ?? "error" });
+            settle({ ok: false, error: e?.message ?? "error" });
           },
         });
         } catch (e: any) {
@@ -152,7 +173,7 @@ export function usePaystack() {
           if (/invalid/i.test(msg)) friendly = "Payment details invalid. Please try EFT payment instead.";
           else if (/key/i.test(msg)) friendly = "Payment system configuration error. Contact support.";
           toast.error("Could not open payment", { description: friendly });
-          resolve({ ok: false, error: friendly });
+          settle({ ok: false, error: friendly });
         }
       };
 
