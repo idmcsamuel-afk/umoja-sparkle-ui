@@ -27,6 +27,7 @@ const main = [
 
 const tools = [
   { to: "/flame-marketing", label: "Create Marketing", icon: Palette },
+  { to: "/browse-videos", label: "Browse Videos 🎬", icon: Palette },
   { to: "/create-video", label: "Create My Video", icon: Sparkles },
   { to: "/my-videos", label: "My Videos", icon: Palette },
   { to: "/blog", label: "Blog", icon: BookOpen },

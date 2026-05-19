@@ -526,6 +526,18 @@ const Dashboard = () => {
               Customize <ChevronRight className="h-3 w-3" />
             </button>
           </div>
+          <Link
+            to="/browse-videos"
+            className="mt-4 block rounded-3xl border border-accent/40 bg-gradient-to-r from-accent/20 to-primary/10 p-4 transition-smooth hover:border-accent hover:-translate-y-0.5"
+          >
+            <div className="flex items-center justify-between gap-3">
+              <div>
+                <p className="font-display text-base">🎬 Browse Videos to Share</p>
+                <p className="text-xs text-muted-foreground mt-0.5">Pick a video, get your personalized caption, earn 100 Sparks per signup.</p>
+              </div>
+              <ArrowUpRight className="h-5 w-5 text-accent shrink-0" />
+            </div>
+          </Link>
           <div className="mt-4 grid grid-cols-2 gap-3">
             {quickActions.map(({ to, icon: Icon, label, desc, tint }, i) => (
               <Link
