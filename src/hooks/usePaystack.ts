@@ -173,7 +173,7 @@ export function usePaystack() {
           if (/invalid/i.test(msg)) friendly = "Payment details invalid. Please try EFT payment instead.";
           else if (/key/i.test(msg)) friendly = "Payment system configuration error. Contact support.";
           toast.error("Could not open payment", { description: friendly });
-          resolve({ ok: false, error: friendly });
+          settle({ ok: false, error: friendly });
         }
       };
 
