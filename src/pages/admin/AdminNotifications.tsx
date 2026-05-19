@@ -9,8 +9,19 @@ import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
-import { Loader2, Send, RefreshCw, Mail, AlertCircle, CheckCircle2, BellRing } from "lucide-react";
+import { Loader2, Send, RefreshCw, Mail, AlertCircle, CheckCircle2, BellRing, FileText, X } from "lucide-react";
 import { toast } from "sonner";
+
+const DRAFT_KEY = "email_draft";
+const DRAFT_MAX_AGE_MS = 24 * 60 * 60 * 1000;
+
+function timeAgo(ts: number) {
+  const s = Math.floor((Date.now() - ts) / 1000);
+  if (s < 60) return `${s}s ago`;
+  if (s < 3600) return `${Math.floor(s / 60)}m ago`;
+  if (s < 86400) return `${Math.floor(s / 3600)}h ago`;
+  return `${Math.floor(s / 86400)}d ago`;
+}
 
 type Audience = "all" | "circle" | "buyers_club" | "tier" | "custom";
 
