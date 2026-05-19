@@ -6,7 +6,7 @@ import { Badge } from "@/components/ui/badge";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
-import { Plus, Share2, Download, Trophy, Eye } from "lucide-react";
+import { Plus, Share2, Download, Trophy, Eye, Copy } from "lucide-react";
 
 export default function MemberVideos() {
   const { user } = useAuth();
