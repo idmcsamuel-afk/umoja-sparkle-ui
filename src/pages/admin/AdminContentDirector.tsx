@@ -32,7 +32,7 @@ export default function AdminContentDirector() {
 
   const load = async () => {
     const startOfDay = new Date(); startOfDay.setHours(0, 0, 0, 0);
-    const [c, ready, today, postedToday, scripts, av, sched] = await Promise.all([
+    const [c, ready, today, postedToday, scripts, av, sched, readyList] = await Promise.all([
       supabase.from("ai_content_campaigns").select("*").eq("status", "active").order("started_at", { ascending: false }).limit(1).maybeSingle(),
       supabase.from("ai_generated_videos").select("id", { count: "exact", head: true }).eq("generation_status", "ready"),
       supabase.from("ai_generated_videos").select("id", { count: "exact", head: true }).gte("created_at", startOfDay.toISOString()),
@@ -40,6 +40,7 @@ export default function AdminContentDirector() {
       supabase.from("ai_generated_scripts").select("id", { count: "exact", head: true }).lt("used_count", 3),
       supabase.from("ai_avatars").select("*").order("performance_score", { ascending: false }).limit(5),
       supabase.from("ai_scheduled_posts").select("id, platform, scheduled_for").eq("post_status", "scheduled").gte("scheduled_for", new Date().toISOString()).lte("scheduled_for", new Date(Date.now() + 86400_000).toISOString()).order("scheduled_for"),
+      supabase.from("ai_generated_videos").select("*, ai_avatars(name), ai_generated_scripts(script_text, hook)").eq("generation_status", "ready").order("created_at", { ascending: false }).limit(20),
     ]);
     setCampaign(c.data);
     setStats({
