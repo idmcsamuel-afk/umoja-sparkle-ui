@@ -93,7 +93,7 @@ Deno.serve(async (req) => {
     const returnBase64 = !!body.returnBase64;
     const uploadPath: string | null = body.uploadPath ?? null;
 
-    const audio = await elevenLabsSynthesize(text, voice);
+    const audio = await elevenLabsSynthesize(preprocessForTts(text), voice);
 
     // ElevenLabs MP3 at 128kbps
     const duration = Math.max(1, Math.round((audio.length * 8) / (128 * 1000)));
