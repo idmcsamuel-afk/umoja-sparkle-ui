@@ -79,6 +79,7 @@ import CreatorStudio from "./pages/CreatorStudio.tsx";
 import CreatorVideos from "./pages/CreatorVideos.tsx";
 import CreatorSchedule from "./pages/CreatorSchedule.tsx";
 import CreatorAnalytics from "./pages/CreatorAnalytics.tsx";
+import CreatorSubscription from "./pages/CreatorSubscription.tsx";
 
 const queryClient = new QueryClient();
 
@@ -145,6 +146,7 @@ const App = () => (
                 <Route path="/creator-studio/videos" element={<ProtectedRoute><CreatorVideos /></ProtectedRoute>} />
                 <Route path="/creator-studio/schedule" element={<ProtectedRoute><CreatorSchedule /></ProtectedRoute>} />
                 <Route path="/creator-studio/analytics" element={<ProtectedRoute><CreatorAnalytics /></ProtectedRoute>} />
+                <Route path="/creator-studio/subscription" element={<ProtectedRoute><CreatorSubscription /></ProtectedRoute>} />
                 <Route path="/creator-studio/videos/:id" element={<ProtectedRoute><CreatorStudio /></ProtectedRoute>} />
               </Route>
               <Route path="/shop/:code" element={<StorefrontPublic />} />
