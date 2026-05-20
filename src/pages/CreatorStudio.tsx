@@ -248,7 +248,51 @@ export default function CreatorStudio() {
           <StatCard icon={Eye} label="Total Views" value={stats.totalViews} />
         </section>
 
+        {/* Faceless strategy guide */}
+        <Collapsible open={strategyOpen} onOpenChange={setStrategyOpen}>
+          <Card>
+            <CollapsibleTrigger asChild>
+              <button type="button" className="w-full text-left">
+                <CardHeader className="flex flex-row items-center justify-between gap-2 space-y-0">
+                  <CardTitle className="flex items-center gap-2 text-base">
+                    <Lightbulb className="h-4 w-4 text-amber-500" /> 🎬 Faceless YouTube Success Strategy
+                  </CardTitle>
+                  <ChevronDown className={`h-4 w-4 transition-transform ${strategyOpen ? "rotate-180" : ""}`} />
+                </CardHeader>
+              </button>
+            </CollapsibleTrigger>
+            <CollapsibleContent>
+              <CardContent className="pt-0 grid sm:grid-cols-2 gap-x-6 gap-y-2 text-sm">
+                {[
+                  "Use commentary style — reactions, analysis, breakdowns",
+                  "Mix stock footage with screen recordings and graphics",
+                  "Add your own insights and opinions to scripts",
+                  "Natural voice pacing with pauses and emotion",
+                  "SEO-optimized titles, descriptions, and tags",
+                ].map((tip) => (
+                  <div key={tip} className="flex items-start gap-2">
+                    <Check className="h-4 w-4 text-green-500 mt-0.5 shrink-0" /> <span>{tip}</span>
+                  </div>
+                ))}
+                {[
+                  "Avoid pure stock montages with robotic voice",
+                  "Don't copy existing videos word-for-word",
+                  "Never use clickbait without delivering value",
+                ].map((tip) => (
+                  <div key={tip} className="flex items-start gap-2">
+                    <AlertCircle className="h-4 w-4 text-red-500 mt-0.5 shrink-0" /> <span>{tip}</span>
+                  </div>
+                ))}
+                <p className="sm:col-span-2 text-xs text-muted-foreground pt-2">
+                  Full monetization guide coming soon.
+                </p>
+              </CardContent>
+            </CollapsibleContent>
+          </Card>
+        </Collapsible>
+
         {/* Agent config */}
+
         <Card>
           <CardHeader>
             <CardTitle className="flex items-center gap-2 text-base">
