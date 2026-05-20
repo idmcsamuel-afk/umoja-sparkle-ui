@@ -258,15 +258,54 @@ export default function CreatorStudio() {
   return (
     <div className="min-h-screen pb-28 md:pb-10">
       <div className="mx-auto max-w-5xl px-4 sm:px-6 py-6 space-y-6">
-        <header>
-          <p className="text-[11px] uppercase tracking-[0.22em] text-accent">Autonomous Content Factory</p>
-          <h1 className="font-display text-3xl sm:text-4xl mt-1 flex items-center gap-2">
-            Creator Studio <span aria-hidden>🎬</span>
-          </h1>
-          <p className="text-sm text-muted-foreground mt-2">
-            Spin up an AI story agent that researches trends and ships short-form videos on autopilot.
-          </p>
+        <header className="flex items-start justify-between gap-3 flex-wrap">
+          <div>
+            <p className="text-[11px] uppercase tracking-[0.22em] text-accent">Autonomous Content Factory</p>
+            <h1 className="font-display text-3xl sm:text-4xl mt-1 flex items-center gap-2">
+              Creator Studio <span aria-hidden>🎬</span>
+            </h1>
+            <p className="text-sm text-muted-foreground mt-2">
+              Spin up an AI story agent that researches trends and ships short-form videos on autopilot.
+            </p>
+          </div>
+          <button
+            type="button"
+            onClick={() => navigate("/creator-studio/subscription")}
+            className={`rounded-full border px-3 py-1.5 text-xs font-medium ${usageCls} hover:opacity-80 transition-opacity flex items-center gap-1.5`}
+            title="Manage Creator Studio plan"
+          >
+            <Crown className="h-3 w-3" /> {videosUsed}/{videoLimit} videos · {currentCfg.name}
+          </button>
         </header>
+
+        {limitReached && (
+          <div className="rounded-xl border border-red-500/40 bg-red-500/10 p-4 flex items-start gap-3">
+            <AlertCircle className="h-5 w-5 text-red-500 shrink-0 mt-0.5" />
+            <div className="flex-1">
+              <p className="text-sm font-medium">Creator Studio monthly limit reached</p>
+              <p className="text-xs text-muted-foreground mt-0.5">
+                You've used all {videoLimit} videos on your <b>{currentCfg.name}</b> plan. Upgrade to keep generating.
+              </p>
+            </div>
+            <Button size="sm" onClick={() => navigate("/creator-studio/subscription")}>
+              Upgrade Creator Studio
+            </Button>
+          </div>
+        )}
+        {limitWarning && (
+          <div className="rounded-xl border border-amber-500/40 bg-amber-500/10 p-4 flex items-start gap-3">
+            <AlertCircle className="h-5 w-5 text-amber-500 shrink-0 mt-0.5" />
+            <div className="flex-1">
+              <p className="text-sm font-medium">Heads up — running low on Creator Studio videos</p>
+              <p className="text-xs text-muted-foreground mt-0.5">
+                You've used {videosUsed} of {videoLimit} videos this month on your <b>{currentCfg.name}</b> plan.
+              </p>
+            </div>
+            <Button size="sm" variant="outline" onClick={() => navigate("/creator-studio/subscription")}>
+              View Plans
+            </Button>
+          </div>
+        )}
 
         {/* Quick stats */}
         <section className="grid grid-cols-2 md:grid-cols-4 gap-3">
