@@ -182,6 +182,23 @@ Output ONLY valid JSON:
       })
       .eq("id", agentId);
 
+    // 6. Increment Creator Studio usage counter (upsert if subscription row missing)
+    if (sub) {
+      await supabase
+        .from("zcreator_subscriptions")
+        .update({ videos_used_this_month: used + 1 })
+        .eq("user_id", agent.user_id);
+    } else {
+      await supabase.from("zcreator_subscriptions").insert({
+        user_id: agent.user_id,
+        tier: "free",
+        videos_per_month: limit,
+        platforms_enabled: lim.platforms,
+        videos_used_this_month: 1,
+        billing_cycle_starts_at: new Date().toISOString(),
+      });
+    }
+
     return json({
       success: true,
       contentId: queuedContent.id,
