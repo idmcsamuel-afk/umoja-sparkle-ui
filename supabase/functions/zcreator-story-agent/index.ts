@@ -259,11 +259,14 @@ CRITICAL: "scenes" MUST be a non-empty JSON array of 3-5 objects (NEVER more tha
       (s: number, sc: any) => s + (Number(sc?.duration) || Math.max(8, Math.round((String(sc?.narration ?? "").split(/\s+/).length) / 2.5))),
       0,
     );
-    if (sceneCount < 3 || sceneCount > 8) {
-      return json({ error: `Script generation incomplete: got ${sceneCount} scenes (need 3-8). Regenerate script.` }, 502);
+    if (sceneCount < 3 || sceneCount > 5) {
+      return json({ error: `Script generation incomplete: got ${sceneCount} scenes (need 3-5). Regenerate script.` }, 502);
     }
     if (totalDuration < 60) {
-      return json({ error: `Script generation incomplete: estimated ${totalDuration}s (need ≥90s). Regenerate script.` }, 502);
+      return json({ error: `Script generation incomplete: estimated ${totalDuration}s (need ≥75s). Regenerate script.` }, 502);
+    }
+    if (totalDuration > 120) {
+      return json({ error: `Script generation too long: estimated ${totalDuration}s (max 100s). Regenerate script.` }, 502);
     }
 
     // 4. Queue content — store full scriptJson (with scenes) so assembly can use it
