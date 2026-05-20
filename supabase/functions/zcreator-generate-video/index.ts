@@ -134,8 +134,8 @@ Deno.serve(async (req) => {
         videoUrl = out.videoUrl ?? null;
         thumbnailUrl = out.thumbnailUrl ?? null;
         duration = out.duration ?? null;
-        // assemble-faceless already updated the row to ready; skip second update
-        return json({ success: true, videoUrl, status: "ready", duration, cost: out.cost });
+        // fall through to the unified update + usage-increment block below
+
       } else if (style === "animation") {
         finalStatus = "script_ready";
         errorMsg = "Animation workflow coming";
