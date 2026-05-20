@@ -67,6 +67,39 @@ async function whisperSrt(audioUrl: string): Promise<string | null> {
   }
 }
 
+async function workerHealthCheck(timeoutMs = 60_000): Promise<boolean> {
+  if (!FFMPEG_WORKER_URL) return false;
+  const base = FFMPEG_WORKER_URL.replace(/\/assemble\/?$/, "").replace(/\/$/, "");
+  const healthUrl = `${base}/health`;
+  const ctrl = new AbortController();
+  const t = setTimeout(() => ctrl.abort(), timeoutMs);
+  try {
+    const r = await fetch(healthUrl, { method: "GET", signal: ctrl.signal });
+    await r.text().catch(() => "");
+    return r.ok;
+  } catch (e) {
+    console.warn("worker health check failed", (e as Error)?.message);
+    return false;
+  } finally {
+    clearTimeout(t);
+  }
+}
+
+async function ensureWorkerAwake(): Promise<void> {
+  if (!FFMPEG_WORKER_URL) throw new Error("FFMPEG_WORKER_URL not configured");
+  let ok = await workerHealthCheck(60_000);
+  if (!ok) {
+    console.log("worker health check failed, retrying in 30s...");
+    await new Promise((r) => setTimeout(r, 30_000));
+    ok = await workerHealthCheck(60_000);
+  }
+  if (!ok) {
+    throw new Error(
+      "FFmpeg worker unavailable. This is likely because the worker is starting up (Render free tier). Please retry in 1 minute.",
+    );
+  }
+}
+
 async function dispatchToWorker(payload: unknown): Promise<{ videoUrl: string; thumbnailUrl?: string; duration?: number }> {
   if (!FFMPEG_WORKER_URL) throw new Error("FFMPEG_WORKER_URL not configured");
   const r = await fetch(FFMPEG_WORKER_URL, {
