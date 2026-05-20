@@ -362,10 +362,17 @@ export default function CreatorVideos() {
                           </Select>
                         </TableCell>
                         <TableCell>
-                          <Badge variant="outline" className={`gap-1 ${badge.cls}`}>
-                            {isGen && <Loader2 className="h-3 w-3 animate-spin" />}
-                            {badge.label}
-                          </Badge>
+                          <div className="flex flex-col gap-1">
+                            <Badge variant="outline" className={`gap-1 w-fit ${badge.cls}`}>
+                              {isGen && <Loader2 className="h-3 w-3 animate-spin" />}
+                              {badge.label}
+                            </Badge>
+                            {r.status === "generating" && progressText(r) && (
+                              <span className="text-[11px] text-muted-foreground line-clamp-2 max-w-[200px]">
+                                {progressText(r)}
+                              </span>
+                            )}
+                          </div>
                         </TableCell>
                         <TableCell className="text-xs text-muted-foreground">
                           {r.duration_seconds ? `${r.duration_seconds}s` : "—"}
@@ -376,11 +383,23 @@ export default function CreatorVideos() {
                         <TableCell className="text-right">
                           <div className="flex justify-end gap-1.5 flex-wrap">
                             {r.status === "script_ready" && (
-                              <Button size="sm" variant="default" className="h-8" onClick={() => generate(r)} disabled={isGen}>
-                                <Sparkles className="h-3 w-3 mr-1" /> Generate
+                              <>
+                                <Button size="sm" variant="default" className="h-8" onClick={() => openScriptModal(r)}>
+                                  <Eye className="h-3 w-3 mr-1" /> Preview Script
+                                </Button>
+                              </>
+                            )}
+                            {r.status === "generating" && (
+                              <Button size="sm" variant="outline" className="h-8 text-red-600 border-red-500/30 hover:bg-red-500/10" onClick={() => setCancelTarget(r)}>
+                                <X className="h-3 w-3 mr-1" /> Cancel
                               </Button>
                             )}
                             {r.status === "failed" && (
+                              <Button size="sm" variant="default" className="h-8" onClick={() => retry(r)} disabled={isGen}>
+                                <RotateCw className="h-3 w-3 mr-1" /> Retry
+                              </Button>
+                            )}
+                            {r.status === "cancelled" && (
                               <Button size="sm" variant="default" className="h-8" onClick={() => retry(r)} disabled={isGen}>
                                 <RotateCw className="h-3 w-3 mr-1" /> Retry
                               </Button>
@@ -403,7 +422,6 @@ export default function CreatorVideos() {
                                 </Button>
                               </>
                             )}
-
                           </div>
                         </TableCell>
                       </TableRow>
@@ -416,6 +434,7 @@ export default function CreatorVideos() {
         </CardContent>
       </Card>
 
+      {/* Video preview */}
       <Dialog open={!!preview} onOpenChange={(o) => !o && setPreview(null)}>
         <DialogContent className="max-w-md">
           <DialogHeader><DialogTitle>{preview?.script_title ?? "Video"}</DialogTitle></DialogHeader>
@@ -424,6 +443,126 @@ export default function CreatorVideos() {
           )}
         </DialogContent>
       </Dialog>
+
+      {/* Script preview + edit + regenerate */}
+      <Dialog open={!!scriptModal} onOpenChange={(o) => { if (!o) { setScriptModal(null); setEditing(false); } }}>
+        <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>Script preview</DialogTitle>
+            <DialogDescription>
+              Review and edit your script before generating the video. Generation uses the saved version.
+            </DialogDescription>
+          </DialogHeader>
+
+          {scriptModal && (
+            <div className="space-y-4">
+              <div>
+                <Label className="text-xs">Title</Label>
+                {editing ? (
+                  <Input value={editTitle} onChange={(e) => setEditTitle(e.target.value)} className="mt-1" />
+                ) : (
+                  <p className="text-sm font-medium mt-1">{scriptModal.script_title ?? "Untitled"}</p>
+                )}
+              </div>
+
+              <div>
+                <Label className="text-xs">Script</Label>
+                {editing ? (
+                  <Textarea
+                    value={editScript}
+                    onChange={(e) => setEditScript(e.target.value)}
+                    rows={14}
+                    className="mt-1 font-mono text-xs"
+                  />
+                ) : (
+                  <pre className="mt-1 text-xs whitespace-pre-wrap bg-muted/40 rounded-md p-3 max-h-[300px] overflow-y-auto">
+                    {scriptToText(scriptModal.script_content) || "(empty)"}
+                  </pre>
+                )}
+              </div>
+
+              {Array.isArray(scriptModal.script_content?.scenes) && (
+                <div>
+                  <Label className="text-xs">Scene breakdown</Label>
+                  <div className="mt-1 space-y-1 text-xs text-muted-foreground">
+                    {scriptModal.script_content.scenes.map((s: any, i: number) => (
+                      <div key={i} className="flex gap-2">
+                        <span className="font-medium text-foreground">#{i + 1}</span>
+                        <span className="line-clamp-1">{s.visual ?? s.keywords ?? "—"}</span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {scriptModal.platform_metadata && (
+                <div>
+                  <Label className="text-xs">Platform metadata</Label>
+                  <pre className="mt-1 text-[11px] whitespace-pre-wrap bg-muted/40 rounded-md p-3 max-h-[160px] overflow-y-auto">
+                    {JSON.stringify(scriptModal.platform_metadata, null, 2)}
+                  </pre>
+                </div>
+              )}
+            </div>
+          )}
+
+          <DialogFooter className="flex-wrap gap-2 sm:gap-2">
+            {editing ? (
+              <>
+                <Button variant="outline" onClick={() => setEditing(false)} disabled={savingScript}>Discard</Button>
+                <Button onClick={saveScript} disabled={savingScript}>
+                  {savingScript ? <Loader2 className="h-3 w-3 mr-1 animate-spin" /> : <Save className="h-3 w-3 mr-1" />}
+                  Save changes
+                </Button>
+              </>
+            ) : (
+              <>
+                <Button
+                  variant="outline"
+                  onClick={regenerateScript}
+                  disabled={regenerating || !scriptModal?.agent_id}
+                  title={scriptModal?.agent_id ? "" : "No agent linked"}
+                >
+                  {regenerating ? <Loader2 className="h-3 w-3 mr-1 animate-spin" /> : <Wand2 className="h-3 w-3 mr-1" />}
+                  Regenerate Script
+                </Button>
+                <Button variant="outline" onClick={() => setEditing(true)}>
+                  Edit Script
+                </Button>
+                <Button
+                  onClick={async () => {
+                    if (!scriptModal) return;
+                    const row = scriptModal;
+                    setScriptModal(null);
+                    await generate(row);
+                  }}
+                >
+                  <Sparkles className="h-3 w-3 mr-1" /> Generate Video
+                </Button>
+              </>
+            )}
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Cancel confirmation */}
+      <AlertDialog open={!!cancelTarget} onOpenChange={(o) => !o && setCancelTarget(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Stop video generation?</AlertDialogTitle>
+            <AlertDialogDescription>
+              This cannot be undone. The video will be marked as cancelled and won't count against
+              your monthly usage limit.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Keep generating</AlertDialogCancel>
+            <AlertDialogAction onClick={() => cancelTarget && cancelGeneration(cancelTarget)}>
+              Stop generation
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }
