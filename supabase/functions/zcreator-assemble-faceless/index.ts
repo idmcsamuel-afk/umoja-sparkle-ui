@@ -114,8 +114,8 @@ Deno.serve(async (req) => {
       ? script.scenes
       : [{ visual: content.script_title ?? "topic", narration: typeof script === "string" ? script : (script.narration ?? script.body ?? content.script_title ?? "") }];
 
-    // 3) For each scene: find stock clip + voice
-    const sceneAssets: Array<{ videoUrl: string | null; audioUrl: string; duration: number; narration: string }> = [];
+    // 3) For each scene: find stock clip + voice (skip scenes without a usable stock clip)
+    const sceneAssets: Array<{ videoUrl: string; audioUrl: string; duration: number; narration: string }> = [];
     for (let i = 0; i < scenes.length; i++) {
       const s = scenes[i];
       const narration = String(s.narration ?? s.text ?? "").trim();
@@ -125,22 +125,32 @@ Deno.serve(async (req) => {
         pexelsSearchVideo(query),
         callVoice(narration, voiceTier, `audio/${contentId}/scene-${i}.mp3`),
       ]);
+      if (!videoUrl) {
+        console.warn(`scene ${i}: no stock video for "${query}" — skipping`);
+        continue;
+      }
       sceneAssets.push({ videoUrl, audioUrl: voice.audioUrl, duration: voice.duration, narration });
     }
 
     if (sceneAssets.length === 0) {
       await supabase.from("zcreator_content_queue").update({ status: "failed" }).eq("id", contentId);
-      return json({ error: "no scenes with narration" }, 400);
+      return json({ error: "no scenes with narration + stock footage" }, 400);
     }
 
-    // 4) Concatenate audio (worker will do this properly; here we caption first scene only as a fallback signal)
-    const captionsSrt = await whisperSrt(sceneAssets[0].audioUrl);
+    // 4) Captions from first scene narration audio (worker can re-time across full track if needed)
+    const captionsSrt = (await whisperSrt(sceneAssets[0].audioUrl)) ?? "";
 
-    // 5) Dispatch to FFmpeg worker (stubbed for now)
+    // 5) Dispatch to FFmpeg worker
     const assembly = await dispatchToWorker({
-      contentId,
-      scenes: sceneAssets,
+      scenes: sceneAssets.map((a) => ({
+        videoUrl: a.videoUrl,
+        audioUrl: a.audioUrl,
+        duration: a.duration,
+      })),
       captionsSrt,
+      supabaseUrl: SUPABASE_URL,
+      supabaseKey: SERVICE_KEY,
+      contentId,
       title: content.script_title,
       outputBucket: "zcreator-videos",
       outputPrefix: `videos/${contentId}/`,
@@ -164,8 +174,9 @@ Deno.serve(async (req) => {
       voiceTier,
       scenes: sceneAssets.length,
       videoUrl: assembly.videoUrl,
+      thumbnailUrl: assembly.thumbnailUrl ?? null,
+      duration: assembly.duration,
       cost,
-      workerStub: !FFMPEG_WORKER_URL || FFMPEG_WORKER_URL.includes("placeholder"),
     });
   } catch (e: any) {
     console.error("assemble-faceless error", e);
