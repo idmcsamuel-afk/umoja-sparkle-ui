@@ -24,10 +24,10 @@ import { cn } from "@/lib/utils";
 
 type Content = {
   id: string;
-  title: string;
+  script_title: string | null;
   status: string;
-  scheduled_at: string | null;
-  published_at: string | null;
+  scheduled_publish_at: string | null;
+  actual_published_at: string | null;
   thumbnail_url: string | null;
   duration_seconds: number | null;
   platforms: string[] | null;
@@ -70,8 +70,8 @@ export default function CreatorSchedule() {
     const [{ data: c }, { data: p }] = await Promise.all([
       supabase
         .from("zcreator_content_queue")
-        .select("id,title,status,scheduled_at,published_at,thumbnail_url,duration_seconds,platforms")
-        .order("scheduled_at", { ascending: true, nullsFirst: false }),
+        .select("id,script_title,status,scheduled_publish_at,actual_published_at,thumbnail_url,duration_seconds,platforms")
+        .order("scheduled_publish_at", { ascending: true, nullsFirst: false }),
       supabase
         .from("zcreator_published_content")
         .select("id,content_id,platform,platform_url,published_at")
@@ -103,7 +103,7 @@ export default function CreatorSchedule() {
       if (statusFilter !== "all" && it.status !== statusFilter) return false;
       if (platformFilter !== "all" && !(it.platforms ?? []).includes(platformFilter))
         return false;
-      const when = it.scheduled_at ? new Date(it.scheduled_at) : null;
+      const when = it.scheduled_publish_at ? new Date(it.scheduled_publish_at) : null;
       if (rangeStart && when && when < rangeStart) return false;
       if (rangeEnd && when && when > rangeEnd) return false;
       return true;
@@ -113,8 +113,8 @@ export default function CreatorSchedule() {
   const byDay = useMemo(() => {
     const map = new Map<string, Content[]>();
     for (const it of filtered) {
-      const key = it.scheduled_at
-        ? format(new Date(it.scheduled_at), "yyyy-MM-dd")
+      const key = it.scheduled_publish_at
+        ? format(new Date(it.scheduled_publish_at), "yyyy-MM-dd")
         : "unscheduled";
       const arr = map.get(key) ?? [];
       arr.push(it);
@@ -249,18 +249,18 @@ export default function CreatorSchedule() {
                         {it.thumbnail_url ? (
                           <img
                             src={it.thumbnail_url}
-                            alt={it.title}
+                            alt={it.script_title}
                             className="h-14 w-24 rounded object-cover"
                           />
                         ) : (
                           <div className="h-14 w-24 rounded bg-muted" />
                         )}
                         <div className="min-w-0 flex-1">
-                          <div className="truncate font-medium">{it.title}</div>
+                          <div className="truncate font-medium">{it.script_title}</div>
                           <div className="flex flex-wrap items-center gap-1 text-xs text-muted-foreground">
                             {it.duration_seconds ? <span>{it.duration_seconds}s</span> : null}
-                            {it.scheduled_at && (
-                              <span>· {format(new Date(it.scheduled_at), "PPp")}</span>
+                            {it.scheduled_publish_at && (
+                              <span>· {format(new Date(it.scheduled_publish_at), "PPp")}</span>
                             )}
                             <Badge variant="outline" className="ml-1">{it.status}</Badge>
                             {(it.platforms ?? []).map((p) => (
@@ -287,7 +287,7 @@ export default function CreatorSchedule() {
                             <PopoverContent align="end" className="w-auto p-0">
                               <Calendar
                                 mode="single"
-                                selected={it.scheduled_at ? new Date(it.scheduled_at) : undefined}
+                                selected={it.scheduled_publish_at ? new Date(it.scheduled_publish_at) : undefined}
                                 onSelect={(d) => d && rescheduleTo(it.id, d)}
                                 className={cn("p-3 pointer-events-auto")}
                               />
@@ -323,7 +323,7 @@ export default function CreatorSchedule() {
                     <li key={p.id} className="flex items-center justify-between rounded border p-2 text-sm">
                       <div className="flex items-center gap-2">
                         <Badge>{p.platform}</Badge>
-                        <span className="truncate">{c?.title ?? p.content_id}</span>
+                        <span className="truncate">{c?.script_title ?? p.content_id}</span>
                         <span className="text-xs text-muted-foreground">
                           {format(new Date(p.published_at), "PPp")}
                         </span>
@@ -358,7 +358,7 @@ export default function CreatorSchedule() {
                 <SelectTrigger><SelectValue placeholder="Pick a video…" /></SelectTrigger>
                 <SelectContent>
                   {items.map((i) => (
-                    <SelectItem key={i.id} value={i.id}>{i.title}</SelectItem>
+                    <SelectItem key={i.id} value={i.id}>{i.script_title}</SelectItem>
                   ))}
                 </SelectContent>
               </Select>
