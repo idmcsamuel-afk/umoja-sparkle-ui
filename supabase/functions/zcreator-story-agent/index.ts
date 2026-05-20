@@ -37,6 +37,35 @@ Deno.serve(async (req) => {
     if (agentErr || !agent) return json({ error: "Agent not found" }, 404);
     if (!agent.active && !manualTrigger) return json({ error: "Agent not active" }, 400);
 
+    // Enforce Creator Studio subscription limits
+    const { data: sub } = await supabase
+      .from("zcreator_subscriptions").select("*").eq("user_id", agent.user_id).maybeSingle();
+    const TIER_LIMITS: Record<string, { videos: number; platforms: string[] }> = {
+      free:    { videos: 2,    platforms: ["youtube"] },
+      creator: { videos: 150,  platforms: ["youtube","tiktok","instagram"] },
+      pro:     { videos: 400,  platforms: ["youtube","tiktok","instagram"] },
+      agency:  { videos: 1000, platforms: ["youtube","tiktok","instagram"] },
+    };
+    const tier = (sub?.tier ?? "free");
+    const lim = TIER_LIMITS[tier] ?? TIER_LIMITS.free;
+    const used = sub?.videos_used_this_month ?? 0;
+    const limit = sub?.videos_per_month ?? lim.videos;
+    if (used >= limit) {
+      return json({
+        error: "monthly_limit_reached",
+        message: `Creator Studio limit reached (${used}/${limit}). Upgrade to continue.`,
+        upgradeUrl: "/creator-studio/subscription",
+      }, 402);
+    }
+    const blockedPlatforms = (agent.platforms ?? []).filter((p: string) => !lim.platforms.includes(p));
+    if (blockedPlatforms.length) {
+      return json({
+        error: "platform_not_in_tier",
+        message: `Your Creator Studio plan doesn't include: ${blockedPlatforms.join(", ")}. Upgrade to unlock.`,
+        upgradeUrl: "/creator-studio/subscription",
+      }, 402);
+    }
+
     // 2. Research trends
     const trendPrompt = `Search for trending topics, viral stories, and popular content in the ${agent.niche} niche. Find 5 recent high-performing topics suitable for YouTube/TikTok videos. Focus on topics with high engagement potential.`;
 
