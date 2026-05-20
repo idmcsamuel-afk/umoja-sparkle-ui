@@ -4775,6 +4775,297 @@ export type Database = {
         }
         Relationships: []
       }
+      zcreator_analytics: {
+        Row: {
+          comments: number
+          content_id: string
+          estimated_revenue_rands: number
+          id: string
+          likes: number
+          platform: string
+          shares: number
+          synced_at: string
+          views: number
+          watch_time_minutes: number
+        }
+        Insert: {
+          comments?: number
+          content_id: string
+          estimated_revenue_rands?: number
+          id?: string
+          likes?: number
+          platform: string
+          shares?: number
+          synced_at?: string
+          views?: number
+          watch_time_minutes?: number
+        }
+        Update: {
+          comments?: number
+          content_id?: string
+          estimated_revenue_rands?: number
+          id?: string
+          likes?: number
+          platform?: string
+          shares?: number
+          synced_at?: string
+          views?: number
+          watch_time_minutes?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "zcreator_analytics_content_id_fkey"
+            columns: ["content_id"]
+            isOneToOne: false
+            referencedRelation: "zcreator_content_queue"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      zcreator_content_queue: {
+        Row: {
+          actual_published_at: string | null
+          agent_id: string | null
+          captions_url: string | null
+          created_at: string
+          duration_seconds: number | null
+          error_message: string | null
+          generation_cost_rands: number | null
+          id: string
+          platform_metadata: Json | null
+          platforms: string[] | null
+          scheduled_publish_at: string | null
+          script_content: string | null
+          script_title: string | null
+          status: string
+          thumbnail_url: string | null
+          updated_at: string
+          user_id: string
+          video_style: string | null
+          video_url: string | null
+        }
+        Insert: {
+          actual_published_at?: string | null
+          agent_id?: string | null
+          captions_url?: string | null
+          created_at?: string
+          duration_seconds?: number | null
+          error_message?: string | null
+          generation_cost_rands?: number | null
+          id?: string
+          platform_metadata?: Json | null
+          platforms?: string[] | null
+          scheduled_publish_at?: string | null
+          script_content?: string | null
+          script_title?: string | null
+          status?: string
+          thumbnail_url?: string | null
+          updated_at?: string
+          user_id: string
+          video_style?: string | null
+          video_url?: string | null
+        }
+        Update: {
+          actual_published_at?: string | null
+          agent_id?: string | null
+          captions_url?: string | null
+          created_at?: string
+          duration_seconds?: number | null
+          error_message?: string | null
+          generation_cost_rands?: number | null
+          id?: string
+          platform_metadata?: Json | null
+          platforms?: string[] | null
+          scheduled_publish_at?: string | null
+          script_content?: string | null
+          script_title?: string | null
+          status?: string
+          thumbnail_url?: string | null
+          updated_at?: string
+          user_id?: string
+          video_style?: string | null
+          video_url?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "zcreator_content_queue_agent_id_fkey"
+            columns: ["agent_id"]
+            isOneToOne: false
+            referencedRelation: "zcreator_story_agents"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      zcreator_published_content: {
+        Row: {
+          content_id: string
+          id: string
+          platform: string
+          platform_url: string | null
+          platform_video_id: string | null
+          published_at: string
+        }
+        Insert: {
+          content_id: string
+          id?: string
+          platform: string
+          platform_url?: string | null
+          platform_video_id?: string | null
+          published_at?: string
+        }
+        Update: {
+          content_id?: string
+          id?: string
+          platform?: string
+          platform_url?: string | null
+          platform_video_id?: string | null
+          published_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "zcreator_published_content_content_id_fkey"
+            columns: ["content_id"]
+            isOneToOne: false
+            referencedRelation: "zcreator_content_queue"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      zcreator_story_agents: {
+        Row: {
+          active: boolean
+          agent_name: string
+          auto_generate: boolean
+          auto_publish: boolean
+          brand_voice: Json | null
+          content_frequency: string | null
+          created_at: string
+          id: string
+          niche: string | null
+          performance_score: number
+          platforms: string[] | null
+          updated_at: string
+          user_id: string
+          videos_created: number
+        }
+        Insert: {
+          active?: boolean
+          agent_name: string
+          auto_generate?: boolean
+          auto_publish?: boolean
+          brand_voice?: Json | null
+          content_frequency?: string | null
+          created_at?: string
+          id?: string
+          niche?: string | null
+          performance_score?: number
+          platforms?: string[] | null
+          updated_at?: string
+          user_id: string
+          videos_created?: number
+        }
+        Update: {
+          active?: boolean
+          agent_name?: string
+          auto_generate?: boolean
+          auto_publish?: boolean
+          brand_voice?: Json | null
+          content_frequency?: string | null
+          created_at?: string
+          id?: string
+          niche?: string | null
+          performance_score?: number
+          platforms?: string[] | null
+          updated_at?: string
+          user_id?: string
+          videos_created?: number
+        }
+        Relationships: []
+      }
+      zcreator_subscriptions: {
+        Row: {
+          active: boolean
+          auto_publish_enabled: boolean
+          billing_cycle_starts_at: string | null
+          created_at: string
+          id: string
+          monthly_cost_rands: number | null
+          monthly_cost_sparks: number | null
+          platforms_enabled: string[] | null
+          tier: string
+          user_id: string
+          videos_per_month: number | null
+          videos_used_this_month: number
+          white_label_enabled: boolean
+        }
+        Insert: {
+          active?: boolean
+          auto_publish_enabled?: boolean
+          billing_cycle_starts_at?: string | null
+          created_at?: string
+          id?: string
+          monthly_cost_rands?: number | null
+          monthly_cost_sparks?: number | null
+          platforms_enabled?: string[] | null
+          tier?: string
+          user_id: string
+          videos_per_month?: number | null
+          videos_used_this_month?: number
+          white_label_enabled?: boolean
+        }
+        Update: {
+          active?: boolean
+          auto_publish_enabled?: boolean
+          billing_cycle_starts_at?: string | null
+          created_at?: string
+          id?: string
+          monthly_cost_rands?: number | null
+          monthly_cost_sparks?: number | null
+          platforms_enabled?: string[] | null
+          tier?: string
+          user_id?: string
+          videos_per_month?: number | null
+          videos_used_this_month?: number
+          white_label_enabled?: boolean
+        }
+        Relationships: []
+      }
+      zcreator_video_styles: {
+        Row: {
+          available: boolean
+          cost_rands: number
+          description: string | null
+          display_name: string
+          generation_time_minutes: number | null
+          id: string
+          quality_tier: string | null
+          sample_video_url: string | null
+          style_code: string
+        }
+        Insert: {
+          available?: boolean
+          cost_rands?: number
+          description?: string | null
+          display_name: string
+          generation_time_minutes?: number | null
+          id?: string
+          quality_tier?: string | null
+          sample_video_url?: string | null
+          style_code: string
+        }
+        Update: {
+          available?: boolean
+          cost_rands?: number
+          description?: string | null
+          display_name?: string
+          generation_time_minutes?: number | null
+          id?: string
+          quality_tier?: string | null
+          sample_video_url?: string | null
+          style_code?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       drive_tier_pool_v: {
