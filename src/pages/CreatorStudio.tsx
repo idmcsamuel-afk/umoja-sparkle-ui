@@ -20,7 +20,7 @@ import { toast } from "sonner";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import {
   Bot, Sparkles, Wand2, Play, Pause, Trash2, ChevronDown, Loader2,
-  Video, TrendingUp, Eye, Clock, Plus, X, Volume2, Lightbulb, Check, AlertCircle, Crown,
+  Video, TrendingUp, Eye, Clock, Plus, X, Volume2, Lightbulb, Check, AlertCircle, Crown, ArrowRight,
 } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { getTierConfig, usagePct, usageColor, type ZCreatorTier } from "@/lib/zcreatorTiers";
@@ -568,8 +568,9 @@ export default function CreatorStudio() {
                 return (
                   <Link
                     key={q.id}
-                    to={`/creator-studio/videos/${q.id}`}
-                    className="group rounded-xl border border-border bg-card overflow-hidden hover:border-accent/50 transition-smooth"
+                    to={`/creator-studio/videos?highlight=${q.id}`}
+                    aria-label={`View details for ${q.script_title ?? "script"}`}
+                    className="group rounded-xl border border-border bg-card overflow-hidden cursor-pointer hover:border-accent hover:shadow-lg hover:-translate-y-0.5 transition-all duration-200"
                   >
                     <div className="aspect-video bg-muted relative">
                       {q.thumbnail_url ? (
@@ -585,9 +586,14 @@ export default function CreatorStudio() {
                       <p className="text-sm font-medium line-clamp-2 group-hover:text-accent transition-smooth">
                         {q.script_title ?? "Untitled script"}
                       </p>
-                      <p className="text-[11px] text-muted-foreground flex items-center gap-1">
-                        <Clock className="h-3 w-3" /> {timeAgo(q.created_at)}
-                      </p>
+                      <div className="flex items-center justify-between gap-2">
+                        <p className="text-[11px] text-muted-foreground flex items-center gap-1">
+                          <Clock className="h-3 w-3" /> {timeAgo(q.created_at)}
+                        </p>
+                        <span className="text-[11px] text-accent flex items-center gap-1 opacity-70 group-hover:opacity-100 transition-opacity">
+                          View details <ArrowRight className="h-3 w-3 group-hover:translate-x-0.5 transition-transform" />
+                        </span>
+                      </div>
                     </div>
                   </Link>
                 );

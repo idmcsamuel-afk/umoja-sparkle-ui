@@ -1,5 +1,5 @@
-import { useEffect, useMemo, useState } from "react";
-import { Link } from "react-router-dom";
+import { useEffect, useMemo, useRef, useState } from "react";
+import { Link, useSearchParams } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -45,6 +45,9 @@ const STATUS_BADGE: Record<string, { label: string; cls: string }> = {
 
 export default function CreatorVideos() {
   const { user } = useAuth();
+  const [searchParams] = useSearchParams();
+  const highlightId = searchParams.get("highlight");
+  const highlightRef = useRef<HTMLTableRowElement | null>(null);
   const [rows, setRows] = useState<Row[]>([]);
   const [loading, setLoading] = useState(true);
   const [statusFilter, setStatusFilter] = useState<string>("all");
@@ -79,6 +82,12 @@ export default function CreatorVideos() {
     return () => { supabase.removeChannel(ch); };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [user?.id]);
+
+  useEffect(() => {
+    if (highlightId && !loading && highlightRef.current) {
+      highlightRef.current.scrollIntoView({ behavior: "smooth", block: "center" });
+    }
+  }, [highlightId, loading, rows.length]);
 
   const filtered = useMemo(() => {
     return rows.filter((r) => {
@@ -180,7 +189,11 @@ export default function CreatorVideos() {
                     const badge = STATUS_BADGE[r.status] ?? { label: r.status, cls: "" };
                     const isGen = r.status === "generating" || busy === r.id;
                     return (
-                      <TableRow key={r.id}>
+                      <TableRow
+                        key={r.id}
+                        ref={highlightId === r.id ? highlightRef : undefined}
+                        className={highlightId === r.id ? "bg-accent/10 ring-2 ring-accent/40" : undefined}
+                      >
                         <TableCell className="max-w-[260px]">
                           <p className="text-sm font-medium line-clamp-1">{r.script_title ?? "Untitled"}</p>
                           {r.error_message && r.status === "failed" && (
