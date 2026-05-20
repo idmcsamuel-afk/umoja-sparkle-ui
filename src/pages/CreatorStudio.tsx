@@ -460,10 +460,10 @@ export default function CreatorStudio() {
                   <RadioGroupItem value="standard" id="vt-standard" className="mt-0.5" />
                   <div className="flex-1 space-y-1">
                     <div className="flex items-center justify-between gap-2">
-                      <p className="text-sm font-medium">Standard Voice <span className="text-muted-foreground font-normal">(Free)</span></p>
-                      <Badge variant="secondary" className="text-[10px]">R0.84/video</Badge>
+                      <p className="text-sm font-medium">Standard Voice <span className="text-muted-foreground font-normal">(included)</span></p>
+                      <Badge variant="secondary" className="text-[10px]">R7.04/video</Badge>
                     </div>
-                    <p className="text-xs text-muted-foreground">Edge TTS, en-ZA voices with natural pauses & emotion</p>
+                    <p className="text-xs text-muted-foreground">High-quality studio voice — great for most videos</p>
                     <Button type="button" variant="ghost" size="sm" className="h-7 px-2 text-xs" onClick={(e) => { e.preventDefault(); previewVoice("standard"); }} disabled={previewingTier === "standard"}>
                       {previewingTier === "standard" ? <Loader2 className="h-3 w-3 animate-spin" /> : <Play className="h-3 w-3" />} Preview
                     </Button>
@@ -473,13 +473,14 @@ export default function CreatorStudio() {
                   <RadioGroupItem value="premium" id="vt-premium" className="mt-0.5" />
                   <div className="flex-1 space-y-1">
                     <div className="flex items-center justify-between gap-2">
-                      <p className="text-sm font-medium">Premium Voice <span className="text-muted-foreground font-normal">(+R6)</span></p>
-                      <Badge className="text-[10px]">R6.84/video</Badge>
+                      <p className="text-sm font-medium">Premium Voice Clone <span className="text-muted-foreground font-normal">(+R6)</span></p>
+                      <Badge className="text-[10px]">R8.84/video</Badge>
                     </div>
-                    <p className="text-xs text-muted-foreground">ElevenLabs studio-quality voice clone</p>
+                    <p className="text-xs text-muted-foreground">Premium voice clone for a more distinctive sound</p>
                     <Button type="button" variant="ghost" size="sm" className="h-7 px-2 text-xs" onClick={(e) => { e.preventDefault(); previewVoice("premium"); }} disabled={previewingTier === "premium"}>
                       {previewingTier === "premium" ? <Loader2 className="h-3 w-3 animate-spin" /> : <Play className="h-3 w-3" />} Preview
                     </Button>
+
                   </div>
                 </label>
               </RadioGroup>
