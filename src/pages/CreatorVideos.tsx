@@ -349,7 +349,7 @@ export default function CreatorVideos() {
                 <TableBody>
                   {filtered.map((r) => {
                     const badge = STATUS_BADGE[r.status] ?? { label: r.status, cls: "" };
-                    const isGen = r.status === "generating" || busy === r.id;
+                    const isGen = r.status === "generating" || r.status === "queued" || busy === r.id;
                     return (
                       <TableRow
                         key={r.id}
