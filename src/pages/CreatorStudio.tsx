@@ -52,12 +52,14 @@ type QueueItem = any;
 
 export default function CreatorStudio() {
   const { user } = useAuth();
+  const navigate = useNavigate();
   const [agents, setAgents] = useState<Agent[]>([]);
   const [queue, setQueue] = useState<QueueItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [creating, setCreating] = useState(false);
   const [generatingId, setGeneratingId] = useState<string | null>(null);
   const [voiceOpen, setVoiceOpen] = useState(false);
+  const [sub, setSub] = useState<any>(null);
 
   // form state
   const [agentName, setAgentName] = useState("");
