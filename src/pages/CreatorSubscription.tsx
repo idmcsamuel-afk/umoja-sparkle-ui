@@ -221,10 +221,16 @@ export default function CreatorSubscription() {
           </div>
         </section>
 
+        <div className="rounded-2xl border border-border bg-muted/20 p-4 sm:p-5 text-center space-y-1">
+          <p className="text-sm font-medium">Generate professional videos from <span className="text-accent">R12–R13 per video</span></p>
+          <p className="text-xs text-muted-foreground">International competitors charge R18–R55 per video — save 50–70% vs traditional video editing.</p>
+        </div>
+
         <p className="text-xs text-muted-foreground text-center">
           This is an add-on feature — billed separately from your main platform subscription.
         </p>
       </div>
+
 
       {/* Upgrade modal */}
       <Dialog open={!!selectedTier} onOpenChange={(o) => !o && setSelectedTier(null)}>

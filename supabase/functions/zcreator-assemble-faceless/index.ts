@@ -157,7 +157,7 @@ Deno.serve(async (req) => {
     });
 
     // 6) Update content record
-    const cost = voiceTier === "premium" ? 6.84 : 0.84;
+    const cost = voiceTier === "premium" ? 10.04 : 7.04;
     await supabase
       .from("zcreator_content_queue")
       .update({
