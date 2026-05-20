@@ -112,12 +112,14 @@ Other rules:
 - Natural speaking style for ${agent.niche} audience
 - CURRENCY: ALWAYS write rand amounts in words ("two thousand rands" NOT "R2000")
 
-Output ONLY valid JSON (no markdown, no commentary):
+Output ONLY valid JSON (no markdown fences, no commentary, no preamble). Return EXACTLY this shape:
 {
   "title": "Catchy video title (under 60 chars)",
   "hook": "First 3 seconds of script",
   "scenes": [
-    {"scene_number": 1, "visual": "stock-footage search keywords", "narration": "what to say", "duration": 15}
+    {"scene_number": 1, "visual": "stock-footage search keywords", "narration": "what to say", "duration": 15},
+    {"scene_number": 2, "visual": "...", "narration": "...", "duration": 15},
+    {"scene_number": 3, "visual": "...", "narration": "...", "duration": 20}
   ],
   "metadata": {
     "youtube_description": "200-word description with timestamps",
@@ -125,36 +127,84 @@ Output ONLY valid JSON (no markdown, no commentary):
     "tiktok_caption": "Caption with hashtags",
     "target_duration_seconds": 110
   }
-}`;
+}
 
-    const scriptRes = await fetch("https://api.anthropic.com/v1/messages", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        "x-api-key": anthropicKey,
-        "anthropic-version": "2023-06-01",
-      },
-      body: JSON.stringify({
-        model: "claude-sonnet-4-20250514",
-        max_tokens: 4000,
-        messages: [{ role: "user", content: scriptPrompt }],
-      }),
-    });
+CRITICAL: "scenes" MUST be a non-empty JSON array of 3-8 objects. Do NOT return a string for scenes. Do NOT wrap response in markdown fences.`;
 
-    if (!scriptRes.ok) {
-      const t = await scriptRes.text();
-      console.error("Script generation failed:", t);
-      return json({ error: "Script generation failed", detail: t }, 502);
+    // Robust JSON extractor — handles markdown fences, preamble, trailing commas, control chars
+    const extractJson = (raw: string): any => {
+      let s = String(raw ?? "").replace(/```json\s*/gi, "").replace(/```\s*/g, "").trim();
+      const start = s.search(/[\{\[]/);
+      if (start === -1) throw new Error("No JSON found in response");
+      const openCh = s[start];
+      const closeCh = openCh === "[" ? "]" : "}";
+      const end = s.lastIndexOf(closeCh);
+      if (end === -1 || end < start) throw new Error("No JSON terminator found");
+      s = s.substring(start, end + 1);
+      try { return JSON.parse(s); } catch {
+        s = s.replace(/,\s*}/g, "}").replace(/,\s*]/g, "]").replace(/[\x00-\x1F\x7F]/g, " ");
+        return JSON.parse(s);
+      }
+    };
+
+    const callClaudeForScript = async (): Promise<string> => {
+      const r = await fetch("https://api.anthropic.com/v1/messages", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "x-api-key": anthropicKey,
+          "anthropic-version": "2023-06-01",
+        },
+        body: JSON.stringify({
+          model: "claude-sonnet-4-20250514",
+          max_tokens: 4000,
+          messages: [{ role: "user", content: scriptPrompt }],
+        }),
+      });
+      if (!r.ok) {
+        const t = await r.text();
+        throw new Error(`Claude HTTP ${r.status}: ${t.slice(0, 300)}`);
+      }
+      const d = await r.json();
+      return d.content?.[0]?.text ?? "";
+    };
+
+    console.log("[story-agent] script prompt length:", scriptPrompt.length);
+    console.log("[story-agent] script prompt preview:", scriptPrompt.slice(0, 400));
+
+    let scriptJson: any = null;
+    let lastRaw = "";
+    let lastErr = "";
+    const MAX_ATTEMPTS = 3;
+    for (let attempt = 1; attempt <= MAX_ATTEMPTS; attempt++) {
+      try {
+        const raw = await callClaudeForScript();
+        lastRaw = raw;
+        console.log(`[story-agent] attempt ${attempt} raw length:`, raw.length);
+        console.log(`[story-agent] attempt ${attempt} raw preview:`, raw.slice(0, 800));
+        const parsed = extractJson(raw);
+        console.log(`[story-agent] attempt ${attempt} parsed keys:`, Object.keys(parsed ?? {}));
+        const scenes = Array.isArray(parsed?.scenes) ? parsed.scenes : [];
+        console.log(`[story-agent] attempt ${attempt} scenes length:`, scenes.length);
+        if (scenes.length > 0) {
+          console.log(`[story-agent] attempt ${attempt} first scene:`, JSON.stringify(scenes[0]).slice(0, 300));
+        }
+        if (scenes.length >= 3) {
+          scriptJson = parsed;
+          break;
+        }
+        lastErr = `scenes array length ${scenes.length} (need >= 3)`;
+        console.warn(`[story-agent] attempt ${attempt} insufficient: ${lastErr}`);
+      } catch (e: any) {
+        lastErr = e?.message ?? String(e);
+        console.error(`[story-agent] attempt ${attempt} parse/fetch failed:`, lastErr);
+      }
     }
 
-    const scriptData = await scriptRes.json();
-    const scriptText: string = scriptData.content?.[0]?.text ?? "";
-    const jsonMatch = scriptText.match(/\{[\s\S]*\}/);
-    let scriptJson: any;
-    try {
-      scriptJson = jsonMatch ? JSON.parse(jsonMatch[0]) : { title: "Generated Script", scenes: [] };
-    } catch {
-      scriptJson = { title: "Generated Script", scenes: [] };
+    if (!scriptJson) {
+      return json({
+        error: `Claude API returned invalid format after ${MAX_ATTEMPTS} attempts. ${lastErr}. Raw response: ${lastRaw.slice(0, 500)}`,
+      }, 502);
     }
 
     // Currency post-processing: "R2000" / "R2,000" → "two thousand rands"
