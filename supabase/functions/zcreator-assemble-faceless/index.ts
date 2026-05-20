@@ -197,8 +197,28 @@ Deno.serve(async (req) => {
         pexelsSearchVideo(query),
         callVoice(narration, voiceTier, `audio/${contentId}/scene-${i}.mp3`),
       ]);
+      console.log(`[scene ${i}] voice result`, {
+        audioUrl: voice.audioUrl,
+        duration: voice.duration,
+        tier: voice.tier,
+        voice: voice.voice,
+      });
+      console.log(`[scene ${i}] pexels result`, { query, videoUrl });
       if (!videoUrl) {
         console.warn(`scene ${i}: no stock video for "${query}" — skipping`);
+        continue;
+      }
+      // verify both URLs are reachable
+      const [audioOk, videoOk] = await Promise.all([
+        voice.audioUrl ? verifyUrl(voice.audioUrl, `scene-${i}-audio`) : Promise.resolve(false),
+        verifyUrl(videoUrl, `scene-${i}-video`),
+      ]);
+      if (!audioOk) {
+        console.error(`[scene ${i}] audio URL not reachable, skipping`, { audioUrl: voice.audioUrl });
+        continue;
+      }
+      if (!videoOk) {
+        console.error(`[scene ${i}] pexels video URL not reachable, skipping`, { videoUrl });
         continue;
       }
       sceneAssets.push({ videoUrl, audioUrl: voice.audioUrl, duration: voice.duration, narration });
