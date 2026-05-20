@@ -454,7 +454,7 @@ const Dashboard = () => {
                 </div>
                 <div className="min-w-0 flex-1">
                   <p className="text-sm font-medium">Join the Buyers Club 🛒</p>
-                  <p className="text-[11px] text-muted-foreground">Unlock real products & better margins from R200</p>
+                  <p className="text-[11px] text-muted-foreground">Unlock real products & better margins from R499</p>
                 </div>
                 <span className="shrink-0 rounded-full bg-gradient-gold px-3 py-1.5 text-[11px] font-medium text-amber-950">
                   Join →
