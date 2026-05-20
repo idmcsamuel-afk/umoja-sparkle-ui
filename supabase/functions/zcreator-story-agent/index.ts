@@ -96,29 +96,34 @@ Deno.serve(async (req) => {
       .join("\n");
 
     // 3. Generate script
-    const scriptPrompt = `You are a viral content creator. Based on these trending topics:\n\n${trendText}\n\nCreate a compelling 60-90 second video script for ${agent.niche} content.
+    const scriptPrompt = `You are a viral content creator. Based on these trending topics:\n\n${trendText}\n\nCreate a COMPLETE 90-150 second video script for ${agent.niche} content.
 
 Brand Voice: ${JSON.stringify(agent.brand_voice ?? {})}
 
-Requirements:
-- Hook in first 3 seconds
-- Clear structure: Hook → Problem → Solution → CTA
-- Natural speaking style for ${agent.niche} audience
-- Include specific examples and stories
-- End with strong call-to-action
-- Format: Scene-by-scene with visual descriptions
+REQUIREMENTS — your script MUST follow a complete narrative arc:
+- BEGINNING (≈30s, scenes 1-2): Hook + problem statement
+- MIDDLE  (≈60s, scenes 3-5): Explanation / strategy / examples
+- END     (≈30s, scenes 6-7): Conclusion + strong call-to-action
 
-Output ONLY valid JSON:
+Other rules:
+- Minimum 3 scenes, maximum 8 scenes
+- Each scene 10-25 seconds of narration
+- Total narration must produce 90-150 seconds of audio when read at normal pace
+- Natural speaking style for ${agent.niche} audience
+- CURRENCY: ALWAYS write rand amounts in words ("two thousand rands" NOT "R2000")
+
+Output ONLY valid JSON (no markdown, no commentary):
 {
   "title": "Catchy video title (under 60 chars)",
-  "script": "Full narration script",
-  "scenes": [{"scene_number": 1, "visual": "description", "narration": "what to say"}],
   "hook": "First 3 seconds of script",
+  "scenes": [
+    {"scene_number": 1, "visual": "stock-footage search keywords", "narration": "what to say", "duration": 15}
+  ],
   "metadata": {
     "youtube_description": "200-word description with timestamps",
     "youtube_tags": ["tag1", "tag2", "tag3"],
     "tiktok_caption": "Caption with hashtags",
-    "target_duration_seconds": 75
+    "target_duration_seconds": 110
   }
 }`;
 
@@ -147,19 +152,71 @@ Output ONLY valid JSON:
     const jsonMatch = scriptText.match(/\{[\s\S]*\}/);
     let scriptJson: any;
     try {
-      scriptJson = jsonMatch ? JSON.parse(jsonMatch[0]) : { title: "Generated Script", script: scriptText };
+      scriptJson = jsonMatch ? JSON.parse(jsonMatch[0]) : { title: "Generated Script", scenes: [] };
     } catch {
-      scriptJson = { title: "Generated Script", script: scriptText };
+      scriptJson = { title: "Generated Script", scenes: [] };
     }
 
-    // 4. Queue content
+    // Currency post-processing: "R2000" / "R2,000" → "two thousand rands"
+    const numberToWords = (n: number): string => {
+      if (n === 0) return "zero";
+      const ones = ["","one","two","three","four","five","six","seven","eight","nine",
+        "ten","eleven","twelve","thirteen","fourteen","fifteen","sixteen","seventeen","eighteen","nineteen"];
+      const tens = ["","","twenty","thirty","forty","fifty","sixty","seventy","eighty","ninety"];
+      const chunk = (x: number): string => {
+        if (x < 20) return ones[x];
+        if (x < 100) return tens[Math.floor(x/10)] + (x%10 ? "-" + ones[x%10] : "");
+        return ones[Math.floor(x/100)] + " hundred" + (x%100 ? " and " + chunk(x%100) : "");
+      };
+      const parts: string[] = [];
+      const units: Array<[string, number]> = [["billion",1e9],["million",1e6],["thousand",1e3]];
+      for (const [name, val] of units) {
+        const v = Math.floor(n/val);
+        if (v > 0) { parts.push(chunk(v) + " " + name); n -= v*val; }
+      }
+      if (n > 0) parts.push(chunk(n));
+      return parts.join(" ");
+    };
+    const spellRands = (text: string): string =>
+      typeof text === "string"
+        ? text.replace(/R\s?(\d{1,3}(?:[,\s]\d{3})+|\d+)/g, (_m, raw: string) => {
+            const n = parseInt(raw.replace(/[,\s]/g, ""), 10);
+            return isFinite(n) ? `${numberToWords(n)} ${n === 1 ? "rand" : "rands"}` : _m;
+          })
+        : text;
+
+    if (Array.isArray(scriptJson.scenes)) {
+      scriptJson.scenes = scriptJson.scenes.map((s: any) => ({
+        ...s,
+        narration: spellRands(s?.narration ?? s?.text ?? ""),
+        visual: spellRands(s?.visual ?? ""),
+      }));
+    }
+    if (scriptJson.script) scriptJson.script = spellRands(scriptJson.script);
+    if (scriptJson.hook) scriptJson.hook = spellRands(scriptJson.hook);
+
+    // Validate narrative structure
+    const scenes = Array.isArray(scriptJson.scenes) ? scriptJson.scenes : [];
+    const sceneCount = scenes.length;
+    const totalDuration = scenes.reduce(
+      (s: number, sc: any) => s + (Number(sc?.duration) || Math.max(8, Math.round((String(sc?.narration ?? "").split(/\s+/).length) / 2.5))),
+      0,
+    );
+    if (sceneCount < 3 || sceneCount > 8) {
+      return json({ error: `Script generation incomplete: got ${sceneCount} scenes (need 3-8). Regenerate script.` }, 502);
+    }
+    if (totalDuration < 60) {
+      return json({ error: `Script generation incomplete: estimated ${totalDuration}s (need ≥90s). Regenerate script.` }, 502);
+    }
+
+    // 4. Queue content — store full scriptJson (with scenes) so assembly can use it
     const { data: queuedContent, error: qErr } = await supabase
       .from("zcreator_content_queue")
       .insert({
         user_id: agent.user_id,
         agent_id: agentId,
         script_title: scriptJson.title ?? "Untitled",
-        script_content: scriptJson.script ?? scriptText,
+        script_content: scriptJson,
         video_style: "talking_head",
         platforms: agent.platforms ?? [],
         platform_metadata: scriptJson.metadata ?? {},
