@@ -374,7 +374,9 @@ export default function CreatorStudio() {
               </RadioGroup>
             </div>
 
+            <div className="grid sm:grid-cols-2 gap-3 pt-1">
               <ToggleRow
+
                 label="Auto-generate scripts"
                 hint="Agent runs on its frequency without prompting"
                 checked={autoGenerate}
