@@ -200,11 +200,33 @@ Deno.serve(async (req) => {
       generation_progress: { step: "starting", message: "Preparing scenes…" },
     }).eq("id", contentId);
 
-    // 2) Parse scenes from script_content
+    // 2) Parse + validate scenes from script_content
     const script: any = content.script_content ?? {};
-    const scenes: any[] = Array.isArray(script.scenes) && script.scenes.length
-      ? script.scenes
-      : [{ visual: content.script_title ?? "topic", narration: typeof script === "string" ? script : (script.narration ?? script.body ?? content.script_title ?? "") }];
+    const scenes: any[] = Array.isArray(script.scenes) ? script.scenes.filter((s: any) => String(s?.narration ?? s?.text ?? "").trim()) : [];
+
+    if (scenes.length < 3 || scenes.length > 8) {
+      const msg = `Script generation incomplete: got ${scenes.length} scenes (need 3-8). Regenerate script.`;
+      await supabase.from("zcreator_content_queue").update({
+        status: "failed",
+        error_message: `[user] ${msg}`,
+        generation_progress: null,
+      }).eq("id", contentId);
+      return json({ error: msg }, 400);
+    }
+    const expectedDuration = scenes.reduce(
+      (sum: number, s: any) => sum + (Number(s?.duration) || Math.max(8, Math.round((String(s?.narration ?? "").split(/\s+/).length) / 2.5))),
+      0,
+    );
+    if (expectedDuration < 60) {
+      const msg = `Script generation incomplete: only ~${expectedDuration}s of narration (need ≥90s). Regenerate script.`;
+      await supabase.from("zcreator_content_queue").update({
+        status: "failed",
+        error_message: `[user] ${msg}`,
+        generation_progress: null,
+      }).eq("id", contentId);
+      return json({ error: msg }, 400);
+    }
+    console.log(`[validate] ${scenes.length} scenes, ~${expectedDuration}s expected`);
 
     // 3) For each scene: find stock clip + voice (skip scenes without a usable stock clip)
     const sceneAssets: Array<{ videoUrl: string; audioUrl: string; duration: number; narration: string }> = [];
