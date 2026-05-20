@@ -141,8 +141,8 @@ Deno.serve(async (req) => {
           const result = await publishToYouTube({
             accessToken,
             videoBlob: blob,
-            title: ytMeta.title ?? content.title,
-            description: ytMeta.description ?? content.script ?? "",
+            title: ytMeta.title ?? content.script_content_title,
+            description: ytMeta.description ?? content.script_content ?? "",
             tags: ytMeta.tags ?? [],
             privacy: ytMeta.privacy ?? tokRow.default_privacy ?? "unlisted",
           });
@@ -181,7 +181,7 @@ Deno.serve(async (req) => {
 
     await admin
       .from("zcreator_content_queue")
-      .update({ status: "published", published_at: new Date().toISOString() })
+      .update({ status: "published", actual_published_at: new Date().toISOString() })
       .eq("id", contentId);
 
     if (sub) {
