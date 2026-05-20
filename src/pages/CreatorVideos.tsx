@@ -118,6 +118,24 @@ export default function CreatorVideos() {
     else toast.success("Video generated");
   };
 
+  const retry = async (row: Row) => {
+    // Reset to script_ready, clear error, then re-run generation with current (possibly changed) style.
+    await supabase
+      .from("zcreator_content_queue")
+      .update({ status: "script_ready", error_message: null })
+      .eq("id", row.id);
+    setRows((p) => p.map((r) => (r.id === row.id ? { ...r, status: "script_ready", error_message: null } : r)));
+    toast.info("Retrying — system failures don't count against your monthly limit");
+    await generate({ ...row, status: "script_ready", error_message: null });
+  };
+
+  const parseError = (msg: string | null) => {
+    if (!msg) return { kind: "system", text: "Unknown error" };
+    const m = msg.match(/^\[(system|user)\]\s*(.*)$/);
+    return m ? { kind: m[1], text: m[2] } : { kind: "system", text: msg };
+  };
+
+
   return (
     <div className="space-y-6 p-4 md:p-6 max-w-7xl mx-auto pb-24">
       <header className="flex items-start justify-between gap-3 flex-wrap">
