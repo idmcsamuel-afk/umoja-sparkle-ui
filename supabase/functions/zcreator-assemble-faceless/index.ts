@@ -68,11 +68,7 @@ async function whisperSrt(audioUrl: string): Promise<string | null> {
 }
 
 async function dispatchToWorker(payload: unknown): Promise<{ videoUrl: string; thumbnailUrl?: string; duration?: number }> {
-  // Treat empty/placeholder URLs as stub.
-  if (!FFMPEG_WORKER_URL || FFMPEG_WORKER_URL.includes("placeholder") || FFMPEG_WORKER_URL.startsWith("http://example")) {
-    console.warn("FFMPEG_WORKER_URL not set — returning stub result");
-    return { videoUrl: "https://placeholder.lovable.dev/video.mp4", thumbnailUrl: undefined, duration: 0 };
-  }
+  if (!FFMPEG_WORKER_URL) throw new Error("FFMPEG_WORKER_URL not configured");
   const r = await fetch(FFMPEG_WORKER_URL, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
