@@ -93,6 +93,23 @@ export default function CreatorVideos() {
   // Cancel confirm state
   const [cancelTarget, setCancelTarget] = useState<Row | null>(null);
 
+  // Queue positions: content_id -> { position, total }
+  const [queuePositions, setQueuePositions] = useState<Record<string, { position: number; total: number }>>({});
+
+  const loadQueuePositions = async () => {
+    const { data } = await supabase
+      .from("zcreator_job_queue")
+      .select("content_id, status")
+      .in("status", ["queued", "processing"])
+      .order("priority", { ascending: false })
+      .order("queued_at", { ascending: true });
+    const arr = (data ?? []) as Array<{ content_id: string; status: string }>;
+    const total = arr.length;
+    const map: Record<string, { position: number; total: number }> = {};
+    arr.forEach((r, i) => { map[r.content_id] = { position: i + 1, total }; });
+    setQueuePositions(map);
+  };
+
   const load = async () => {
     if (!user) return;
     const { data } = await supabase
