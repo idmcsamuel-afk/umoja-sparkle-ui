@@ -124,8 +124,18 @@ Deno.serve(async (req) => {
         finalStatus = "script_ready";
         errorMsg = "Kling integration coming";
       } else if (style === "stock") {
-        finalStatus = "script_ready";
-        errorMsg = "Stock footage assembly coming (requires external worker)";
+        const r = await fetch(`${SUPABASE_URL}/functions/v1/zcreator-assemble-faceless`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json", Authorization: `Bearer ${SERVICE_KEY}` },
+          body: JSON.stringify({ contentId }),
+        });
+        const out = await r.json();
+        if (!r.ok) throw new Error(out?.error ?? `assemble failed (${r.status})`);
+        videoUrl = out.videoUrl ?? null;
+        thumbnailUrl = out.thumbnailUrl ?? null;
+        duration = out.duration ?? null;
+        // assemble-faceless already updated the row to ready; skip second update
+        return json({ success: true, videoUrl, status: "ready", duration, cost: out.cost });
       } else if (style === "animation") {
         finalStatus = "script_ready";
         errorMsg = "Animation workflow coming";
