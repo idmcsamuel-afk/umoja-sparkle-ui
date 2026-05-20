@@ -20,8 +20,10 @@ import { toast } from "sonner";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import {
   Bot, Sparkles, Wand2, Play, Pause, Trash2, ChevronDown, Loader2,
-  Video, TrendingUp, Eye, Clock, Plus, X, Volume2, Lightbulb, Check, AlertCircle,
+  Video, TrendingUp, Eye, Clock, Plus, X, Volume2, Lightbulb, Check, AlertCircle, Crown,
 } from "lucide-react";
+import { useNavigate } from "react-router-dom";
+import { getTierConfig, usagePct, usageColor, type ZCreatorTier } from "@/lib/zcreatorTiers";
 
 const NICHES = ["Finance", "Health", "Tech", "Business", "Entertainment", "Lifestyle", "Education"];
 const TONES = ["Professional", "Casual", "Humorous", "Inspirational", "Educational"];
