@@ -319,7 +319,22 @@ Deno.serve(async (req) => {
 
     await setProgress({ step: "uploading", message: "Uploading…" });
 
-    // 6) Update content record
+    // 6) Validate worker output — detect truncated / crashed renders
+    const summedNarration = sceneAssets.reduce((s, a) => s + a.duration, 0);
+    const expectedFinal = Math.max(summedNarration, expectedDuration);
+    const actualDuration = Number(assembly.duration) || summedNarration;
+    if (actualDuration > 0 && expectedFinal > 0 && actualDuration < expectedFinal * 0.8) {
+      const msg = `Video incomplete - only ${actualDuration}s of ${expectedFinal}s expected. Worker may have crashed. Retry.`;
+      console.error(`[validate] ${msg}`);
+      await supabase.from("zcreator_content_queue").update({
+        status: "failed",
+        error_message: `[system] ${msg}`,
+        generation_progress: null,
+      }).eq("id", contentId);
+      return json({ error: msg }, 502);
+    }
+
+    // 7) Update content record
     const cost = voiceTier === "premium" ? 10.04 : 7.04;
     await supabase
       .from("zcreator_content_queue")
@@ -327,9 +342,9 @@ Deno.serve(async (req) => {
         status: "ready",
         video_url: assembly.videoUrl,
         thumbnail_url: assembly.thumbnailUrl ?? null,
-        duration_seconds: assembly.duration ?? sceneAssets.reduce((s, a) => s + a.duration, 0),
+        duration_seconds: actualDuration,
         generation_cost_rands: cost,
-        generation_progress: { step: "done", message: "Ready" },
+        generation_progress: { step: "done", message: "Ready", sceneCount: sceneAssets.length, expectedDuration: expectedFinal },
       })
       .eq("id", contentId);
 
