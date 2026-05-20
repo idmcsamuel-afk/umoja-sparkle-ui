@@ -222,16 +222,38 @@ export default function CreatorStudio() {
   };
 
   const generateNow = async (a: Agent) => {
+    if (limitReached) {
+      toast.error("Creator Studio monthly limit reached. Upgrade to continue.");
+      navigate("/creator-studio/subscription");
+      return;
+    }
     setGeneratingId(a.id);
     const { data, error } = await supabase.functions.invoke("zcreator-story-agent", {
       body: { agentId: a.id, manualTrigger: true },
     });
     setGeneratingId(null);
     if (error) return toast.error(`Generation failed: ${error.message}`);
-    if ((data as any)?.error) return toast.error(`Generation failed: ${(data as any).error}`);
+    if ((data as any)?.error) {
+      const err = (data as any).error;
+      if (err === "monthly_limit_reached" || /limit reached/i.test(err)) {
+        toast.error("Creator Studio limit reached. Upgrade your plan.");
+        navigate("/creator-studio/subscription");
+        return;
+      }
+      return toast.error(`Generation failed: ${err}`);
+    }
     toast.success("Script generated! View in Videos tab");
     loadAll();
   };
+
+  const currentTier = (sub?.tier ?? "free") as ZCreatorTier;
+  const currentCfg = getTierConfig(currentTier);
+  const videosUsed = Number(sub?.videos_used_this_month ?? 0);
+  const videoLimit = Number(sub?.videos_per_month ?? currentCfg.videosPerMonth);
+  const usagePctVal = usagePct(videosUsed, videoLimit);
+  const usageCls = usageColor(usagePctVal);
+  const limitReached = videosUsed >= videoLimit;
+  const limitWarning = usagePctVal >= 80 && !limitReached;
 
   return (
     <div className="min-h-screen pb-28 md:pb-10">
