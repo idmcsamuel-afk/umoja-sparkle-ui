@@ -341,7 +341,39 @@ export default function CreatorStudio() {
               </div>
             </div>
 
-            <div className="grid sm:grid-cols-2 gap-3 pt-1">
+            {/* Voice quality */}
+            <div className="space-y-2">
+              <Label className="flex items-center gap-2"><Volume2 className="h-4 w-4" /> Voice Quality</Label>
+              <RadioGroup value={voiceTier} onValueChange={(v) => setVoiceTier(v as "standard" | "premium")} className="grid sm:grid-cols-2 gap-2">
+                <label className={`rounded-lg border p-3 cursor-pointer flex items-start gap-3 ${voiceTier === "standard" ? "border-accent bg-accent/5" : "border-border"}`}>
+                  <RadioGroupItem value="standard" id="vt-standard" className="mt-0.5" />
+                  <div className="flex-1 space-y-1">
+                    <div className="flex items-center justify-between gap-2">
+                      <p className="text-sm font-medium">Standard Voice <span className="text-muted-foreground font-normal">(Free)</span></p>
+                      <Badge variant="secondary" className="text-[10px]">R0.84/video</Badge>
+                    </div>
+                    <p className="text-xs text-muted-foreground">Edge TTS, en-ZA voices with natural pauses & emotion</p>
+                    <Button type="button" variant="ghost" size="sm" className="h-7 px-2 text-xs" onClick={(e) => { e.preventDefault(); previewVoice("standard"); }} disabled={previewingTier === "standard"}>
+                      {previewingTier === "standard" ? <Loader2 className="h-3 w-3 animate-spin" /> : <Play className="h-3 w-3" />} Preview
+                    </Button>
+                  </div>
+                </label>
+                <label className={`rounded-lg border p-3 cursor-pointer flex items-start gap-3 ${voiceTier === "premium" ? "border-accent bg-accent/5" : "border-border"}`}>
+                  <RadioGroupItem value="premium" id="vt-premium" className="mt-0.5" />
+                  <div className="flex-1 space-y-1">
+                    <div className="flex items-center justify-between gap-2">
+                      <p className="text-sm font-medium">Premium Voice <span className="text-muted-foreground font-normal">(+R6)</span></p>
+                      <Badge className="text-[10px]">R6.84/video</Badge>
+                    </div>
+                    <p className="text-xs text-muted-foreground">ElevenLabs studio-quality voice clone</p>
+                    <Button type="button" variant="ghost" size="sm" className="h-7 px-2 text-xs" onClick={(e) => { e.preventDefault(); previewVoice("premium"); }} disabled={previewingTier === "premium"}>
+                      {previewingTier === "premium" ? <Loader2 className="h-3 w-3 animate-spin" /> : <Play className="h-3 w-3" />} Preview
+                    </Button>
+                  </div>
+                </label>
+              </RadioGroup>
+            </div>
+
               <ToggleRow
                 label="Auto-generate scripts"
                 hint="Agent runs on its frequency without prompting"
