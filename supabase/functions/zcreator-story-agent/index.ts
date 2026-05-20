@@ -149,6 +149,7 @@ CRITICAL: "scenes" MUST be a non-empty JSON array of 3-8 objects. Do NOT return 
     };
 
     const callClaudeForScript = async (): Promise<string> => {
+      console.error('[SCRIPT-GEN] Sending prompt to Claude...');
       const r = await fetch("https://api.anthropic.com/v1/messages", {
         method: "POST",
         headers: {
