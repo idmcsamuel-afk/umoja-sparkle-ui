@@ -194,9 +194,9 @@ export default function CreatorStudio() {
       body: { agentId: a.id, manualTrigger: true },
     });
     setGeneratingId(null);
-    if (error) return toast.error(error.message);
-    if ((data as any)?.error) return toast.error((data as any).error);
-    toast.success(`Script created: ${(data as any)?.title ?? "Untitled"}`);
+    if (error) return toast.error(`Generation failed: ${error.message}`);
+    if ((data as any)?.error) return toast.error(`Generation failed: ${(data as any).error}`);
+    toast.success("Script generated! View in Videos tab");
     loadAll();
   };
 
