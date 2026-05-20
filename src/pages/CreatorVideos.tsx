@@ -183,7 +183,11 @@ export default function CreatorVideos() {
                     const badge = STATUS_BADGE[r.status] ?? { label: r.status, cls: "" };
                     const isGen = r.status === "generating" || busy === r.id;
                     return (
-                      <TableRow key={r.id}>
+                      <TableRow
+                        key={r.id}
+                        ref={highlightId === r.id ? highlightRef : undefined}
+                        className={highlightId === r.id ? "bg-accent/10 ring-2 ring-accent/40" : undefined}
+                      >
                         <TableCell className="max-w-[260px]">
                           <p className="text-sm font-medium line-clamp-1">{r.script_title ?? "Untitled"}</p>
                           {r.error_message && r.status === "failed" && (
