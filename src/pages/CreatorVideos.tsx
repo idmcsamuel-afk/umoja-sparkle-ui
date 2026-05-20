@@ -300,6 +300,7 @@ export default function CreatorVideos() {
             <SelectContent>
               <SelectItem value="all">All statuses</SelectItem>
               <SelectItem value="script_ready">Script Ready</SelectItem>
+              <SelectItem value="queued">Queued</SelectItem>
               <SelectItem value="generating">Generating</SelectItem>
               <SelectItem value="ready">Ready</SelectItem>
               <SelectItem value="published">Published</SelectItem>
@@ -424,6 +425,13 @@ export default function CreatorVideos() {
                             {r.status === "generating" && progressText(r) && (
                               <span className="text-[11px] text-muted-foreground line-clamp-2 max-w-[200px]">
                                 {progressText(r)}
+                              </span>
+                            )}
+                            {r.status === "queued" && (
+                              <span className="text-[11px] text-muted-foreground">
+                                {queuePositions[r.id]
+                                  ? `Position #${queuePositions[r.id].position} of ${queuePositions[r.id].total}`
+                                  : "Waiting for worker…"}
                               </span>
                             )}
                           </div>
