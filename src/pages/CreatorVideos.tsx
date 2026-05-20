@@ -123,16 +123,18 @@ export default function CreatorVideos() {
 
   useEffect(() => {
     load();
+    loadQueuePositions();
     if (!user) return;
     const ch = supabase
       .channel("zcreator-queue-videos")
       .on(
         "postgres_changes",
         { event: "*", schema: "public", table: "zcreator_content_queue", filter: `user_id=eq.${user.id}` },
-        () => load(),
+        () => { load(); loadQueuePositions(); },
       )
       .subscribe();
-    return () => { supabase.removeChannel(ch); };
+    const interval = setInterval(loadQueuePositions, 10000);
+    return () => { supabase.removeChannel(ch); clearInterval(interval); };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [user?.id]);
 
