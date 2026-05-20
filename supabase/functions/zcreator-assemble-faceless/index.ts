@@ -100,15 +100,54 @@ async function ensureWorkerAwake(): Promise<void> {
   }
 }
 
-async function dispatchToWorker(payload: unknown): Promise<{ videoUrl: string; thumbnailUrl?: string; duration?: number }> {
+async function dispatchToWorker(payload: any): Promise<{ videoUrl: string; thumbnailUrl?: string; duration?: number }> {
   if (!FFMPEG_WORKER_URL) throw new Error("FFMPEG_WORKER_URL not configured");
+  console.log("[worker] dispatching payload", {
+    workerUrl: FFMPEG_WORKER_URL,
+    sceneCount: payload?.scenes?.length ?? 0,
+    sceneVideoUrls: payload?.scenes?.map((s: any) => s.videoUrl) ?? [],
+    sceneAudioUrls: payload?.scenes?.map((s: any) => s.audioUrl) ?? [],
+    sceneDurations: payload?.scenes?.map((s: any) => s.duration) ?? [],
+    captionsSrtLen: (payload?.captionsSrt ?? "").length,
+    supabaseUrl: payload?.supabaseUrl,
+    hasServiceKey: !!payload?.supabaseKey,
+    serviceKeyLen: payload?.supabaseKey?.length ?? 0,
+    outputBucket: payload?.outputBucket,
+    outputPrefix: payload?.outputPrefix,
+    contentId: payload?.contentId,
+  });
+
   const r = await fetch(FFMPEG_WORKER_URL, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify(payload),
   });
-  if (!r.ok) throw new Error(`ffmpeg worker ${r.status}: ${await r.text()}`);
-  return r.json();
+  const respText = await r.text();
+  console.log("[worker] response", { status: r.status, bodyPreview: respText.slice(0, 1000) });
+  if (!r.ok) {
+    throw new Error(`ffmpeg worker ${r.status}: ${respText}`);
+  }
+  try {
+    return JSON.parse(respText);
+  } catch {
+    throw new Error(`ffmpeg worker returned non-JSON: ${respText.slice(0, 500)}`);
+  }
+}
+
+async function verifyUrl(url: string, label: string): Promise<boolean> {
+  try {
+    const r = await fetch(url, { method: "HEAD" });
+    console.log(`[verify ${label}]`, {
+      url,
+      status: r.status,
+      contentType: r.headers.get("content-type"),
+      contentLength: r.headers.get("content-length"),
+    });
+    return r.ok;
+  } catch (e) {
+    console.error(`[verify ${label}] exception`, { url, error: (e as Error).message });
+    return false;
+  }
 }
 
 Deno.serve(async (req) => {
