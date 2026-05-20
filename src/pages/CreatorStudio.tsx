@@ -17,9 +17,10 @@ import {
   Collapsible, CollapsibleContent, CollapsibleTrigger,
 } from "@/components/ui/collapsible";
 import { toast } from "sonner";
+import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import {
   Bot, Sparkles, Wand2, Play, Pause, Trash2, ChevronDown, Loader2,
-  Video, TrendingUp, Eye, Clock, Plus, X,
+  Video, TrendingUp, Eye, Clock, Plus, X, Volume2, Lightbulb, Check, AlertCircle,
 } from "lucide-react";
 
 const NICHES = ["Finance", "Health", "Tech", "Business", "Entertainment", "Lifestyle", "Education"];
@@ -67,6 +68,9 @@ export default function CreatorStudio() {
   const [platforms, setPlatforms] = useState<string[]>(["youtube"]);
   const [autoGenerate, setAutoGenerate] = useState(false);
   const [autoPublish, setAutoPublish] = useState(false);
+  const [voiceTier, setVoiceTier] = useState<"standard" | "premium">("standard");
+  const [previewingTier, setPreviewingTier] = useState<"standard" | "premium" | null>(null);
+  const [strategyOpen, setStrategyOpen] = useState(false);
 
   const [publishedThisMonth, setPublishedThisMonth] = useState(0);
   const [totalViews, setTotalViews] = useState(0);
