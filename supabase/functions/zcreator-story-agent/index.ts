@@ -17,6 +17,7 @@ Deno.serve(async (req) => {
 
   try {
     const { agentId, manualTrigger = false } = await req.json();
+    console.error('[SCRIPT-GEN] Starting for agent:', agentId, 'manualTrigger:', manualTrigger);
     if (!agentId) return json({ error: "agentId required" }, 400);
 
     const supabase = createClient(
