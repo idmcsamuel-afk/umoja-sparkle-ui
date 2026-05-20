@@ -174,6 +174,8 @@ Deno.serve(async (req) => {
     const captionsSrt = (await whisperSrt(sceneAssets[0].audioUrl)) ?? "";
 
     // 5) Dispatch to FFmpeg worker
+    // 5) Ensure worker is awake (Render free tier cold start), then dispatch
+    await ensureWorkerAwake();
     const assembly = await dispatchToWorker({
       scenes: sceneAssets.map((a) => ({
         videoUrl: a.videoUrl,
