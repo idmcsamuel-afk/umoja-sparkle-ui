@@ -81,11 +81,22 @@ export default function CreatorVideos() {
   const [busy, setBusy] = useState<string | null>(null);
   const [preview, setPreview] = useState<Row | null>(null);
 
+  // Script preview/edit modal state
+  const [scriptModal, setScriptModal] = useState<Row | null>(null);
+  const [editing, setEditing] = useState(false);
+  const [editTitle, setEditTitle] = useState("");
+  const [editScript, setEditScript] = useState("");
+  const [savingScript, setSavingScript] = useState(false);
+  const [regenerating, setRegenerating] = useState(false);
+
+  // Cancel confirm state
+  const [cancelTarget, setCancelTarget] = useState<Row | null>(null);
+
   const load = async () => {
     if (!user) return;
     const { data } = await supabase
       .from("zcreator_content_queue")
-      .select("id, script_title, status, video_style, video_url, thumbnail_url, duration_seconds, created_at, error_message")
+      .select("id, agent_id, script_title, script_content, platform_metadata, status, video_style, video_url, thumbnail_url, duration_seconds, created_at, error_message, generation_progress")
       .eq("user_id", user.id)
       .order("created_at", { ascending: false });
     setRows((data as Row[]) ?? []);
