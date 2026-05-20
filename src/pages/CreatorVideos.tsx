@@ -275,6 +275,11 @@ export default function CreatorVideos() {
                                 <Sparkles className="h-3 w-3 mr-1" /> Generate
                               </Button>
                             )}
+                            {r.status === "failed" && (
+                              <Button size="sm" variant="default" className="h-8" onClick={() => retry(r)} disabled={isGen}>
+                                <RotateCw className="h-3 w-3 mr-1" /> Retry
+                              </Button>
+                            )}
                             {r.status === "ready" && (
                               <>
                                 <Button size="sm" variant="outline" className="h-8" onClick={() => setPreview(r)} disabled={!r.video_url}>
@@ -288,8 +293,12 @@ export default function CreatorVideos() {
                                 <Button size="sm" variant="outline" className="h-8" onClick={() => toast.info("Scheduling coming soon")}>
                                   <Calendar className="h-3 w-3" />
                                 </Button>
+                                <Button size="sm" variant="outline" className="h-8" onClick={() => retry(r)} disabled={isGen} title="Regenerate with current style">
+                                  <RotateCw className="h-3 w-3 mr-1" /> Regenerate
+                                </Button>
                               </>
                             )}
+
                           </div>
                         </TableCell>
                       </TableRow>
