@@ -49,6 +49,7 @@ const STYLE_OPTIONS = [
 
 const STATUS_BADGE: Record<string, { label: string; cls: string }> = {
   script_ready: { label: "Script Ready", cls: "bg-blue-500/15 text-blue-600 border-blue-500/30" },
+  queued:       { label: "Queued",       cls: "bg-slate-500/15 text-slate-600 border-slate-500/30" },
   generating:   { label: "Generating",  cls: "bg-amber-500/15 text-amber-600 border-amber-500/30" },
   ready:        { label: "Ready",       cls: "bg-emerald-500/15 text-emerald-600 border-emerald-500/30" },
   published:    { label: "Published",   cls: "bg-purple-500/15 text-purple-600 border-purple-500/30" },
@@ -92,6 +93,23 @@ export default function CreatorVideos() {
   // Cancel confirm state
   const [cancelTarget, setCancelTarget] = useState<Row | null>(null);
 
+  // Queue positions: content_id -> { position, total }
+  const [queuePositions, setQueuePositions] = useState<Record<string, { position: number; total: number }>>({});
+
+  const loadQueuePositions = async () => {
+    const { data } = await supabase
+      .from("zcreator_job_queue")
+      .select("content_id, status")
+      .in("status", ["queued", "processing"])
+      .order("priority", { ascending: false })
+      .order("queued_at", { ascending: true });
+    const arr = (data ?? []) as Array<{ content_id: string; status: string }>;
+    const total = arr.length;
+    const map: Record<string, { position: number; total: number }> = {};
+    arr.forEach((r, i) => { map[r.content_id] = { position: i + 1, total }; });
+    setQueuePositions(map);
+  };
+
   const load = async () => {
     if (!user) return;
     const { data } = await supabase
@@ -105,16 +123,18 @@ export default function CreatorVideos() {
 
   useEffect(() => {
     load();
+    loadQueuePositions();
     if (!user) return;
     const ch = supabase
       .channel("zcreator-queue-videos")
       .on(
         "postgres_changes",
         { event: "*", schema: "public", table: "zcreator_content_queue", filter: `user_id=eq.${user.id}` },
-        () => load(),
+        () => { load(); loadQueuePositions(); },
       )
       .subscribe();
-    return () => { supabase.removeChannel(ch); };
+    const interval = setInterval(loadQueuePositions, 10000);
+    return () => { supabase.removeChannel(ch); clearInterval(interval); };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [user?.id]);
 
@@ -280,6 +300,7 @@ export default function CreatorVideos() {
             <SelectContent>
               <SelectItem value="all">All statuses</SelectItem>
               <SelectItem value="script_ready">Script Ready</SelectItem>
+              <SelectItem value="queued">Queued</SelectItem>
               <SelectItem value="generating">Generating</SelectItem>
               <SelectItem value="ready">Ready</SelectItem>
               <SelectItem value="published">Published</SelectItem>
@@ -328,7 +349,7 @@ export default function CreatorVideos() {
                 <TableBody>
                   {filtered.map((r) => {
                     const badge = STATUS_BADGE[r.status] ?? { label: r.status, cls: "" };
-                    const isGen = r.status === "generating" || busy === r.id;
+                    const isGen = r.status === "generating" || r.status === "queued" || busy === r.id;
                     return (
                       <TableRow
                         key={r.id}
@@ -404,6 +425,13 @@ export default function CreatorVideos() {
                             {r.status === "generating" && progressText(r) && (
                               <span className="text-[11px] text-muted-foreground line-clamp-2 max-w-[200px]">
                                 {progressText(r)}
+                              </span>
+                            )}
+                            {r.status === "queued" && (
+                              <span className="text-[11px] text-muted-foreground">
+                                {queuePositions[r.id]
+                                  ? `Position #${queuePositions[r.id].position} of ${queuePositions[r.id].total}`
+                                  : "Waiting for worker…"}
                               </span>
                             )}
                           </div>
