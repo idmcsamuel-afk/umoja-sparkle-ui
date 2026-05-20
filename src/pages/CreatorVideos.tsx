@@ -224,12 +224,27 @@ export default function CreatorVideos() {
   const cancelGeneration = async (row: Row) => {
     const { error } = await supabase
       .from("zcreator_content_queue")
-      .update({ cancel_requested: true, status: "cancelled", error_message: null })
+      .update({
+        cancel_requested: true,
+        status: "failed",
+        error_message: "[user] Generation cancelled by user",
+      })
       .eq("id", row.id);
     setCancelTarget(null);
     if (error) return toast.error("Cancel failed: " + error.message);
-    toast.success("Generation cancelled. You can retry with a different style.");
-    setRows((p) => p.map((r) => (r.id === row.id ? { ...r, status: "cancelled" } : r)));
+    toast.success("Generation cancelled");
+    setRows((p) => p.map((r) => (r.id === row.id ? { ...r, status: "failed", error_message: "[user] Generation cancelled by user" } : r)));
+  };
+
+  const sceneSummary = (r: Row): string | null => {
+    const sc = r.script_content;
+    const scenes = Array.isArray(sc?.scenes) ? sc.scenes : null;
+    if (!scenes?.length) return null;
+    const expected = scenes.reduce(
+      (sum: number, s: any) => sum + (Number(s?.duration) || Math.max(8, Math.round((String(s?.narration ?? "").split(/\s+/).length) / 2.5))),
+      0,
+    );
+    return `${scenes.length} scenes • ${expected}s expected`;
   };
 
   const progressText = (r: Row): string | null => {
