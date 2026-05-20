@@ -200,9 +200,36 @@ Deno.serve(async (req) => {
       generation_progress: { step: "starting", message: "Preparing scenes…" },
     }).eq("id", contentId);
 
-    // 2) Parse + validate scenes from script_content
-    const script: any = content.script_content ?? {};
-    const scenes: any[] = Array.isArray(script.scenes) ? script.scenes.filter((s: any) => String(s?.narration ?? s?.text ?? "").trim()) : [];
+    // 2) Parse + validate scenes from script_content (handle string or object, new + old formats)
+    let scriptContent: any = content.script_content ?? {};
+    if (typeof scriptContent === "string") {
+      try {
+        scriptContent = JSON.parse(scriptContent);
+      } catch (e) {
+        console.error("[ASSEMBLE] Failed to parse script_content string:", (e as Error).message);
+        await supabase.from("zcreator_content_queue").update({
+          status: "failed",
+          error_message: "[system] Invalid script_content format (not parseable JSON)",
+          generation_progress: null,
+        }).eq("id", contentId);
+        return json({ error: "Invalid script content format" }, 400);
+      }
+    }
+    console.error("[ASSEMBLE] script_content type:", typeof scriptContent);
+    console.error("[ASSEMBLE] script_content keys:", scriptContent && typeof scriptContent === "object" ? Object.keys(scriptContent) : "n/a");
+
+    let rawScenes: any[] = [];
+    if (Array.isArray(scriptContent?.scenes)) {
+      rawScenes = scriptContent.scenes;
+    } else if (Array.isArray(scriptContent?.script?.scenes)) {
+      rawScenes = scriptContent.script.scenes;
+    }
+    console.error("[ASSEMBLE] scenes array length:", rawScenes.length);
+    console.error("[ASSEMBLE] first scene:", JSON.stringify(rawScenes[0] ?? null));
+
+    const scenes: any[] = rawScenes.filter((s: any) => String(s?.narration ?? s?.text ?? "").trim());
+
+
 
     if (scenes.length < 3 || scenes.length > 8) {
       const msg = `Script generation incomplete: got ${scenes.length} scenes (need 3-8). Regenerate script.`;
