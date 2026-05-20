@@ -17,9 +17,10 @@ import {
   Collapsible, CollapsibleContent, CollapsibleTrigger,
 } from "@/components/ui/collapsible";
 import { toast } from "sonner";
+import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import {
   Bot, Sparkles, Wand2, Play, Pause, Trash2, ChevronDown, Loader2,
-  Video, TrendingUp, Eye, Clock, Plus, X,
+  Video, TrendingUp, Eye, Clock, Plus, X, Volume2, Lightbulb, Check, AlertCircle,
 } from "lucide-react";
 
 const NICHES = ["Finance", "Health", "Tech", "Business", "Entertainment", "Lifestyle", "Education"];
@@ -67,6 +68,9 @@ export default function CreatorStudio() {
   const [platforms, setPlatforms] = useState<string[]>(["youtube"]);
   const [autoGenerate, setAutoGenerate] = useState(false);
   const [autoPublish, setAutoPublish] = useState(false);
+  const [voiceTier, setVoiceTier] = useState<"standard" | "premium">("standard");
+  const [previewingTier, setPreviewingTier] = useState<"standard" | "premium" | null>(null);
+  const [strategyOpen, setStrategyOpen] = useState(false);
 
   const [publishedThisMonth, setPublishedThisMonth] = useState(0);
   const [totalViews, setTotalViews] = useState(0);
@@ -161,7 +165,7 @@ export default function CreatorStudio() {
       user_id: user.id,
       agent_name: agentName.trim(),
       niche: niche.toLowerCase(),
-      brand_voice: { tone, target_audience: audience, key_topics: topics },
+      brand_voice: { tone, target_audience: audience, key_topics: topics, voice_tier: voiceTier },
       content_frequency: frequency,
       platforms,
       auto_generate: autoGenerate,
@@ -173,7 +177,30 @@ export default function CreatorStudio() {
     setAgentName(""); setNiche(""); setTone(""); setAudience(""); setTopics([]);
     setFrequency("weekly"); setPlatforms(["youtube"]);
     setAutoGenerate(false); setAutoPublish(false);
+    setVoiceTier("standard");
     loadAll();
+  };
+
+  const previewVoice = async (tier: "standard" | "premium") => {
+    setPreviewingTier(tier);
+    try {
+      const sampleText = tier === "premium"
+        ? "Hey, this is your premium studio-quality voice. Notice the rich tone and natural pacing."
+        : "Hi there — this is your free Edge TTS voice, with natural pauses and emotion built in.";
+      const { data, error } = await supabase.functions.invoke("zcreator-generate-voice", {
+        body: { text: sampleText, tier, returnBase64: true },
+      });
+      if (error) throw new Error(error.message);
+      if ((data as any)?.error) throw new Error((data as any).error);
+      const b64 = (data as any)?.audioBase64;
+      if (!b64) throw new Error("No audio returned");
+      const audio = new Audio(`data:audio/mpeg;base64,${b64}`);
+      await audio.play();
+    } catch (e: any) {
+      toast.error(`Preview failed: ${e?.message ?? "unknown"}`);
+    } finally {
+      setPreviewingTier(null);
+    }
   };
 
   const toggleActive = async (a: Agent) => {
@@ -221,7 +248,51 @@ export default function CreatorStudio() {
           <StatCard icon={Eye} label="Total Views" value={stats.totalViews} />
         </section>
 
+        {/* Faceless strategy guide */}
+        <Collapsible open={strategyOpen} onOpenChange={setStrategyOpen}>
+          <Card>
+            <CollapsibleTrigger asChild>
+              <button type="button" className="w-full text-left">
+                <CardHeader className="flex flex-row items-center justify-between gap-2 space-y-0">
+                  <CardTitle className="flex items-center gap-2 text-base">
+                    <Lightbulb className="h-4 w-4 text-amber-500" /> 🎬 Faceless YouTube Success Strategy
+                  </CardTitle>
+                  <ChevronDown className={`h-4 w-4 transition-transform ${strategyOpen ? "rotate-180" : ""}`} />
+                </CardHeader>
+              </button>
+            </CollapsibleTrigger>
+            <CollapsibleContent>
+              <CardContent className="pt-0 grid sm:grid-cols-2 gap-x-6 gap-y-2 text-sm">
+                {[
+                  "Use commentary style — reactions, analysis, breakdowns",
+                  "Mix stock footage with screen recordings and graphics",
+                  "Add your own insights and opinions to scripts",
+                  "Natural voice pacing with pauses and emotion",
+                  "SEO-optimized titles, descriptions, and tags",
+                ].map((tip) => (
+                  <div key={tip} className="flex items-start gap-2">
+                    <Check className="h-4 w-4 text-green-500 mt-0.5 shrink-0" /> <span>{tip}</span>
+                  </div>
+                ))}
+                {[
+                  "Avoid pure stock montages with robotic voice",
+                  "Don't copy existing videos word-for-word",
+                  "Never use clickbait without delivering value",
+                ].map((tip) => (
+                  <div key={tip} className="flex items-start gap-2">
+                    <AlertCircle className="h-4 w-4 text-red-500 mt-0.5 shrink-0" /> <span>{tip}</span>
+                  </div>
+                ))}
+                <p className="sm:col-span-2 text-xs text-muted-foreground pt-2">
+                  Full monetization guide coming soon.
+                </p>
+              </CardContent>
+            </CollapsibleContent>
+          </Card>
+        </Collapsible>
+
         {/* Agent config */}
+
         <Card>
           <CardHeader>
             <CardTitle className="flex items-center gap-2 text-base">
@@ -314,8 +385,42 @@ export default function CreatorStudio() {
               </div>
             </div>
 
+            {/* Voice quality */}
+            <div className="space-y-2">
+              <Label className="flex items-center gap-2"><Volume2 className="h-4 w-4" /> Voice Quality</Label>
+              <RadioGroup value={voiceTier} onValueChange={(v) => setVoiceTier(v as "standard" | "premium")} className="grid sm:grid-cols-2 gap-2">
+                <label className={`rounded-lg border p-3 cursor-pointer flex items-start gap-3 ${voiceTier === "standard" ? "border-accent bg-accent/5" : "border-border"}`}>
+                  <RadioGroupItem value="standard" id="vt-standard" className="mt-0.5" />
+                  <div className="flex-1 space-y-1">
+                    <div className="flex items-center justify-between gap-2">
+                      <p className="text-sm font-medium">Standard Voice <span className="text-muted-foreground font-normal">(Free)</span></p>
+                      <Badge variant="secondary" className="text-[10px]">R0.84/video</Badge>
+                    </div>
+                    <p className="text-xs text-muted-foreground">Edge TTS, en-ZA voices with natural pauses & emotion</p>
+                    <Button type="button" variant="ghost" size="sm" className="h-7 px-2 text-xs" onClick={(e) => { e.preventDefault(); previewVoice("standard"); }} disabled={previewingTier === "standard"}>
+                      {previewingTier === "standard" ? <Loader2 className="h-3 w-3 animate-spin" /> : <Play className="h-3 w-3" />} Preview
+                    </Button>
+                  </div>
+                </label>
+                <label className={`rounded-lg border p-3 cursor-pointer flex items-start gap-3 ${voiceTier === "premium" ? "border-accent bg-accent/5" : "border-border"}`}>
+                  <RadioGroupItem value="premium" id="vt-premium" className="mt-0.5" />
+                  <div className="flex-1 space-y-1">
+                    <div className="flex items-center justify-between gap-2">
+                      <p className="text-sm font-medium">Premium Voice <span className="text-muted-foreground font-normal">(+R6)</span></p>
+                      <Badge className="text-[10px]">R6.84/video</Badge>
+                    </div>
+                    <p className="text-xs text-muted-foreground">ElevenLabs studio-quality voice clone</p>
+                    <Button type="button" variant="ghost" size="sm" className="h-7 px-2 text-xs" onClick={(e) => { e.preventDefault(); previewVoice("premium"); }} disabled={previewingTier === "premium"}>
+                      {previewingTier === "premium" ? <Loader2 className="h-3 w-3 animate-spin" /> : <Play className="h-3 w-3" />} Preview
+                    </Button>
+                  </div>
+                </label>
+              </RadioGroup>
+            </div>
+
             <div className="grid sm:grid-cols-2 gap-3 pt-1">
               <ToggleRow
+
                 label="Auto-generate scripts"
                 hint="Agent runs on its frequency without prompting"
                 checked={autoGenerate}
