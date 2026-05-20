@@ -97,19 +97,20 @@ Deno.serve(async (req) => {
       .join("\n");
 
     // 3. Generate script
-    const scriptPrompt = `You are a viral content creator. Based on these trending topics:\n\n${trendText}\n\nCreate a COMPLETE 90-150 second video script for ${agent.niche} content.
+    const scriptPrompt = `You are a viral content creator. Based on these trending topics:\n\n${trendText}\n\nCreate a COMPLETE 75-100 second video script for ${agent.niche} content.
 
 Brand Voice: ${JSON.stringify(agent.brand_voice ?? {})}
 
-REQUIREMENTS — your script MUST follow a complete narrative arc:
-- BEGINNING (≈30s, scenes 1-2): Hook + problem statement
-- MIDDLE  (≈60s, scenes 3-5): Explanation / strategy / examples
-- END     (≈30s, scenes 6-7): Conclusion + strong call-to-action
+REQUIREMENTS — your script MUST follow a complete narrative arc using EXACTLY 3-5 scenes:
+- Scene 1 (≈15s): Hook
+- Scenes 2-3 (≈40s total): Problem + Solution
+- Scene 4 (≈25s): Action Steps
+- Scene 5 (≈15s): Call-to-Action
 
 Other rules:
-- Minimum 3 scenes, maximum 8 scenes
+- Minimum 3 scenes, MAXIMUM 5 scenes (hard cap — exceeding 5 will crash rendering)
 - Each scene 10-25 seconds of narration
-- Total narration must produce 90-150 seconds of audio when read at normal pace
+- Total narration must produce 75-100 seconds of audio when read at normal pace
 - Natural speaking style for ${agent.niche} audience
 - CURRENCY: ALWAYS write rand amounts in words ("two thousand rands" NOT "R2000")
 
@@ -118,19 +119,21 @@ Output ONLY valid JSON (no markdown fences, no commentary, no preamble). Return 
   "title": "Catchy video title (under 60 chars)",
   "hook": "First 3 seconds of script",
   "scenes": [
-    {"scene_number": 1, "visual": "stock-footage search keywords", "narration": "what to say", "duration": 15},
-    {"scene_number": 2, "visual": "...", "narration": "...", "duration": 15},
-    {"scene_number": 3, "visual": "...", "narration": "...", "duration": 20}
+    {"scene_number": 1, "visual": "stock-footage search keywords", "narration": "hook", "duration": 15},
+    {"scene_number": 2, "visual": "...", "narration": "problem", "duration": 20},
+    {"scene_number": 3, "visual": "...", "narration": "solution", "duration": 20},
+    {"scene_number": 4, "visual": "...", "narration": "action steps", "duration": 25},
+    {"scene_number": 5, "visual": "...", "narration": "call to action", "duration": 15}
   ],
   "metadata": {
     "youtube_description": "200-word description with timestamps",
     "youtube_tags": ["tag1", "tag2", "tag3"],
     "tiktok_caption": "Caption with hashtags",
-    "target_duration_seconds": 110
+    "target_duration_seconds": 90
   }
 }
 
-CRITICAL: "scenes" MUST be a non-empty JSON array of 3-8 objects. Do NOT return a string for scenes. Do NOT wrap response in markdown fences.`;
+CRITICAL: "scenes" MUST be a non-empty JSON array of 3-5 objects (NEVER more than 5). Do NOT return a string for scenes. Do NOT wrap response in markdown fences.`;
 
     // Robust JSON extractor — handles markdown fences, preamble, trailing commas, control chars
     const extractJson = (raw: string): any => {
@@ -256,11 +259,14 @@ CRITICAL: "scenes" MUST be a non-empty JSON array of 3-8 objects. Do NOT return 
       (s: number, sc: any) => s + (Number(sc?.duration) || Math.max(8, Math.round((String(sc?.narration ?? "").split(/\s+/).length) / 2.5))),
       0,
     );
-    if (sceneCount < 3 || sceneCount > 8) {
-      return json({ error: `Script generation incomplete: got ${sceneCount} scenes (need 3-8). Regenerate script.` }, 502);
+    if (sceneCount < 3 || sceneCount > 5) {
+      return json({ error: `Script generation incomplete: got ${sceneCount} scenes (need 3-5). Regenerate script.` }, 502);
     }
     if (totalDuration < 60) {
-      return json({ error: `Script generation incomplete: estimated ${totalDuration}s (need ≥90s). Regenerate script.` }, 502);
+      return json({ error: `Script generation incomplete: estimated ${totalDuration}s (need ≥75s). Regenerate script.` }, 502);
+    }
+    if (totalDuration > 120) {
+      return json({ error: `Script generation too long: estimated ${totalDuration}s (max 100s). Regenerate script.` }, 502);
     }
 
     // 4. Queue content — store full scriptJson (with scenes) so assembly can use it
