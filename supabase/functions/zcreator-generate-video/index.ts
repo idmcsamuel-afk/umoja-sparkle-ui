@@ -124,21 +124,46 @@ Deno.serve(async (req) => {
         finalStatus = "script_ready";
         errorMsg = "Kling integration coming";
       } else if (style === "stock") {
-        const r = await fetch(`${SUPABASE_URL}/functions/v1/zcreator-assemble-faceless`, {
+        // Enqueue instead of running synchronously to prevent FFmpeg worker OOM
+        // when multiple users generate videos at the same time.
+        const { data: subRow } = await supabase
+          .from("zcreator_subscriptions")
+          .select("tier")
+          .eq("user_id", content.user_id)
+          .maybeSingle();
+        const tier = subRow?.tier ?? "free";
+        const priority = tier === "pro" || tier === "agency" ? 2 : tier === "creator" ? 1 : 0;
+
+        const { error: qErr } = await supabase
+          .from("zcreator_job_queue")
+          .insert({ content_id: contentId, user_id: content.user_id, priority, status: "queued" });
+        if (qErr) throw new Error("Queue insert failed: " + qErr.message);
+
+        // Count ahead-of-me queued jobs (higher priority OR same priority and earlier).
+        const { count: aheadCount } = await supabase
+          .from("zcreator_job_queue")
+          .select("id", { count: "exact", head: true })
+          .in("status", ["queued", "processing"]);
+
+        await supabase
+          .from("zcreator_content_queue")
+          .update({ status: "queued", updated_at: new Date().toISOString(), error_message: null })
+          .eq("id", contentId);
+
+        // Kick the worker (non-blocking).
+        fetch(`${SUPABASE_URL}/functions/v1/zcreator-process-queue`, {
           method: "POST",
           headers: { "Content-Type": "application/json", Authorization: `Bearer ${SERVICE_KEY}` },
-          body: JSON.stringify({ contentId }),
+          body: "{}",
+        }).catch(() => {});
+
+        return json({
+          success: true,
+          queued: true,
+          position: aheadCount ?? 1,
+          message: `Video queued for generation (position ${aheadCount ?? 1})`,
         });
-        const out = await r.json();
-        if (!r.ok) throw new Error(out?.error ?? `assemble failed (${r.status})`);
-        if (out?.cancelled) {
-          // Assemble already updated the row to "cancelled"; exit without touching status/usage.
-          return json({ success: false, cancelled: true });
-        }
-        videoUrl = out.videoUrl ?? null;
-        thumbnailUrl = out.thumbnailUrl ?? null;
-        duration = out.duration ?? null;
-        // fall through to the unified update + usage-increment block below
+
 
       } else if (style === "animation") {
         finalStatus = "script_ready";
