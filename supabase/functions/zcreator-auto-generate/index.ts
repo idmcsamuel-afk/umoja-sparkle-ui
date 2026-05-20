@@ -34,6 +34,26 @@ Deno.serve(async (req) => {
   try {
     const supabase = createClient(SUPABASE_URL, SERVICE_KEY);
 
+    // Sweep stuck "generating" jobs older than 15 minutes
+    const cutoff = new Date(Date.now() - 15 * 60_000).toISOString();
+    const { data: stuck } = await supabase
+      .from("zcreator_content_queue")
+      .select("id")
+      .eq("status", "generating")
+      .lt("updated_at", cutoff);
+    if (stuck && stuck.length) {
+      await supabase
+        .from("zcreator_content_queue")
+        .update({
+          status: "failed",
+          error_message: "[system] Generation timeout - exceeded 15 minutes. This may indicate the service is stuck. Click retry with a different style.",
+          updated_at: new Date().toISOString(),
+        })
+        .in("id", stuck.map((s) => s.id));
+      console.log(`[auto-generate] timed out ${stuck.length} stuck jobs`);
+    }
+
+
     const { data: agents, error } = await supabase
       .from("zcreator_story_agents")
       .select("*")
