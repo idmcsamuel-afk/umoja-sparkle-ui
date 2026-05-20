@@ -14,7 +14,9 @@ import {
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { toast } from "sonner";
-import { Loader2, Play, Download, Calendar, Sparkles, Film } from "lucide-react";
+import { Loader2, Play, Download, Calendar, Sparkles, Film, RotateCw, HelpCircle } from "lucide-react";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
+
 
 type Row = {
   id: string;
