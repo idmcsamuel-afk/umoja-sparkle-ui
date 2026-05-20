@@ -269,6 +269,7 @@ export default function CreatorVideos() {
               <SelectItem value="ready">Ready</SelectItem>
               <SelectItem value="published">Published</SelectItem>
               <SelectItem value="failed">Failed</SelectItem>
+              <SelectItem value="cancelled">Cancelled</SelectItem>
             </SelectContent>
           </Select>
           <Select value={styleFilter} onValueChange={setStyleFilter}>
