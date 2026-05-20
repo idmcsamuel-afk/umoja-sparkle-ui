@@ -216,10 +216,32 @@ export default function CreatorVideos() {
                       >
                         <TableCell className="max-w-[260px]">
                           <p className="text-sm font-medium line-clamp-1">{r.script_title ?? "Untitled"}</p>
-                          {r.error_message && r.status === "failed" && (
-                            <p className="text-[11px] text-red-600 line-clamp-1 mt-0.5">{r.error_message}</p>
-                          )}
+                          {r.error_message && r.status === "failed" && (() => {
+                            const err = parseError(r.error_message);
+                            return (
+                              <TooltipProvider delayDuration={150}>
+                                <Tooltip>
+                                  <TooltipTrigger asChild>
+                                    <button className="mt-0.5 inline-flex items-center gap-1 text-[11px] text-red-600 hover:underline">
+                                      <HelpCircle className="h-3 w-3" />
+                                      <span className="line-clamp-1 max-w-[220px] text-left">{err.text}</span>
+                                    </button>
+                                  </TooltipTrigger>
+                                  <TooltipContent side="bottom" className="max-w-xs text-xs">
+                                    <p className="font-medium mb-1">Why did this fail?</p>
+                                    <p>{err.text}</p>
+                                    <p className="mt-1 text-muted-foreground">
+                                      {err.kind === "system"
+                                        ? "System error — this retry is free and won't count against your monthly limit."
+                                        : "Input issue — please adjust and retry."}
+                                    </p>
+                                  </TooltipContent>
+                                </Tooltip>
+                              </TooltipProvider>
+                            );
+                          })()}
                         </TableCell>
+
                         <TableCell className="min-w-[180px]">
                           <Select
                             value={r.video_style ?? "talking_head"}
