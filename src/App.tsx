@@ -77,6 +77,7 @@ import UploadVideo from "./pages/UploadVideo.tsx";
 import BrowseVideos from "./pages/BrowseVideos.tsx";
 import CreatorStudio from "./pages/CreatorStudio.tsx";
 import CreatorVideos from "./pages/CreatorVideos.tsx";
+import CreatorSchedule from "./pages/CreatorSchedule.tsx";
 
 const queryClient = new QueryClient();
 
@@ -141,6 +142,7 @@ const App = () => (
                 <Route path="/browse-videos" element={<ProtectedRoute><BrowseVideos /></ProtectedRoute>} />
                 <Route path="/creator-studio" element={<ProtectedRoute><CreatorStudio /></ProtectedRoute>} />
                 <Route path="/creator-studio/videos" element={<ProtectedRoute><CreatorVideos /></ProtectedRoute>} />
+                <Route path="/creator-studio/schedule" element={<ProtectedRoute><CreatorSchedule /></ProtectedRoute>} />
                 <Route path="/creator-studio/videos/:id" element={<ProtectedRoute><CreatorStudio /></ProtectedRoute>} />
               </Route>
               <Route path="/shop/:code" element={<StorefrontPublic />} />

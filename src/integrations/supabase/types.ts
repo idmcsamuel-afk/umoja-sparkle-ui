@@ -5066,6 +5066,45 @@ export type Database = {
         }
         Relationships: []
       }
+      zcreator_youtube_tokens: {
+        Row: {
+          access_token: string | null
+          access_token_expires_at: string | null
+          channel_id: string | null
+          channel_title: string | null
+          created_at: string
+          default_privacy: string
+          id: string
+          refresh_token: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          access_token?: string | null
+          access_token_expires_at?: string | null
+          channel_id?: string | null
+          channel_title?: string | null
+          created_at?: string
+          default_privacy?: string
+          id?: string
+          refresh_token: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          access_token?: string | null
+          access_token_expires_at?: string | null
+          channel_id?: string | null
+          channel_title?: string | null
+          created_at?: string
+          default_privacy?: string
+          id?: string
+          refresh_token?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       drive_tier_pool_v: {
