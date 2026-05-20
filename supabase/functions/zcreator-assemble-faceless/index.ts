@@ -1,0 +1,178 @@
+// Faceless video orchestrator (scaffold).
+// Input: { contentId: string }
+// Steps: load script → for each scene fetch Pexels stock clip → synth voiceover (Edge TTS or ElevenLabs)
+//        → Whisper SRT → dispatch to FFmpeg worker → update zcreator_content_queue.
+// FFmpeg worker is stubbed if FFMPEG_WORKER_URL is a placeholder.
+
+import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+
+const corsHeaders = {
+  "Access-Control-Allow-Origin": "*",
+  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
+  "Access-Control-Allow-Methods": "POST, OPTIONS",
+};
+const json = (b: unknown, s = 200) =>
+  new Response(JSON.stringify(b), { status: s, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+
+const SUPABASE_URL = Deno.env.get("SUPABASE_URL") ?? "";
+const SERVICE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? "";
+const PEXELS_KEY = Deno.env.get("PEXELS_API_KEY") ?? "";
+const OPENAI_KEY = Deno.env.get("OPENAI_API_KEY") ?? "";
+const FFMPEG_WORKER_URL = Deno.env.get("FFMPEG_WORKER_URL") ?? "";
+
+async function pexelsSearchVideo(query: string): Promise<string | null> {
+  if (!PEXELS_KEY) return null;
+  const r = await fetch(
+    `https://api.pexels.com/videos/search?per_page=3&orientation=landscape&query=${encodeURIComponent(query)}`,
+    { headers: { Authorization: PEXELS_KEY } },
+  );
+  if (!r.ok) return null;
+  const data = await r.json();
+  const v = data?.videos?.[0];
+  // Pick a 720p/1080p mp4 link
+  const files = v?.video_files ?? [];
+  const pick = files.find((f: any) => f.quality === "hd" && f.file_type === "video/mp4")
+    ?? files.find((f: any) => f.file_type === "video/mp4");
+  return pick?.link ?? null;
+}
+
+async function callVoice(text: string, tier: "standard" | "premium", uploadPath: string) {
+  const r = await fetch(`${SUPABASE_URL}/functions/v1/zcreator-generate-voice`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json", Authorization: `Bearer ${SERVICE_KEY}` },
+    body: JSON.stringify({ text, tier, uploadPath }),
+  });
+  if (!r.ok) throw new Error(`voice gen failed: ${await r.text()}`);
+  return r.json() as Promise<{ audioUrl: string; duration: number; tier: string; voice: string }>;
+}
+
+async function whisperSrt(audioUrl: string): Promise<string | null> {
+  if (!OPENAI_KEY) return null;
+  try {
+    const audio = await fetch(audioUrl).then((r) => r.arrayBuffer());
+    const fd = new FormData();
+    fd.append("file", new Blob([audio], { type: "audio/mpeg" }), "audio.mp3");
+    fd.append("model", "whisper-1");
+    fd.append("response_format", "srt");
+    const r = await fetch("https://api.openai.com/v1/audio/transcriptions", {
+      method: "POST",
+      headers: { Authorization: `Bearer ${OPENAI_KEY}` },
+      body: fd,
+    });
+    if (!r.ok) { console.error("whisper failed", await r.text()); return null; }
+    return await r.text();
+  } catch (e) {
+    console.error("whisper exception", e);
+    return null;
+  }
+}
+
+async function dispatchToWorker(payload: unknown): Promise<{ videoUrl: string; thumbnailUrl?: string; duration?: number }> {
+  // Treat empty/placeholder URLs as stub.
+  if (!FFMPEG_WORKER_URL || FFMPEG_WORKER_URL.includes("placeholder") || FFMPEG_WORKER_URL.startsWith("http://example")) {
+    console.warn("FFMPEG_WORKER_URL not set — returning stub result");
+    return { videoUrl: "https://placeholder.lovable.dev/video.mp4", thumbnailUrl: undefined, duration: 0 };
+  }
+  const r = await fetch(FFMPEG_WORKER_URL, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(payload),
+  });
+  if (!r.ok) throw new Error(`ffmpeg worker ${r.status}: ${await r.text()}`);
+  return r.json();
+}
+
+Deno.serve(async (req) => {
+  if (req.method === "OPTIONS") return new Response("ok", { headers: corsHeaders });
+  try {
+    const { contentId } = await req.json();
+    if (!contentId) return json({ error: "contentId is required" }, 400);
+
+    const supabase = createClient(SUPABASE_URL, SERVICE_KEY);
+
+    // 1) Load script
+    const { data: content, error: cErr } = await supabase
+      .from("zcreator_content_queue")
+      .select("id, user_id, agent_id, script_title, script_content, video_style, generation_cost_rands")
+      .eq("id", contentId)
+      .maybeSingle();
+    if (cErr || !content) return json({ error: cErr?.message ?? "content not found" }, 404);
+
+    // Load agent for voice tier
+    let voiceTier: "standard" | "premium" = "standard";
+    if (content.agent_id) {
+      const { data: agent } = await supabase
+        .from("zcreator_story_agents")
+        .select("brand_voice")
+        .eq("id", content.agent_id)
+        .maybeSingle();
+      const tier = (agent?.brand_voice as any)?.voice_tier;
+      if (tier === "premium") voiceTier = "premium";
+    }
+
+    await supabase.from("zcreator_content_queue").update({ status: "generating" }).eq("id", contentId);
+
+    // 2) Parse scenes from script_content
+    const script: any = content.script_content ?? {};
+    const scenes: any[] = Array.isArray(script.scenes) && script.scenes.length
+      ? script.scenes
+      : [{ visual: content.script_title ?? "topic", narration: typeof script === "string" ? script : (script.narration ?? script.body ?? content.script_title ?? "") }];
+
+    // 3) For each scene: find stock clip + voice
+    const sceneAssets: Array<{ videoUrl: string | null; audioUrl: string; duration: number; narration: string }> = [];
+    for (let i = 0; i < scenes.length; i++) {
+      const s = scenes[i];
+      const narration = String(s.narration ?? s.text ?? "").trim();
+      if (!narration) continue;
+      const query = String(s.visual ?? s.keywords ?? content.script_title ?? "background").slice(0, 80);
+      const [videoUrl, voice] = await Promise.all([
+        pexelsSearchVideo(query),
+        callVoice(narration, voiceTier, `audio/${contentId}/scene-${i}.mp3`),
+      ]);
+      sceneAssets.push({ videoUrl, audioUrl: voice.audioUrl, duration: voice.duration, narration });
+    }
+
+    if (sceneAssets.length === 0) {
+      await supabase.from("zcreator_content_queue").update({ status: "failed" }).eq("id", contentId);
+      return json({ error: "no scenes with narration" }, 400);
+    }
+
+    // 4) Concatenate audio (worker will do this properly; here we caption first scene only as a fallback signal)
+    const captionsSrt = await whisperSrt(sceneAssets[0].audioUrl);
+
+    // 5) Dispatch to FFmpeg worker (stubbed for now)
+    const assembly = await dispatchToWorker({
+      contentId,
+      scenes: sceneAssets,
+      captionsSrt,
+      title: content.script_title,
+      outputBucket: "zcreator-videos",
+      outputPrefix: `videos/${contentId}/`,
+    });
+
+    // 6) Update content record
+    const cost = voiceTier === "premium" ? 6.84 : 0.84;
+    await supabase
+      .from("zcreator_content_queue")
+      .update({
+        status: "ready",
+        video_url: assembly.videoUrl,
+        thumbnail_url: assembly.thumbnailUrl ?? null,
+        duration_seconds: assembly.duration ?? sceneAssets.reduce((s, a) => s + a.duration, 0),
+        generation_cost_rands: cost,
+      })
+      .eq("id", contentId);
+
+    return json({
+      contentId,
+      voiceTier,
+      scenes: sceneAssets.length,
+      videoUrl: assembly.videoUrl,
+      cost,
+      workerStub: !FFMPEG_WORKER_URL || FFMPEG_WORKER_URL.includes("placeholder"),
+    });
+  } catch (e: any) {
+    console.error("assemble-faceless error", e);
+    return json({ error: e?.message ?? "unknown error" }, 500);
+  }
+});
