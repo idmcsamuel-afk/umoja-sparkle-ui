@@ -168,6 +168,78 @@ export default function CreatorVideos() {
     return m ? { kind: m[1], text: m[2] } : { kind: "system", text: msg };
   };
 
+  // ----- Script preview / edit helpers -----
+  const scriptToText = (sc: any): string => {
+    if (sc == null) return "";
+    if (typeof sc === "string") return sc;
+    if (Array.isArray(sc?.scenes)) {
+      return sc.scenes
+        .map((s: any, i: number) => `Scene ${i + 1}${s.visual ? ` — ${s.visual}` : ""}\n${s.narration ?? s.text ?? ""}`)
+        .join("\n\n");
+    }
+    return sc.narration ?? sc.body ?? JSON.stringify(sc, null, 2);
+  };
+  const openScriptModal = (row: Row) => {
+    setScriptModal(row);
+    setEditing(false);
+    setEditTitle(row.script_title ?? "");
+    setEditScript(scriptToText(row.script_content));
+  };
+  const saveScript = async () => {
+    if (!scriptModal) return;
+    setSavingScript(true);
+    const original = scriptToText(scriptModal.script_content);
+    const current = scriptModal.script_content ?? {};
+    const next =
+      editScript === original
+        ? scriptModal.script_content
+        : (typeof current === "object" && current !== null && !Array.isArray(current))
+          ? { ...current, narration: editScript, scenes: undefined }
+          : { narration: editScript };
+    const { error } = await supabase
+      .from("zcreator_content_queue")
+      .update({ script_title: editTitle, script_content: next })
+      .eq("id", scriptModal.id);
+    setSavingScript(false);
+    if (error) return toast.error("Save failed: " + error.message);
+    toast.success("Script saved");
+    setRows((p) => p.map((r) => (r.id === scriptModal.id ? { ...r, script_title: editTitle, script_content: next } : r)));
+    setScriptModal((m) => (m ? { ...m, script_title: editTitle, script_content: next } : m));
+    setEditing(false);
+  };
+  const regenerateScript = async () => {
+    if (!scriptModal?.agent_id) return toast.error("No agent linked to this script");
+    setRegenerating(true);
+    const { data, error } = await supabase.functions.invoke("zcreator-story-agent", {
+      body: { agentId: scriptModal.agent_id, manualTrigger: true },
+    });
+    setRegenerating(false);
+    if (error || (data as any)?.error) {
+      return toast.error("Regenerate failed: " + (error?.message ?? (data as any)?.error));
+    }
+    toast.success("New script generated — compare side-by-side in your queue");
+    await load();
+  };
+
+  const cancelGeneration = async (row: Row) => {
+    const { error } = await supabase
+      .from("zcreator_content_queue")
+      .update({ cancel_requested: true, status: "cancelled", error_message: null })
+      .eq("id", row.id);
+    setCancelTarget(null);
+    if (error) return toast.error("Cancel failed: " + error.message);
+    toast.success("Generation cancelled. You can retry with a different style.");
+    setRows((p) => p.map((r) => (r.id === row.id ? { ...r, status: "cancelled" } : r)));
+  };
+
+  const progressText = (r: Row): string | null => {
+    const gp = r.generation_progress;
+    if (!gp || typeof gp !== "object") return null;
+    const base = PROGRESS_LABEL[gp.step] ?? gp.message ?? null;
+    if (gp.sceneIndex && gp.sceneTotal) return `Scene ${gp.sceneIndex} of ${gp.sceneTotal}${base ? ` — ${base}` : ""}`;
+    return base;
+  };
+
 
   return (
     <div className="space-y-6 p-4 md:p-6 max-w-7xl mx-auto pb-24">
