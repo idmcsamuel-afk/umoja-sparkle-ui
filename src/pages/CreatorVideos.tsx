@@ -53,6 +53,18 @@ const STATUS_BADGE: Record<string, { label: string; cls: string }> = {
   ready:        { label: "Ready",       cls: "bg-emerald-500/15 text-emerald-600 border-emerald-500/30" },
   published:    { label: "Published",   cls: "bg-purple-500/15 text-purple-600 border-purple-500/30" },
   failed:       { label: "Failed",      cls: "bg-red-500/15 text-red-600 border-red-500/30" },
+  cancelled:    { label: "Cancelled",   cls: "bg-muted text-muted-foreground border-border" },
+};
+
+const PROGRESS_LABEL: Record<string, string> = {
+  starting: "Preparing scenes…",
+  stock_and_voice: "Searching stock footage & generating voiceover…",
+  captions: "Adding captions…",
+  worker_wake: "Waking FFmpeg worker…",
+  assembling: "Assembling video…",
+  uploading: "Uploading…",
+  done: "Done",
+  cancelled: "Cancelled",
 };
 
 export default function CreatorVideos() {
