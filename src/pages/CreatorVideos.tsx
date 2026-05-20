@@ -14,7 +14,9 @@ import {
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { toast } from "sonner";
-import { Loader2, Play, Download, Calendar, Sparkles, Film } from "lucide-react";
+import { Loader2, Play, Download, Calendar, Sparkles, Film, RotateCw, HelpCircle } from "lucide-react";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
+
 
 type Row = {
   id: string;
@@ -116,6 +118,24 @@ export default function CreatorVideos() {
     else toast.success("Video generated");
   };
 
+  const retry = async (row: Row) => {
+    // Reset to script_ready, clear error, then re-run generation with current (possibly changed) style.
+    await supabase
+      .from("zcreator_content_queue")
+      .update({ status: "script_ready", error_message: null })
+      .eq("id", row.id);
+    setRows((p) => p.map((r) => (r.id === row.id ? { ...r, status: "script_ready", error_message: null } : r)));
+    toast.info("Retrying — system failures don't count against your monthly limit");
+    await generate({ ...row, status: "script_ready", error_message: null });
+  };
+
+  const parseError = (msg: string | null) => {
+    if (!msg) return { kind: "system", text: "Unknown error" };
+    const m = msg.match(/^\[(system|user)\]\s*(.*)$/);
+    return m ? { kind: m[1], text: m[2] } : { kind: "system", text: msg };
+  };
+
+
   return (
     <div className="space-y-6 p-4 md:p-6 max-w-7xl mx-auto pb-24">
       <header className="flex items-start justify-between gap-3 flex-wrap">
@@ -196,10 +216,32 @@ export default function CreatorVideos() {
                       >
                         <TableCell className="max-w-[260px]">
                           <p className="text-sm font-medium line-clamp-1">{r.script_title ?? "Untitled"}</p>
-                          {r.error_message && r.status === "failed" && (
-                            <p className="text-[11px] text-red-600 line-clamp-1 mt-0.5">{r.error_message}</p>
-                          )}
+                          {r.error_message && r.status === "failed" && (() => {
+                            const err = parseError(r.error_message);
+                            return (
+                              <TooltipProvider delayDuration={150}>
+                                <Tooltip>
+                                  <TooltipTrigger asChild>
+                                    <button className="mt-0.5 inline-flex items-center gap-1 text-[11px] text-red-600 hover:underline">
+                                      <HelpCircle className="h-3 w-3" />
+                                      <span className="line-clamp-1 max-w-[220px] text-left">{err.text}</span>
+                                    </button>
+                                  </TooltipTrigger>
+                                  <TooltipContent side="bottom" className="max-w-xs text-xs">
+                                    <p className="font-medium mb-1">Why did this fail?</p>
+                                    <p>{err.text}</p>
+                                    <p className="mt-1 text-muted-foreground">
+                                      {err.kind === "system"
+                                        ? "System error — this retry is free and won't count against your monthly limit."
+                                        : "Input issue — please adjust and retry."}
+                                    </p>
+                                  </TooltipContent>
+                                </Tooltip>
+                              </TooltipProvider>
+                            );
+                          })()}
                         </TableCell>
+
                         <TableCell className="min-w-[180px]">
                           <Select
                             value={r.video_style ?? "talking_head"}
@@ -233,6 +275,11 @@ export default function CreatorVideos() {
                                 <Sparkles className="h-3 w-3 mr-1" /> Generate
                               </Button>
                             )}
+                            {r.status === "failed" && (
+                              <Button size="sm" variant="default" className="h-8" onClick={() => retry(r)} disabled={isGen}>
+                                <RotateCw className="h-3 w-3 mr-1" /> Retry
+                              </Button>
+                            )}
                             {r.status === "ready" && (
                               <>
                                 <Button size="sm" variant="outline" className="h-8" onClick={() => setPreview(r)} disabled={!r.video_url}>
@@ -246,8 +293,12 @@ export default function CreatorVideos() {
                                 <Button size="sm" variant="outline" className="h-8" onClick={() => toast.info("Scheduling coming soon")}>
                                   <Calendar className="h-3 w-3" />
                                 </Button>
+                                <Button size="sm" variant="outline" className="h-8" onClick={() => retry(r)} disabled={isGen} title="Regenerate with current style">
+                                  <RotateCw className="h-3 w-3 mr-1" /> Regenerate
+                                </Button>
                               </>
                             )}
+
                           </div>
                         </TableCell>
                       </TableRow>

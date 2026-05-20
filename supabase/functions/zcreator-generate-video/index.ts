@@ -134,8 +134,8 @@ Deno.serve(async (req) => {
         videoUrl = out.videoUrl ?? null;
         thumbnailUrl = out.thumbnailUrl ?? null;
         duration = out.duration ?? null;
-        // assemble-faceless already updated the row to ready; skip second update
-        return json({ success: true, videoUrl, status: "ready", duration, cost: out.cost });
+        // fall through to the unified update + usage-increment block below
+
       } else if (style === "animation") {
         finalStatus = "script_ready";
         errorMsg = "Animation workflow coming";
@@ -144,7 +144,19 @@ Deno.serve(async (req) => {
       }
     } catch (e: any) {
       finalStatus = "failed";
-      errorMsg = e?.message ?? "Video generation failed";
+      const raw = e?.message ?? "Video generation failed";
+      // Classify so the UI can show a clear reason. System errors do NOT count against quota.
+      let kind = "system";
+      let friendly = raw;
+      const lower = raw.toLowerCase();
+      if (lower.includes("heygen")) friendly = `HeyGen API: ${raw}`;
+      else if (lower.includes("ffmpeg") || lower.includes("worker")) friendly = `FFmpeg worker: ${raw}`;
+      else if (lower.includes("pexels")) friendly = `Pexels API: ${raw}`;
+      else if (lower.includes("timeout")) friendly = `Timeout: ${raw}`;
+      else if (lower.includes("credit") || lower.includes("quota") || lower.includes("rate limit"))
+        friendly = `Provider limit: ${raw}`;
+      else if (lower.includes("no scenes") || lower.includes("invalid")) kind = "user";
+      errorMsg = `[${kind}] ${friendly}`;
     }
 
     const updates: Record<string, unknown> = {
@@ -155,8 +167,27 @@ Deno.serve(async (req) => {
     if (thumbnailUrl) updates.thumbnail_url = thumbnailUrl;
     if (duration != null) updates.duration_seconds = duration;
     if (errorMsg) updates.error_message = errorMsg;
+    else updates.error_message = null;
 
     await supabase.from("zcreator_content_queue").update(updates).eq("id", contentId);
+
+    // Increment Creator Studio usage counter ONLY on successful generation.
+    // Failed attempts (system OR user errors) do not count against the monthly limit
+    // when retrying an existing script. New scripts already passed the limit check.
+    if (finalStatus === "ready") {
+      const { data: sub } = await supabase
+        .from("zcreator_subscriptions")
+        .select("videos_used_this_month")
+        .eq("user_id", content.user_id)
+        .maybeSingle();
+      if (sub) {
+        await supabase
+          .from("zcreator_subscriptions")
+          .update({ videos_used_this_month: (sub.videos_used_this_month ?? 0) + 1 })
+          .eq("user_id", content.user_id);
+      }
+    }
+
 
     if (finalStatus === "failed") return json({ success: false, error: errorMsg }, 200);
 
