@@ -171,8 +171,8 @@ CRITICAL: "scenes" MUST be a non-empty JSON array of 3-8 objects. Do NOT return 
       return d.content?.[0]?.text ?? "";
     };
 
-    console.log("[story-agent] script prompt length:", scriptPrompt.length);
-    console.log("[story-agent] script prompt preview:", scriptPrompt.slice(0, 400));
+    console.error("[SCRIPT-GEN] script prompt length:", scriptPrompt.length);
+    console.error("[SCRIPT-GEN] script prompt preview:", scriptPrompt.slice(0, 400));
 
     let scriptJson: any = null;
     let lastRaw = "";
@@ -182,28 +182,30 @@ CRITICAL: "scenes" MUST be a non-empty JSON array of 3-8 objects. Do NOT return 
       try {
         const raw = await callClaudeForScript();
         lastRaw = raw;
-        console.log(`[story-agent] attempt ${attempt} raw length:`, raw.length);
-        console.log(`[story-agent] attempt ${attempt} raw preview:`, raw.slice(0, 800));
+        console.error(`[SCRIPT-GEN] attempt ${attempt} Claude response:`, JSON.stringify(raw).substring(0, 1000));
+        console.error(`[SCRIPT-GEN] Attempting to parse JSON... (attempt ${attempt}, raw length ${raw.length})`);
         const parsed = extractJson(raw);
-        console.log(`[story-agent] attempt ${attempt} parsed keys:`, Object.keys(parsed ?? {}));
+        console.error(`[SCRIPT-GEN] attempt ${attempt} Parsed script:`, JSON.stringify(parsed).substring(0, 500));
+        console.error(`[SCRIPT-GEN] attempt ${attempt} parsed keys:`, Object.keys(parsed ?? {}));
         const scenes = Array.isArray(parsed?.scenes) ? parsed.scenes : [];
-        console.log(`[story-agent] attempt ${attempt} scenes length:`, scenes.length);
-        if (scenes.length > 0) {
-          console.log(`[story-agent] attempt ${attempt} first scene:`, JSON.stringify(scenes[0]).slice(0, 300));
-        }
+        console.error(`[SCRIPT-GEN] attempt ${attempt} Scenes array length:`, scenes.length);
+        console.error(`[SCRIPT-GEN] attempt ${attempt} First scene:`, JSON.stringify(scenes[0] ?? null));
         if (scenes.length >= 3) {
           scriptJson = parsed;
           break;
         }
         lastErr = `scenes array length ${scenes.length} (need >= 3)`;
-        console.warn(`[story-agent] attempt ${attempt} insufficient: ${lastErr}`);
+        console.error(`[SCRIPT-GEN] ERROR: insufficient scenes on attempt ${attempt}: ${lastErr}`);
+        console.error(`[SCRIPT-GEN] Full scriptJson:`, JSON.stringify(parsed));
       } catch (e: any) {
         lastErr = e?.message ?? String(e);
-        console.error(`[story-agent] attempt ${attempt} parse/fetch failed:`, lastErr);
+        console.error(`[SCRIPT-GEN] ERROR: attempt ${attempt} parse/fetch failed:`, lastErr);
+        console.error(`[SCRIPT-GEN] Raw response that failed:`, lastRaw.substring(0, 1000));
       }
     }
 
     if (!scriptJson) {
+      console.error('[SCRIPT-GEN] ERROR: No scenes found after all attempts. Returning 502.');
       return json({
         error: `Claude API returned invalid format after ${MAX_ATTEMPTS} attempts. ${lastErr}. Raw response: ${lastRaw.slice(0, 500)}`,
       }, 502);
