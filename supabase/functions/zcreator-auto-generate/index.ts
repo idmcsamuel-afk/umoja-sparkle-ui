@@ -76,6 +76,16 @@ Deno.serve(async (req) => {
       }
     }
 
+    // Refresh analytics for all touched users
+    const userIds = Array.from(new Set((agents ?? []).map((a) => a.user_id).filter(Boolean)));
+    for (const uid of userIds) {
+      try {
+        await supabase.functions.invoke("zcreator-sync-analytics", { body: { userId: uid } });
+      } catch (e) {
+        console.error("sync-analytics invoke failed", uid, e);
+      }
+    }
+
     return json({ agentsProcessed, scriptsGenerated, results });
   } catch (e: any) {
     console.error("auto-generate error", e);
