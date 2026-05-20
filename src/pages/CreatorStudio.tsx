@@ -165,7 +165,7 @@ export default function CreatorStudio() {
       user_id: user.id,
       agent_name: agentName.trim(),
       niche: niche.toLowerCase(),
-      brand_voice: { tone, target_audience: audience, key_topics: topics },
+      brand_voice: { tone, target_audience: audience, key_topics: topics, voice_tier: voiceTier },
       content_frequency: frequency,
       platforms,
       auto_generate: autoGenerate,
@@ -177,7 +177,30 @@ export default function CreatorStudio() {
     setAgentName(""); setNiche(""); setTone(""); setAudience(""); setTopics([]);
     setFrequency("weekly"); setPlatforms(["youtube"]);
     setAutoGenerate(false); setAutoPublish(false);
+    setVoiceTier("standard");
     loadAll();
+  };
+
+  const previewVoice = async (tier: "standard" | "premium") => {
+    setPreviewingTier(tier);
+    try {
+      const sampleText = tier === "premium"
+        ? "Hey, this is your premium studio-quality voice. Notice the rich tone and natural pacing."
+        : "Hi there — this is your free Edge TTS voice, with natural pauses and emotion built in.";
+      const { data, error } = await supabase.functions.invoke("zcreator-generate-voice", {
+        body: { text: sampleText, tier, returnBase64: true },
+      });
+      if (error) throw new Error(error.message);
+      if ((data as any)?.error) throw new Error((data as any).error);
+      const b64 = (data as any)?.audioBase64;
+      if (!b64) throw new Error("No audio returned");
+      const audio = new Audio(`data:audio/mpeg;base64,${b64}`);
+      await audio.play();
+    } catch (e: any) {
+      toast.error(`Preview failed: ${e?.message ?? "unknown"}`);
+    } finally {
+      setPreviewingTier(null);
+    }
   };
 
   const toggleActive = async (a: Agent) => {
