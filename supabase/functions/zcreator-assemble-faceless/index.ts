@@ -100,15 +100,54 @@ async function ensureWorkerAwake(): Promise<void> {
   }
 }
 
-async function dispatchToWorker(payload: unknown): Promise<{ videoUrl: string; thumbnailUrl?: string; duration?: number }> {
+async function dispatchToWorker(payload: any): Promise<{ videoUrl: string; thumbnailUrl?: string; duration?: number }> {
   if (!FFMPEG_WORKER_URL) throw new Error("FFMPEG_WORKER_URL not configured");
+  console.log("[worker] dispatching payload", {
+    workerUrl: FFMPEG_WORKER_URL,
+    sceneCount: payload?.scenes?.length ?? 0,
+    sceneVideoUrls: payload?.scenes?.map((s: any) => s.videoUrl) ?? [],
+    sceneAudioUrls: payload?.scenes?.map((s: any) => s.audioUrl) ?? [],
+    sceneDurations: payload?.scenes?.map((s: any) => s.duration) ?? [],
+    captionsSrtLen: (payload?.captionsSrt ?? "").length,
+    supabaseUrl: payload?.supabaseUrl,
+    hasServiceKey: !!payload?.supabaseKey,
+    serviceKeyLen: payload?.supabaseKey?.length ?? 0,
+    outputBucket: payload?.outputBucket,
+    outputPrefix: payload?.outputPrefix,
+    contentId: payload?.contentId,
+  });
+
   const r = await fetch(FFMPEG_WORKER_URL, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify(payload),
   });
-  if (!r.ok) throw new Error(`ffmpeg worker ${r.status}: ${await r.text()}`);
-  return r.json();
+  const respText = await r.text();
+  console.log("[worker] response", { status: r.status, bodyPreview: respText.slice(0, 1000) });
+  if (!r.ok) {
+    throw new Error(`ffmpeg worker ${r.status}: ${respText}`);
+  }
+  try {
+    return JSON.parse(respText);
+  } catch {
+    throw new Error(`ffmpeg worker returned non-JSON: ${respText.slice(0, 500)}`);
+  }
+}
+
+async function verifyUrl(url: string, label: string): Promise<boolean> {
+  try {
+    const r = await fetch(url, { method: "HEAD" });
+    console.log(`[verify ${label}]`, {
+      url,
+      status: r.status,
+      contentType: r.headers.get("content-type"),
+      contentLength: r.headers.get("content-length"),
+    });
+    return r.ok;
+  } catch (e) {
+    console.error(`[verify ${label}] exception`, { url, error: (e as Error).message });
+    return false;
+  }
 }
 
 Deno.serve(async (req) => {
@@ -158,8 +197,28 @@ Deno.serve(async (req) => {
         pexelsSearchVideo(query),
         callVoice(narration, voiceTier, `audio/${contentId}/scene-${i}.mp3`),
       ]);
+      console.log(`[scene ${i}] voice result`, {
+        audioUrl: voice.audioUrl,
+        duration: voice.duration,
+        tier: voice.tier,
+        voice: voice.voice,
+      });
+      console.log(`[scene ${i}] pexels result`, { query, videoUrl });
       if (!videoUrl) {
         console.warn(`scene ${i}: no stock video for "${query}" — skipping`);
+        continue;
+      }
+      // verify both URLs are reachable
+      const [audioOk, videoOk] = await Promise.all([
+        voice.audioUrl ? verifyUrl(voice.audioUrl, `scene-${i}-audio`) : Promise.resolve(false),
+        verifyUrl(videoUrl, `scene-${i}-video`),
+      ]);
+      if (!audioOk) {
+        console.error(`[scene ${i}] audio URL not reachable, skipping`, { audioUrl: voice.audioUrl });
+        continue;
+      }
+      if (!videoOk) {
+        console.error(`[scene ${i}] pexels video URL not reachable, skipping`, { videoUrl });
         continue;
       }
       sceneAssets.push({ videoUrl, audioUrl: voice.audioUrl, duration: voice.duration, narration });
