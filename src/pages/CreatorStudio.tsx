@@ -81,7 +81,7 @@ export default function CreatorStudio() {
 
   const loadAll = async () => {
     if (!user) return;
-    const [a, q] = await Promise.all([
+    const [a, q, s] = await Promise.all([
       supabase
         .from("zcreator_story_agents")
         .select("*")
@@ -93,9 +93,11 @@ export default function CreatorStudio() {
         .eq("user_id", user.id)
         .order("created_at", { ascending: false })
         .limit(20),
+      supabase.from("zcreator_subscriptions").select("*").eq("user_id", user.id).maybeSingle(),
     ]);
     setAgents(a.data ?? []);
     setQueue(q.data ?? []);
+    setSub(s.data ?? null);
 
     // stats
     const startOfMonth = new Date();
