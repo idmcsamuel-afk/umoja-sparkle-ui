@@ -11,16 +11,25 @@ import {
 import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from "@/components/ui/select";
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription } from "@/components/ui/dialog";
+import {
+  AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
+  AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
+import { Label } from "@/components/ui/label";
 import { toast } from "sonner";
-import { Loader2, Play, Download, Calendar, Sparkles, Film, RotateCw, HelpCircle } from "lucide-react";
+import { Loader2, Play, Download, Calendar, Sparkles, Film, RotateCw, HelpCircle, Eye, X, Save, Wand2 } from "lucide-react";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 
 
 type Row = {
   id: string;
+  agent_id: string | null;
   script_title: string | null;
+  script_content: any;
+  platform_metadata: any;
   status: string;
   video_style: string | null;
   video_url: string | null;
@@ -28,6 +37,7 @@ type Row = {
   duration_seconds: number | null;
   created_at: string;
   error_message: string | null;
+  generation_progress: any;
 };
 
 const STYLE_OPTIONS = [
