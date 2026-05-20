@@ -277,8 +277,9 @@ Deno.serve(async (req) => {
     const captionsSrt = (await whisperSrt(sceneAssets[0].audioUrl)) ?? "";
 
     // 5) Dispatch to FFmpeg worker
-    // 5) Ensure worker is awake (Render free tier cold start), then dispatch
+    await setProgress({ step: "worker_wake", message: "Waking FFmpeg worker…" });
     await ensureWorkerAwake();
+    await setProgress({ step: "assembling", message: "Assembling video…" });
     const assembly = await dispatchToWorker({
       scenes: sceneAssets.map((a) => ({
         videoUrl: a.videoUrl,
@@ -294,6 +295,8 @@ Deno.serve(async (req) => {
       outputPrefix: `videos/${contentId}/`,
     });
 
+    await setProgress({ step: "uploading", message: "Uploading…" });
+
     // 6) Update content record
     const cost = voiceTier === "premium" ? 10.04 : 7.04;
     await supabase
@@ -304,6 +307,7 @@ Deno.serve(async (req) => {
         thumbnail_url: assembly.thumbnailUrl ?? null,
         duration_seconds: assembly.duration ?? sceneAssets.reduce((s, a) => s + a.duration, 0),
         generation_cost_rands: cost,
+        generation_progress: { step: "done", message: "Ready" },
       })
       .eq("id", contentId);
 
