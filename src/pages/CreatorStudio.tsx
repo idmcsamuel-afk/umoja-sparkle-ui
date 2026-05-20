@@ -533,7 +533,12 @@ export default function CreatorStudio() {
                       <Stat label="Updated" value={timeAgo(a.updated_at)} />
                     </div>
                     <div className="flex flex-wrap gap-2 pt-1">
-                      <Button size="sm" onClick={() => generateNow(a)} disabled={generatingId === a.id}>
+                      <Button
+                        size="sm"
+                        onClick={() => generateNow(a)}
+                        disabled={generatingId === a.id || limitReached}
+                        title={limitReached ? "Upgrade Creator Studio plan to continue" : undefined}
+                      >
                         {generatingId === a.id ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Sparkles className="h-3.5 w-3.5" />}
                         Generate Script Now
                       </Button>
