@@ -244,7 +244,7 @@ Deno.serve(async (req) => {
       })),
       captionsSrt,
       supabaseUrl: SUPABASE_URL,
-      supabaseKey: SERVICE_KEY,
+      supabaseKey: WORKER_SERVICE_KEY,
       contentId,
       title: content.script_title,
       outputBucket: "zcreator-videos",
