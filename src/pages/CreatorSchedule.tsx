@@ -143,7 +143,7 @@ export default function CreatorSchedule() {
   async function cancelSchedule(id: string) {
     const { error } = await supabase
       .from("zcreator_content_queue")
-      .update({ scheduled_at: null, status: "ready" })
+      .update({ scheduled_publish_at: null, status: "ready" })
       .eq("id", id);
     if (error) toast.error(error.message);
     else toast.success("Schedule cancelled");
@@ -152,7 +152,7 @@ export default function CreatorSchedule() {
   async function rescheduleTo(id: string, when: Date) {
     const { error } = await supabase
       .from("zcreator_content_queue")
-      .update({ scheduled_at: when.toISOString(), status: "scheduled" })
+      .update({ scheduled_publish_at: when.toISOString(), status: "scheduled" })
       .eq("id", id);
     if (error) toast.error(error.message);
     else toast.success("Rescheduled");
@@ -174,7 +174,7 @@ export default function CreatorSchedule() {
     const { error } = await supabase
       .from("zcreator_content_queue")
       .update({
-        scheduled_at: optDate.toISOString(),
+        scheduled_publish_at: optDate.toISOString(),
         status: "scheduled",
         platforms: optPlatforms,
         platform_metadata: meta,
