@@ -131,6 +131,10 @@ Deno.serve(async (req) => {
         });
         const out = await r.json();
         if (!r.ok) throw new Error(out?.error ?? `assemble failed (${r.status})`);
+        if (out?.cancelled) {
+          // Assemble already updated the row to "cancelled"; exit without touching status/usage.
+          return json({ success: false, cancelled: true });
+        }
         videoUrl = out.videoUrl ?? null;
         thumbnailUrl = out.thumbnailUrl ?? null;
         duration = out.duration ?? null;

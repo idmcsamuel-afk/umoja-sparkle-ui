@@ -23,6 +23,43 @@ const ELEVEN_KEY = Deno.env.get("ELEVENLABS_API_KEY") ?? "";
 const STANDARD_VOICE = "EXAVITQu4vr4xnSDxMaL"; // Sarah - solid generic narrator
 const PREMIUM_VOICE_DEFAULT = "JBFqnCBsd6RMkjVDRZzb"; // George - premium fallback
 
+// Pre-process text for natural TTS pronunciation.
+// Currency: "R2000" / "R2,000" / "R 60 000" → "two thousand rands".
+function numberToWords(n: number): string {
+  if (n === 0) return "zero";
+  const ones = ["", "one", "two", "three", "four", "five", "six", "seven", "eight", "nine",
+    "ten", "eleven", "twelve", "thirteen", "fourteen", "fifteen", "sixteen", "seventeen", "eighteen", "nineteen"];
+  const tens = ["", "", "twenty", "thirty", "forty", "fifty", "sixty", "seventy", "eighty", "ninety"];
+  const chunk = (x: number): string => {
+    if (x < 20) return ones[x];
+    if (x < 100) return tens[Math.floor(x / 10)] + (x % 10 ? "-" + ones[x % 10] : "");
+    return ones[Math.floor(x / 100)] + " hundred" + (x % 100 ? " and " + chunk(x % 100) : "");
+  };
+  const parts: string[] = [];
+  const units = [["billion", 1e9], ["million", 1e6], ["thousand", 1e3]] as const;
+  for (const [name, val] of units) {
+    const v = Math.floor(n / (val as number));
+    if (v > 0) { parts.push(chunk(v) + " " + name); n -= v * (val as number); }
+  }
+  if (n > 0) parts.push(chunk(n));
+  return parts.join(" ");
+}
+
+function preprocessForTts(input: string): string {
+  return input.replace(/R\s?(\d{1,3}(?:[,\s]\d{3})+|\d+)(?:\.(\d{1,2}))?/g, (_m, intPart: string, dec?: string) => {
+    const clean = intPart.replace(/[,\s]/g, "");
+    const n = parseInt(clean, 10);
+    if (!isFinite(n)) return _m;
+    const noun = n === 1 ? "rand" : "rands";
+    let words = numberToWords(n) + " " + noun;
+    if (dec) {
+      const cents = parseInt(dec.padEnd(2, "0").slice(0, 2), 10);
+      if (cents > 0) words += " and " + numberToWords(cents) + " cents";
+    }
+    return words;
+  });
+}
+
 async function elevenLabsSynthesize(text: string, voice: string): Promise<Uint8Array> {
   if (!ELEVEN_KEY) throw new Error("ELEVENLABS_API_KEY not configured");
   const r = await fetch(
@@ -56,7 +93,7 @@ Deno.serve(async (req) => {
     const returnBase64 = !!body.returnBase64;
     const uploadPath: string | null = body.uploadPath ?? null;
 
-    const audio = await elevenLabsSynthesize(text, voice);
+    const audio = await elevenLabsSynthesize(preprocessForTts(text), voice);
 
     // ElevenLabs MP3 at 128kbps
     const duration = Math.max(1, Math.round((audio.length * 8) / (128 * 1000)));

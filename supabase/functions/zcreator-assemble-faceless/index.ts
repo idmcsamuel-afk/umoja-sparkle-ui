@@ -179,7 +179,26 @@ Deno.serve(async (req) => {
       if (tier === "premium") voiceTier = "premium";
     }
 
-    await supabase.from("zcreator_content_queue").update({ status: "generating" }).eq("id", contentId);
+    const setProgress = async (progress: Record<string, unknown>) => {
+      await supabase
+        .from("zcreator_content_queue")
+        .update({ generation_progress: progress, updated_at: new Date().toISOString() })
+        .eq("id", contentId);
+    };
+    const checkCancelled = async (): Promise<boolean> => {
+      const { data } = await supabase
+        .from("zcreator_content_queue")
+        .select("cancel_requested")
+        .eq("id", contentId)
+        .maybeSingle();
+      return !!data?.cancel_requested;
+    };
+
+    await supabase.from("zcreator_content_queue").update({
+      status: "generating",
+      cancel_requested: false,
+      generation_progress: { step: "starting", message: "Preparing scenes…" },
+    }).eq("id", contentId);
 
     // 2) Parse scenes from script_content
     const script: any = content.script_content ?? {};
@@ -190,6 +209,19 @@ Deno.serve(async (req) => {
     // 3) For each scene: find stock clip + voice (skip scenes without a usable stock clip)
     const sceneAssets: Array<{ videoUrl: string; audioUrl: string; duration: number; narration: string }> = [];
     for (let i = 0; i < scenes.length; i++) {
+      if (await checkCancelled()) {
+        await supabase.from("zcreator_content_queue").update({
+          status: "cancelled",
+          generation_progress: { step: "cancelled", message: "Cancelled by user" },
+        }).eq("id", contentId);
+        return json({ cancelled: true });
+      }
+      await setProgress({
+        step: "stock_and_voice",
+        sceneIndex: i + 1,
+        sceneTotal: scenes.length,
+        message: `Searching stock footage & generating voiceover (scene ${i + 1} of ${scenes.length})…`,
+      });
       const s = scenes[i];
       const narration = String(s.narration ?? s.text ?? "").trim();
       if (!narration) continue;
@@ -230,12 +262,24 @@ Deno.serve(async (req) => {
       return json({ error: "no scenes with narration + stock footage" }, 400);
     }
 
+    if (await checkCancelled()) {
+      await supabase.from("zcreator_content_queue").update({
+        status: "cancelled",
+        generation_progress: { step: "cancelled", message: "Cancelled by user" },
+      }).eq("id", contentId);
+      return json({ cancelled: true });
+    }
+
+    await setProgress({ step: "captions", message: "Adding captions…" });
+
+
     // 4) Captions from first scene narration audio (worker can re-time across full track if needed)
     const captionsSrt = (await whisperSrt(sceneAssets[0].audioUrl)) ?? "";
 
     // 5) Dispatch to FFmpeg worker
-    // 5) Ensure worker is awake (Render free tier cold start), then dispatch
+    await setProgress({ step: "worker_wake", message: "Waking FFmpeg worker…" });
     await ensureWorkerAwake();
+    await setProgress({ step: "assembling", message: "Assembling video…" });
     const assembly = await dispatchToWorker({
       scenes: sceneAssets.map((a) => ({
         videoUrl: a.videoUrl,
@@ -251,6 +295,8 @@ Deno.serve(async (req) => {
       outputPrefix: `videos/${contentId}/`,
     });
 
+    await setProgress({ step: "uploading", message: "Uploading…" });
+
     // 6) Update content record
     const cost = voiceTier === "premium" ? 10.04 : 7.04;
     await supabase
@@ -261,6 +307,7 @@ Deno.serve(async (req) => {
         thumbnail_url: assembly.thumbnailUrl ?? null,
         duration_seconds: assembly.duration ?? sceneAssets.reduce((s, a) => s + a.duration, 0),
         generation_cost_rands: cost,
+        generation_progress: { step: "done", message: "Ready" },
       })
       .eq("id", contentId);
 

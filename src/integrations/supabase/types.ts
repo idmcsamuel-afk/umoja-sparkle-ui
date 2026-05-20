@@ -4826,11 +4826,13 @@ export type Database = {
         Row: {
           actual_published_at: string | null
           agent_id: string | null
+          cancel_requested: boolean
           captions_url: string | null
           created_at: string
           duration_seconds: number | null
           error_message: string | null
           generation_cost_rands: number | null
+          generation_progress: Json | null
           id: string
           platform_metadata: Json | null
           platforms: string[] | null
@@ -4847,11 +4849,13 @@ export type Database = {
         Insert: {
           actual_published_at?: string | null
           agent_id?: string | null
+          cancel_requested?: boolean
           captions_url?: string | null
           created_at?: string
           duration_seconds?: number | null
           error_message?: string | null
           generation_cost_rands?: number | null
+          generation_progress?: Json | null
           id?: string
           platform_metadata?: Json | null
           platforms?: string[] | null
@@ -4868,11 +4872,13 @@ export type Database = {
         Update: {
           actual_published_at?: string | null
           agent_id?: string | null
+          cancel_requested?: boolean
           captions_url?: string | null
           created_at?: string
           duration_seconds?: number | null
           error_message?: string | null
           generation_cost_rands?: number | null
+          generation_progress?: Json | null
           id?: string
           platform_metadata?: Json | null
           platforms?: string[] | null
