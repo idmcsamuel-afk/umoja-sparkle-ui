@@ -231,8 +231,8 @@ Deno.serve(async (req) => {
 
 
 
-    if (scenes.length < 3 || scenes.length > 8) {
-      const msg = `Script generation incomplete: got ${scenes.length} scenes (need 3-8). Regenerate script.`;
+    if (scenes.length < 3 || scenes.length > 5) {
+      const msg = `Script generation incomplete: got ${scenes.length} scenes (need 3-5). Regenerate script.`;
       await supabase.from("zcreator_content_queue").update({
         status: "failed",
         error_message: `[user] ${msg}`,
