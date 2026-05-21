@@ -359,6 +359,45 @@ const Signup = () => {
             </div>
           )}
 
+          {duplicate && (
+            <div className="mt-4 rounded-2xl border border-amber-500/40 bg-amber-500/[0.08] p-4">
+              <p className="text-sm text-foreground">
+                ⚠️ This {duplicate.kind === "phone" ? "phone number" : "email"}{" "}
+                <strong className="font-medium">{duplicate.value}</strong> is already registered.
+              </p>
+              <p className="mt-1 text-xs text-muted-foreground">
+                Looks like you already have an UMOJA account. Sign in, or reset your password if you've forgotten it.
+              </p>
+              <div className="mt-3 flex flex-wrap gap-2">
+                <Button
+                  type="button"
+                  onClick={() => nav("/login", { state: { email: duplicate.kind === "email" ? duplicate.value : undefined } })}
+                  className="h-10 rounded-xl bg-gradient-primary text-primary-foreground"
+                >
+                  Sign in instead
+                </Button>
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={() => nav("/forgot-password")}
+                  className="h-10 rounded-xl"
+                >
+                  Forgot password?
+                </Button>
+                <Button
+                  type="button"
+                  variant="ghost"
+                  onClick={() => setDuplicate(null)}
+                  className="h-10 rounded-xl"
+                >
+                  Try different details
+                </Button>
+              </div>
+            </div>
+          )}
+
+
+
           <form onSubmit={onSubmit} className="mt-8 space-y-5">
             <div className="space-y-2">
               <Label className="text-xs uppercase tracking-[0.18em] text-muted-foreground">Full name</Label>
