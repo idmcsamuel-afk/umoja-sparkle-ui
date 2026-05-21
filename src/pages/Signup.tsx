@@ -10,6 +10,7 @@ import { PasswordInput } from "@/components/ui/password-input";
 import { Label } from "@/components/ui/label";
 import { toast } from "sonner";
 import { useSocialProof, fmtR } from "@/hooks/useSocialProof";
+import { ttTrack } from "@/lib/tiktokPixel";
 
 const schema = z.object({
   full_name: z.string().trim().min(2, "Enter your full name").max(100),
@@ -293,6 +294,7 @@ const Signup = () => {
     }
 
     setBusy(false);
+    ttTrack("CompleteRegistration", { content_name: "umoja_signup" });
     toast.success(`You've earned 50 welcome Sparks! ✨${refMsg}`, { duration: 6000 });
 
     if (data.session) nav("/dashboard", { replace: true });
