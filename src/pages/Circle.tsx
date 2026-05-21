@@ -24,6 +24,7 @@ import { CircleTierCard } from "@/components/umoja/CircleTierCard";
 import { ReferralPromo } from "@/components/umoja/ReferralPromo";
 import { LiveActivityTicker } from "@/components/umoja/LiveActivityTicker";
 import { useSocialProof } from "@/hooks/useSocialProof";
+import { ttTrack } from "@/lib/tiktokPixel";
 
 interface Tier {
   tier: string;
@@ -83,6 +84,8 @@ const Circle = () => {
   const [loading, setLoading] = useState(true);
   const [settings, setSettings] = useState<Settings | null>(null);
   const [isAdmin, setIsAdmin] = useState(false);
+
+  useEffect(() => { ttTrack("ViewContent", { content_type: "Circles" }); }, []);
 
   useEffect(() => {
     if (!user) { setIsAdmin(false); return; }
@@ -246,6 +249,12 @@ const Circle = () => {
     await supabase.from("circle_bids").update({ payment_reference: ref }).eq("id", data.id);
     setPendingBid({ id: data.id, amount: amt, ref });
     setStep("pay");
+    ttTrack("InitiateCheckout", {
+      value: amt,
+      currency: "ZAR",
+      content_type: "circle_contribution",
+      content_id: open.tier,
+    });
     // Load top 2 leaders for this tier (privacy: only initials + masked code)
     loadLeaders(open.tier);
   };
@@ -301,7 +310,15 @@ const Circle = () => {
         metadata: { member_id: user.id, payment_type: "circle_contribution", tier: open.tier },
       });
       setBusy(false);
-      if (result.ok) load();
+      if (result.ok) {
+        ttTrack("CompletePayment", {
+          value: pendingBid.amount,
+          currency: "ZAR",
+          content_type: "circle_contribution",
+          content_id: open.tier,
+        });
+        load();
+      }
       return;
     }
 
@@ -349,6 +366,12 @@ const Circle = () => {
       );
     }
     setBusy(false);
+    ttTrack("CompletePayment", {
+      value: pendingBid.amount,
+      currency: "ZAR",
+      content_type: "circle_contribution_eft",
+      content_id: open.tier,
+    });
     toast.success("Payment submitted — awaiting admin confirmation");
     closeModal();
     load();
