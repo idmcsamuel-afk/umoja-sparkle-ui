@@ -1,3 +1,4 @@
+import { useEffect } from "react";
 import { Link } from "react-router-dom";
 import { ArrowRight, Users, Sparkles, Car, TrendingUp, ShieldCheck, Globe2, Crown, Coins, Dice5, Gamepad2, Star, Lock, BadgeCheck, PlayCircle, Check, LineChart, Package, Activity } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -42,6 +43,7 @@ const stats = [
 
 const Landing = () => {
   const proof = useSocialProof();
+  useEffect(() => { import("@/lib/tiktokPixel").then(m => m.ttTrack("ViewContent", { content_type: "landing" })); }, []);
   return (
     <main className="relative min-h-screen overflow-hidden">
       {/* Ambient background */}
