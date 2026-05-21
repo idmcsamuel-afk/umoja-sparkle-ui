@@ -112,6 +112,7 @@ const Signup = () => {
 
   const onSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    setDuplicate(null);
     const parsed = schema.safeParse(form);
     if (!parsed.success) {
       toast.error(parsed.error.issues[0].message);
@@ -147,6 +148,27 @@ const Signup = () => {
       return;
     }
 
+    // Pre-flight: check if email or phone is already registered in members.
+    try {
+      const { data: existing } = await supabase
+        .from("members")
+        .select("email, phone")
+        .or(`email.eq.${parsed.data.email},phone.eq.${parsed.data.phone}`)
+        .limit(1)
+        .maybeSingle();
+      if (existing) {
+        setBusy(false);
+        if (existing.phone === parsed.data.phone && existing.email !== parsed.data.email) {
+          setDuplicate({ kind: "phone", value: parsed.data.phone });
+        } else {
+          setDuplicate({ kind: "email", value: parsed.data.email });
+        }
+        return;
+      }
+    } catch {
+      // Non-fatal — fall through to auth.signUp and rely on its error.
+    }
+
     const { data, error } = await supabase.auth.signUp({
       email: parsed.data.email,
       password: parsed.data.password,
@@ -158,7 +180,20 @@ const Signup = () => {
 
     if (error || !data.user) {
       setBusy(false);
-      toast.error(error?.message ?? "Could not create account");
+      const kind = detectDuplicate(error);
+      if (kind) {
+        setDuplicate({
+          kind,
+          value: kind === "phone" ? parsed.data.phone : parsed.data.email,
+        });
+        return;
+      }
+      const raw = (error?.message ?? "").toLowerCase();
+      if (raw.includes("database error")) {
+        toast.error("We couldn't create your account. Please double-check your details and try again.");
+      } else {
+        toast.error(error?.message ?? "Could not create account");
+      }
       return;
     }
 
