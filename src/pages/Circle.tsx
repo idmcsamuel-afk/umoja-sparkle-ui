@@ -24,6 +24,7 @@ import { CircleTierCard } from "@/components/umoja/CircleTierCard";
 import { ReferralPromo } from "@/components/umoja/ReferralPromo";
 import { LiveActivityTicker } from "@/components/umoja/LiveActivityTicker";
 import { useSocialProof } from "@/hooks/useSocialProof";
+import { ttTrack } from "@/lib/tiktokPixel";
 
 interface Tier {
   tier: string;
@@ -246,6 +247,12 @@ const Circle = () => {
     await supabase.from("circle_bids").update({ payment_reference: ref }).eq("id", data.id);
     setPendingBid({ id: data.id, amount: amt, ref });
     setStep("pay");
+    ttTrack("InitiateCheckout", {
+      value: amt,
+      currency: "ZAR",
+      content_type: "circle_contribution",
+      content_id: open.tier,
+    });
     // Load top 2 leaders for this tier (privacy: only initials + masked code)
     loadLeaders(open.tier);
   };
