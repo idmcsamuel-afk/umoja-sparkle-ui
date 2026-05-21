@@ -85,6 +85,8 @@ const Circle = () => {
   const [settings, setSettings] = useState<Settings | null>(null);
   const [isAdmin, setIsAdmin] = useState(false);
 
+  useEffect(() => { ttTrack("ViewContent", { content_type: "Circles" }); }, []);
+
   useEffect(() => {
     if (!user) { setIsAdmin(false); return; }
     supabase
