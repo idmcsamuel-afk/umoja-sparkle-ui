@@ -33,6 +33,29 @@ const Signup = () => {
   const [refStatus, setRefStatus] = useState<"none" | "checking" | "valid" | "invalid">(refParam ? "checking" : "none");
   const [form, setForm] = useState({ full_name: "", email: "", phone: "", password: "", invite_code: "" });
   const [busy, setBusy] = useState(false);
+  const [duplicate, setDuplicate] = useState<null | { kind: "email" | "phone" | "account"; value: string }>(null);
+
+  // Map raw auth/db errors to a friendly duplicate kind, or null if not a duplicate.
+  const detectDuplicate = (raw: unknown): null | "email" | "phone" | "account" => {
+    const e = raw as { code?: string; status?: number; message?: string } | null;
+    const msg = (e?.message ?? "").toLowerCase();
+    const code = e?.code ?? "";
+    if (code === "23505" || msg.includes("duplicate key") || msg.includes("unique constraint")) {
+      if (msg.includes("phone")) return "phone";
+      if (msg.includes("email")) return "email";
+      return "account";
+    }
+    if (
+      msg.includes("already registered") ||
+      msg.includes("already been registered") ||
+      msg.includes("user already") ||
+      msg.includes("email exists") ||
+      e?.status === 422
+    ) {
+      return "email";
+    }
+    return null;
+  };
 
   useEffect(() => {
     if (!refParam) { setRefStatus("none"); return; }
