@@ -33,6 +33,29 @@ const Signup = () => {
   const [refStatus, setRefStatus] = useState<"none" | "checking" | "valid" | "invalid">(refParam ? "checking" : "none");
   const [form, setForm] = useState({ full_name: "", email: "", phone: "", password: "", invite_code: "" });
   const [busy, setBusy] = useState(false);
+  const [duplicate, setDuplicate] = useState<null | { kind: "email" | "phone" | "account"; value: string }>(null);
+
+  // Map raw auth/db errors to a friendly duplicate kind, or null if not a duplicate.
+  const detectDuplicate = (raw: unknown): null | "email" | "phone" | "account" => {
+    const e = raw as { code?: string; status?: number; message?: string } | null;
+    const msg = (e?.message ?? "").toLowerCase();
+    const code = e?.code ?? "";
+    if (code === "23505" || msg.includes("duplicate key") || msg.includes("unique constraint")) {
+      if (msg.includes("phone")) return "phone";
+      if (msg.includes("email")) return "email";
+      return "account";
+    }
+    if (
+      msg.includes("already registered") ||
+      msg.includes("already been registered") ||
+      msg.includes("user already") ||
+      msg.includes("email exists") ||
+      e?.status === 422
+    ) {
+      return "email";
+    }
+    return null;
+  };
 
   useEffect(() => {
     if (!refParam) { setRefStatus("none"); return; }
@@ -89,6 +112,7 @@ const Signup = () => {
 
   const onSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    setDuplicate(null);
     const parsed = schema.safeParse(form);
     if (!parsed.success) {
       toast.error(parsed.error.issues[0].message);
@@ -124,6 +148,27 @@ const Signup = () => {
       return;
     }
 
+    // Pre-flight: check if email or phone is already registered in members.
+    try {
+      const { data: existing } = await supabase
+        .from("members")
+        .select("email, phone")
+        .or(`email.eq.${parsed.data.email},phone.eq.${parsed.data.phone}`)
+        .limit(1)
+        .maybeSingle();
+      if (existing) {
+        setBusy(false);
+        if (existing.phone === parsed.data.phone && existing.email !== parsed.data.email) {
+          setDuplicate({ kind: "phone", value: parsed.data.phone });
+        } else {
+          setDuplicate({ kind: "email", value: parsed.data.email });
+        }
+        return;
+      }
+    } catch {
+      // Non-fatal — fall through to auth.signUp and rely on its error.
+    }
+
     const { data, error } = await supabase.auth.signUp({
       email: parsed.data.email,
       password: parsed.data.password,
@@ -135,7 +180,20 @@ const Signup = () => {
 
     if (error || !data.user) {
       setBusy(false);
-      toast.error(error?.message ?? "Could not create account");
+      const kind = detectDuplicate(error);
+      if (kind) {
+        setDuplicate({
+          kind,
+          value: kind === "phone" ? parsed.data.phone : parsed.data.email,
+        });
+        return;
+      }
+      const raw = (error?.message ?? "").toLowerCase();
+      if (raw.includes("database error")) {
+        toast.error("We couldn't create your account. Please double-check your details and try again.");
+      } else {
+        toast.error(error?.message ?? "Could not create account");
+      }
       return;
     }
 
@@ -160,7 +218,13 @@ const Signup = () => {
 
     if (memberErr) {
       console.error("[signup] member upsert failed", memberErr);
-      // Non-fatal — trigger row exists. Continue so we still try referral/bonus.
+      const kind = detectDuplicate(memberErr);
+      if (kind === "phone") {
+        setBusy(false);
+        setDuplicate({ kind: "phone", value: parsed.data.phone });
+        return;
+      }
+      // Non-fatal otherwise — trigger row exists. Continue so we still try referral/bonus.
     }
 
     // claim_signup_bonus and apply_referral_signup BOTH require auth.uid().
@@ -294,6 +358,45 @@ const Signup = () => {
               ⚠️ Referral code <strong className="font-mono">{refParam}</strong> isn't valid. You can still sign up — you just won't get a referral bonus.
             </div>
           )}
+
+          {duplicate && (
+            <div className="mt-4 rounded-2xl border border-amber-500/40 bg-amber-500/[0.08] p-4">
+              <p className="text-sm text-foreground">
+                ⚠️ This {duplicate.kind === "phone" ? "phone number" : "email"}{" "}
+                <strong className="font-medium">{duplicate.value}</strong> is already registered.
+              </p>
+              <p className="mt-1 text-xs text-muted-foreground">
+                Looks like you already have an UMOJA account. Sign in, or reset your password if you've forgotten it.
+              </p>
+              <div className="mt-3 flex flex-wrap gap-2">
+                <Button
+                  type="button"
+                  onClick={() => nav("/login", { state: { email: duplicate.kind === "email" ? duplicate.value : undefined } })}
+                  className="h-10 rounded-xl bg-gradient-primary text-primary-foreground"
+                >
+                  Sign in instead
+                </Button>
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={() => nav("/forgot-password")}
+                  className="h-10 rounded-xl"
+                >
+                  Forgot password?
+                </Button>
+                <Button
+                  type="button"
+                  variant="ghost"
+                  onClick={() => setDuplicate(null)}
+                  className="h-10 rounded-xl"
+                >
+                  Try different details
+                </Button>
+              </div>
+            </div>
+          )}
+
+
 
           <form onSubmit={onSubmit} className="mt-8 space-y-5">
             <div className="space-y-2">
