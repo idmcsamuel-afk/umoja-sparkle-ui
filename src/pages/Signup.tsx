@@ -218,7 +218,13 @@ const Signup = () => {
 
     if (memberErr) {
       console.error("[signup] member upsert failed", memberErr);
-      // Non-fatal — trigger row exists. Continue so we still try referral/bonus.
+      const kind = detectDuplicate(memberErr);
+      if (kind === "phone") {
+        setBusy(false);
+        setDuplicate({ kind: "phone", value: parsed.data.phone });
+        return;
+      }
+      // Non-fatal otherwise — trigger row exists. Continue so we still try referral/bonus.
     }
 
     // claim_signup_bonus and apply_referral_signup BOTH require auth.uid().
