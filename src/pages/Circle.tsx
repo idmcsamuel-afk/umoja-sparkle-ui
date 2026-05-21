@@ -308,7 +308,15 @@ const Circle = () => {
         metadata: { member_id: user.id, payment_type: "circle_contribution", tier: open.tier },
       });
       setBusy(false);
-      if (result.ok) load();
+      if (result.ok) {
+        ttTrack("CompletePayment", {
+          value: pendingBid.amount,
+          currency: "ZAR",
+          content_type: "circle_contribution",
+          content_id: open.tier,
+        });
+        load();
+      }
       return;
     }
 
@@ -356,6 +364,12 @@ const Circle = () => {
       );
     }
     setBusy(false);
+    ttTrack("CompletePayment", {
+      value: pendingBid.amount,
+      currency: "ZAR",
+      content_type: "circle_contribution_eft",
+      content_id: open.tier,
+    });
     toast.success("Payment submitted — awaiting admin confirmation");
     closeModal();
     load();
