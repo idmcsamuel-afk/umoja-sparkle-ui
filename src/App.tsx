@@ -49,6 +49,7 @@ import AdminCommunity from "./pages/admin/AdminCommunity.tsx";
 import AdminTrending from "./pages/admin/AdminTrending.tsx";
 import AdminPurchaseEnforcement from "./pages/admin/AdminPurchaseEnforcement.tsx";
 import AdminAutomations from "./pages/admin/AdminAutomations.tsx";
+import AdminPodcasts from "./pages/admin/AdminPodcasts.tsx";
 import AdminLayout from "./components/umoja/AdminLayout";
 import AdminDashboard from "./pages/admin/AdminDashboard";
 import AdminMembers from "./pages/admin/AdminMembers";
