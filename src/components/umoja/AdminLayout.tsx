@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { NavLink, Outlet, Link } from "react-router-dom";
 import {
-  LayoutDashboard, Users, Coins, ShoppingBag, Car, TrendingUp, Wallet, ArrowLeft, ShieldCheck, Ticket, Gift, Settings, Trophy, Mail, Crown, Rocket, Building2, Landmark, FileText, MessageCircle, Zap, Flame, ShieldAlert, Bot,
+  LayoutDashboard, Users, Coins, ShoppingBag, Car, TrendingUp, Wallet, ArrowLeft, ShieldCheck, Ticket, Gift, Settings, Trophy, Mail, Crown, Rocket, Building2, Landmark, FileText, MessageCircle, Zap, Flame, ShieldAlert, Bot, Headphones,
 } from "lucide-react";
 import { Logo } from "@/components/umoja/Logo";
 import { ThemeToggle } from "@/components/umoja/ThemeToggle";
@@ -31,6 +31,7 @@ const items = [
   { to: "/admin/automations", label: "Automations", icon: Zap },
   { to: "/admin/content-director", label: "Content Director 🤖", icon: Bot },
   { to: "/admin/ugc-submissions", label: "UGC Submissions 🎬", icon: Bot },
+  { to: "/admin/podcasts", label: "Podcasts 🎙️", icon: Headphones },
   { to: "/admin/settings", label: "Settings", icon: Settings },
 ];
 

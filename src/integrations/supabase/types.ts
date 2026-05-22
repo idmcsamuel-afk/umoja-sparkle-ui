@@ -3559,6 +3559,101 @@ export type Database = {
         }
         Relationships: []
       }
+      podcast_analytics: {
+        Row: {
+          action: string
+          created_at: string
+          episode_id: string
+          id: string
+          percentage_completed: number | null
+          seconds_listened: number | null
+          user_id: string | null
+        }
+        Insert: {
+          action: string
+          created_at?: string
+          episode_id: string
+          id?: string
+          percentage_completed?: number | null
+          seconds_listened?: number | null
+          user_id?: string | null
+        }
+        Update: {
+          action?: string
+          created_at?: string
+          episode_id?: string
+          id?: string
+          percentage_completed?: number | null
+          seconds_listened?: number | null
+          user_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "podcast_analytics_episode_id_fkey"
+            columns: ["episode_id"]
+            isOneToOne: false
+            referencedRelation: "podcast_episodes"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      podcast_episodes: {
+        Row: {
+          audio_url: string | null
+          cover_image_url: string | null
+          created_at: string
+          created_by: string | null
+          description: string
+          duration_seconds: number | null
+          episode_number: number | null
+          id: string
+          play_count: number
+          published_at: string | null
+          related_links_json: Json
+          status: string
+          takeaways: string[]
+          timestamps_json: Json
+          title: string
+          updated_at: string
+        }
+        Insert: {
+          audio_url?: string | null
+          cover_image_url?: string | null
+          created_at?: string
+          created_by?: string | null
+          description?: string
+          duration_seconds?: number | null
+          episode_number?: number | null
+          id?: string
+          play_count?: number
+          published_at?: string | null
+          related_links_json?: Json
+          status?: string
+          takeaways?: string[]
+          timestamps_json?: Json
+          title: string
+          updated_at?: string
+        }
+        Update: {
+          audio_url?: string | null
+          cover_image_url?: string | null
+          created_at?: string
+          created_by?: string | null
+          description?: string
+          duration_seconds?: number | null
+          episode_number?: number | null
+          id?: string
+          play_count?: number
+          published_at?: string | null
+          related_links_json?: Json
+          status?: string
+          takeaways?: string[]
+          timestamps_json?: Json
+          title?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       predictor_entries: {
         Row: {
           created_at: string | null
@@ -5411,6 +5506,7 @@ export type Database = {
         }[]
       }
       get_predictor_answer: { Args: { _question: string }; Returns: string }
+      increment_podcast_play: { Args: { _episode: string }; Returns: undefined }
       increment_storefront_view: {
         Args: { _owner: string }
         Returns: undefined
