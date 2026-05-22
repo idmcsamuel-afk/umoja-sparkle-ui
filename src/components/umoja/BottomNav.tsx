@@ -1,12 +1,13 @@
 import { Link, useLocation } from "react-router-dom";
 import { useEffect, useRef, useState } from "react";
-import { Home, Users, Sparkles, Car, Store, ArrowLeftRight, Gamepad2, Gift, Palette, ChevronRight, ChevronLeft, Trophy, Building2, MessageCircle, Flame, Video, Upload, BarChart3, Wand2 } from "lucide-react";
+import { Home, Users, Sparkles, Car, Store, ArrowLeftRight, Gamepad2, Gift, Palette, ChevronRight, ChevronLeft, Trophy, Building2, MessageCircle, Flame, Video, Upload, BarChart3, Wand2, Headphones } from "lucide-react";
 
 const items: { to: string; label: string; icon: typeof Home; tour?: string }[] = [
   { to: "/dashboard", label: "Home", icon: Home, tour: "dashboard" },
   { to: "/circle", label: "Circles", icon: Users, tour: "circle" },
   { to: "/creator-studio", label: "Creator", icon: Wand2 },
   { to: "/community", label: "Chat", icon: MessageCircle, tour: "community" },
+  { to: "/learn", label: "Learn", icon: Headphones },
   { to: "/browse-videos", label: "Videos", icon: Video },
   { to: "/upload-video", label: "Upload", icon: Upload },
   { to: "/my-videos", label: "My Vids", icon: BarChart3 },
