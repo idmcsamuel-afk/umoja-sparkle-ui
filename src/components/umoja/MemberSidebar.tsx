@@ -1,7 +1,7 @@
 import { NavLink, useLocation } from "react-router-dom";
 import {
   Home, Users, Sparkles, Store, ArrowLeftRight, Car, Building2, Gamepad2,
-  Trophy, Palette, Gift, Calculator as CalcIcon, User as UserIcon, ShieldCheck, BookOpen, MessageCircle, Flame, Video, BarChart3, Wand2,
+  Trophy, Palette, Gift, Calculator as CalcIcon, User as UserIcon, ShieldCheck, BookOpen, MessageCircle, Flame, Video, BarChart3, Wand2, Headphones,
 } from "lucide-react";
 import {
   Sidebar, SidebarContent, SidebarGroup, SidebarGroupContent, SidebarGroupLabel,
@@ -35,6 +35,7 @@ const tools = [
   { to: "/calculator", label: "Calculator", icon: CalcIcon },
   { to: "/referrals", label: "Invite Friends", icon: Gift, tour: "referrals" },
   { to: "/kyc", label: "Verification", icon: ShieldCheck },
+  { to: "/learn", label: "🎙️ Learn", icon: Headphones },
   { to: "/profile", label: "Profile", icon: UserIcon },
 ];
 

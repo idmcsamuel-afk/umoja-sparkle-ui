@@ -80,6 +80,7 @@ import CreatorVideos from "./pages/CreatorVideos.tsx";
 import CreatorSchedule from "./pages/CreatorSchedule.tsx";
 import CreatorAnalytics from "./pages/CreatorAnalytics.tsx";
 import CreatorSubscription from "./pages/CreatorSubscription.tsx";
+import Learn from "./pages/Learn.tsx";
 
 const queryClient = new QueryClient();
 
@@ -134,6 +135,8 @@ const App = () => (
                 <Route path="/spark-pit/dream-draw" element={<ProtectedRoute><DreamDraw /></ProtectedRoute>} />
                 <Route path="/spark-pit/spark-flip" element={<ProtectedRoute><SparkFlip /></ProtectedRoute>} />
                 <Route path="/kyc" element={<ProtectedRoute><Kyc /></ProtectedRoute>} />
+                <Route path="/learn" element={<ProtectedRoute><Learn /></ProtectedRoute>} />
+                <Route path="/podcast" element={<Navigate to="/learn" replace />} />
                 <Route path="/referrals" element={<ProtectedRoute><Referrals /></ProtectedRoute>} />
                 <Route path="/priority" element={<ProtectedRoute><Priority /></ProtectedRoute>} />
                 <Route path="/storefront/edit" element={<ProtectedRoute><StorefrontEdit /></ProtectedRoute>} />
