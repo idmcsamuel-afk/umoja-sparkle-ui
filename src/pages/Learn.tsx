@@ -6,6 +6,7 @@ import { Card } from "@/components/ui/card";
 import { Slider } from "@/components/ui/slider";
 import { toast } from "@/components/ui/use-toast";
 import { supabase } from "@/integrations/supabase/client";
+import defaultCover from "@/assets/podcast-default-cover.jpg";
 
 type Chapter = { time: string | number; title?: string; label?: string };
 type RelLink = { text?: string; label?: string; url?: string; to?: string };
@@ -181,11 +182,7 @@ export default function Learn() {
     <div className="container max-w-3xl px-4 py-6 md:py-10 space-y-6">
       <Card className="overflow-hidden border-border">
         <div className="relative aspect-[16/9] bg-gradient-to-br from-primary via-accent to-primary/50 flex items-center justify-center">
-          {selected.cover_image_url ? (
-            <img src={selected.cover_image_url} alt={selected.title} className="absolute inset-0 w-full h-full object-cover" />
-          ) : (
-            <Headphones className="h-20 w-20 text-primary-foreground/80" />
-          )}
+          <img src={selected.cover_image_url || defaultCover} alt={selected.title} className="absolute inset-0 w-full h-full object-cover" />
           <div className="absolute bottom-0 inset-x-0 p-4 md:p-6 bg-gradient-to-t from-background/95 to-transparent">
             <h1 className="text-xl md:text-2xl font-display font-bold text-foreground">{selected.title}</h1>
             <p className="text-xs text-muted-foreground mt-1">Duration: {fmt(selected.duration_seconds || duration)} · {selected.play_count} plays</p>
@@ -294,8 +291,8 @@ export default function Learn() {
             {episodes.filter(e => e.id !== selected.id).map(e => (
               <button key={e.id} onClick={() => setSelectedId(e.id)}
                 className="text-left p-3 rounded-lg border border-border hover:bg-accent/5 transition-colors flex gap-3">
-                <div className="h-14 w-14 rounded bg-gradient-to-br from-primary to-accent flex-shrink-0 overflow-hidden">
-                  {e.cover_image_url && <img src={e.cover_image_url} alt="" className="w-full h-full object-cover" />}
+                <div className="h-14 w-14 rounded flex-shrink-0 overflow-hidden">
+                  <img src={e.cover_image_url || defaultCover} alt="" className="w-full h-full object-cover" />
                 </div>
                 <div className="min-w-0">
                   <div className="font-medium text-sm truncate">{e.title}</div>
