@@ -31,6 +31,7 @@ const items = [
   { to: "/admin/automations", label: "Automations", icon: Zap },
   { to: "/admin/content-director", label: "Content Director 🤖", icon: Bot },
   { to: "/admin/ugc-submissions", label: "UGC Submissions 🎬", icon: Bot },
+  { to: "/admin/podcasts", label: "Podcasts 🎙️", icon: Headphones },
   { to: "/admin/settings", label: "Settings", icon: Settings },
 ];
 
