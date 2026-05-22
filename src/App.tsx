@@ -180,6 +180,7 @@ const App = () => (
                 <Route path="content-director" element={<AdminContentDirector />} />
                 <Route path="ugc-submissions" element={<AdminUgcSubmissions />} />
                 <Route path="automations" element={<AdminAutomations />} />
+                <Route path="podcasts" element={<AdminPodcasts />} />
               </Route>
 
               <Route path="*" element={<NotFound />} />
