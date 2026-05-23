@@ -14,6 +14,19 @@ interface Tier {
   is_active: boolean | null;
 }
 
+export interface MyQueueStatus {
+  bid_id: string;
+  status: string;
+  fiat_amount: number;
+  payout_amount: number | null;
+  priority_score: number;
+  queue_position: number | null;
+  total_active: number;
+  hours_remaining: number | null;
+  effective_vault_end: string | null;
+  payout_date: string | null;
+}
+
 interface Props {
   tier: Tier;
   pool: number;
@@ -27,6 +40,8 @@ interface Props {
   onBidMax: () => void;
   payoutsThisWeek?: number;
   liveBidders?: number;
+  activeInTier?: number;
+  myStatus?: MyQueueStatus | null;
 }
 
 const fmtR = (n: number) => "R" + Math.round(n).toLocaleString("en-ZA");
