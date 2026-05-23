@@ -20,7 +20,7 @@ import { TimezoneSelector } from "@/components/umoja/TimezoneSelector";
 import { PaymentMethodSelector, type PaymentMethod } from "@/components/umoja/PaymentMethodSelector";
 import { usePaystack, buildReference } from "@/hooks/usePaystack";
 import { cn } from "@/lib/utils";
-import { CircleTierCard } from "@/components/umoja/CircleTierCard";
+import { CircleTierCard, type MyQueueStatus } from "@/components/umoja/CircleTierCard";
 import { ReferralPromo } from "@/components/umoja/ReferralPromo";
 import { LiveActivityTicker } from "@/components/umoja/LiveActivityTicker";
 import { useSocialProof } from "@/hooks/useSocialProof";
