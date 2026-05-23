@@ -587,6 +587,8 @@ const Circle = () => {
                     onBidMax={() => startBid(t, t.max_entry)}
                     payoutsThisWeek={proof.payoutsThisWeekByTier[t.tier] ?? 0}
                     liveBidders={proof.liveBiddersByTier[t.tier] ?? 0}
+                    activeInTier={s.members}
+                    myStatus={queueStatus[t.tier] ?? null}
                   />
                 );
               })}
