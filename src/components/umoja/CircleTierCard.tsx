@@ -265,6 +265,102 @@ export function CircleTierCard({
         </div>
       )}
 
+      {/* Your queue status */}
+      {myStatus && (() => {
+        const s = myStatus;
+        const inQueue = s.status === "active" || s.status === "vault";
+        let header: string;
+        let headerCls = "text-emerald-400";
+        let detail: string | null = null;
+        if (s.status === "pending") {
+          header = "⏳ Payment pending confirmation";
+          headerCls = "text-amber-400";
+          detail = "Status: Awaiting payment confirmation";
+        } else if (s.status === "payment_pending") {
+          header = "⏳ Payment proof under review";
+          headerCls = "text-amber-400";
+          detail = "Admin reviewing your payment (usually <2 hours)";
+        } else if (s.status === "paid") {
+          header = "✅ Payout completed!";
+          headerCls = "text-emerald-400";
+          detail = s.payout_date ? `Paid on ${new Date(s.payout_date).toLocaleDateString()}` : null;
+        } else {
+          header = "✅ You're in the queue!";
+        }
+        const hours = s.hours_remaining ?? null;
+        let dueLabel: string | null = null;
+        if (inQueue && hours !== null) {
+          if (hours < 0) dueLabel = `⚠️ Overdue ${Math.abs(Math.floor(hours))}h`;
+          else if (hours < 24) {
+            const h = Math.floor(hours);
+            const m = Math.floor((hours - h) * 60);
+            dueLabel = `${h}h ${m}m`;
+          } else {
+            const d = Math.floor(hours / 24);
+            const h = Math.floor(hours - d * 24);
+            dueLabel = `${d}d ${h}h`;
+          }
+        }
+        const totalHours = (tier.vault_days || 1) * 24;
+        const elapsed = totalHours - (hours ?? totalHours);
+        const progressPct = Math.max(0, Math.min(100, (elapsed / totalHours) * 100));
+        return (
+          <div className="mt-3 rounded-2xl border border-emerald-500/30 bg-emerald-500/5 p-3 space-y-2">
+            <p className={cn("text-xs font-semibold", headerCls)}>{header}</p>
+            <div className="grid grid-cols-2 gap-2 text-[11px]">
+              <div>
+                <p className="text-muted-foreground">Contributed</p>
+                <p className="font-medium">{fmtR(s.fiat_amount)}</p>
+              </div>
+              {s.payout_amount != null && (
+                <div>
+                  <p className="text-muted-foreground">Payout</p>
+                  <p className="font-medium text-gradient-gold">{fmtR(Number(s.payout_amount))}</p>
+                </div>
+              )}
+              {inQueue && s.queue_position && (
+                <div>
+                  <p className="text-muted-foreground">Position</p>
+                  <p className="font-medium">#{s.queue_position} of {s.total_active}</p>
+                </div>
+              )}
+              {inQueue && (
+                <div>
+                  <p className="text-muted-foreground">Priority</p>
+                  <p className="font-medium">{Math.round(s.priority_score)}/100</p>
+                </div>
+              )}
+              {inQueue && dueLabel && (
+                <div className="col-span-2">
+                  <p className="text-muted-foreground">Due in</p>
+                  <p className="font-medium">{dueLabel}</p>
+                  {hours !== null && hours >= 0 && (
+                    <div className="mt-1 h-1.5 w-full rounded-full bg-secondary overflow-hidden">
+                      <div className="h-full bg-emerald-500 transition-all" style={{ width: `${progressPct}%` }} />
+                    </div>
+                  )}
+                </div>
+              )}
+              {detail && <p className="col-span-2 text-muted-foreground">{detail}</p>}
+            </div>
+          </div>
+        );
+      })()}
+
+      {/* Tier queue summary */}
+      {!locked && (
+        <p className="mt-3 text-[11px] inline-flex items-center gap-1.5">
+          <span className="h-1.5 w-1.5 rounded-full bg-emerald-400" />
+          <span className="font-medium">{queueCount}</span>
+          <span className="text-muted-foreground">
+            member{queueCount === 1 ? "" : "s"} in queue
+          </span>
+          {!myStatus && (
+            <span className="text-muted-foreground">· You're not in the queue yet</span>
+          )}
+        </p>
+      )}
+
       {/* Community pool */}
       <div className="mt-4">
         <p className="text-[10px] uppercase tracking-[0.18em] text-muted-foreground">
