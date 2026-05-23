@@ -1,121 +1,183 @@
 import { useEffect, useMemo, useState } from "react";
-import { Link } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Checkbox } from "@/components/ui/checkbox";
 import { Input } from "@/components/ui/input";
-import {
-  Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
-} from "@/components/ui/select";
+import { Progress } from "@/components/ui/progress";
 import {
   Table, TableBody, TableCell, TableHead, TableHeader, TableRow,
 } from "@/components/ui/table";
-import { Progress } from "@/components/ui/progress";
 import {
-  Loader2, RefreshCw, Download, Bell, CheckCircle2, AlertTriangle, AlertCircle, Info,
-  Copy, Eye, EyeOff, MessageCircle, Mail,
+  Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
+} from "@/components/ui/select";
+import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import {
+  Dialog, DialogContent, DialogHeader, DialogTitle,
+} from "@/components/ui/dialog";
+import { Checkbox } from "@/components/ui/checkbox";
+import {
+  Collapsible, CollapsibleContent, CollapsibleTrigger,
+} from "@/components/ui/collapsible";
+import { toast } from "@/hooks/use-toast";
+import {
+  AlertTriangle, Clock, Copy, CreditCard, Eye, EyeOff, Landmark,
+  MessageCircle, Search, Send, TrendingUp, Wallet, Download, CheckCircle2,
 } from "lucide-react";
-import { toast } from "sonner";
 
-const TIER_DAYS: Record<string, number> = { seed: 5, growth: 7, harvest: 14 };
-const TIER_MULT: Record<string, number> = { seed: 1.14, growth: 1.22, harvest: 1.35 };
+type Tier = "seed" | "growth" | "harvest";
+const TIER_HOURS: Record<Tier, number> = { seed: 5 * 24, growth: 7 * 24, harvest: 14 * 24 };
+const TIER_COLORS: Record<Tier, string> = {
+  seed: "bg-emerald-500/15 text-emerald-700 dark:text-emerald-300",
+  growth: "bg-blue-500/15 text-blue-700 dark:text-blue-300",
+  harvest: "bg-purple-500/15 text-purple-700 dark:text-purple-300",
+};
+
+const STATUS_BADGE: Record<string, { label: string; cls: string }> = {
+  active:           { label: "Active in Vault",     cls: "bg-emerald-500/15 text-emerald-700 dark:text-emerald-300" },
+  vault:            { label: "Awaiting Payout",     cls: "bg-blue-500/15 text-blue-700 dark:text-blue-300" },
+  payment_pending:  { label: "Payment Pending",     cls: "bg-yellow-500/15 text-yellow-700 dark:text-yellow-300" },
+  pending:          { label: "Awaiting Confirmation", cls: "bg-muted text-muted-foreground" },
+  paid:             { label: "Paid Out",            cls: "bg-purple-500/15 text-purple-700 dark:text-purple-300" },
+  matched:          { label: "Matched",             cls: "bg-indigo-500/15 text-indigo-700 dark:text-indigo-300" },
+  rejected:         { label: "Rejected",            cls: "bg-destructive/15 text-destructive" },
+  expired:          { label: "Expired",             cls: "bg-muted text-muted-foreground" },
+};
+
+const zar = (n: number | null | undefined) =>
+  `R${Number(n ?? 0).toLocaleString("en-ZA", { maximumFractionDigits: 0 })}`;
 
 type Row = {
-  id: string;
+  bid_id: string;
   member_id: string;
-  tier: string;
+  tier: Tier;
   fiat_amount: number;
-  net_amount: number;
   payout_amount: number | null;
+  net_amount: number | null;
   status: string;
   payment_status: string | null;
   payment_method: string | null;
   payment_reference: string | null;
-  payment_ref: string | null;
   paystack_reference: string | null;
-  payment_confirmed_at: string | null;
-  payment_completed_at: string | null;
+  payment_ref: string | null;
   vault_start: string | null;
   vault_end: string | null;
-  created_at: string;
-  priority_score: number | null;
-  member?: {
-    full_name: string | null; email: string | null; phone: string | null;
-    bank_name: string | null; bank_account: string | null; bank_branch: string | null;
-  };
+  days_waiting: number | null;
+  bid_created: string;
+  payment_confirmed_at: string | null;
+  // member
+  full_name: string;
+  email: string | null;
+  phone: string | null;
+  bank_name: string | null;
+  bank_account: string | null;
+  bank_branch: string | null;
+  // scores
+  priority_score: number;
+  consistency_score: number;
+  time_waiting_score: number;
+  contribution_volume_score: number;
+  community_score: number;
+  bid_boost_score: number;
+  // banking details (verified)
+  bd_bank_name: string | null;
+  bd_account_holder: string | null;
+  bd_account_number: string | null;
+  bd_branch: string | null;
+  // derived
+  hours_remaining: number | null;
+  days_remaining: number | null;
+  priority_rank: number;
+  total_in_tier: number;
 };
 
-const fmtR = (n: number) =>
-  "R" + Number(n ?? 0).toLocaleString("en-ZA", { minimumFractionDigits: 0, maximumFractionDigits: 2 });
-
-function timeParts(ms: number) {
-  const abs = Math.abs(ms);
-  const d = Math.floor(abs / 86400000);
-  const h = Math.floor((abs % 86400000) / 3600000);
-  const m = Math.floor((abs % 3600000) / 60000);
-  return { d, h, m, neg: ms < 0 };
+function copy(text: string, label = "Copied") {
+  navigator.clipboard.writeText(text).then(
+    () => toast({ title: label, description: text }),
+    () => toast({ title: "Copy failed", variant: "destructive" }),
+  );
 }
 
-function urgencyTone(msRemaining: number): { tone: string; pulse: boolean } {
-  if (msRemaining < 0) return { tone: "bg-red-600 text-white", pulse: true };
-  if (msRemaining < 86400000) return { tone: "bg-red-500 text-white", pulse: false };
-  if (msRemaining < 2 * 86400000) return { tone: "bg-yellow-500 text-black", pulse: false };
-  return { tone: "bg-green-600 text-white", pulse: false };
+function mask(acct: string | null | undefined) {
+  if (!acct) return "—";
+  const s = String(acct);
+  return s.length <= 4 ? `****${s}` : `****${s.slice(-4)}`;
 }
 
-function vaultBounds(r: Row) {
-  const start = r.vault_start
-    ? new Date(r.vault_start).getTime()
-    : (r.payment_confirmed_at ? new Date(r.payment_confirmed_at).getTime() : new Date(r.created_at).getTime());
-  const days = TIER_DAYS[r.tier] ?? 7;
-  const end = r.vault_end ? new Date(r.vault_end).getTime() : start + days * 86400000;
-  return { start, end, days };
-}
+function CountdownCell({ hours, tier }: { hours: number | null; tier: Tier }) {
+  if (hours === null) return <span className="text-muted-foreground text-xs">—</span>;
+  const total = TIER_HOURS[tier];
+  const elapsed = total - hours;
+  const pct = Math.max(0, Math.min(100, (elapsed / total) * 100));
 
-function expectedPayout(r: Row) {
-  if (r.payout_amount && Number(r.payout_amount) > 0) return Number(r.payout_amount);
-  const mult = TIER_MULT[r.tier] ?? 1.14;
-  return Math.round(Number(r.fiat_amount) * mult * 100) / 100;
-}
+  let color = "text-emerald-600";
+  let bar = "bg-emerald-500";
+  let label: React.ReactNode;
 
-function getRef(r: Row) {
-  return r.payment_reference || r.payment_ref || r.paystack_reference || "";
-}
-
-async function copyText(text: string, label = "Copied") {
-  try {
-    await navigator.clipboard.writeText(text);
-    toast.success(`${label}: ${text}`);
-  } catch {
-    toast.error("Copy failed");
+  if (hours < 0) {
+    color = "text-destructive animate-pulse";
+    bar = "bg-destructive";
+    label = <>⚠️ OVERDUE {Math.abs(Math.floor(hours))}h</>;
+  } else if (hours < 24) {
+    color = "text-orange-600";
+    bar = "bg-orange-500";
+    const h = Math.floor(hours);
+    const m = Math.floor((hours - h) * 60);
+    label = `${h}h ${m}m`;
+  } else if (hours < 48) {
+    color = "text-yellow-600";
+    bar = "bg-yellow-500";
+    const d = Math.floor(hours / 24);
+    const h = Math.floor(hours - d * 24);
+    label = `${d}d ${h}h`;
+  } else {
+    const d = Math.floor(hours / 24);
+    const h = Math.floor(hours - d * 24);
+    label = `${d}d ${h}h`;
   }
+
+  return (
+    <div className="min-w-[120px]">
+      <div className={`text-xs font-medium ${color}`}>{label}</div>
+      <div className="h-1.5 w-full rounded-full bg-muted mt-1 overflow-hidden">
+        <div className={`h-full ${bar} transition-all`} style={{ width: `${hours < 0 ? 100 : pct}%` }} />
+      </div>
+    </div>
+  );
 }
 
-function MaskedAccount({ value }: { value: string | null | undefined }) {
-  const [show, setShow] = useState(false);
-  if (!value) return <span className="text-muted-foreground">—</span>;
-  const last4 = value.slice(-4);
+function BankingCell({ row }: { row: Row }) {
+  const [open, setOpen] = useState(false);
+  const bank = row.bd_bank_name || row.bank_name || "—";
+  const acct = row.bd_account_number || row.bank_account || "";
   return (
-    <span className="inline-flex items-center gap-1 font-mono text-xs">
-      {show ? value : `****${last4}`}
-      <button
-        type="button"
-        onClick={() => setShow((s) => !s)}
-        className="text-muted-foreground hover:text-foreground"
-        title={show ? "Hide" : "Show full"}
-      >
-        {show ? <EyeOff className="h-3 w-3" /> : <Eye className="h-3 w-3" />}
-      </button>
-      <button
-        type="button"
-        onClick={() => copyText(value, "Account")}
-        className="text-muted-foreground hover:text-foreground"
-        title="Copy"
-      >
-        <Copy className="h-3 w-3" />
-      </button>
-    </span>
+    <Collapsible open={open} onOpenChange={setOpen}>
+      <div className="flex items-center gap-1 text-xs">
+        <span className="font-medium">{bank}</span>
+        <span className="text-muted-foreground">|</span>
+        <span className="font-mono">{mask(acct)}</span>
+        <CollapsibleTrigger asChild>
+          <Button size="icon" variant="ghost" className="h-6 w-6">
+            {open ? <EyeOff className="h-3 w-3" /> : <Eye className="h-3 w-3" />}
+          </Button>
+        </CollapsibleTrigger>
+      </div>
+      <CollapsibleContent className="mt-2 rounded-md border bg-muted/30 p-2 text-xs space-y-1">
+        <div><span className="text-muted-foreground">Bank:</span> {bank}</div>
+        <div className="flex items-center gap-1">
+          <span className="text-muted-foreground">Account:</span>
+          <span className="font-mono">{acct || "—"}</span>
+          {acct && (
+            <Button size="icon" variant="ghost" className="h-5 w-5" onClick={() => copy(acct, "Account copied")}>
+              <Copy className="h-3 w-3" />
+            </Button>
+          )}
+        </div>
+        <div><span className="text-muted-foreground">Holder:</span> {row.bd_account_holder || row.full_name}</div>
+        <div><span className="text-muted-foreground">Branch:</span> {row.bd_branch || row.bank_branch || "—"}</div>
+        <div><span className="text-muted-foreground">Method:</span> {row.payment_method || "—"}</div>
+      </CollapsibleContent>
+    </Collapsible>
   );
 }
 
@@ -123,500 +185,489 @@ export default function AdminCircleTracker() {
   const [rows, setRows] = useState<Row[]>([]);
   const [loading, setLoading] = useState(true);
   const [now, setNow] = useState(Date.now());
-  const [selected, setSelected] = useState<Set<string>>(new Set());
   const [tierFilter, setTierFilter] = useState<string>("all");
   const [statusFilter, setStatusFilter] = useState<string>("all");
-  const [methodFilter, setMethodFilter] = useState<string>("all");
-  const [windowFilter, setWindowFilter] = useState<string>("all");
-  const [quickFilter, setQuickFilter] = useState<string>("none");
-  const [sortBy, setSortBy] = useState<string>("remaining");
+  const [sortBy, setSortBy] = useState<string>("due");
+  const [quickTab, setQuickTab] = useState<string>("all");
   const [search, setSearch] = useState("");
+  const [selected, setSelected] = useState<Set<string>>(new Set());
+  const [breakdownRow, setBreakdownRow] = useState<Row | null>(null);
 
-  const load = async () => {
+  const fetchData = async () => {
     setLoading(true);
-    const { data, error } = await supabase
+    const { data: bids, error } = await supabase
       .from("circle_bids")
       .select(`
-        id, member_id, tier, fiat_amount, net_amount, payout_amount, status,
-        payment_status, payment_method, payment_reference, payment_ref, paystack_reference,
-        payment_confirmed_at, payment_completed_at,
-        vault_start, vault_end, created_at, priority_score,
-        member:members!circle_bids_member_id_fkey ( full_name, email, phone, bank_name, bank_account, bank_branch )
+        id, member_id, tier, fiat_amount, payout_amount, net_amount, status,
+        payment_status, payment_method, payment_reference, paystack_reference, payment_ref,
+        vault_start, vault_end, days_waiting, created_at, payment_confirmed_at,
+        members:member_id (
+          id, full_name, email, phone, bank_name, bank_account, bank_branch,
+          priority_score, consistency_score, time_waiting_score,
+          contribution_volume_score, community_score, bid_boost_score
+        )
       `)
-      .in("status", ["active", "matched", "payment_pending"])
-      .order("created_at", { ascending: true })
-      .limit(500);
-    if (error) toast.error(error.message);
-    setRows((data as any[]) ?? []);
+      .in("status", ["active", "vault", "payment_pending", "pending"])
+      .order("created_at", { ascending: false });
+
+    if (error) {
+      toast({ title: "Failed to load", description: error.message, variant: "destructive" });
+      setLoading(false);
+      return;
+    }
+
+    const memberIds = Array.from(new Set((bids ?? []).map((b: any) => b.member_id).filter(Boolean)));
+    let banking: Record<string, any> = {};
+    if (memberIds.length) {
+      const { data: bds } = await supabase
+        .from("member_banking_details")
+        .select("member_id, bank_name, account_holder_name, account_number, branch_code")
+        .in("member_id", memberIds);
+      (bds ?? []).forEach((b: any) => { banking[b.member_id] = b; });
+    }
+
+    const mapped: Row[] = (bids ?? []).map((b: any) => {
+      const m = b.members || {};
+      const bd = banking[b.member_id] || {};
+      const hours_remaining = b.vault_end
+        ? (new Date(b.vault_end).getTime() - Date.now()) / 3_600_000
+        : null;
+      return {
+        bid_id: b.id,
+        member_id: b.member_id,
+        tier: (b.tier || "seed") as Tier,
+        fiat_amount: Number(b.fiat_amount ?? 0),
+        payout_amount: b.payout_amount,
+        net_amount: b.net_amount,
+        status: b.status,
+        payment_status: b.payment_status,
+        payment_method: b.payment_method,
+        payment_reference: b.payment_reference,
+        paystack_reference: b.paystack_reference,
+        payment_ref: b.payment_ref,
+        vault_start: b.vault_start,
+        vault_end: b.vault_end,
+        days_waiting: b.days_waiting,
+        bid_created: b.created_at,
+        payment_confirmed_at: b.payment_confirmed_at,
+        full_name: m.full_name || "Member",
+        email: m.email,
+        phone: m.phone,
+        bank_name: m.bank_name,
+        bank_account: m.bank_account,
+        bank_branch: m.bank_branch,
+        priority_score: Number(m.priority_score ?? 0),
+        consistency_score: Number(m.consistency_score ?? 0),
+        time_waiting_score: Number(m.time_waiting_score ?? 0),
+        contribution_volume_score: Number(m.contribution_volume_score ?? 0),
+        community_score: Number(m.community_score ?? 0),
+        bid_boost_score: Number(m.bid_boost_score ?? 0),
+        bd_bank_name: bd.bank_name ?? null,
+        bd_account_holder: bd.account_holder_name ?? null,
+        bd_account_number: bd.account_number ?? null,
+        bd_branch: bd.branch_code ?? null,
+        hours_remaining,
+        days_remaining: hours_remaining !== null ? Math.floor(hours_remaining / 24) : null,
+        priority_rank: 0,
+        total_in_tier: 0,
+      };
+    });
+
+    // ranking within tier (active/vault only)
+    (["seed", "growth", "harvest"] as Tier[]).forEach((t) => {
+      const inTier = mapped.filter((r) => r.tier === t && ["active", "vault"].includes(r.status));
+      inTier.sort((a, b) =>
+        b.priority_score - a.priority_score ||
+        new Date(a.bid_created).getTime() - new Date(b.bid_created).getTime()
+      );
+      inTier.forEach((r, i) => { r.priority_rank = i + 1; r.total_in_tier = inTier.length; });
+    });
+
+    setRows(mapped);
     setLoading(false);
   };
 
-  useEffect(() => { load(); }, []);
   useEffect(() => {
+    fetchData();
+    const ch = supabase
+      .channel("admin-circle-tracker")
+      .on("postgres_changes", { event: "*", schema: "public", table: "circle_bids" }, () => fetchData())
+      .subscribe();
     const t = setInterval(() => setNow(Date.now()), 60_000);
-    return () => clearInterval(t);
+    return () => { supabase.removeChannel(ch); clearInterval(t); };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  const rankedRows = useMemo(() => {
-    const enriched = rows.map((r) => {
-      const { start, end, days } = vaultBounds(r);
-      const remainingMs = end - now;
-      const elapsedMs = now - start;
-      const progress = Math.max(0, Math.min(100, (elapsedMs / (days * 86400000)) * 100));
-      return { ...r, _start: start, _end: end, _days: days, _remainingMs: remainingMs, _progress: progress };
-    });
-    const byTier: Record<string, typeof enriched> = {};
-    for (const r of enriched) (byTier[r.tier] ||= []).push(r);
-    for (const t in byTier) {
-      byTier[t].sort((a, b) =>
-        (b.priority_score ?? 0) - (a.priority_score ?? 0)
-        || new Date(a.created_at).getTime() - new Date(b.created_at).getTime()
-      );
-      byTier[t].forEach((r, i) => ((r as any)._rank = i + 1));
-      byTier[t].forEach((r) => ((r as any)._rankTotal = byTier[t].length));
-    }
-    return enriched;
-  }, [rows, now]);
+  // Recompute hours_remaining on tick
+  const ticked = useMemo(() => rows.map((r) => ({
+    ...r,
+    hours_remaining: r.vault_end ? (new Date(r.vault_end).getTime() - now) / 3_600_000 : null,
+  })), [rows, now]);
 
   const filtered = useMemo(() => {
-    let list = rankedRows;
+    let list = ticked.slice();
     if (tierFilter !== "all") list = list.filter((r) => r.tier === tierFilter);
-    if (statusFilter !== "all") list = list.filter((r) => (r.payment_status || r.status) === statusFilter);
-    if (methodFilter !== "all") list = list.filter((r) => (r.payment_method || "manual") === methodFilter);
-    if (windowFilter !== "all") {
-      list = list.filter((r) => {
-        const days = r._remainingMs / 86400000;
-        if (windowFilter === "lt1") return days < 1;
-        if (windowFilter === "1_3") return days >= 1 && days < 3;
-        if (windowFilter === "3_7") return days >= 3 && days < 7;
-        if (windowFilter === "7_14") return days >= 7 && days < 14;
-        return true;
-      });
-    }
-    if (quickFilter === "due24") list = list.filter((r) => r._remainingMs <= 86400000 && r._remainingMs >= 0);
-    if (quickFilter === "overdue") list = list.filter((r) => r._remainingMs < 0);
-    if (quickFilter === "high") list = list.filter((r) => (r.priority_score ?? 0) > 300);
+    if (statusFilter !== "all") list = list.filter((r) => r.status === statusFilter);
+
+    if (quickTab === "due_today")
+      list = list.filter((r) => r.hours_remaining !== null && r.hours_remaining >= 0 && r.hours_remaining <= 24);
+    if (quickTab === "overdue")
+      list = list.filter((r) => r.hours_remaining !== null && r.hours_remaining < 0);
+    if (quickTab === "payment_pending")
+      list = list.filter((r) => r.status === "payment_pending");
+    if (quickTab === "high_priority")
+      list = list.filter((r) => r.priority_score > 300);
 
     if (search.trim()) {
-      const s = search.toLowerCase();
+      const q = search.trim().toLowerCase();
       list = list.filter((r) =>
-        (r.member?.full_name || "").toLowerCase().includes(s) ||
-        (r.member?.email || "").toLowerCase().includes(s) ||
-        (r.member?.phone || "").toLowerCase().includes(s) ||
-        getRef(r).toLowerCase().includes(s),
+        [r.full_name, r.email, r.phone, r.payment_reference, r.paystack_reference, r.payment_ref]
+          .filter(Boolean).some((x) => String(x).toLowerCase().includes(q))
       );
     }
-    const sorted = [...list];
-    sorted.sort((a, b) => {
-      switch (sortBy) {
-        case "priority": return (b.priority_score ?? 0) - (a.priority_score ?? 0);
-        case "amount": return Number(b.fiat_amount) - Number(a.fiat_amount);
-        case "paid_date": return a._start - b._start;
-        case "tier": return a.tier.localeCompare(b.tier);
-        case "name": return (a.member?.full_name || "").localeCompare(b.member?.full_name || "");
-        default: return a._remainingMs - b._remainingMs;
+
+    list.sort((a, b) => {
+      if (sortBy === "due") {
+        const ah = a.hours_remaining ?? Infinity;
+        const bh = b.hours_remaining ?? Infinity;
+        return ah - bh;
       }
+      if (sortBy === "score") return b.priority_score - a.priority_score;
+      if (sortBy === "amount") return b.fiat_amount - a.fiat_amount;
+      return 0;
     });
-    return sorted;
-  }, [rankedRows, tierFilter, statusFilter, methodFilter, windowFilter, quickFilter, search, sortBy]);
 
-  const alerts = useMemo(() => {
-    const overdue = rankedRows.filter((r) => r._remainingMs < 0).length;
-    const soon = rankedRows.filter((r) => r._remainingMs >= 0 && r._remainingMs < 6 * 3600000).length;
-    const active = rankedRows.length;
-    return { overdue, soon, active };
-  }, [rankedRows]);
+    return list;
+  }, [ticked, tierFilter, statusFilter, sortBy, quickTab, search]);
 
-  const queue24h = useMemo(
-    () => rankedRows
-      .filter((r) => r._remainingMs <= 24 * 3600000)
-      .sort((a, b) => (b.priority_score ?? 0) - (a.priority_score ?? 0)),
-    [rankedRows],
+  const counts = useMemo(() => ({
+    all: ticked.length,
+    due_today: ticked.filter((r) => r.hours_remaining !== null && r.hours_remaining >= 0 && r.hours_remaining <= 24).length,
+    overdue: ticked.filter((r) => r.hours_remaining !== null && r.hours_remaining < 0).length,
+    payment_pending: ticked.filter((r) => r.status === "payment_pending").length,
+    high_priority: ticked.filter((r) => r.priority_score > 300).length,
+  }), [ticked]);
+
+  const stats = useMemo(() => {
+    const activeVault = ticked.filter((r) => ["active", "vault"].includes(r.status));
+    const totalPooled = activeVault.reduce((s, r) => s + r.fiat_amount, 0);
+    const avgScore = activeVault.length
+      ? activeVault.reduce((s, r) => s + r.priority_score, 0) / activeVault.length
+      : 0;
+    return {
+      activeVault: activeVault.length,
+      dueToday: counts.due_today,
+      totalPooled,
+      avgScore: avgScore.toFixed(1),
+    };
+  }, [ticked, counts]);
+
+  const queue = useMemo(() =>
+    ticked
+      .filter((r) => ["active", "vault"].includes(r.status) && r.hours_remaining !== null && r.hours_remaining < 24)
+      .sort((a, b) => (a.hours_remaining ?? 0) - (b.hours_remaining ?? 0))
+      .slice(0, 10),
+    [ticked]
   );
 
-  const toggle = (id: string) =>
-    setSelected((s) => {
-      const n = new Set(s);
-      n.has(id) ? n.delete(id) : n.add(id);
-      return n;
-    });
-  const toggleAll = () =>
-    setSelected((s) => (s.size === filtered.length ? new Set() : new Set(filtered.map((r) => r.id))));
+  const toggleAll = (checked: boolean) => {
+    if (checked) setSelected(new Set(filtered.map((r) => r.bid_id)));
+    else setSelected(new Set());
+  };
+  const toggleOne = (id: string, checked: boolean) => {
+    const s = new Set(selected);
+    if (checked) s.add(id); else s.delete(id);
+    setSelected(s);
+  };
 
-  const exportPayoutCsv = (source: typeof filtered) => {
-    const headers = ["Member", "Phone", "Bank", "AccountNumber", "BranchCode", "PayoutAmount", "PaymentReference", "Tier", "Email"];
+  const exportCsv = () => {
+    const list = filtered.filter((r) => selected.size === 0 || selected.has(r.bid_id));
+    const headers = ["Name", "Bank", "Account", "Branch", "Amount", "Reference", "Phone"];
     const lines = [headers.join(",")];
-    for (const r of source) {
+    list.forEach((r) => {
       lines.push([
-        `"${(r.member?.full_name || "").replace(/"/g, "")}"`,
-        r.member?.phone || "",
-        `"${(r.member?.bank_name || "").replace(/"/g, "")}"`,
-        r.member?.bank_account || "",
-        r.member?.bank_branch || "",
-        expectedPayout(r),
-        getRef(r),
-        r.tier,
-        r.member?.email || "",
-      ].join(","));
-    }
+        r.full_name,
+        r.bd_bank_name || r.bank_name || "",
+        r.bd_account_number || r.bank_account || "",
+        r.bd_branch || r.bank_branch || "",
+        r.payout_amount ?? r.net_amount ?? r.fiat_amount,
+        r.payment_reference || r.paystack_reference || r.payment_ref || "",
+        r.phone || "",
+      ].map((v) => `"${String(v ?? "").replace(/"/g, '""')}"`).join(","));
+    });
     const blob = new Blob([lines.join("\n")], { type: "text/csv" });
     const url = URL.createObjectURL(blob);
     const a = document.createElement("a");
-    a.href = url; a.download = `payout-batch-${Date.now()}.csv`; a.click();
+    a.href = url; a.download = `circle-payouts-${new Date().toISOString().slice(0, 10)}.csv`; a.click();
     URL.revokeObjectURL(url);
   };
 
-  const markPaid = async (ids: string[]) => {
+  const processSelectedPayouts = async () => {
+    const ids = Array.from(selected);
     if (!ids.length) return;
-    const ref = `MANUAL-${Date.now()}`;
-    let ok = 0;
+    if (!confirm(`Mark ${ids.length} bid(s) as paid?`)) return;
     for (const id of ids) {
-      const row = rows.find((r) => r.id === id);
+      const row = ticked.find((r) => r.bid_id === id);
       if (!row) continue;
-      const amt = expectedPayout(row);
-      const { error } = await supabase.rpc("record_circle_payout", {
-        _bid_id: id, _net_amount: amt, _method: "manual", _reference: ref, _paid_on: new Date().toISOString(),
-      });
-      if (!error) ok++;
+      const amount = row.payout_amount ?? row.net_amount ?? row.fiat_amount;
+      const ref = row.payment_reference || row.paystack_reference || row.payment_ref || `MANUAL-${id.slice(0, 8)}`;
+      await supabase.rpc("record_circle_payout", {
+        _bid_id: id, _net_amount: amount, _method: row.payment_method || "manual", _reference: ref,
+      } as any);
     }
-    toast.success(`Marked ${ok}/${ids.length} as paid`);
+    toast({ title: "Payouts recorded", description: `${ids.length} bid(s) updated` });
     setSelected(new Set());
-    load();
+    fetchData();
   };
 
-  const sendReminders = async (ids: string[]) => {
+  const sendReminders = async () => {
+    const ids = Array.from(selected);
     if (!ids.length) return;
-    const targets = rows.filter((r) => ids.includes(r.id));
-    const inserts = targets.map((r) => ({
-      member_id: r.member_id,
-      title: "Payout reminder ⏰",
-      body: `Your ${r.tier} circle payout is being processed soon.`,
-      kind: "circle",
-      link: "/circle",
-    }));
-    const { error } = await supabase.from("notifications").insert(inserts);
-    if (error) toast.error(error.message);
-    else toast.success(`Sent ${inserts.length} reminders`);
-    setSelected(new Set());
+    const inserts = ids.map((id) => {
+      const r = ticked.find((x) => x.bid_id === id)!;
+      return {
+        member_id: r.member_id,
+        title: "Payout reminder",
+        body: `Your ${r.tier} contribution payout is being prepared.`,
+        kind: "payout",
+        link: "/circle",
+      };
+    });
+    const { error } = await supabase.from("notifications").insert(inserts as any);
+    if (error) toast({ title: "Reminder failed", description: error.message, variant: "destructive" });
+    else toast({ title: "Reminders sent", description: `${ids.length} member(s)` });
   };
+
+  const refFor = (r: Row) =>
+    r.payment_reference || r.paystack_reference || r.payment_ref || "—";
 
   return (
     <div className="space-y-6">
-      <div className="flex flex-wrap items-end justify-between gap-3">
-        <div>
-          <h1 className="text-2xl font-semibold">Circle Payment Tracker</h1>
-          <p className="text-sm text-muted-foreground">
-            Live countdown, existing priority scores, payout queue and banking details.
-          </p>
-        </div>
-        <div className="flex gap-2">
-          <Button variant="outline" size="sm" onClick={load} disabled={loading}>
-            {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : <RefreshCw className="h-4 w-4" />}
-            <span className="ml-2">Refresh</span>
-          </Button>
-          <Button variant="outline" size="sm" onClick={() => exportPayoutCsv(filtered)}>
-            <Download className="h-4 w-4 mr-2" /> Export Payout CSV
-          </Button>
-        </div>
+      <div>
+        <h1 className="text-3xl font-bold flex items-center gap-2">
+          <Clock className="h-7 w-7" /> Circle Payment Tracker
+        </h1>
+        <p className="text-muted-foreground">Real-time visibility into all active contributions, payouts & priority scores.</p>
       </div>
 
       {/* Alerts */}
-      <div className="grid gap-3 sm:grid-cols-3">
-        <div className={`flex items-center gap-3 rounded-2xl border p-4 ${alerts.overdue > 0 ? "border-red-500/40 bg-red-500/10" : "border-border bg-card"}`}>
-          <AlertCircle className={`h-5 w-5 ${alerts.overdue > 0 ? "text-red-500 animate-pulse" : "text-muted-foreground"}`} />
-          <div>
-            <p className="text-xs uppercase tracking-wide text-muted-foreground">Urgent</p>
-            <p className="text-lg font-semibold">{alerts.overdue} overdue</p>
+      <div className="space-y-2">
+        {counts.overdue > 0 && (
+          <div className="rounded-md border border-destructive/40 bg-destructive/10 px-4 py-2 text-sm text-destructive flex items-center gap-2">
+            <AlertTriangle className="h-4 w-4" /> URGENT: {counts.overdue} payout(s) overdue
           </div>
-        </div>
-        <div className={`flex items-center gap-3 rounded-2xl border p-4 ${alerts.soon > 0 ? "border-yellow-500/40 bg-yellow-500/10" : "border-border bg-card"}`}>
-          <AlertTriangle className={`h-5 w-5 ${alerts.soon > 0 ? "text-yellow-500" : "text-muted-foreground"}`} />
-          <div>
-            <p className="text-xs uppercase tracking-wide text-muted-foreground">Warning</p>
-            <p className="text-lg font-semibold">{alerts.soon} due in 6h</p>
+        )}
+        {counts.due_today > 0 && (
+          <div className="rounded-md border border-yellow-500/40 bg-yellow-500/10 px-4 py-2 text-sm text-yellow-700 dark:text-yellow-300 flex items-center gap-2">
+            <Clock className="h-4 w-4" /> WARNING: {counts.due_today} payout(s) due in next 24 hours
           </div>
-        </div>
-        <div className="flex items-center gap-3 rounded-2xl border border-border bg-card p-4">
-          <Info className="h-5 w-5 text-green-500" />
-          <div>
-            <p className="text-xs uppercase tracking-wide text-muted-foreground">Active</p>
-            <p className="text-lg font-semibold">{alerts.active} tracked</p>
-          </div>
+        )}
+        <div className="rounded-md border border-emerald-500/30 bg-emerald-500/10 px-4 py-2 text-sm text-emerald-700 dark:text-emerald-300 flex items-center gap-2">
+          <CheckCircle2 className="h-4 w-4" /> INFO: {stats.activeVault} active contributions being tracked
         </div>
       </div>
 
-      {/* Quick filters */}
-      <div className="flex flex-wrap gap-2">
-        {[
-          { id: "none", label: "All" },
-          { id: "due24", label: "Due in 24h" },
-          { id: "overdue", label: "Overdue" },
-          { id: "high", label: "High Score (>300)" },
-        ].map((q) => (
-          <Button
-            key={q.id}
-            size="sm"
-            variant={quickFilter === q.id ? "default" : "outline"}
-            onClick={() => setQuickFilter(q.id)}
-          >{q.label}</Button>
-        ))}
-        <div className="mx-2 h-8 w-px bg-border" />
-        {["all", "seed", "growth", "harvest"].map((t) => (
-          <Button
-            key={t}
-            size="sm"
-            variant={tierFilter === t ? "default" : "outline"}
-            onClick={() => setTierFilter(t)}
-            className="capitalize"
-          >{t}</Button>
-        ))}
-      </div>
-
-      {/* Filters */}
-      <div className="flex flex-wrap gap-2">
-        <Input
-          placeholder="Search name, email, phone, reference…"
-          value={search}
-          onChange={(e) => setSearch(e.target.value)}
-          className="w-72"
-        />
-        <Select value={statusFilter} onValueChange={setStatusFilter}>
-          <SelectTrigger className="w-40"><SelectValue placeholder="Status" /></SelectTrigger>
-          <SelectContent>
-            <SelectItem value="all">All status</SelectItem>
-            <SelectItem value="active">Active</SelectItem>
-            <SelectItem value="matched">Matched</SelectItem>
-            <SelectItem value="payment_pending">Pending</SelectItem>
-          </SelectContent>
-        </Select>
-        <Select value={methodFilter} onValueChange={setMethodFilter}>
-          <SelectTrigger className="w-36"><SelectValue placeholder="Method" /></SelectTrigger>
-          <SelectContent>
-            <SelectItem value="all">All methods</SelectItem>
-            <SelectItem value="paystack">Card</SelectItem>
-            <SelectItem value="manual">EFT/Manual</SelectItem>
-          </SelectContent>
-        </Select>
-        <Select value={windowFilter} onValueChange={setWindowFilter}>
-          <SelectTrigger className="w-40"><SelectValue placeholder="Time window" /></SelectTrigger>
-          <SelectContent>
-            <SelectItem value="all">Any time</SelectItem>
-            <SelectItem value="lt1">&lt; 1 day</SelectItem>
-            <SelectItem value="1_3">1–3 days</SelectItem>
-            <SelectItem value="3_7">3–7 days</SelectItem>
-            <SelectItem value="7_14">7–14 days</SelectItem>
-          </SelectContent>
-        </Select>
-        <Select value={sortBy} onValueChange={setSortBy}>
-          <SelectTrigger className="w-44"><SelectValue placeholder="Sort by" /></SelectTrigger>
-          <SelectContent>
-            <SelectItem value="remaining">Days remaining</SelectItem>
-            <SelectItem value="priority">Priority score</SelectItem>
-            <SelectItem value="amount">Amount</SelectItem>
-            <SelectItem value="paid_date">Paid date</SelectItem>
-            <SelectItem value="tier">Tier</SelectItem>
-            <SelectItem value="name">Name</SelectItem>
-          </SelectContent>
-        </Select>
-      </div>
-
-      {/* Batch actions */}
-      {selected.size > 0 && (
-        <div className="flex flex-wrap items-center gap-2 rounded-2xl border border-accent/40 bg-accent/5 p-3">
-          <span className="text-sm font-medium">{selected.size} selected</span>
-          <Button size="sm" onClick={() => markPaid([...selected])}>
-            <CheckCircle2 className="h-4 w-4 mr-1" /> Mark as Paid
-          </Button>
-          <Button size="sm" variant="outline" onClick={() => sendReminders([...selected])}>
-            <Bell className="h-4 w-4 mr-1" /> Send Reminder
-          </Button>
-          <Button size="sm" variant="outline" onClick={() => exportPayoutCsv(filtered.filter(r => selected.has(r.id)))}>
-            <Download className="h-4 w-4 mr-1" /> Export Selected
-          </Button>
-          <Button size="sm" variant="ghost" onClick={() => setSelected(new Set())}>Clear</Button>
-        </div>
-      )}
-
-      {/* Main table */}
-      <div className="rounded-2xl border border-border bg-card overflow-x-auto">
-        <Table>
-          <TableHeader>
-            <TableRow>
-              <TableHead className="w-8">
-                <Checkbox
-                  checked={selected.size > 0 && selected.size === filtered.length}
-                  onCheckedChange={toggleAll}
-                />
-              </TableHead>
-              <TableHead>Member</TableHead>
-              <TableHead>Tier</TableHead>
-              <TableHead>Payout (calc)</TableHead>
-              <TableHead className="min-w-[240px]">Countdown</TableHead>
-              <TableHead>Priority</TableHead>
-              <TableHead>Payment Ref</TableHead>
-              <TableHead className="min-w-[240px]">Banking</TableHead>
-              <TableHead>Actions</TableHead>
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {filtered.length === 0 && (
-              <TableRow><TableCell colSpan={9} className="text-center text-muted-foreground py-8">
-                {loading ? "Loading…" : "No active contributions."}
-              </TableCell></TableRow>
-            )}
-            {filtered.map((r) => {
-              const u = urgencyTone(r._remainingMs);
-              const tp = timeParts(r._remainingMs);
-              const ref = getRef(r);
-              const payout = expectedPayout(r);
-              const bonus = payout - Number(r.fiat_amount);
-              const pct = Math.round((bonus / Number(r.fiat_amount)) * 100);
-              const phone = (r.member?.phone || "").replace(/[^\d]/g, "");
-              return (
-                <TableRow key={r.id}>
-                  <TableCell>
-                    <Checkbox checked={selected.has(r.id)} onCheckedChange={() => toggle(r.id)} />
-                  </TableCell>
-                  <TableCell>
-                    <Link to={`/admin/members?q=${encodeURIComponent(r.member?.email || "")}`}
-                          className="text-sm font-medium hover:text-accent">
-                      {r.member?.full_name || "—"}
-                    </Link>
-                    <div className="text-xs text-muted-foreground">{r.member?.email}</div>
-                    <div className="text-xs text-muted-foreground">{r.member?.phone || ""}</div>
-                  </TableCell>
-                  <TableCell><Badge variant="secondary" className="capitalize">{r.tier}</Badge></TableCell>
-                  <TableCell>
-                    <div className="font-mono text-sm">{fmtR(Number(r.fiat_amount))} → <span className="text-green-500 font-semibold">{fmtR(payout)}</span></div>
-                    <div className="text-[10px] text-muted-foreground">+{fmtR(bonus)} ({pct}%)</div>
-                  </TableCell>
-                  <TableCell>
-                    <div className={`inline-flex items-center gap-2 rounded-md px-2 py-0.5 text-xs font-medium ${u.tone} ${u.pulse ? "animate-pulse" : ""}`}>
-                      {tp.neg ? "OVERDUE " : ""}{tp.d}d {tp.h}h {tp.m}m
-                    </div>
-                    <Progress value={r._progress} className="h-1.5 mt-2 w-44" />
-                    <div className="text-[10px] text-muted-foreground mt-1">
-                      Paid {new Date(r._start).toLocaleDateString()} · Due {new Date(r._end).toLocaleDateString()}
-                    </div>
-                  </TableCell>
-                  <TableCell>
-                    <div className="text-sm font-semibold">{Math.round(r.priority_score ?? 0)}/100</div>
-                    <div className="text-[10px] text-muted-foreground">
-                      Rank #{(r as any)._rank}/{(r as any)._rankTotal}
-                    </div>
-                  </TableCell>
-                  <TableCell>
-                    {ref ? (
-                      <button
-                        onClick={() => copyText(ref, "Reference")}
-                        className="inline-flex items-center gap-1 font-mono text-xs hover:text-accent"
-                        title="Copy reference"
-                      >
-                        {ref.length > 16 ? ref.slice(0, 14) + "…" : ref}
-                        <Copy className="h-3 w-3" />
-                      </button>
-                    ) : <span className="text-xs text-muted-foreground">—</span>}
-                    <div className="text-[10px] text-muted-foreground capitalize">{r.payment_method || "manual"}</div>
-                  </TableCell>
-                  <TableCell>
-                    <div className="text-xs font-medium">{r.member?.bank_name || "—"}</div>
-                    <MaskedAccount value={r.member?.bank_account} />
-                    <div className="text-[10px] text-muted-foreground">
-                      Branch: {r.member?.bank_branch || "—"}
-                    </div>
-                  </TableCell>
-                  <TableCell>
-                    <div className="flex flex-wrap gap-1">
-                      <Button size="sm" variant="outline" title="Process payout" onClick={() => markPaid([r.id])}>
-                        <CheckCircle2 className="h-3 w-3" />
-                      </Button>
-                      <Button size="sm" variant="outline" title="Copy ref" onClick={() => copyText(ref || "—", "Reference")} disabled={!ref}>
-                        <Copy className="h-3 w-3" />
-                      </Button>
-                      {r.member?.bank_account && (
-                        <Button size="sm" variant="outline" title="Copy account" onClick={() => copyText(r.member!.bank_account!, "Account")}>
-                          <Eye className="h-3 w-3" />
-                        </Button>
-                      )}
-                      {phone && (
-                        <a href={`https://wa.me/${phone.replace(/^0/, "27")}`} target="_blank" rel="noopener noreferrer">
-                          <Button size="sm" variant="outline" title="WhatsApp">
-                            <MessageCircle className="h-3 w-3" />
-                          </Button>
-                        </a>
-                      )}
-                      {r.member?.email && (
-                        <a href={`mailto:${r.member.email}`}>
-                          <Button size="sm" variant="outline" title="Email">
-                            <Mail className="h-3 w-3" />
-                          </Button>
-                        </a>
-                      )}
-                    </div>
-                  </TableCell>
-                </TableRow>
-              );
-            })}
-          </TableBody>
-        </Table>
+      {/* Stats */}
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+        <Card><CardContent className="p-4"><div className="text-xs text-muted-foreground">Active Vault</div><div className="text-2xl font-bold">{stats.activeVault}</div></CardContent></Card>
+        <Card><CardContent className="p-4"><div className="text-xs text-muted-foreground">Due Today</div><div className="text-2xl font-bold">{stats.dueToday}</div></CardContent></Card>
+        <Card><CardContent className="p-4"><div className="text-xs text-muted-foreground">Total Pooled</div><div className="text-2xl font-bold">{zar(stats.totalPooled)}</div></CardContent></Card>
+        <Card><CardContent className="p-4"><div className="text-xs text-muted-foreground">Avg Score</div><div className="text-2xl font-bold">{stats.avgScore}</div></CardContent></Card>
       </div>
 
       {/* Payout queue */}
-      <section className="space-y-3">
-        <div className="flex items-center justify-between">
-          <h2 className="text-lg font-semibold">Ready for Payout · Next 24 hours</h2>
-          {queue24h.length > 0 && (
-            <Button size="sm" variant="outline" onClick={() => exportPayoutCsv(queue24h)}>
-              <Download className="h-4 w-4 mr-2" /> Export Queue
-            </Button>
-          )}
+      {queue.length > 0 && (
+        <Card className="border-orange-500/40">
+          <CardHeader>
+            <CardTitle className="text-base flex items-center gap-2">
+              🔥 Ready for Payout (Next 24 Hours) — {queue.length} member{queue.length === 1 ? "" : "s"}
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-3">
+            {queue.map((r, i) => {
+              const amount = r.payout_amount ?? r.net_amount ?? r.fiat_amount;
+              const bank = r.bd_bank_name || r.bank_name || "—";
+              const acct = r.bd_account_number || r.bank_account || "";
+              const ref = refFor(r);
+              return (
+                <div key={r.bid_id} className="rounded-md border bg-card p-3">
+                  <div className="flex flex-wrap items-center justify-between gap-2">
+                    <div className="text-sm font-medium">
+                      #{i + 1}. {r.full_name} — {zar(amount)} — {bank} {mask(acct)} — Score {r.priority_score.toFixed(0)}
+                    </div>
+                    <div className="flex flex-wrap gap-2">
+                      <Button size="sm" variant="outline" onClick={() => copy(`${r.full_name}\n${bank}\n${acct}\n${r.bd_branch || r.bank_branch || ""}\n${zar(amount)}\nRef: ${ref}`, "Bank details copied")}>
+                        <Copy className="h-3 w-3" /> Copy Bank Details
+                      </Button>
+                      <Button size="sm" onClick={async () => {
+                        await supabase.rpc("record_circle_payout", {
+                          _bid_id: r.bid_id, _net_amount: amount, _method: r.payment_method || "manual", _reference: ref,
+                        } as any);
+                        toast({ title: "Payout recorded" });
+                        fetchData();
+                      }}>
+                        <Wallet className="h-3 w-3" /> Process Payout
+                      </Button>
+                      {r.phone && (
+                        <Button size="sm" variant="outline" onClick={() => window.open(`https://wa.me/${r.phone!.replace(/\D/g, "")}`)}>
+                          <MessageCircle className="h-3 w-3" /> WhatsApp
+                        </Button>
+                      )}
+                    </div>
+                  </div>
+                  <div className="mt-1 text-xs text-muted-foreground">
+                    Due: {r.hours_remaining !== null ? `${Math.max(0, Math.floor(r.hours_remaining))}h ${Math.max(0, Math.floor(((r.hours_remaining) - Math.floor(r.hours_remaining)) * 60))}m` : "—"} · Ref: {ref}
+                  </div>
+                </div>
+              );
+            })}
+          </CardContent>
+        </Card>
+      )}
+
+      {/* Filters & search */}
+      <div className="flex flex-wrap items-center gap-2">
+        <div className="relative flex-1 min-w-[220px]">
+          <Search className="absolute left-2 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+          <Input value={search} onChange={(e) => setSearch(e.target.value)} placeholder="Search name, email, phone, reference..." className="pl-8" />
         </div>
-        <div className="rounded-2xl border border-border bg-card overflow-x-auto">
+        <Select value={tierFilter} onValueChange={setTierFilter}>
+          <SelectTrigger className="w-[140px]"><SelectValue /></SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">All Tiers</SelectItem>
+            <SelectItem value="seed">Seed</SelectItem>
+            <SelectItem value="growth">Growth</SelectItem>
+            <SelectItem value="harvest">Harvest</SelectItem>
+          </SelectContent>
+        </Select>
+        <Select value={statusFilter} onValueChange={setStatusFilter}>
+          <SelectTrigger className="w-[170px]"><SelectValue /></SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">All Status</SelectItem>
+            <SelectItem value="active">Active</SelectItem>
+            <SelectItem value="vault">Vault</SelectItem>
+            <SelectItem value="payment_pending">Payment Pending</SelectItem>
+            <SelectItem value="pending">Pending</SelectItem>
+          </SelectContent>
+        </Select>
+        <Select value={sortBy} onValueChange={setSortBy}>
+          <SelectTrigger className="w-[180px]"><SelectValue /></SelectTrigger>
+          <SelectContent>
+            <SelectItem value="due">Sort: Payout Due</SelectItem>
+            <SelectItem value="score">Sort: Priority Score</SelectItem>
+            <SelectItem value="amount">Sort: Amount</SelectItem>
+          </SelectContent>
+        </Select>
+      </div>
+
+      {/* Quick tabs */}
+      <Tabs value={quickTab} onValueChange={setQuickTab}>
+        <TabsList className="flex-wrap h-auto">
+          <TabsTrigger value="all">All ({counts.all})</TabsTrigger>
+          <TabsTrigger value="due_today">Due Today ({counts.due_today})</TabsTrigger>
+          <TabsTrigger value="overdue">Overdue ({counts.overdue})</TabsTrigger>
+          <TabsTrigger value="payment_pending">Payment Pending ({counts.payment_pending})</TabsTrigger>
+          <TabsTrigger value="high_priority">High Priority ({counts.high_priority})</TabsTrigger>
+        </TabsList>
+      </Tabs>
+
+      {/* Batch actions */}
+      {selected.size > 0 && (
+        <div className="flex flex-wrap items-center gap-2 rounded-md border bg-muted/30 p-3">
+          <span className="text-sm font-medium">{selected.size} selected</span>
+          <Button size="sm" variant="outline" onClick={exportCsv}><Download className="h-3 w-3" /> Export Selected</Button>
+          <Button size="sm" onClick={processSelectedPayouts}><Wallet className="h-3 w-3" /> Process Payouts</Button>
+          <Button size="sm" variant="outline" onClick={sendReminders}><Send className="h-3 w-3" /> Send Reminders</Button>
+        </div>
+      )}
+
+      {/* Desktop table */}
+      <Card className="hidden md:block">
+        <CardContent className="p-0">
           <Table>
             <TableHeader>
               <TableRow>
-                <TableHead>#</TableHead>
+                <TableHead className="w-8">
+                  <Checkbox
+                    checked={filtered.length > 0 && filtered.every((r) => selected.has(r.bid_id))}
+                    onCheckedChange={(c) => toggleAll(!!c)}
+                  />
+                </TableHead>
                 <TableHead>Member</TableHead>
+                <TableHead>Tier</TableHead>
+                <TableHead>Contributed</TableHead>
                 <TableHead>Payout</TableHead>
+                <TableHead>Status</TableHead>
+                <TableHead>Method</TableHead>
+                <TableHead>Reference</TableHead>
+                <TableHead>Time Remaining</TableHead>
+                <TableHead>Priority</TableHead>
                 <TableHead>Banking</TableHead>
-                <TableHead>Score</TableHead>
-                <TableHead>Remaining</TableHead>
-                <TableHead>Action</TableHead>
+                <TableHead className="text-right">Actions</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
-              {queue24h.length === 0 && (
-                <TableRow><TableCell colSpan={7} className="text-center text-muted-foreground py-6">
-                  Nothing due in the next 24 hours.
-                </TableCell></TableRow>
+              {loading && (
+                <TableRow><TableCell colSpan={12} className="text-center py-8 text-muted-foreground">Loading...</TableCell></TableRow>
               )}
-              {queue24h.map((r, i) => {
-                const tp = timeParts(r._remainingMs);
-                const payout = expectedPayout(r);
+              {!loading && filtered.length === 0 && (
+                <TableRow><TableCell colSpan={12} className="text-center py-8 text-muted-foreground">No contributions match these filters.</TableCell></TableRow>
+              )}
+              {filtered.map((r) => {
+                const payout = r.payout_amount ?? r.net_amount ?? r.fiat_amount;
+                const diff = payout - r.fiat_amount;
+                const status = STATUS_BADGE[r.status] || { label: r.status, cls: "bg-muted text-muted-foreground" };
+                const ref = refFor(r);
                 return (
-                  <TableRow key={r.id}>
-                    <TableCell className="font-semibold">#{i + 1}</TableCell>
+                  <TableRow key={r.bid_id}>
                     <TableCell>
-                      <div className="text-sm font-medium">{r.member?.full_name || "—"}</div>
-                      <div className="text-xs text-muted-foreground">{r.member?.phone || r.member?.email}</div>
-                    </TableCell>
-                    <TableCell className="font-mono text-sm text-green-500 font-semibold">{fmtR(payout)}</TableCell>
-                    <TableCell className="text-xs">
-                      {r.member?.bank_name || "—"} · <MaskedAccount value={r.member?.bank_account} />
-                    </TableCell>
-                    <TableCell>{Math.round(r.priority_score ?? 0)}</TableCell>
-                    <TableCell className={tp.neg ? "text-red-500 font-semibold" : ""}>
-                      {tp.neg ? "OVERDUE " : ""}{tp.d}d {tp.h}h {tp.m}m
+                      <Checkbox checked={selected.has(r.bid_id)} onCheckedChange={(c) => toggleOne(r.bid_id, !!c)} />
                     </TableCell>
                     <TableCell>
-                      <div className="flex gap-1">
-                        <Button size="sm" onClick={() => markPaid([r.id])}>Process</Button>
-                        <Button size="sm" variant="outline" onClick={() => {
-                          const text = `${r.member?.full_name}\n${r.member?.bank_name} ${r.member?.bank_account} (Branch ${r.member?.bank_branch})\nAmount: ${fmtR(payout)}\nRef: ${getRef(r) || r.id}`;
-                          copyText(text, "Details");
-                        }}>
+                      <div className="font-medium text-sm">{r.full_name}</div>
+                      <div className="text-xs text-muted-foreground">{r.email}</div>
+                    </TableCell>
+                    <TableCell>
+                      <Badge className={TIER_COLORS[r.tier]} variant="outline">{r.tier}</Badge>
+                    </TableCell>
+                    <TableCell className="font-medium">{zar(r.fiat_amount)}</TableCell>
+                    <TableCell>
+                      <div className="font-medium">{zar(payout)}</div>
+                      {diff > 0 && <div className="text-xs text-emerald-600">+{zar(diff)}</div>}
+                    </TableCell>
+                    <TableCell><Badge className={status.cls} variant="outline">{status.label}</Badge></TableCell>
+                    <TableCell>
+                      <div className="flex items-center gap-1 text-xs">
+                        {r.payment_method === "card" ? <CreditCard className="h-3 w-3" /> : <Landmark className="h-3 w-3" />}
+                        {r.payment_method || "—"}
+                      </div>
+                    </TableCell>
+                    <TableCell>
+                      {ref !== "—" ? (
+                        <button onClick={() => copy(ref, "Reference copied")} className="text-xs font-mono hover:underline flex items-center gap-1">
+                          {ref.length > 14 ? `${ref.slice(0, 12)}…` : ref}
                           <Copy className="h-3 w-3" />
-                        </Button>
+                        </button>
+                      ) : <span className="text-xs text-muted-foreground">—</span>}
+                    </TableCell>
+                    <TableCell><CountdownCell hours={r.hours_remaining} tier={r.tier} /></TableCell>
+                    <TableCell>
+                      <button className="text-left text-xs hover:underline" onClick={() => setBreakdownRow(r)}>
+                        <div className="font-medium flex items-center gap-1"><TrendingUp className="h-3 w-3" />{r.priority_score.toFixed(0)}/100</div>
+                        <div className="text-muted-foreground">#{r.priority_rank || "—"} of {r.total_in_tier || "—"}</div>
+                      </button>
+                    </TableCell>
+                    <TableCell><BankingCell row={r} /></TableCell>
+                    <TableCell className="text-right">
+                      <div className="flex justify-end gap-1">
+                        <Button size="sm" variant="outline" onClick={async () => {
+                          const amt = payout;
+                          await supabase.rpc("record_circle_payout", {
+                            _bid_id: r.bid_id, _net_amount: amt, _method: r.payment_method || "manual", _reference: ref === "—" ? `MANUAL-${r.bid_id.slice(0, 8)}` : ref,
+                          } as any);
+                          toast({ title: "Payout recorded" });
+                          fetchData();
+                        }}>Pay</Button>
                       </div>
                     </TableCell>
                   </TableRow>
@@ -624,15 +675,59 @@ export default function AdminCircleTracker() {
               })}
             </TableBody>
           </Table>
-          {queue24h.length > 0 && (
-            <div className="p-3 border-t border-border flex justify-end">
-              <Button onClick={() => markPaid(queue24h.map((r) => r.id))}>
-                Process All ({queue24h.length})
-              </Button>
+        </CardContent>
+      </Card>
+
+      {/* Mobile cards */}
+      <div className="md:hidden space-y-3">
+        {filtered.map((r) => {
+          const payout = r.payout_amount ?? r.net_amount ?? r.fiat_amount;
+          const diff = payout - r.fiat_amount;
+          const status = STATUS_BADGE[r.status] || { label: r.status, cls: "" };
+          return (
+            <Card key={r.bid_id}>
+              <CardContent className="p-3 space-y-2">
+                <div className="flex items-center justify-between">
+                  <div className="font-medium">{r.full_name}</div>
+                  <Badge className={TIER_COLORS[r.tier]} variant="outline">{r.tier}</Badge>
+                </div>
+                <div className="text-sm">{zar(r.fiat_amount)} → {zar(payout)} {diff > 0 && <span className="text-emerald-600">(+{zar(diff)})</span>}</div>
+                <CountdownCell hours={r.hours_remaining} tier={r.tier} />
+                <div className="flex items-center justify-between text-xs">
+                  <button onClick={() => setBreakdownRow(r)} className="hover:underline">
+                    Score: {r.priority_score.toFixed(0)} (#{r.priority_rank || "—"} of {r.total_in_tier || "—"})
+                  </button>
+                  <Badge className={status.cls} variant="outline">{status.label}</Badge>
+                </div>
+                <BankingCell row={r} />
+              </CardContent>
+            </Card>
+          );
+        })}
+      </div>
+
+      {/* Score breakdown modal */}
+      <Dialog open={!!breakdownRow} onOpenChange={(o) => !o && setBreakdownRow(null)}>
+        <DialogContent>
+          <DialogHeader><DialogTitle>Priority Score Breakdown</DialogTitle></DialogHeader>
+          {breakdownRow && (
+            <div className="space-y-2 text-sm">
+              <div className="text-muted-foreground">{breakdownRow.full_name} · {breakdownRow.tier}</div>
+              <div className="space-y-1 border-t pt-2">
+                <div className="flex justify-between"><span>Consistency</span><span className="font-mono">{breakdownRow.consistency_score.toFixed(1)} pts</span></div>
+                <div className="flex justify-between"><span>Time waiting</span><span className="font-mono">{breakdownRow.time_waiting_score.toFixed(1)} pts</span></div>
+                <div className="flex justify-between"><span>Contribution volume</span><span className="font-mono">{breakdownRow.contribution_volume_score.toFixed(1)} pts</span></div>
+                <div className="flex justify-between"><span>Community</span><span className="font-mono">{breakdownRow.community_score.toFixed(1)} pts</span></div>
+                <div className="flex justify-between"><span>Bid boost</span><span className="font-mono">{breakdownRow.bid_boost_score.toFixed(1)} pts</span></div>
+              </div>
+              <div className="flex justify-between border-t pt-2 font-semibold">
+                <span>TOTAL</span><span className="font-mono">{breakdownRow.priority_score.toFixed(1)} pts</span>
+              </div>
+              <div className="text-muted-foreground text-xs">Current rank: #{breakdownRow.priority_rank} of {breakdownRow.total_in_tier}</div>
             </div>
           )}
-        </div>
-      </section>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
