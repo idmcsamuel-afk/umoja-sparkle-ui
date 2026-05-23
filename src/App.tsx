@@ -182,6 +182,7 @@ const App = () => (
                 <Route path="ugc-submissions" element={<AdminUgcSubmissions />} />
                 <Route path="automations" element={<AdminAutomations />} />
                 <Route path="podcasts" element={<AdminPodcasts />} />
+                <Route path="circle-tracker" element={<AdminCircleTracker />} />
               </Route>
 
               <Route path="*" element={<NotFound />} />
