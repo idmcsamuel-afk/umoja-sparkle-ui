@@ -20,7 +20,7 @@ import { TimezoneSelector } from "@/components/umoja/TimezoneSelector";
 import { PaymentMethodSelector, type PaymentMethod } from "@/components/umoja/PaymentMethodSelector";
 import { usePaystack, buildReference } from "@/hooks/usePaystack";
 import { cn } from "@/lib/utils";
-import { CircleTierCard } from "@/components/umoja/CircleTierCard";
+import { CircleTierCard, type MyQueueStatus } from "@/components/umoja/CircleTierCard";
 import { ReferralPromo } from "@/components/umoja/ReferralPromo";
 import { LiveActivityTicker } from "@/components/umoja/LiveActivityTicker";
 import { useSocialProof } from "@/hooks/useSocialProof";
@@ -81,6 +81,7 @@ const Circle = () => {
   const [tiers, setTiers] = useState<Tier[]>([]);
   const [bids, setBids] = useState<Bid[]>([]);
   const [stats, setStats] = useState<Record<string, TierStats>>({});
+  const [queueStatus, setQueueStatus] = useState<Record<string, MyQueueStatus>>({});
   const [loading, setLoading] = useState(true);
   const [settings, setSettings] = useState<Settings | null>(null);
   const [isAdmin, setIsAdmin] = useState(false);
@@ -140,7 +141,7 @@ const Circle = () => {
     // Best-effort: expire any unpaid bids whose deadline has passed.
     try { await supabase.rpc("expire_unpaid_bids"); } catch {}
 
-    const [tiersRes, bidsRes, statsRes, settingsRes] = await Promise.all([
+    const [tiersRes, bidsRes, statsRes, settingsRes, queueRes] = await Promise.all([
       supabase.from("circle_tiers").select("*").order("min_entry"),
       user
         ? supabase
@@ -151,17 +152,28 @@ const Circle = () => {
         : Promise.resolve({ data: [], error: null } as const),
       supabase.rpc("circle_tier_stats"),
       supabase.rpc("get_member_platform_settings"),
+      user
+        ? supabase.rpc("get_my_circle_queue_status")
+        : Promise.resolve({ data: [], error: null } as const),
     ]);
 
     if (tiersRes.error) console.error(tiersRes.error);
     if (bidsRes.error) console.error(bidsRes.error);
     if (statsRes.error) console.error(statsRes.error);
+    if ((queueRes as any).error) console.error("[Circle] queue status error:", (queueRes as any).error);
 
     const t = (tiersRes.data ?? []) as Tier[];
     setTiers(t);
     setBids((bidsRes.data ?? []) as Bid[]);
     const settingsRow = Array.isArray(settingsRes.data) ? settingsRes.data[0] : settingsRes.data;
     setSettings((settingsRow ?? null) as Settings | null);
+
+    const qmap: Record<string, MyQueueStatus> = {};
+    for (const r of (((queueRes as any).data ?? []) as MyQueueStatus[])) {
+      qmap[(r as any).tier] = r;
+    }
+    setQueueStatus(qmap);
+    console.log("[Circle] user queue status:", { userId: user?.id, queue: qmap });
 
     const grouped: Record<string, TierStats> = {};
     for (const tier of t) {
@@ -182,6 +194,19 @@ const Circle = () => {
 
   useEffect(() => {
     load();
+    if (!user) return;
+    const ch = supabase
+      .channel(`user_circle_updates_${user.id}`)
+      .on(
+        "postgres_changes",
+        { event: "*", schema: "public", table: "circle_bids", filter: `member_id=eq.${user.id}` },
+        (payload) => {
+          console.log("[Circle] bid changed:", payload);
+          load();
+        },
+      )
+      .subscribe();
+    return () => { supabase.removeChannel(ch); };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [user?.id]);
 
@@ -562,6 +587,8 @@ const Circle = () => {
                     onBidMax={() => startBid(t, t.max_entry)}
                     payoutsThisWeek={proof.payoutsThisWeekByTier[t.tier] ?? 0}
                     liveBidders={proof.liveBiddersByTier[t.tier] ?? 0}
+                    activeInTier={s.members}
+                    myStatus={queueStatus[t.tier] ?? null}
                   />
                 );
               })}

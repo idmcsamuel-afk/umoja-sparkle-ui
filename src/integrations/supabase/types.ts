@@ -5505,6 +5505,27 @@ export type Database = {
           seed_override_open: boolean
         }[]
       }
+      get_my_circle_queue_status: {
+        Args: never
+        Returns: {
+          bid_id: string
+          created_at: string
+          days_remaining: number
+          effective_vault_end: string
+          fiat_amount: number
+          hours_remaining: number
+          payment_confirmed_at: string
+          payout_amount: number
+          payout_date: string
+          priority_score: number
+          queue_position: number
+          status: string
+          tier: string
+          total_active: number
+          vault_end: string
+          vault_start: string
+        }[]
+      }
       get_predictor_answer: { Args: { _question: string }; Returns: string }
       increment_podcast_play: { Args: { _episode: string }; Returns: undefined }
       increment_storefront_view: {
