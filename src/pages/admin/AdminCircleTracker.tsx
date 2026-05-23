@@ -14,10 +14,12 @@ import {
 import { Progress } from "@/components/ui/progress";
 import {
   Loader2, RefreshCw, Download, Bell, CheckCircle2, AlertTriangle, AlertCircle, Info,
+  Copy, Eye, EyeOff, MessageCircle, Mail,
 } from "lucide-react";
 import { toast } from "sonner";
 
 const TIER_DAYS: Record<string, number> = { seed: 5, growth: 7, harvest: 14 };
+const TIER_MULT: Record<string, number> = { seed: 1.14, growth: 1.22, harvest: 1.35 };
 
 type Row = {
   id: string;
@@ -29,13 +31,19 @@ type Row = {
   status: string;
   payment_status: string | null;
   payment_method: string | null;
+  payment_reference: string | null;
+  payment_ref: string | null;
+  paystack_reference: string | null;
   payment_confirmed_at: string | null;
   payment_completed_at: string | null;
   vault_start: string | null;
   vault_end: string | null;
   created_at: string;
   priority_score: number | null;
-  member?: { full_name: string | null; email: string | null; phone: string | null };
+  member?: {
+    full_name: string | null; email: string | null; phone: string | null;
+    bank_name: string | null; bank_account: string | null; bank_branch: string | null;
+  };
 };
 
 const fmtR = (n: number) =>
@@ -49,11 +57,11 @@ function timeParts(ms: number) {
   return { d, h, m, neg: ms < 0 };
 }
 
-function urgencyTone(msRemaining: number): { label: string; tone: string; pulse: boolean } {
-  if (msRemaining < 0) return { label: "Overdue", tone: "bg-red-600 text-white", pulse: true };
-  if (msRemaining < 86400000) return { label: "<24h", tone: "bg-red-500 text-white", pulse: false };
-  if (msRemaining < 2 * 86400000) return { label: "1-2d", tone: "bg-yellow-500 text-black", pulse: false };
-  return { label: "On track", tone: "bg-green-600 text-white", pulse: false };
+function urgencyTone(msRemaining: number): { tone: string; pulse: boolean } {
+  if (msRemaining < 0) return { tone: "bg-red-600 text-white", pulse: true };
+  if (msRemaining < 86400000) return { tone: "bg-red-500 text-white", pulse: false };
+  if (msRemaining < 2 * 86400000) return { tone: "bg-yellow-500 text-black", pulse: false };
+  return { tone: "bg-green-600 text-white", pulse: false };
 }
 
 function vaultBounds(r: Row) {
@@ -65,6 +73,52 @@ function vaultBounds(r: Row) {
   return { start, end, days };
 }
 
+function expectedPayout(r: Row) {
+  if (r.payout_amount && Number(r.payout_amount) > 0) return Number(r.payout_amount);
+  const mult = TIER_MULT[r.tier] ?? 1.14;
+  return Math.round(Number(r.fiat_amount) * mult * 100) / 100;
+}
+
+function getRef(r: Row) {
+  return r.payment_reference || r.payment_ref || r.paystack_reference || "";
+}
+
+async function copyText(text: string, label = "Copied") {
+  try {
+    await navigator.clipboard.writeText(text);
+    toast.success(`${label}: ${text}`);
+  } catch {
+    toast.error("Copy failed");
+  }
+}
+
+function MaskedAccount({ value }: { value: string | null | undefined }) {
+  const [show, setShow] = useState(false);
+  if (!value) return <span className="text-muted-foreground">—</span>;
+  const last4 = value.slice(-4);
+  return (
+    <span className="inline-flex items-center gap-1 font-mono text-xs">
+      {show ? value : `****${last4}`}
+      <button
+        type="button"
+        onClick={() => setShow((s) => !s)}
+        className="text-muted-foreground hover:text-foreground"
+        title={show ? "Hide" : "Show full"}
+      >
+        {show ? <EyeOff className="h-3 w-3" /> : <Eye className="h-3 w-3" />}
+      </button>
+      <button
+        type="button"
+        onClick={() => copyText(value, "Account")}
+        className="text-muted-foreground hover:text-foreground"
+        title="Copy"
+      >
+        <Copy className="h-3 w-3" />
+      </button>
+    </span>
+  );
+}
+
 export default function AdminCircleTracker() {
   const [rows, setRows] = useState<Row[]>([]);
   const [loading, setLoading] = useState(true);
@@ -74,6 +128,7 @@ export default function AdminCircleTracker() {
   const [statusFilter, setStatusFilter] = useState<string>("all");
   const [methodFilter, setMethodFilter] = useState<string>("all");
   const [windowFilter, setWindowFilter] = useState<string>("all");
+  const [quickFilter, setQuickFilter] = useState<string>("none");
   const [sortBy, setSortBy] = useState<string>("remaining");
   const [search, setSearch] = useState("");
 
@@ -83,9 +138,10 @@ export default function AdminCircleTracker() {
       .from("circle_bids")
       .select(`
         id, member_id, tier, fiat_amount, net_amount, payout_amount, status,
-        payment_status, payment_method, payment_confirmed_at, payment_completed_at,
+        payment_status, payment_method, payment_reference, payment_ref, paystack_reference,
+        payment_confirmed_at, payment_completed_at,
         vault_start, vault_end, created_at, priority_score,
-        member:members!circle_bids_member_id_fkey ( full_name, email, phone )
+        member:members!circle_bids_member_id_fkey ( full_name, email, phone, bank_name, bank_account, bank_branch )
       `)
       .in("status", ["active", "matched", "payment_pending"])
       .order("created_at", { ascending: true })
@@ -101,7 +157,6 @@ export default function AdminCircleTracker() {
     return () => clearInterval(t);
   }, []);
 
-  // Rank by priority within tier
   const rankedRows = useMemo(() => {
     const enriched = rows.map((r) => {
       const { start, end, days } = vaultBounds(r);
@@ -110,11 +165,13 @@ export default function AdminCircleTracker() {
       const progress = Math.max(0, Math.min(100, (elapsedMs / (days * 86400000)) * 100));
       return { ...r, _start: start, _end: end, _days: days, _remainingMs: remainingMs, _progress: progress };
     });
-    // rank per tier by priority_score desc
     const byTier: Record<string, typeof enriched> = {};
     for (const r of enriched) (byTier[r.tier] ||= []).push(r);
     for (const t in byTier) {
-      byTier[t].sort((a, b) => (b.priority_score ?? 0) - (a.priority_score ?? 0));
+      byTier[t].sort((a, b) =>
+        (b.priority_score ?? 0) - (a.priority_score ?? 0)
+        || new Date(a.created_at).getTime() - new Date(b.created_at).getTime()
+      );
       byTier[t].forEach((r, i) => ((r as any)._rank = i + 1));
       byTier[t].forEach((r) => ((r as any)._rankTotal = byTier[t].length));
     }
@@ -136,11 +193,17 @@ export default function AdminCircleTracker() {
         return true;
       });
     }
+    if (quickFilter === "due24") list = list.filter((r) => r._remainingMs <= 86400000 && r._remainingMs >= 0);
+    if (quickFilter === "overdue") list = list.filter((r) => r._remainingMs < 0);
+    if (quickFilter === "high") list = list.filter((r) => (r.priority_score ?? 0) > 300);
+
     if (search.trim()) {
       const s = search.toLowerCase();
       list = list.filter((r) =>
         (r.member?.full_name || "").toLowerCase().includes(s) ||
-        (r.member?.email || "").toLowerCase().includes(s),
+        (r.member?.email || "").toLowerCase().includes(s) ||
+        (r.member?.phone || "").toLowerCase().includes(s) ||
+        getRef(r).toLowerCase().includes(s),
       );
     }
     const sorted = [...list];
@@ -155,7 +218,7 @@ export default function AdminCircleTracker() {
       }
     });
     return sorted;
-  }, [rankedRows, tierFilter, statusFilter, methodFilter, windowFilter, search, sortBy]);
+  }, [rankedRows, tierFilter, statusFilter, methodFilter, windowFilter, quickFilter, search, sortBy]);
 
   const alerts = useMemo(() => {
     const overdue = rankedRows.filter((r) => r._remainingMs < 0).length;
@@ -180,28 +243,26 @@ export default function AdminCircleTracker() {
   const toggleAll = () =>
     setSelected((s) => (s.size === filtered.length ? new Set() : new Set(filtered.map((r) => r.id))));
 
-  const exportCsv = () => {
-    const headers = ["Member", "Email", "Tier", "Amount", "Net", "PaidAt", "PayoutDue", "RemainingHours", "Priority", "Status", "Method"];
+  const exportPayoutCsv = (source: typeof filtered) => {
+    const headers = ["Member", "Phone", "Bank", "AccountNumber", "BranchCode", "PayoutAmount", "PaymentReference", "Tier", "Email"];
     const lines = [headers.join(",")];
-    for (const r of filtered) {
+    for (const r of source) {
       lines.push([
         `"${(r.member?.full_name || "").replace(/"/g, "")}"`,
-        r.member?.email || "",
+        r.member?.phone || "",
+        `"${(r.member?.bank_name || "").replace(/"/g, "")}"`,
+        r.member?.bank_account || "",
+        r.member?.bank_branch || "",
+        expectedPayout(r),
+        getRef(r),
         r.tier,
-        r.fiat_amount,
-        r.net_amount,
-        new Date(r._start).toISOString(),
-        new Date(r._end).toISOString(),
-        Math.round(r._remainingMs / 3600000),
-        r.priority_score ?? 0,
-        r.payment_status || r.status,
-        r.payment_method || "manual",
+        r.member?.email || "",
       ].join(","));
     }
     const blob = new Blob([lines.join("\n")], { type: "text/csv" });
     const url = URL.createObjectURL(blob);
     const a = document.createElement("a");
-    a.href = url; a.download = `circle-tracker-${Date.now()}.csv`; a.click();
+    a.href = url; a.download = `payout-batch-${Date.now()}.csv`; a.click();
     URL.revokeObjectURL(url);
   };
 
@@ -212,7 +273,7 @@ export default function AdminCircleTracker() {
     for (const id of ids) {
       const row = rows.find((r) => r.id === id);
       if (!row) continue;
-      const amt = Number(row.payout_amount ?? row.net_amount ?? row.fiat_amount);
+      const amt = expectedPayout(row);
       const { error } = await supabase.rpc("record_circle_payout", {
         _bid_id: id, _net_amount: amt, _method: "manual", _reference: ref, _paid_on: new Date().toISOString(),
       });
@@ -245,7 +306,7 @@ export default function AdminCircleTracker() {
         <div>
           <h1 className="text-2xl font-semibold">Circle Payment Tracker</h1>
           <p className="text-sm text-muted-foreground">
-            Live countdown, priority scores, and payout queue across all active circles.
+            Live countdown, existing priority scores, payout queue and banking details.
           </p>
         </div>
         <div className="flex gap-2">
@@ -253,8 +314,8 @@ export default function AdminCircleTracker() {
             {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : <RefreshCw className="h-4 w-4" />}
             <span className="ml-2">Refresh</span>
           </Button>
-          <Button variant="outline" size="sm" onClick={exportCsv}>
-            <Download className="h-4 w-4 mr-2" /> Export CSV
+          <Button variant="outline" size="sm" onClick={() => exportPayoutCsv(filtered)}>
+            <Download className="h-4 w-4 mr-2" /> Export Payout CSV
           </Button>
         </div>
       </div>
@@ -284,23 +345,41 @@ export default function AdminCircleTracker() {
         </div>
       </div>
 
+      {/* Quick filters */}
+      <div className="flex flex-wrap gap-2">
+        {[
+          { id: "none", label: "All" },
+          { id: "due24", label: "Due in 24h" },
+          { id: "overdue", label: "Overdue" },
+          { id: "high", label: "High Score (>300)" },
+        ].map((q) => (
+          <Button
+            key={q.id}
+            size="sm"
+            variant={quickFilter === q.id ? "default" : "outline"}
+            onClick={() => setQuickFilter(q.id)}
+          >{q.label}</Button>
+        ))}
+        <div className="mx-2 h-8 w-px bg-border" />
+        {["all", "seed", "growth", "harvest"].map((t) => (
+          <Button
+            key={t}
+            size="sm"
+            variant={tierFilter === t ? "default" : "outline"}
+            onClick={() => setTierFilter(t)}
+            className="capitalize"
+          >{t}</Button>
+        ))}
+      </div>
+
       {/* Filters */}
       <div className="flex flex-wrap gap-2">
         <Input
-          placeholder="Search member…"
+          placeholder="Search name, email, phone, reference…"
           value={search}
           onChange={(e) => setSearch(e.target.value)}
-          className="w-56"
+          className="w-72"
         />
-        <Select value={tierFilter} onValueChange={setTierFilter}>
-          <SelectTrigger className="w-36"><SelectValue placeholder="Tier" /></SelectTrigger>
-          <SelectContent>
-            <SelectItem value="all">All tiers</SelectItem>
-            <SelectItem value="seed">Seed</SelectItem>
-            <SelectItem value="growth">Growth</SelectItem>
-            <SelectItem value="harvest">Harvest</SelectItem>
-          </SelectContent>
-        </Select>
         <Select value={statusFilter} onValueChange={setStatusFilter}>
           <SelectTrigger className="w-40"><SelectValue placeholder="Status" /></SelectTrigger>
           <SelectContent>
@@ -351,6 +430,9 @@ export default function AdminCircleTracker() {
           <Button size="sm" variant="outline" onClick={() => sendReminders([...selected])}>
             <Bell className="h-4 w-4 mr-1" /> Send Reminder
           </Button>
+          <Button size="sm" variant="outline" onClick={() => exportPayoutCsv(filtered.filter(r => selected.has(r.id)))}>
+            <Download className="h-4 w-4 mr-1" /> Export Selected
+          </Button>
           <Button size="sm" variant="ghost" onClick={() => setSelected(new Set())}>Clear</Button>
         </div>
       )}
@@ -368,12 +450,12 @@ export default function AdminCircleTracker() {
               </TableHead>
               <TableHead>Member</TableHead>
               <TableHead>Tier</TableHead>
-              <TableHead>Amount</TableHead>
-              <TableHead>Paid</TableHead>
-              <TableHead className="min-w-[220px]">Countdown</TableHead>
+              <TableHead>Payout (calc)</TableHead>
+              <TableHead className="min-w-[240px]">Countdown</TableHead>
               <TableHead>Priority</TableHead>
-              <TableHead>Status</TableHead>
-              <TableHead>Action</TableHead>
+              <TableHead>Payment Ref</TableHead>
+              <TableHead className="min-w-[240px]">Banking</TableHead>
+              <TableHead>Actions</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
@@ -385,6 +467,11 @@ export default function AdminCircleTracker() {
             {filtered.map((r) => {
               const u = urgencyTone(r._remainingMs);
               const tp = timeParts(r._remainingMs);
+              const ref = getRef(r);
+              const payout = expectedPayout(r);
+              const bonus = payout - Number(r.fiat_amount);
+              const pct = Math.round((bonus / Number(r.fiat_amount)) * 100);
+              const phone = (r.member?.phone || "").replace(/[^\d]/g, "");
               return (
                 <TableRow key={r.id}>
                   <TableCell>
@@ -396,34 +483,76 @@ export default function AdminCircleTracker() {
                       {r.member?.full_name || "—"}
                     </Link>
                     <div className="text-xs text-muted-foreground">{r.member?.email}</div>
+                    <div className="text-xs text-muted-foreground">{r.member?.phone || ""}</div>
                   </TableCell>
                   <TableCell><Badge variant="secondary" className="capitalize">{r.tier}</Badge></TableCell>
-                  <TableCell className="font-mono text-sm">{fmtR(Number(r.fiat_amount))}</TableCell>
-                  <TableCell className="text-xs text-muted-foreground">
-                    {new Date(r._start).toLocaleDateString()}
+                  <TableCell>
+                    <div className="font-mono text-sm">{fmtR(Number(r.fiat_amount))} → <span className="text-green-500 font-semibold">{fmtR(payout)}</span></div>
+                    <div className="text-[10px] text-muted-foreground">+{fmtR(bonus)} ({pct}%)</div>
                   </TableCell>
                   <TableCell>
                     <div className={`inline-flex items-center gap-2 rounded-md px-2 py-0.5 text-xs font-medium ${u.tone} ${u.pulse ? "animate-pulse" : ""}`}>
                       {tp.neg ? "OVERDUE " : ""}{tp.d}d {tp.h}h {tp.m}m
                     </div>
                     <Progress value={r._progress} className="h-1.5 mt-2 w-44" />
+                    <div className="text-[10px] text-muted-foreground mt-1">
+                      Paid {new Date(r._start).toLocaleDateString()} · Due {new Date(r._end).toLocaleDateString()}
+                    </div>
                   </TableCell>
                   <TableCell>
-                    <div className="text-sm font-semibold">{Math.round(r.priority_score ?? 0)}</div>
+                    <div className="text-sm font-semibold">{Math.round(r.priority_score ?? 0)}/100</div>
                     <div className="text-[10px] text-muted-foreground">
                       Rank #{(r as any)._rank}/{(r as any)._rankTotal}
                     </div>
                   </TableCell>
                   <TableCell>
-                    <Badge variant="outline" className="text-xs capitalize">
-                      {(r.payment_status || r.status || "—").replace("_", " ")}
-                    </Badge>
-                    <div className="text-[10px] text-muted-foreground capitalize">
-                      {r.payment_method || "manual"}
+                    {ref ? (
+                      <button
+                        onClick={() => copyText(ref, "Reference")}
+                        className="inline-flex items-center gap-1 font-mono text-xs hover:text-accent"
+                        title="Copy reference"
+                      >
+                        {ref.length > 16 ? ref.slice(0, 14) + "…" : ref}
+                        <Copy className="h-3 w-3" />
+                      </button>
+                    ) : <span className="text-xs text-muted-foreground">—</span>}
+                    <div className="text-[10px] text-muted-foreground capitalize">{r.payment_method || "manual"}</div>
+                  </TableCell>
+                  <TableCell>
+                    <div className="text-xs font-medium">{r.member?.bank_name || "—"}</div>
+                    <MaskedAccount value={r.member?.bank_account} />
+                    <div className="text-[10px] text-muted-foreground">
+                      Branch: {r.member?.bank_branch || "—"}
                     </div>
                   </TableCell>
                   <TableCell>
-                    <Button size="sm" variant="outline" onClick={() => markPaid([r.id])}>Pay</Button>
+                    <div className="flex flex-wrap gap-1">
+                      <Button size="sm" variant="outline" title="Process payout" onClick={() => markPaid([r.id])}>
+                        <CheckCircle2 className="h-3 w-3" />
+                      </Button>
+                      <Button size="sm" variant="outline" title="Copy ref" onClick={() => copyText(ref || "—", "Reference")} disabled={!ref}>
+                        <Copy className="h-3 w-3" />
+                      </Button>
+                      {r.member?.bank_account && (
+                        <Button size="sm" variant="outline" title="Copy account" onClick={() => copyText(r.member!.bank_account!, "Account")}>
+                          <Eye className="h-3 w-3" />
+                        </Button>
+                      )}
+                      {phone && (
+                        <a href={`https://wa.me/${phone.replace(/^0/, "27")}`} target="_blank" rel="noopener noreferrer">
+                          <Button size="sm" variant="outline" title="WhatsApp">
+                            <MessageCircle className="h-3 w-3" />
+                          </Button>
+                        </a>
+                      )}
+                      {r.member?.email && (
+                        <a href={`mailto:${r.member.email}`}>
+                          <Button size="sm" variant="outline" title="Email">
+                            <Mail className="h-3 w-3" />
+                          </Button>
+                        </a>
+                      )}
+                    </div>
                   </TableCell>
                 </TableRow>
               );
@@ -434,41 +563,61 @@ export default function AdminCircleTracker() {
 
       {/* Payout queue */}
       <section className="space-y-3">
-        <h2 className="text-lg font-semibold">Ready for Payout · Next 24 hours</h2>
+        <div className="flex items-center justify-between">
+          <h2 className="text-lg font-semibold">Ready for Payout · Next 24 hours</h2>
+          {queue24h.length > 0 && (
+            <Button size="sm" variant="outline" onClick={() => exportPayoutCsv(queue24h)}>
+              <Download className="h-4 w-4 mr-2" /> Export Queue
+            </Button>
+          )}
+        </div>
         <div className="rounded-2xl border border-border bg-card overflow-x-auto">
           <Table>
             <TableHeader>
               <TableRow>
+                <TableHead>#</TableHead>
                 <TableHead>Member</TableHead>
-                <TableHead>Amount</TableHead>
-                <TableHead>Tier</TableHead>
+                <TableHead>Payout</TableHead>
+                <TableHead>Banking</TableHead>
+                <TableHead>Score</TableHead>
                 <TableHead>Remaining</TableHead>
-                <TableHead>Priority</TableHead>
                 <TableHead>Action</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
               {queue24h.length === 0 && (
-                <TableRow><TableCell colSpan={6} className="text-center text-muted-foreground py-6">
+                <TableRow><TableCell colSpan={7} className="text-center text-muted-foreground py-6">
                   Nothing due in the next 24 hours.
                 </TableCell></TableRow>
               )}
-              {queue24h.map((r) => {
+              {queue24h.map((r, i) => {
                 const tp = timeParts(r._remainingMs);
+                const payout = expectedPayout(r);
                 return (
                   <TableRow key={r.id}>
+                    <TableCell className="font-semibold">#{i + 1}</TableCell>
                     <TableCell>
                       <div className="text-sm font-medium">{r.member?.full_name || "—"}</div>
                       <div className="text-xs text-muted-foreground">{r.member?.phone || r.member?.email}</div>
                     </TableCell>
-                    <TableCell className="font-mono text-sm">{fmtR(Number(r.payout_amount ?? r.net_amount ?? r.fiat_amount))}</TableCell>
-                    <TableCell><Badge variant="secondary" className="capitalize">{r.tier}</Badge></TableCell>
+                    <TableCell className="font-mono text-sm text-green-500 font-semibold">{fmtR(payout)}</TableCell>
+                    <TableCell className="text-xs">
+                      {r.member?.bank_name || "—"} · <MaskedAccount value={r.member?.bank_account} />
+                    </TableCell>
+                    <TableCell>{Math.round(r.priority_score ?? 0)}</TableCell>
                     <TableCell className={tp.neg ? "text-red-500 font-semibold" : ""}>
                       {tp.neg ? "OVERDUE " : ""}{tp.d}d {tp.h}h {tp.m}m
                     </TableCell>
-                    <TableCell>{Math.round(r.priority_score ?? 0)}</TableCell>
                     <TableCell>
-                      <Button size="sm" onClick={() => markPaid([r.id])}>Process</Button>
+                      <div className="flex gap-1">
+                        <Button size="sm" onClick={() => markPaid([r.id])}>Process</Button>
+                        <Button size="sm" variant="outline" onClick={() => {
+                          const text = `${r.member?.full_name}\n${r.member?.bank_name} ${r.member?.bank_account} (Branch ${r.member?.bank_branch})\nAmount: ${fmtR(payout)}\nRef: ${getRef(r) || r.id}`;
+                          copyText(text, "Details");
+                        }}>
+                          <Copy className="h-3 w-3" />
+                        </Button>
+                      </div>
                     </TableCell>
                   </TableRow>
                 );
