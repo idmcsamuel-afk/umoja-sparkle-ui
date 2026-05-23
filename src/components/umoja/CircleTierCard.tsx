@@ -182,6 +182,8 @@ export function CircleTierCard({
   onBidMax,
   payoutsThisWeek = 0,
   liveBidders = 0,
+  activeInTier,
+  myStatus = null,
 }: Props) {
   const locked = !tier.is_active;
   const disabled = locked || !sessionOpen;
@@ -193,6 +195,7 @@ export function CircleTierCard({
   const emoji = TIER_EMOJI[tier.tier] ?? "✦";
 
   const my = myTotal > 0 ? computeReturns(myTotal, grossRate) : null;
+  const queueCount = typeof activeInTier === "number" ? activeInTier : (myStatus?.total_active ?? 0);
 
   return (
     <article
