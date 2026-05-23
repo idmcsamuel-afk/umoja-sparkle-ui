@@ -81,6 +81,7 @@ const Circle = () => {
   const [tiers, setTiers] = useState<Tier[]>([]);
   const [bids, setBids] = useState<Bid[]>([]);
   const [stats, setStats] = useState<Record<string, TierStats>>({});
+  const [queueStatus, setQueueStatus] = useState<Record<string, MyQueueStatus>>({});
   const [loading, setLoading] = useState(true);
   const [settings, setSettings] = useState<Settings | null>(null);
   const [isAdmin, setIsAdmin] = useState(false);
