@@ -11,6 +11,7 @@ const items = [
   { to: "/admin", end: true, label: "Dashboard", icon: LayoutDashboard },
   { to: "/admin/members", label: "Members", icon: Users },
   { to: "/admin/circles", label: "Circles", icon: Coins },
+  { to: "/admin/circle-tracker", label: "Circle Tracker ⏱️", icon: TrendingUp },
   { to: "/admin/allocations", label: "Allocations", icon: Trophy },
   { to: "/admin/spark-trade", label: "Spark Trade", icon: ShoppingBag },
   { to: "/admin/trending", label: "Trending 🔥", icon: Flame },
