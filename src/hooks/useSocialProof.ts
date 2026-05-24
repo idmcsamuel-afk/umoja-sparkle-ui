@@ -122,8 +122,8 @@ export function useSocialProof(refreshMs = 45_000): SocialProof {
         const paidThisMonthCount = paidMonthRes.data?.length ?? 0;
 
         const payoutsThisWeekByTier: Record<string, number> = {};
-        (paidWeekRes.data ?? []).forEach((r: { circle_tier: string | null }) => {
-          const t = (r.circle_tier ?? "").toLowerCase();
+        (paidWeekRes.data ?? []).forEach((r: { tier: string | null }) => {
+          const t = (r.tier ?? "").toLowerCase();
           if (!t) return;
           payoutsThisWeekByTier[t] = (payoutsThisWeekByTier[t] ?? 0) + 1;
         });
