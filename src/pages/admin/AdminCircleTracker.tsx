@@ -367,6 +367,7 @@ export default function AdminCircleTracker() {
     paid: ticked.filter((r) => r.status === "paid").length,
     pending: ticked.filter((r) => r.status === "pending" || r.status === "payment_pending").length,
     rejected: ticked.filter((r) => r.status === "rejected").length,
+    expired: ticked.filter((r) => r.status === "expired").length,
     due_today: ticked.filter((r) => r.hours_remaining !== null && r.hours_remaining >= 0 && r.hours_remaining <= 24).length,
   }), [ticked]);
 
