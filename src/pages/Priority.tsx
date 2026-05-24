@@ -250,7 +250,7 @@ export default function Priority() {
       const userBidsForScore = ((userBidsRes as { data: CircleBidForScore[] | null }).data ?? []);
       const liveScore = calculatePriorityScore(memberForScore, userBidsForScore, tier);
       let userRank: number | null = null;
-      if (activeUserBid) {
+      if (activeUserBid?.created_at) {
         const { count: betterBids, error: betterBidsError } = await supabase
           .from("circle_bids")
           .select("*", { count: "exact", head: true })
@@ -260,6 +260,8 @@ export default function Priority() {
           .lt("created_at", activeUserBid.created_at);
         if (betterBidsError) console.error(betterBidsError);
         userRank = (betterBids ?? 0) + 1;
+      } else if (activeUserBid) {
+        userRank = 1;
       }
 
       const activeRows = [...((activeRowsRes.data ?? []) as CircleBidForScore[])];
@@ -279,8 +281,8 @@ export default function Priority() {
           ? liveScore.totalScore
           : 40 + Math.min(daysWaiting, 30) + contributionScore + bidBoostScore;
         return {
-        bid_id: bid.id,
-        member_id: bid.member_id,
+        bid_id: bid.id ?? `${bid.member_id ?? "member"}-${bid.created_at ?? "active"}`,
+        member_id: bid.member_id ?? "",
         full_name: isUserBid ? "You" : "Member",
         fiat_amount: isUserBid ? liveScore.bidAmount : bidAmount,
         consistency_pct: isUserBid ? liveScore.paymentRate * 100 : 100,
