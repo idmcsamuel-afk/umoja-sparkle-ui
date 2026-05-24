@@ -705,7 +705,18 @@ export default function AdminCircleTracker() {
                         </button>
                       ) : <span className="text-xs text-muted-foreground">—</span>}
                     </TableCell>
-                    <TableCell><CountdownCell hours={r.hours_remaining} tier={r.tier} /></TableCell>
+                    <TableCell>
+                      {r.status === "paid" ? (
+                        <div className="text-xs">
+                          <div className="font-medium text-purple-600 dark:text-purple-400">Paid</div>
+                          <div className="text-muted-foreground">
+                            {r.payout_date ? new Date(r.payout_date).toLocaleDateString() : "—"}
+                          </div>
+                        </div>
+                      ) : (
+                        <CountdownCell hours={r.hours_remaining} tier={r.tier} />
+                      )}
+                    </TableCell>
                     <TableCell>
                       <button className="text-left text-xs hover:underline" onClick={() => setBreakdownRow(r)}>
                         <div className="font-medium flex items-center gap-1"><TrendingUp className="h-3 w-3" />{r.priority_score.toFixed(0)}/100</div>
