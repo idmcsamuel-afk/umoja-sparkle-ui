@@ -175,13 +175,13 @@ export default function Priority() {
       console.log("[Priority] my bid:", { bid, bidErr, tier });
       setMyBid((bid as MyBid) ?? null);
 
-      const { data: me } = await supabase
-        .from("members")
-        .select("referral_count, kyc_level")
-        .eq("id", user.id)
-        .maybeSingle();
+      const [{ data: me }, { data: referralStats }] = await Promise.all([
+        supabase.from("members").select("kyc_level").eq("id", user.id).maybeSingle(),
+        supabase.rpc("referral_stats", { _member: user.id }),
+      ]);
+      const referralRow = Array.isArray(referralStats) ? referralStats[0] : referralStats;
       setCommunity({
-        referrals: Number((me as MemberForScore | null)?.referral_count ?? 0),
+        referrals: Number(referralRow?.total_refs ?? 0),
         kyc_level: Number((me as MemberForScore | null)?.kyc_level ?? 0),
       });
     })();
@@ -190,7 +190,7 @@ export default function Priority() {
   useEffect(() => {
     setLoading(true);
     (async () => {
-      const [activeCountRes, activeRowsRes, userBidRes, memberRes, userBidsRes] = await Promise.all([
+      const [activeCountRes, activeRowsRes, userBidRes, memberRes, userBidsRes, referralStatsRes] = await Promise.all([
         supabase
           .from("circle_bids")
           .select("*", { count: "exact", head: true })
@@ -218,7 +218,7 @@ export default function Priority() {
               .maybeSingle()
           : Promise.resolve({ data: null, error: null } as const),
         user?.id
-          ? supabase.from("members").select("*").eq("id", user.id).single()
+          ? supabase.from("members").select("kyc_level").eq("id", user.id).single()
           : Promise.resolve({ data: null, error: null } as const),
         user?.id
           ? supabase
@@ -227,6 +227,9 @@ export default function Priority() {
               .eq("member_id", user.id)
               .order("created_at", { ascending: false })
           : Promise.resolve({ data: [], error: null } as const),
+        user?.id
+          ? supabase.rpc("referral_stats", { _member: user.id })
+          : Promise.resolve({ data: null, error: null } as const),
       ]);
 
       if (activeCountRes.error) console.error(activeCountRes.error);
@@ -234,9 +237,16 @@ export default function Priority() {
       if ((userBidRes as any).error) console.error((userBidRes as any).error);
       if ((memberRes as any).error) console.error((memberRes as any).error);
       if ((userBidsRes as any).error) console.error((userBidsRes as any).error);
+      if ((referralStatsRes as any).error) console.error((referralStatsRes as any).error);
 
       const activeUserBid = (userBidRes as { data: CircleBidForScore | null }).data;
-      const memberForScore = (memberRes as { data: MemberForScore | null }).data;
+      const referralStatsRow = Array.isArray((referralStatsRes as { data: any }).data)
+        ? (referralStatsRes as { data: Array<{ total_refs?: number }> }).data[0]
+        : (referralStatsRes as { data: { total_refs?: number } | null }).data;
+      const memberForScore = {
+        ...((memberRes as { data: MemberForScore | null }).data ?? {}),
+        referral_count: Number(referralStatsRow?.total_refs ?? 0),
+      };
       const userBidsForScore = ((userBidsRes as { data: CircleBidForScore[] | null }).data ?? []);
       const liveScore = calculatePriorityScore(memberForScore, userBidsForScore, tier);
       let userRank: number | null = null;
