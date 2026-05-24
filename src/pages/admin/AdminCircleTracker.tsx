@@ -615,10 +615,11 @@ export default function AdminCircleTracker() {
       <Tabs value={quickTab} onValueChange={setQuickTab}>
         <TabsList className="flex-wrap h-auto">
           <TabsTrigger value="all">All ({counts.all})</TabsTrigger>
-          <TabsTrigger value="due_today">Due Today ({counts.due_today})</TabsTrigger>
-          <TabsTrigger value="overdue">Overdue ({counts.overdue})</TabsTrigger>
-          <TabsTrigger value="payment_pending">Payment Pending ({counts.payment_pending})</TabsTrigger>
-          <TabsTrigger value="high_priority">High Priority ({counts.high_priority})</TabsTrigger>
+          <TabsTrigger value="active" className="data-[state=active]:bg-emerald-500/15 data-[state=active]:text-emerald-700">Active ({counts.active})</TabsTrigger>
+          <TabsTrigger value="overdue" className="data-[state=active]:bg-red-500/15 data-[state=active]:text-red-700">Overdue ({counts.overdue})</TabsTrigger>
+          <TabsTrigger value="paid" className="data-[state=active]:bg-purple-500/15 data-[state=active]:text-purple-700">Paid ({counts.paid})</TabsTrigger>
+          <TabsTrigger value="pending" className="data-[state=active]:bg-yellow-500/15 data-[state=active]:text-yellow-700">Pending ({counts.pending})</TabsTrigger>
+          <TabsTrigger value="rejected">Rejected ({counts.rejected})</TabsTrigger>
         </TabsList>
       </Tabs>
 
