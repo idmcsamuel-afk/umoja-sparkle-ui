@@ -153,6 +153,16 @@ async function verifyUrl(url: string, label: string): Promise<boolean> {
 
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response("ok", { headers: corsHeaders });
+  const _cron = Deno.env.get("CRON_SECRET");
+  const _authHeader = req.headers.get("Authorization");
+  if ((!_cron || req.headers.get("x-cron-secret") !== _cron) && !_authHeader?.startsWith("Bearer ")) {
+    return json({ error: "Unauthorized" }, 401);
+  }
+  if (_authHeader?.startsWith("Bearer ")) {
+    const _u = createClient(SUPABASE_URL, Deno.env.get("SUPABASE_ANON_KEY") ?? "", { global: { headers: { Authorization: _authHeader } } });
+    const { data: _c, error: _e } = await _u.auth.getClaims(_authHeader.replace("Bearer ", ""));
+    if (_e || !_c?.claims) return json({ error: "Unauthorized" }, 401);
+  }
   try {
     const { contentId } = await req.json();
     if (!contentId) return json({ error: "contentId is required" }, 400);
