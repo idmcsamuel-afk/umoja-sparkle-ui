@@ -192,10 +192,17 @@ export default function Priority() {
   const me = useMemo(() => rows.find((r) => r.member_id === user?.id), [rows, user?.id]);
   const eligibleRows = useMemo(() => rows.filter((r) => r.eligible), [rows]);
   const myRank = useMemo(() => {
+    if (queueSummary.userRank) return queueSummary.userRank;
     if (!me) return null;
     const idx = rows.findIndex((r) => r.bid_id === me.bid_id);
     return idx === -1 ? null : idx + 1;
-  }, [rows, me]);
+  }, [rows, me, queueSummary.userRank]);
+
+  const queueMessage = useMemo(() => {
+    if (queueSummary.total === 0) return "No active bids yet";
+    if (queueSummary.userBidExists && myRank) return `You're in position #${myRank} of ${queueSummary.total}`;
+    return "You're not in the queue yet";
+  }, [queueSummary.total, queueSummary.userBidExists, myRank]);
 
   const estWeeks = useMemo(() => {
     if (!myRank) return null;
@@ -339,7 +346,11 @@ export default function Priority() {
                 <span className="font-display text-2xl text-gradient-gold">~{potentialScore}<span className="text-base text-muted-foreground">/100</span></span>
               </div>
               <p className="mt-1 text-[11px] text-muted-foreground">
-                Estimated rank: ~#{Math.max(1, Math.ceil(rows.length * 0.4) + 1)} of {rows.length || 0} active members
+                {queueSummary.total > 0 && queueSummary.userBidExists && myRank
+                  ? `You're in position #${myRank} of ${queueSummary.total}`
+                  : queueSummary.total > 0
+                    ? `Estimated rank: ~#${Math.max(1, Math.ceil(queueSummary.total * 0.4) + 1)} of ${queueSummary.total} active members`
+                    : "No active bids yet"}
               </p>
             </div>
           </section>
@@ -349,10 +360,10 @@ export default function Priority() {
               <div className="flex items-center gap-2">
                 <Trophy className="h-4 w-4 text-accent" />
                 <h3 className="font-display text-lg capitalize">{tier} queue</h3>
-                <span className="ml-auto text-[11px] text-muted-foreground">{rows.length} active</span>
+                <span className="ml-auto text-[11px] text-muted-foreground">{queueSummary.total} active</span>
               </div>
-              {rows.length === 0 ? (
-                <p className="mt-3 text-xs text-muted-foreground">No active bids in this tier yet — be the first.</p>
+              {queueSummary.total === 0 ? (
+                <p className="mt-3 text-xs text-muted-foreground">No active bids yet</p>
               ) : (
                 <ol className="mt-3 space-y-1.5">
                   {rows.slice(0, 10).map((r, i) => (
@@ -367,7 +378,9 @@ export default function Priority() {
                 </ol>
               )}
               <p className="mt-3 text-[11px] text-muted-foreground">
-                You're not in the queue yet — <Link to="/circle" className="underline">join {tier}</Link> to compete.
+                {queueMessage === "You're not in the queue yet" ? (
+                  <>You're not in the queue yet — <Link to="/circle" className="underline">join {tier}</Link> to compete.</>
+                ) : queueMessage}
               </p>
             </div>
           </section>
@@ -395,7 +408,7 @@ export default function Priority() {
                   <p className="font-display text-2xl">
                     {myRank ? `#${myRank}` : <span className="text-destructive text-base">Disqualified</span>}
                   </p>
-                  <p className="text-[10px] text-muted-foreground">of {eligibleRows.length}</p>
+                  <p className="text-[10px] text-muted-foreground">of {queueSummary.total}</p>
                   {rankDelta !== null && rankDelta !== 0 && (
                     <p className={`mt-1 inline-flex items-center gap-0.5 text-[10px] ${rankDelta > 0 ? "text-emerald-400" : "text-destructive"}`}>
                       {rankDelta > 0 ? <ArrowUp className="h-3 w-3" /> : <ArrowDown className="h-3 w-3" />}
