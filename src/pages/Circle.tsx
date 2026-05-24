@@ -280,9 +280,18 @@ const Circle = () => {
     return getSessionState(k as "seed" | "growth" | "harvest", now);
   };
 
-  const startBid = (t: Tier, defaultAmt: number) => {
+  const startBid = async (t: Tier, defaultAmt: number) => {
     if (!t.is_active) return;
     if (!hasAcceptedCircle()) { toast.info("Please accept the Circle terms first."); return; }
+    // Country gate: Circles currently only available for ZA members.
+    if (user) {
+      const { data: m } = await supabase.from("members").select("country_code").eq("id", user.id).maybeSingle();
+      const cc = (m as any)?.country_code ?? "ZA";
+      if (cc !== "ZA") {
+        toast.error("Circles aren't available in your country yet. Coming soon!");
+        return;
+      }
+    }
     const sess = sessionFor(t.tier);
     if (sess && sess.status !== "open") {
       toast.error("Session closed. Please wait for the next session to bid.");

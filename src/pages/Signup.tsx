@@ -34,8 +34,24 @@ const Signup = () => {
   const [referrerName, setReferrerName] = useState<string | null>(null);
   const [refStatus, setRefStatus] = useState<"none" | "checking" | "valid" | "invalid">(refParam ? "checking" : "none");
   const [form, setForm] = useState({ full_name: "", email: "", phone: "", password: "", invite_code: "" });
+  const [country, setCountry] = useState<string>("ZA");
+  const [countries, setCountries] = useState<Array<{ country_code: string; country_name: string; enabled: boolean; currency_code: string; currency_symbol: string }>>([]);
   const [busy, setBusy] = useState(false);
   const [duplicate, setDuplicate] = useState<null | { kind: "email" | "phone" | "account"; value: string }>(null);
+
+  useEffect(() => {
+    (async () => {
+      const { data } = await supabase
+        .from("country_configs" as any)
+        .select("country_code,country_name,enabled,currency_code,currency_symbol")
+        .order("country_name");
+      if (data) setCountries(data as any);
+    })();
+  }, []);
+
+  const selectedCountry = countries.find((c) => c.country_code === country);
+  const countryEnabled = selectedCountry?.enabled ?? (country === "ZA");
+  const FLAGS: Record<string, string> = { ZA: "🇿🇦", KE: "🇰🇪", NG: "🇳🇬", GH: "🇬🇭" };
 
   // Map raw auth/db errors to a friendly duplicate kind, or null if not a duplicate.
   const detectDuplicate = (raw: unknown): null | "email" | "phone" | "account" => {
@@ -122,7 +138,21 @@ const Signup = () => {
     }
     setBusy(true);
 
-    // Gate: SA phone OR valid invite code
+    // Country gate: if the chosen country isn't enabled, add to waitlist and stop signup.
+    if (!countryEnabled) {
+      await supabase.from("country_waitlist" as any).insert({
+        email: parsed.data.email,
+        full_name: parsed.data.full_name,
+        phone: parsed.data.phone,
+        country_code: country,
+      });
+      setBusy(false);
+      toast.success(`Thanks! We'll notify you when UMOJA opens in ${selectedCountry?.country_name ?? country}.`);
+      nav("/waitlist");
+      return;
+    }
+
+    // Gate: SA phone OR valid invite code (only applies when country is ZA)
     const phoneSA = parsed.data.phone.replace(/\s+/g, "").startsWith("+27");
     const code = parsed.data.invite_code?.trim();
 
@@ -213,6 +243,8 @@ const Signup = () => {
           full_name: parsed.data.full_name,
           email: parsed.data.email,
           phone: parsed.data.phone,
+          country_code: country,
+          currency_code: selectedCountry?.currency_code ?? "ZAR",
           is_active: true,
         },
         { onConflict: "id" }
@@ -402,6 +434,25 @@ const Signup = () => {
 
 
           <form onSubmit={onSubmit} className="mt-8 space-y-5">
+            <div className="space-y-2">
+              <Label className="text-xs uppercase tracking-[0.18em] text-muted-foreground">Country</Label>
+              <select
+                value={country}
+                onChange={(e) => setCountry(e.target.value)}
+                className="w-full h-12 rounded-2xl bg-secondary/60 border border-border px-3 text-sm"
+              >
+                {(countries.length ? countries : [{ country_code: "ZA", country_name: "South Africa", enabled: true, currency_code: "ZAR", currency_symbol: "R" }]).map((c) => (
+                  <option key={c.country_code} value={c.country_code}>
+                    {FLAGS[c.country_code] ?? "🌍"} {c.country_name}{c.enabled ? "" : " (Coming Soon)"}
+                  </option>
+                ))}
+              </select>
+              {!countryEnabled && (
+                <p className="text-[11px] text-amber-400">
+                  UMOJA isn't live in {selectedCountry?.country_name ?? "your country"} yet. Submit to join the waitlist — we'll notify you at launch.
+                </p>
+              )}
+            </div>
             <div className="space-y-2">
               <Label className="text-xs uppercase tracking-[0.18em] text-muted-foreground">Full name</Label>
               <Input value={form.full_name} onChange={update("full_name")} className="h-12 rounded-2xl bg-secondary/60 border-border" placeholder="Amara Khumalo" required />

@@ -1021,10 +1021,13 @@ export type Database = {
       circle_bids: {
         Row: {
           allocated_at: string | null
+          amount_usd: number | null
           amount_usdt: number | null
           consistency_percentage: number | null
           created_at: string | null
+          currency_code: string
           days_waiting: number | null
+          exchange_rate: number | null
           expiration_notified: boolean | null
           fiat_amount: number
           id: string
@@ -1066,10 +1069,13 @@ export type Database = {
         }
         Insert: {
           allocated_at?: string | null
+          amount_usd?: number | null
           amount_usdt?: number | null
           consistency_percentage?: number | null
           created_at?: string | null
+          currency_code?: string
           days_waiting?: number | null
+          exchange_rate?: number | null
           expiration_notified?: boolean | null
           fiat_amount: number
           id?: string
@@ -1111,10 +1117,13 @@ export type Database = {
         }
         Update: {
           allocated_at?: string | null
+          amount_usd?: number | null
           amount_usdt?: number | null
           consistency_percentage?: number | null
           created_at?: string | null
+          currency_code?: string
           days_waiting?: number | null
+          exchange_rate?: number | null
           expiration_notified?: boolean | null
           fiat_amount?: number
           id?: string
@@ -1351,6 +1360,123 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      country_configs: {
+        Row: {
+          country_code: string
+          country_name: string
+          created_at: string
+          currency_code: string
+          currency_symbol: string
+          enabled: boolean
+          growth_max: number
+          growth_min: number
+          harvest_max: number
+          harvest_min: number
+          id: string
+          max_monthly_contribution: number | null
+          payment_gateways: Json
+          requires_kyc: boolean
+          seed_max: number
+          seed_min: number
+          updated_at: string
+        }
+        Insert: {
+          country_code: string
+          country_name: string
+          created_at?: string
+          currency_code: string
+          currency_symbol: string
+          enabled?: boolean
+          growth_max: number
+          growth_min: number
+          harvest_max: number
+          harvest_min: number
+          id?: string
+          max_monthly_contribution?: number | null
+          payment_gateways?: Json
+          requires_kyc?: boolean
+          seed_max: number
+          seed_min: number
+          updated_at?: string
+        }
+        Update: {
+          country_code?: string
+          country_name?: string
+          created_at?: string
+          currency_code?: string
+          currency_symbol?: string
+          enabled?: boolean
+          growth_max?: number
+          growth_min?: number
+          harvest_max?: number
+          harvest_min?: number
+          id?: string
+          max_monthly_contribution?: number | null
+          payment_gateways?: Json
+          requires_kyc?: boolean
+          seed_max?: number
+          seed_min?: number
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      country_waitlist: {
+        Row: {
+          country_code: string
+          created_at: string
+          email: string
+          full_name: string | null
+          id: string
+          phone: string | null
+        }
+        Insert: {
+          country_code: string
+          created_at?: string
+          email: string
+          full_name?: string | null
+          id?: string
+          phone?: string | null
+        }
+        Update: {
+          country_code?: string
+          created_at?: string
+          email?: string
+          full_name?: string | null
+          id?: string
+          phone?: string | null
+        }
+        Relationships: []
+      }
+      currency_rates: {
+        Row: {
+          created_at: string
+          effective_date: string
+          from_currency: string
+          id: string
+          rate: number
+          source: string
+          to_currency: string
+        }
+        Insert: {
+          created_at?: string
+          effective_date?: string
+          from_currency: string
+          id?: string
+          rate: number
+          source?: string
+          to_currency: string
+        }
+        Update: {
+          created_at?: string
+          effective_date?: string
+          from_currency?: string
+          id?: string
+          rate?: number
+          source?: string
+          to_currency?: string
+        }
+        Relationships: []
       }
       dream_draw_entries: {
         Row: {
@@ -3222,7 +3348,9 @@ export type Database = {
           community_score: number
           consistency_score: number
           contribution_volume_score: number
+          country_code: string
           created_at: string | null
+          currency_code: string
           document_number: string | null
           document_type: string | null
           dream_goal: string | null
@@ -3285,7 +3413,9 @@ export type Database = {
           community_score?: number
           consistency_score?: number
           contribution_volume_score?: number
+          country_code?: string
           created_at?: string | null
+          currency_code?: string
           document_number?: string | null
           document_type?: string | null
           dream_goal?: string | null
@@ -3348,7 +3478,9 @@ export type Database = {
           community_score?: number
           consistency_score?: number
           contribution_volume_score?: number
+          country_code?: string
           created_at?: string | null
+          currency_code?: string
           document_number?: string | null
           document_type?: string | null
           dream_goal?: string | null
