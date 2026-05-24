@@ -195,7 +195,7 @@ export default function Priority() {
   useEffect(() => {
     setLoading(true);
     (async () => {
-      const [activeCountRes, activeRowsRes, userBidRes] = await Promise.all([
+      const [activeCountRes, activeRowsRes, userBidRes, memberRes, userBidsRes] = await Promise.all([
         supabase
           .from("circle_bids")
           .select("*", { count: "exact", head: true })
@@ -204,7 +204,7 @@ export default function Priority() {
           .not("vault_start", "is", null),
         supabase
           .from("circle_bids")
-          .select("id, member_id, fiat_amount, created_at, priority_score")
+          .select("id, member_id, fiat_amount, tier, status, created_at, vault_start")
           .eq("tier", tier)
           .eq("status", "vault")
           .not("vault_start", "is", null)
@@ -213,7 +213,7 @@ export default function Priority() {
         user?.id
           ? supabase
               .from("circle_bids")
-              .select("id, member_id, fiat_amount, created_at, priority_score")
+              .select("id, member_id, fiat_amount, tier, status, created_at, vault_start")
               .eq("member_id", user.id)
               .eq("tier", tier)
               .eq("status", "vault")
@@ -222,13 +222,28 @@ export default function Priority() {
               .limit(1)
               .maybeSingle()
           : Promise.resolve({ data: null, error: null } as const),
+        user?.id
+          ? supabase.from("members").select("*").eq("id", user.id).single()
+          : Promise.resolve({ data: null, error: null } as const),
+        user?.id
+          ? supabase
+              .from("circle_bids")
+              .select("id, member_id, fiat_amount, tier, status, created_at, vault_start")
+              .eq("member_id", user.id)
+              .order("created_at", { ascending: false })
+          : Promise.resolve({ data: [], error: null } as const),
       ]);
 
       if (activeCountRes.error) console.error(activeCountRes.error);
       if (activeRowsRes.error) console.error(activeRowsRes.error);
       if ((userBidRes as any).error) console.error((userBidRes as any).error);
+      if ((memberRes as any).error) console.error((memberRes as any).error);
+      if ((userBidsRes as any).error) console.error((userBidsRes as any).error);
 
-      const activeUserBid = (userBidRes as { data: { created_at: string; priority_score?: number | null } | null }).data;
+      const activeUserBid = (userBidRes as { data: CircleBidForScore | null }).data;
+      const memberForScore = (memberRes as { data: MemberForScore | null }).data;
+      const userBidsForScore = ((userBidsRes as { data: CircleBidForScore[] | null }).data ?? []);
+      const liveScore = calculatePriorityScore(memberForScore, userBidsForScore, tier);
       let userRank: number | null = null;
       if (activeUserBid) {
         const { count: betterBids, error: betterBidsError } = await supabase
@@ -242,30 +257,41 @@ export default function Priority() {
         userRank = (betterBids ?? 0) + 1;
       }
 
-      const visibleRows = ((activeRowsRes.data ?? []) as Array<{
-        id: string;
-        member_id: string;
-        fiat_amount: number;
-        created_at: string | null;
-        priority_score: number | null;
-      }>).map((bid) => ({
+      const activeRows = [...((activeRowsRes.data ?? []) as CircleBidForScore[])];
+      if (activeUserBid && !activeRows.some((bid) => bid.id === activeUserBid.id)) {
+        activeRows.push(activeUserBid);
+      }
+      activeRows.sort((a, b) => new Date(a.created_at ?? 0).getTime() - new Date(b.created_at ?? 0).getTime());
+
+      const visibleRows = activeRows.map((bid) => {
+        const isUserBid = bid.member_id === user?.id;
+        const bidAmount = Number(bid.fiat_amount ?? 0);
+        const daysWaiting = bid.created_at ? Math.max(0, Math.floor((Date.now() - new Date(bid.created_at).getTime()) / 86400000)) : 0;
+        const contributionScore = contributionScoreForAmount(bidAmount);
+        const tierMin = getTierMin(bid.tier ?? tier);
+        const bidBoostScore = Math.min(Math.max(0, bidAmount - tierMin) / 100, 5);
+        const priorityScore = isUserBid
+          ? liveScore.totalScore
+          : 40 + Math.min(daysWaiting, 30) + contributionScore + bidBoostScore;
+        return {
         bid_id: bid.id,
         member_id: bid.member_id,
-        full_name: bid.member_id === user?.id ? "You" : "Member",
-        fiat_amount: Number(bid.fiat_amount ?? 0),
-        consistency_pct: 100,
-        days_waiting: bid.created_at ? Math.max(0, Math.floor((Date.now() - new Date(bid.created_at).getTime()) / 86400000)) : 0,
-        consistency_score: 0,
-        time_waiting_score: 0,
-        volume_score: 0,
-        community_score: 0,
-        bid_boost_score: 0,
-        priority_score: Number(bid.member_id === user?.id ? (activeUserBid?.priority_score ?? bid.priority_score ?? 0) : (bid.priority_score ?? 0)),
+        full_name: isUserBid ? "You" : "Member",
+        fiat_amount: isUserBid ? liveScore.bidAmount : bidAmount,
+        consistency_pct: isUserBid ? liveScore.paymentRate * 100 : 100,
+        days_waiting: isUserBid ? liveScore.daysWaiting : daysWaiting,
+        consistency_score: isUserBid ? liveScore.consistencyScore : 40,
+        time_waiting_score: isUserBid ? liveScore.timeWaitingScore : Math.min(daysWaiting, 30),
+        volume_score: isUserBid ? liveScore.contributionScore : contributionScore,
+        community_score: isUserBid ? liveScore.communityScore : 0,
+        bid_boost_score: isUserBid ? liveScore.bidBoostScore : bidBoostScore,
+        priority_score: priorityScore,
         eligible: true,
         override_type: null,
         override_value: 0,
-        breakdown: {},
-      })) satisfies ScoreRow[];
+        breakdown: isUserBid ? { referrals: liveScore.referralCount, kyc_level: liveScore.kycLevel } : {},
+        };
+      }) satisfies ScoreRow[];
       setRows(visibleRows);
 
       const total = activeCountRes.count ?? 0;
