@@ -33,6 +33,7 @@ const items = [
   { to: "/admin/content-director", label: "Content Director 🤖", icon: Bot },
   { to: "/admin/ugc-submissions", label: "UGC Submissions 🎬", icon: Bot },
   { to: "/admin/podcasts", label: "Podcasts 🎙️", icon: Headphones },
+  { to: "/admin/countries", label: "Countries 🌍", icon: Globe },
   { to: "/admin/settings", label: "Settings", icon: Settings },
 ];
 
