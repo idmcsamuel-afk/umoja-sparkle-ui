@@ -541,13 +541,15 @@ export default function AdminCircleTracker() {
           <CardContent className="space-y-3">
             {queue.map((r, i) => {
               const amount = r.payout_amount ?? r.net_amount ?? r.fiat_amount;
-              const bank = r.bd_bank_name || r.bank_name || "—";
+              const rawBank = r.bd_bank_name || r.bank_name || "";
+              const bankMissing = !rawBank || rawBank.trim().toLowerCase() === "other";
+              const bank = bankMissing ? "⚠️ Bank missing" : rawBank;
               const acct = r.bd_account_number || r.bank_account || "";
               const ref = refFor(r);
               return (
-                <div key={r.bid_id} className="rounded-md border bg-card p-3">
+                <div key={r.bid_id} className={`rounded-md border bg-card p-3 ${bankMissing ? "border-destructive/40" : ""}`}>
                   <div className="flex flex-wrap items-center justify-between gap-2">
-                    <div className="text-sm font-medium">
+                    <div className={`text-sm font-medium ${bankMissing ? "text-destructive" : ""}`}>
                       #{i + 1}. {r.full_name} — {zar(amount)} — {bank} {mask(acct)} — Score {r.priority_score.toFixed(0)}
                     </div>
                     <div className="flex flex-wrap gap-2">

@@ -66,6 +66,8 @@ export default function Banking() {
   const [banking, setBanking] = useState<Banking>({
     bank_name: "", account_holder_name: "", account_number: "", account_type: "savings", branch_code: "",
   });
+  const [bankChoice, setBankChoice] = useState<string>("");
+  const [otherBankName, setOtherBankName] = useState<string>("");
   const [verified, setVerified] = useState(false);
   const [existing, setExisting] = useState(false);
   const [payouts, setPayouts] = useState<Payout[]>([]);
@@ -78,14 +80,22 @@ export default function Banking() {
         supabase.from("circle_payouts").select("*").eq("member_id", user.id).order("created_at", { ascending: false }),
       ]);
       if (b.data) {
+        const savedBank = b.data.bank_name ?? "";
         setBanking({
           id: b.data.id,
-          bank_name: b.data.bank_name ?? "",
+          bank_name: savedBank,
           account_holder_name: b.data.account_holder_name ?? "",
           account_number: b.data.account_number ?? "",
           account_type: b.data.account_type ?? "savings",
           branch_code: b.data.branch_code ?? "",
         });
+        const known = BANKS.some((b2) => b2.name === savedBank && b2.name !== "Other");
+        if (known) {
+          setBankChoice(savedBank);
+        } else if (savedBank) {
+          setBankChoice("Other");
+          setOtherBankName(savedBank === "Other" ? "" : savedBank);
+        }
         setVerified(!!b.data.verified);
         setExisting(true);
       }
@@ -108,6 +118,10 @@ export default function Banking() {
     if (!user) return;
     const err = validate();
     if (err) { toast.error(err); return; }
+    if (bankChoice === "Other" && !otherBankName.trim()) {
+      toast.error("Please type your bank name");
+      return;
+    }
     setSaving(true);
     const payload = {
       member_id: user.id,
@@ -129,8 +143,20 @@ export default function Banking() {
   };
 
   const onBankChange = (v: string) => {
-    const found = BANKS.find((b) => b.name === v);
-    setBanking((s) => ({ ...s, bank_name: v, branch_code: found?.branch || s.branch_code }));
+    setBankChoice(v);
+    if (v === "Other") {
+      setBanking((s) => ({ ...s, bank_name: otherBankName.trim(), branch_code: "" }));
+    } else {
+      const found = BANKS.find((b) => b.name === v);
+      setBanking((s) => ({ ...s, bank_name: v, branch_code: found?.branch || s.branch_code }));
+    }
+  };
+
+  const onOtherBankNameChange = (v: string) => {
+    setOtherBankName(v);
+    if (bankChoice === "Other") {
+      setBanking((s) => ({ ...s, bank_name: v.trim() }));
+    }
   };
 
   const totals = payouts.reduce(
@@ -204,14 +230,30 @@ export default function Banking() {
 
                 <div className="space-y-2">
                   <Label>Bank</Label>
-                  <Select value={banking.bank_name} onValueChange={onBankChange}>
+                  <Select value={bankChoice} onValueChange={onBankChange}>
                     <SelectTrigger><SelectValue placeholder="Select your bank" /></SelectTrigger>
                     <SelectContent>
                       {BANKS.map((b) => (
-                        <SelectItem key={b.name} value={b.name}>{b.name}</SelectItem>
+                        <SelectItem key={b.name} value={b.name}>
+                          {b.name === "Other" ? "Other (specify)" : b.name}
+                        </SelectItem>
                       ))}
                     </SelectContent>
                   </Select>
+                  {bankChoice === "Other" && (
+                    <div className="space-y-1 pt-2">
+                      <Label>Other bank name</Label>
+                      <Input
+                        value={otherBankName}
+                        onChange={(e) => onOtherBankNameChange(e.target.value)}
+                        placeholder="Type your bank name (e.g. Bidvest Bank)"
+                        maxLength={60}
+                      />
+                      <p className="text-[11px] text-muted-foreground">
+                        Admin will use this exact name to send your payout.
+                      </p>
+                    </div>
+                  )}
                 </div>
 
                 <div className="space-y-2">
