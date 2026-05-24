@@ -284,13 +284,13 @@ export default function Priority() {
               <div className="flex items-center gap-2">
                 <Trophy className="h-4 w-4 text-accent" />
                 <h3 className="font-display text-lg capitalize">{tier} queue</h3>
-                <span className="ml-auto text-[11px] text-muted-foreground">{eligibleRows.length} active</span>
+                <span className="ml-auto text-[11px] text-muted-foreground">{rows.length} active</span>
               </div>
-              {eligibleRows.length === 0 ? (
+              {rows.length === 0 ? (
                 <p className="mt-3 text-xs text-muted-foreground">No active bids in this tier yet — be the first.</p>
               ) : (
                 <ol className="mt-3 space-y-1.5">
-                  {eligibleRows.slice(0, 10).map((r, i) => (
+                  {rows.slice(0, 10).map((r, i) => (
                     <li key={r.bid_id} className="flex items-center justify-between rounded-xl bg-secondary/30 px-3 py-2 text-sm">
                       <span className="flex items-center gap-2">
                         <span className="font-mono text-xs text-muted-foreground w-5">#{i + 1}</span>
