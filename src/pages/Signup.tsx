@@ -11,6 +11,7 @@ import { Label } from "@/components/ui/label";
 import { toast } from "sonner";
 import { useSocialProof, fmtR } from "@/hooks/useSocialProof";
 import { ttTrack } from "@/lib/tiktokPixel";
+import { WhatsAppCommunity } from "@/components/umoja/WhatsAppCommunity";
 
 const schema = z.object({
   full_name: z.string().trim().min(2, "Enter your full name").max(100),
