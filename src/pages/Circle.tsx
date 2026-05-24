@@ -541,7 +541,13 @@ const Circle = () => {
                 else if (status === "rejected" || status === "cancelled" || status === "refunded") badge = { text: `🚫 ${status}`, cls: "bg-destructive/15 text-destructive" };
                 else if (awaiting && hoursLeft !== null) {
                   if (hoursLeft <= 0) badge = { text: "⏰ Deadline passed", cls: "bg-destructive/15 text-destructive" };
-                  else if (hoursLeft <= 6) badge = { text: `⚠️ ${Math.max(1, Math.floor(hoursLeft))}h left to pay`, cls: "bg-amber-500/15 text-amber-400" };
+                  else if (hoursLeft <= 2) {
+                    const totalMin = Math.max(1, Math.floor(hoursLeft * 60));
+                    const h = Math.floor(totalMin / 60);
+                    const m = totalMin % 60;
+                    const label = h > 0 ? `${h}h ${m}m left to pay` : `${m}m left to pay`;
+                    badge = { text: `⏱️ ${label}`, cls: "bg-destructive/15 text-destructive" };
+                  } else if (hoursLeft <= 6) badge = { text: `⚠️ ${Math.max(1, Math.floor(hoursLeft))}h left to pay`, cls: "bg-amber-500/15 text-amber-400" };
                   else badge = { text: `⏳ ${Math.floor(hoursLeft)}h to pay`, cls: "bg-primary/15 text-primary" };
                 } else {
                   badge = { text: status, cls: "bg-secondary text-muted-foreground" };
