@@ -435,6 +435,25 @@ const Signup = () => {
 
           <form onSubmit={onSubmit} className="mt-8 space-y-5">
             <div className="space-y-2">
+              <Label className="text-xs uppercase tracking-[0.18em] text-muted-foreground">Country</Label>
+              <select
+                value={country}
+                onChange={(e) => setCountry(e.target.value)}
+                className="w-full h-12 rounded-2xl bg-secondary/60 border border-border px-3 text-sm"
+              >
+                {(countries.length ? countries : [{ country_code: "ZA", country_name: "South Africa", enabled: true, currency_code: "ZAR", currency_symbol: "R" }]).map((c) => (
+                  <option key={c.country_code} value={c.country_code}>
+                    {FLAGS[c.country_code] ?? "🌍"} {c.country_name}{c.enabled ? "" : " (Coming Soon)"}
+                  </option>
+                ))}
+              </select>
+              {!countryEnabled && (
+                <p className="text-[11px] text-amber-400">
+                  UMOJA isn't live in {selectedCountry?.country_name ?? "your country"} yet. Submit to join the waitlist — we'll notify you at launch.
+                </p>
+              )}
+            </div>
+            <div className="space-y-2">
               <Label className="text-xs uppercase tracking-[0.18em] text-muted-foreground">Full name</Label>
               <Input value={form.full_name} onChange={update("full_name")} className="h-12 rounded-2xl bg-secondary/60 border-border" placeholder="Amara Khumalo" required />
             </div>
