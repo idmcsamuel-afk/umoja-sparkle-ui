@@ -373,8 +373,7 @@ export default function Priority() {
             <div className="mx-auto max-w-md rounded-3xl glass p-5">
               <div className="flex items-center gap-2">
                 <Trophy className="h-4 w-4 text-accent" />
-                <h3 className="font-display text-lg capitalize">{tier} queue</h3>
-                <span className="ml-auto text-[11px] text-muted-foreground">{queueSummary.total} active</span>
+                <h3 className="font-display text-lg capitalize">{tier} queue: <span className="text-[11px] font-sans text-muted-foreground">{queueSummary.total} active</span></h3>
               </div>
               {queueSummary.total === 0 ? (
                 <p className="mt-3 text-xs text-muted-foreground">No active bids yet</p>
