@@ -344,3 +344,62 @@ export default function Banking() {
     </main>
   );
 }
+
+function UsdtWalletCard() {
+  const { user } = useAuth();
+  const [addr, setAddr] = useState("");
+  const [loaded, setLoaded] = useState(false);
+  const [saving, setSaving] = useState(false);
+
+  useEffect(() => {
+    if (!user) return;
+    (async () => {
+      const { data } = await supabase
+        .from("members")
+        .select("usdt_wallet_trc20")
+        .eq("id", user.id)
+        .maybeSingle();
+      setAddr((data as any)?.usdt_wallet_trc20 ?? "");
+      setLoaded(true);
+    })();
+  }, [user]);
+
+  const save = async () => {
+    if (!user) return;
+    const trimmed = addr.trim();
+    if (trimmed && !/^T[a-zA-Z0-9]{33}$/.test(trimmed)) {
+      toast.error("Invalid TRC20 address (must start with T, 34 chars)");
+      return;
+    }
+    setSaving(true);
+    const { error } = await supabase
+      .from("members")
+      .update({ usdt_wallet_trc20: trimmed || null } as any)
+      .eq("id", user.id);
+    setSaving(false);
+    if (error) return toast.error(error.message);
+    toast.success("USDT wallet saved");
+  };
+
+  if (!loaded) return null;
+  return (
+    <div className="mt-6 rounded-3xl border border-border bg-gradient-card p-6 space-y-3">
+      <div>
+        <h3 className="font-display text-lg">USDT payout wallet (optional)</h3>
+        <p className="text-xs text-muted-foreground mt-1">
+          For payouts in USDT on Tron (TRC20). Leave blank to receive payouts via bank transfer only.
+        </p>
+      </div>
+      <Input
+        value={addr}
+        onChange={(e) => setAddr(e.target.value)}
+        placeholder="T..."
+        className="h-11 rounded-2xl bg-secondary/40 border-border font-mono text-xs"
+      />
+      <Button onClick={save} disabled={saving} className="w-full rounded-2xl bg-gradient-primary text-primary-foreground">
+        {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : "Save USDT wallet"}
+      </Button>
+    </div>
+  );
+}
+
