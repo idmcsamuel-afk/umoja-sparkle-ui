@@ -745,8 +745,11 @@ const Circle = () => {
                       className="h-16 pl-10 rounded-2xl bg-background border-2 border-accent/50 text-2xl font-display font-semibold focus-visible:ring-2 focus-visible:ring-accent focus-visible:border-accent"
                     />
                   </div>
-                  <p className="text-[11px] text-muted-foreground">
-                    Min {open && fmtR(open.min_entry)} · Max {open && fmtR(open.max_entry)}
+                  <p className="text-[11px] text-muted-foreground flex items-center justify-between gap-2">
+                    <span>Min {open && fmtR(open.min_entry)} · Max {open && fmtR(open.max_entry)}</span>
+                    {cryptoEnabled && Number(amount) > 0 && (
+                      <span className="text-accent/80">≈ {fmtUsdt(zarToUsdt(Number(amount), usdtRate))}</span>
+                    )}
                   </p>
                   {open && Number(amount) > 0 && (() => {
                     const amt = Number(amount);
