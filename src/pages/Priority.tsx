@@ -77,19 +77,14 @@ const getTierMin = (tierName?: string | null) => {
   return 10000;
 };
 
-const contributionScoreForAmount = (amount: number) => {
-  if (amount >= 10000) return 15;
-  if (amount >= 5000) return 12;
-  if (amount >= 2000) return 9;
-  if (amount >= 1000) return 6;
-  if (amount >= 500) return 3;
-  if (amount >= 200) return 1;
-  return 0;
+const contributionScoreForAmount = (amount: number, tierName?: string | null) => {
+  const tierMin = getTierMin(tierName);
+  return Math.min(15, (amount / Math.max(tierMin * 5, 1)) * 15);
 };
 
 const calculatePriorityScore = (member: MemberForScore | null, bids: CircleBidForScore[], selectedTier: TierKey) => {
   const totalBids = bids.filter((bid) => bid.status !== "rejected").length;
-  const paidBids = bids.filter((bid) => bid.status === "paid").length;
+  const paidBids = bids.filter((bid) => ["paid", "vault", "matched"].includes(bid.status ?? "")).length;
   const paymentRate = totalBids > 0 ? paidBids / totalBids : 1;
   const consistencyScore = paymentRate * 40;
 
@@ -112,7 +107,7 @@ const calculatePriorityScore = (member: MemberForScore | null, bids: CircleBidFo
     : 0;
   const timeWaitingScore = Math.min(daysWaiting, 30);
   const bidAmount = Number(currentBid?.fiat_amount ?? 0);
-  const contributionScore = contributionScoreForAmount(bidAmount);
+  const contributionScore = contributionScoreForAmount(bidAmount, currentBid?.tier ?? selectedTier);
   const referralCount = Number(member?.referral_count ?? 0);
   const kycLevel = Number(member?.kyc_level ?? 0);
   let communityScore = Math.min(referralCount * 0.5, 6);
