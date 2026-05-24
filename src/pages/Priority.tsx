@@ -204,7 +204,6 @@ export default function Priority() {
   }, [tier, user?.id]);
 
   const me = useMemo(() => rows.find((r) => r.member_id === user?.id), [rows, user?.id]);
-  const eligibleRows = useMemo(() => rows.filter((r) => r.eligible), [rows]);
   const myRank = useMemo(() => {
     if (queueSummary.userRank) return queueSummary.userRank;
     if (!me) return null;
@@ -235,7 +234,7 @@ export default function Priority() {
     return Number(lastSnapshot.rank) - myRank;
   }, [myRank, lastSnapshot]);
 
-  // Community impact (max 10) — same formula as compute_session_scores
+  // Community impact (max 10)
   const communityScore = Math.min(
     10,
     community.referrals * 2 + community.active_days * 0.1 + (community.kyc_level >= 3 ? 2 : 0),
