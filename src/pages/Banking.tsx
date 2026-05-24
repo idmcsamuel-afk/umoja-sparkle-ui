@@ -230,14 +230,30 @@ export default function Banking() {
 
                 <div className="space-y-2">
                   <Label>Bank</Label>
-                  <Select value={banking.bank_name} onValueChange={onBankChange}>
+                  <Select value={bankChoice} onValueChange={onBankChange}>
                     <SelectTrigger><SelectValue placeholder="Select your bank" /></SelectTrigger>
                     <SelectContent>
                       {BANKS.map((b) => (
-                        <SelectItem key={b.name} value={b.name}>{b.name}</SelectItem>
+                        <SelectItem key={b.name} value={b.name}>
+                          {b.name === "Other" ? "Other (specify)" : b.name}
+                        </SelectItem>
                       ))}
                     </SelectContent>
                   </Select>
+                  {bankChoice === "Other" && (
+                    <div className="space-y-1 pt-2">
+                      <Label>Other bank name</Label>
+                      <Input
+                        value={otherBankName}
+                        onChange={(e) => onOtherBankNameChange(e.target.value)}
+                        placeholder="Type your bank name (e.g. Bidvest Bank)"
+                        maxLength={60}
+                      />
+                      <p className="text-[11px] text-muted-foreground">
+                        Admin will use this exact name to send your payout.
+                      </p>
+                    </div>
+                  )}
                 </div>
 
                 <div className="space-y-2">
