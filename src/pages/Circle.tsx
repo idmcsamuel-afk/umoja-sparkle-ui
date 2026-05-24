@@ -480,7 +480,14 @@ const Circle = () => {
                 const awaiting = status === "pending" || status === "payment_pending";
 
                 let badge: { text: string; cls: string } | null = null;
-                if (status === "active" || status === "matched") badge = { text: "✅ Paid", cls: "bg-emerald-500/15 text-emerald-400" };
+                const payoutAmt = Number(b.payout_amount ?? 0);
+                const profit = payoutAmt - Number(b.fiat_amount ?? 0);
+                if (status === "paid") {
+                  badge = {
+                    text: `✅ Paid ${payoutAmt > 0 ? fmtR(payoutAmt) : ""}${profit > 0 ? ` · +${fmtR(profit)}` : ""}`,
+                    cls: "bg-purple-500/15 text-purple-400",
+                  };
+                } else if (status === "active" || status === "matched" || status === "vault") badge = { text: "🟢 Active in vault", cls: "bg-emerald-500/15 text-emerald-400" };
                 else if (status === "expired") badge = { text: "⏰ Expired", cls: "bg-destructive/15 text-destructive" };
                 else if (status === "rejected" || status === "cancelled" || status === "refunded") badge = { text: `🚫 ${status}`, cls: "bg-destructive/15 text-destructive" };
                 else if (awaiting && hoursLeft !== null) {
