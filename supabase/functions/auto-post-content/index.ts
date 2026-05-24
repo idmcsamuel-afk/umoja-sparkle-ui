@@ -9,6 +9,10 @@ const supabase = createClient(SUPABASE_URL, SERVICE);
 
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response("ok", { headers: corsHeaders });
+  const _cron = Deno.env.get("CRON_SECRET");
+  if (!_cron || req.headers.get("x-cron-secret") !== _cron) {
+    return new Response(JSON.stringify({ error: "Unauthorized" }), { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+  }
   const now = new Date();
   const horizon = new Date(now.getTime() + 15 * 60 * 1000);
   const { data: posts } = await supabase
