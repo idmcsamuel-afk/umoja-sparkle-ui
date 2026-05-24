@@ -325,14 +325,16 @@ export default function AdminCircleTracker() {
     if (tierFilter !== "all") list = list.filter((r) => r.tier === tierFilter);
     if (statusFilter !== "all") list = list.filter((r) => r.status === statusFilter);
 
-    if (quickTab === "due_today")
-      list = list.filter((r) => r.hours_remaining !== null && r.hours_remaining >= 0 && r.hours_remaining <= 24);
-    if (quickTab === "overdue")
-      list = list.filter((r) => r.hours_remaining !== null && r.hours_remaining < 0);
-    if (quickTab === "payment_pending")
-      list = list.filter((r) => r.status === "payment_pending");
-    if (quickTab === "high_priority")
-      list = list.filter((r) => r.priority_score > 300);
+    if (quickTab === "active")
+      list = list.filter((r) => r.status === "vault" && r.hours_remaining !== null && r.hours_remaining >= 0);
+    else if (quickTab === "overdue")
+      list = list.filter((r) => r.status === "vault" && r.hours_remaining !== null && r.hours_remaining < 0);
+    else if (quickTab === "paid")
+      list = list.filter((r) => r.status === "paid");
+    else if (quickTab === "pending")
+      list = list.filter((r) => r.status === "pending" || r.status === "payment_pending");
+    else if (quickTab === "rejected")
+      list = list.filter((r) => r.status === "rejected");
 
     if (search.trim()) {
       const q = search.trim().toLowerCase();
