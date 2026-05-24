@@ -48,6 +48,12 @@ interface CommunityStats {
   active_days: number;
 }
 
+interface QueueSummary {
+  total: number;
+  userBidExists: boolean;
+  userRank: number | null;
+}
+
 const TIER_MIN: Record<TierKey, number> = { seed: 200, growth: 2001, harvest: 10001 };
 
 export default function Priority() {
@@ -59,6 +65,7 @@ export default function Priority() {
   const [lastSnapshot, setLastSnapshot] = useState<{ priority_score: number; rank: number | null; session_at: string } | null>(null);
   const [myBid, setMyBid] = useState<MyBid | null>(null);
   const [community, setCommunity] = useState<CommunityStats>({ referrals: 0, kyc_level: 0, active_days: 0 });
+  const [queueSummary, setQueueSummary] = useState<QueueSummary>({ total: 0, userBidExists: false, userRank: null });
 
   useEffect(() => {
     (async () => {
@@ -83,7 +90,7 @@ export default function Priority() {
         .select("id, status, fiat_amount, tier, created_at")
         .eq("member_id", user.id)
         .eq("tier", tier)
-        .in("status", ["active", "payment_pending", "matched", "pending"])
+        .in("status", ["vault", "active", "payment_pending", "matched", "pending"])
         .order("created_at", { ascending: false })
         .limit(1)
         .maybeSingle();
@@ -103,9 +110,81 @@ export default function Priority() {
   useEffect(() => {
     setLoading(true);
     (async () => {
-      const { data, error } = await supabase.rpc("compute_session_scores", { _tier: tier });
-      if (error) console.error(error);
-      setRows((data ?? []) as ScoreRow[]);
+      const [activeCountRes, activeRowsRes, userBidRes, queueRes, statsRes] = await Promise.all([
+        supabase
+          .from("circle_bids")
+          .select("*", { count: "exact", head: true })
+          .eq("tier", tier)
+          .eq("status", "vault")
+          .not("vault_start", "is", null),
+        supabase
+          .from("circle_bids")
+          .select("id, member_id, fiat_amount, created_at, priority_score")
+          .eq("tier", tier)
+          .eq("status", "vault")
+          .not("vault_start", "is", null)
+          .order("created_at", { ascending: false })
+          .limit(10),
+        user?.id
+          ? supabase
+              .from("circle_bids")
+              .select("id, member_id, fiat_amount, created_at, priority_score")
+              .eq("member_id", user.id)
+              .eq("tier", tier)
+              .eq("status", "vault")
+              .not("vault_start", "is", null)
+              .order("created_at", { ascending: false })
+              .limit(1)
+              .maybeSingle()
+          : Promise.resolve({ data: null, error: null } as const),
+        user?.id ? supabase.rpc("get_my_circle_queue_status") : Promise.resolve({ data: [], error: null } as const),
+        supabase.rpc("circle_tier_stats"),
+      ]);
+
+      if (activeCountRes.error) console.error(activeCountRes.error);
+      if (activeRowsRes.error) console.error(activeRowsRes.error);
+      if ((userBidRes as any).error) console.error((userBidRes as any).error);
+      if ((queueRes as any).error) console.error((queueRes as any).error);
+      if ((statsRes as any).error) console.error((statsRes as any).error);
+
+      const queueRows = (((queueRes as any).data ?? []) as Array<{ tier: string; status: string | null; priority_score?: number | null; queue_position: number | null; total_active: number | null }>);
+      const myQueue = queueRows.find((row) => row.tier === tier);
+
+      const visibleRows = ((activeRowsRes.data ?? []) as Array<{
+        id: string;
+        member_id: string;
+        fiat_amount: number;
+        created_at: string | null;
+        priority_score: number | null;
+      }>).map((bid) => ({
+        bid_id: bid.id,
+        member_id: bid.member_id,
+        full_name: bid.member_id === user?.id ? "You" : "Member",
+        fiat_amount: Number(bid.fiat_amount ?? 0),
+        consistency_pct: 100,
+        days_waiting: bid.created_at ? Math.max(0, Math.floor((Date.now() - new Date(bid.created_at).getTime()) / 86400000)) : 0,
+        consistency_score: 0,
+        time_waiting_score: 0,
+        volume_score: 0,
+        community_score: 0,
+        bid_boost_score: 0,
+        priority_score: Number(bid.member_id === user?.id ? (myQueue?.priority_score ?? bid.priority_score ?? 0) : (bid.priority_score ?? 0)),
+        eligible: true,
+        override_type: null,
+        override_value: 0,
+        breakdown: {},
+      })) satisfies ScoreRow[];
+      setRows(visibleRows);
+
+      const statsRows = (((statsRes as any).data ?? []) as Array<{ tier: string; members: number | string | null }>);
+      const statsTotal = Number(statsRows.find((row) => row.tier === tier)?.members ?? 0);
+      const directTotal = activeCountRes.count ?? 0;
+      const total = Math.max(directTotal, statsTotal, Number(myQueue?.total_active ?? 0));
+      setQueueSummary({
+        total,
+        userBidExists: myQueue?.status === "vault" || !!(userBidRes as any).data,
+        userRank: myQueue?.queue_position ?? null,
+      });
 
       if (user?.id) {
         const { data: snap } = await supabase
@@ -125,12 +204,18 @@ export default function Priority() {
   }, [tier, user?.id]);
 
   const me = useMemo(() => rows.find((r) => r.member_id === user?.id), [rows, user?.id]);
-  const eligibleRows = useMemo(() => rows.filter((r) => r.eligible), [rows]);
   const myRank = useMemo(() => {
+    if (queueSummary.userRank) return queueSummary.userRank;
     if (!me) return null;
     const idx = rows.findIndex((r) => r.bid_id === me.bid_id);
     return idx === -1 ? null : idx + 1;
-  }, [rows, me]);
+  }, [rows, me, queueSummary.userRank]);
+
+  const queueMessage = useMemo(() => {
+    if (queueSummary.total === 0) return "No active bids yet";
+    if (queueSummary.userBidExists && myRank) return `You're in position #${myRank} of ${queueSummary.total}`;
+    return "You're not in the queue yet";
+  }, [queueSummary.total, queueSummary.userBidExists, myRank]);
 
   const estWeeks = useMemo(() => {
     if (!myRank) return null;
@@ -149,7 +234,7 @@ export default function Priority() {
     return Number(lastSnapshot.rank) - myRank;
   }, [myRank, lastSnapshot]);
 
-  // Community impact (max 10) — same formula as compute_session_scores
+  // Community impact (max 10)
   const communityScore = Math.min(
     10,
     community.referrals * 2 + community.active_days * 0.1 + (community.kyc_level >= 3 ? 2 : 0),
@@ -274,7 +359,11 @@ export default function Priority() {
                 <span className="font-display text-2xl text-gradient-gold">~{potentialScore}<span className="text-base text-muted-foreground">/100</span></span>
               </div>
               <p className="mt-1 text-[11px] text-muted-foreground">
-                Estimated rank: ~#{Math.max(1, Math.ceil(rows.length * 0.4) + 1)} of {rows.length || 0} active members
+                {queueSummary.total > 0 && queueSummary.userBidExists && myRank
+                  ? `You're in position #${myRank} of ${queueSummary.total}`
+                  : queueSummary.total > 0
+                    ? `Estimated rank: ~#${Math.max(1, Math.ceil(queueSummary.total * 0.4) + 1)} of ${queueSummary.total} active members`
+                    : "No active bids yet"}
               </p>
             </div>
           </section>
@@ -283,11 +372,10 @@ export default function Priority() {
             <div className="mx-auto max-w-md rounded-3xl glass p-5">
               <div className="flex items-center gap-2">
                 <Trophy className="h-4 w-4 text-accent" />
-                <h3 className="font-display text-lg capitalize">{tier} queue</h3>
-                <span className="ml-auto text-[11px] text-muted-foreground">{rows.length} active</span>
+                <h3 className="font-display text-lg capitalize">{tier} queue: <span className="text-[11px] font-sans text-muted-foreground">{queueSummary.total} active</span></h3>
               </div>
-              {rows.length === 0 ? (
-                <p className="mt-3 text-xs text-muted-foreground">No active bids in this tier yet — be the first.</p>
+              {queueSummary.total === 0 ? (
+                <p className="mt-3 text-xs text-muted-foreground">No active bids yet</p>
               ) : (
                 <ol className="mt-3 space-y-1.5">
                   {rows.slice(0, 10).map((r, i) => (
@@ -302,7 +390,9 @@ export default function Priority() {
                 </ol>
               )}
               <p className="mt-3 text-[11px] text-muted-foreground">
-                You're not in the queue yet — <Link to="/circle" className="underline">join {tier}</Link> to compete.
+                {queueMessage === "You're not in the queue yet" ? (
+                  <>You're not in the queue yet — <Link to="/circle" className="underline">join {tier}</Link> to compete.</>
+                ) : queueMessage}
               </p>
             </div>
           </section>
@@ -330,7 +420,7 @@ export default function Priority() {
                   <p className="font-display text-2xl">
                     {myRank ? `#${myRank}` : <span className="text-destructive text-base">Disqualified</span>}
                   </p>
-                  <p className="text-[10px] text-muted-foreground">of {eligibleRows.length}</p>
+                  <p className="text-[10px] text-muted-foreground">of {queueSummary.total}</p>
                   {rankDelta !== null && rankDelta !== 0 && (
                     <p className={`mt-1 inline-flex items-center gap-0.5 text-[10px] ${rankDelta > 0 ? "text-emerald-400" : "text-destructive"}`}>
                       {rankDelta > 0 ? <ArrowUp className="h-3 w-3" /> : <ArrowDown className="h-3 w-3" />}
