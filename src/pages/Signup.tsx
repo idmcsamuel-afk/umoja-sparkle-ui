@@ -138,7 +138,21 @@ const Signup = () => {
     }
     setBusy(true);
 
-    // Gate: SA phone OR valid invite code
+    // Country gate: if the chosen country isn't enabled, add to waitlist and stop signup.
+    if (!countryEnabled) {
+      await supabase.from("country_waitlist" as any).insert({
+        email: parsed.data.email,
+        full_name: parsed.data.full_name,
+        phone: parsed.data.phone,
+        country_code: country,
+      });
+      setBusy(false);
+      toast.success(`Thanks! We'll notify you when UMOJA opens in ${selectedCountry?.country_name ?? country}.`);
+      nav("/waitlist");
+      return;
+    }
+
+    // Gate: SA phone OR valid invite code (only applies when country is ZA)
     const phoneSA = parsed.data.phone.replace(/\s+/g, "").startsWith("+27");
     const code = parsed.data.invite_code?.trim();
 
