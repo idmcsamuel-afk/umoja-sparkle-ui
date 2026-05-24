@@ -232,11 +232,25 @@ export default function AdminCircleTracker() {
       const hours_remaining = b.vault_end
         ? (new Date(b.vault_end).getTime() - Date.now()) / 3_600_000
         : null;
+
+      // Calculated score (same formula as get_my_circle_queue_status)
+      const fiat = Number(b.fiat_amount ?? 0);
+      const volumeFallback =
+        fiat >= 10000 ? 10 : fiat >= 5000 ? 7 : fiat >= 2000 ? 5 : fiat >= 500 ? 3 : 1;
+      const consistency_score = Number(m.consistency_score) || 40;
+      const time_waiting_score = Number(m.time_waiting_score) || 0;
+      const contribution_volume_score = Number(m.contribution_volume_score) || volumeFallback;
+      const community_score = Number(m.community_score) || 10;
+      const bid_boost_score = Number(m.bid_boost_score) || 0;
+      const calc_score =
+        consistency_score + time_waiting_score + contribution_volume_score +
+        community_score + bid_boost_score;
+
       return {
         bid_id: b.id,
         member_id: b.member_id,
         tier: (b.tier || "seed") as Tier,
-        fiat_amount: Number(b.fiat_amount ?? 0),
+        fiat_amount: fiat,
         payout_amount: b.payout_amount,
         net_amount: b.net_amount,
         status: b.status,
@@ -256,12 +270,12 @@ export default function AdminCircleTracker() {
         bank_name: m.bank_name,
         bank_account: m.bank_account,
         bank_branch: m.bank_branch,
-        priority_score: Number(m.priority_score ?? 0),
-        consistency_score: Number(m.consistency_score ?? 0),
-        time_waiting_score: Number(m.time_waiting_score ?? 0),
-        contribution_volume_score: Number(m.contribution_volume_score ?? 0),
-        community_score: Number(m.community_score ?? 0),
-        bid_boost_score: Number(m.bid_boost_score ?? 0),
+        priority_score: calc_score,
+        consistency_score,
+        time_waiting_score,
+        contribution_volume_score,
+        community_score,
+        bid_boost_score,
         bd_bank_name: bd.bank_name ?? null,
         bd_account_holder: bd.account_holder_name ?? null,
         bd_account_number: bd.account_number ?? null,
@@ -273,9 +287,9 @@ export default function AdminCircleTracker() {
       };
     });
 
-    // ranking within tier (active/vault only)
+    // ranking within tier (vault only — matches user-facing queue)
     (["seed", "growth", "harvest"] as Tier[]).forEach((t) => {
-      const inTier = mapped.filter((r) => r.tier === t && ["active", "vault"].includes(r.status));
+      const inTier = mapped.filter((r) => r.tier === t && r.status === "vault" && r.vault_start);
       inTier.sort((a, b) =>
         b.priority_score - a.priority_score ||
         new Date(a.bid_created).getTime() - new Date(b.bid_created).getTime()
