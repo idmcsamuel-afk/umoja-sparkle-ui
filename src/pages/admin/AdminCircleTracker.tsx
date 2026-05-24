@@ -202,14 +202,13 @@ export default function AdminCircleTracker() {
       .select(`
         id, member_id, tier, fiat_amount, payout_amount, net_amount, status,
         payment_status, payment_method, payment_reference, paystack_reference, payment_ref,
-        vault_start, vault_end, days_waiting, created_at, payment_confirmed_at,
+        vault_start, vault_end, days_waiting, created_at, payment_confirmed_at, payout_date,
         members:member_id (
           id, full_name, email, phone, bank_name, bank_account, bank_branch,
           priority_score, consistency_score, time_waiting_score,
           contribution_volume_score, community_score, bid_boost_score
         )
       `)
-      .in("status", ["active", "vault", "payment_pending", "pending"])
       .order("created_at", { ascending: false });
 
     if (error) {
