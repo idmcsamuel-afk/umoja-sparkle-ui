@@ -195,6 +195,16 @@ const Circle = () => {
     const settingsRow = Array.isArray(settingsRes.data) ? settingsRes.data[0] : settingsRes.data;
     setSettings((settingsRow ?? null) as Settings | null);
 
+    // Load USDT settings separately (not exposed by get_member_platform_settings RPC)
+    const { data: cryptoRow } = await supabase
+      .from("platform_settings")
+      .select("usdt_trc20_address, crypto_enabled")
+      .order("created_at", { ascending: false })
+      .limit(1)
+      .maybeSingle();
+    setCryptoEnabled(!!cryptoRow?.crypto_enabled);
+    setUsdtAddress(cryptoRow?.usdt_trc20_address ?? null);
+
     const qmap: Record<string, MyQueueStatus> = {};
     for (const r of (((queueRes as any).data ?? []) as MyQueueStatus[])) {
       qmap[(r as any).tier] = r;
