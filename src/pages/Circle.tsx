@@ -19,6 +19,8 @@ import { SparksDisclaimer } from "@/components/umoja/SparksDisclaimer";
 import { CircleStatusBanner } from "@/components/umoja/CircleStatusBanner";
 import { TimezoneSelector } from "@/components/umoja/TimezoneSelector";
 import { PaymentMethodSelector, type PaymentMethod } from "@/components/umoja/PaymentMethodSelector";
+import { UsdtPayPanel } from "@/components/umoja/UsdtPayPanel";
+import { useUsdtRate, zarToUsdt, fmtUsdt } from "@/hooks/useUsdtRate";
 import { usePaystack, buildReference } from "@/hooks/usePaystack";
 import { cn } from "@/lib/utils";
 import { CircleTierCard, type MyQueueStatus } from "@/components/umoja/CircleTierCard";
