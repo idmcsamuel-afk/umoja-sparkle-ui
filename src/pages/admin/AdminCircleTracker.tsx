@@ -335,6 +335,8 @@ export default function AdminCircleTracker() {
       list = list.filter((r) => r.status === "pending" || r.status === "payment_pending");
     else if (quickTab === "rejected")
       list = list.filter((r) => r.status === "rejected");
+    else if (quickTab === "expired")
+      list = list.filter((r) => r.status === "expired");
 
     if (search.trim()) {
       const q = search.trim().toLowerCase();
