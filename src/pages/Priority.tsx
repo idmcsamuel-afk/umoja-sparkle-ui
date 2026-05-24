@@ -147,7 +147,7 @@ export default function Priority() {
   const [payouts, setPayouts] = useState<Record<TierKey, number>>(PAYOUTS_PER_SESSION);
   const [lastSnapshot, setLastSnapshot] = useState<{ priority_score: number; rank: number | null; session_at: string } | null>(null);
   const [myBid, setMyBid] = useState<MyBid | null>(null);
-  const [community, setCommunity] = useState<CommunityStats>({ referrals: 0, kyc_level: 0, active_days: 0 });
+  const [community, setCommunity] = useState<CommunityStats>({ referrals: 0, kyc_level: 0 });
   const [queueSummary, setQueueSummary] = useState<QueueSummary>({ total: 0, userBidExists: false, userRank: null });
 
   useEffect(() => {
@@ -180,13 +180,15 @@ export default function Priority() {
       console.log("[Priority] my bid:", { bid, bidErr, tier });
       setMyBid((bid as MyBid) ?? null);
 
-      const [{ count: refs }, { data: me }, { data: activeRows }] = await Promise.all([
-        supabase.from("members").select("id", { count: "exact", head: true }).eq("referred_by", user.id),
-        supabase.from("members").select("kyc_level").eq("id", user.id).maybeSingle(),
-        supabase.from("circle_bids").select("created_at").eq("member_id", user.id),
-      ]);
-      const days = new Set((activeRows ?? []).map((r) => new Date(r.created_at).toISOString().slice(0, 10))).size;
-      setCommunity({ referrals: refs ?? 0, kyc_level: (me?.kyc_level as number) ?? 0, active_days: days });
+      const { data: me } = await supabase
+        .from("members")
+        .select("referral_count, kyc_level")
+        .eq("id", user.id)
+        .maybeSingle();
+      setCommunity({
+        referrals: Number((me as MemberForScore | null)?.referral_count ?? 0),
+        kyc_level: Number((me as MemberForScore | null)?.kyc_level ?? 0),
+      });
     })();
   }, [user?.id, tier]);
 
