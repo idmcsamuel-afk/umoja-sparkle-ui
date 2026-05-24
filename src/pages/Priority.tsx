@@ -128,9 +128,9 @@ export default function Priority() {
   const eligibleRows = useMemo(() => rows.filter((r) => r.eligible), [rows]);
   const myRank = useMemo(() => {
     if (!me) return null;
-    const idx = eligibleRows.findIndex((r) => r.bid_id === me.bid_id);
+    const idx = rows.findIndex((r) => r.bid_id === me.bid_id);
     return idx === -1 ? null : idx + 1;
-  }, [eligibleRows, me]);
+  }, [rows, me]);
 
   const estWeeks = useMemo(() => {
     if (!myRank) return null;
