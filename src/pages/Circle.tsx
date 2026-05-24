@@ -147,7 +147,7 @@ const Circle = () => {
       user
         ? supabase
             .from("circle_bids")
-            .select("id, tier, fiat_amount, net_amount, status, created_at, vault_end, payout_amount, payment_deadline, payment_proof_url, payment_reference")
+            .select("id, tier, fiat_amount, net_amount, status, created_at, vault_end, payout_amount, payout_date, payment_deadline, payment_proof_url, payment_reference")
             .eq("member_id", user.id)
             .order("created_at", { ascending: false })
         : Promise.resolve({ data: [], error: null } as const),
