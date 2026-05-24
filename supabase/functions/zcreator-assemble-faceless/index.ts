@@ -346,8 +346,9 @@ Deno.serve(async (req) => {
         duration: a.duration,
       })),
       captionsSrt,
+      // SECURITY: do NOT send service-role key over the wire to an external worker.
+      // The worker must hold its own scoped credentials in its own env.
       supabaseUrl: SUPABASE_URL,
-      supabaseKey: WORKER_SERVICE_KEY,
       contentId,
       title: content.script_title,
       outputBucket: "zcreator-videos",
