@@ -272,7 +272,7 @@ export default function Priority() {
         const isUserBid = bid.member_id === user?.id;
         const bidAmount = Number(bid.fiat_amount ?? 0);
         const daysWaiting = bid.created_at ? Math.max(0, Math.floor((Date.now() - new Date(bid.created_at).getTime()) / 86400000)) : 0;
-        const contributionScore = contributionScoreForAmount(bidAmount);
+        const contributionScore = contributionScoreForAmount(bidAmount, bid.tier ?? tier);
         const tierMin = getTierMin(bid.tier ?? tier);
         const bidBoostScore = Math.min(Math.max(0, bidAmount - tierMin) / 100, 5);
         const priorityScore = isUserBid
