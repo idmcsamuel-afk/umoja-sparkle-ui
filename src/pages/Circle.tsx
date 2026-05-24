@@ -46,6 +46,7 @@ interface Bid {
   created_at: string | null;
   vault_end: string | null;
   payout_amount: number | null;
+  payout_date: string | null;
   payment_deadline: string | null;
   payment_proof_url: string | null;
   payment_reference: string | null;
@@ -146,7 +147,7 @@ const Circle = () => {
       user
         ? supabase
             .from("circle_bids")
-            .select("id, tier, fiat_amount, net_amount, status, created_at, vault_end, payout_amount, payment_deadline, payment_proof_url, payment_reference")
+            .select("id, tier, fiat_amount, net_amount, status, created_at, vault_end, payout_amount, payout_date, payment_deadline, payment_proof_url, payment_reference")
             .eq("member_id", user.id)
             .order("created_at", { ascending: false })
         : Promise.resolve({ data: [], error: null } as const),
@@ -200,8 +201,12 @@ const Circle = () => {
       .on(
         "postgres_changes",
         { event: "*", schema: "public", table: "circle_bids", filter: `member_id=eq.${user.id}` },
-        (payload) => {
+        (payload: any) => {
           console.log("[Circle] bid changed:", payload);
+          if (payload.eventType === "UPDATE" && payload.new?.status === "paid" && payload.old?.status !== "paid") {
+            const amt = Number(payload.new.payout_amount ?? 0);
+            toast.success(`🎉 Payout received! ${amt > 0 ? fmtR(amt) : ""} just landed in your account.`, { duration: 8000 });
+          }
           load();
         },
       )
@@ -460,6 +465,30 @@ const Circle = () => {
       <section className="px-5 pt-8">
         <div className="mx-auto max-w-md">
           <h2 className="font-display text-xl">My bids</h2>
+          {(() => {
+            const lastPaid = bids.find((b) => b.status === "paid");
+            if (!lastPaid) return null;
+            const amt = Number(lastPaid.payout_amount ?? 0);
+            const profit = amt - Number(lastPaid.fiat_amount ?? 0);
+            const pct = lastPaid.fiat_amount ? Math.round((profit / Number(lastPaid.fiat_amount)) * 100) : 0;
+            return (
+              <div className="mt-4 rounded-3xl border border-emerald-500/30 bg-gradient-to-br from-emerald-500/10 to-purple-500/10 p-5 animate-scale-in">
+                <div className="flex items-center gap-2 text-emerald-400 text-xs uppercase tracking-wider font-semibold">
+                  <span className="text-lg">✅</span> Payout completed
+                </div>
+                <p className="mt-2 font-display text-lg capitalize">{lastPaid.tier} circle</p>
+                <p className="mt-1 text-2xl font-display text-gradient-gold">You received: {fmtR(amt)}</p>
+                {lastPaid.payout_date && (
+                  <p className="mt-1 text-xs text-muted-foreground">
+                    Paid on: {new Date(lastPaid.payout_date).toLocaleDateString(undefined, { year: "numeric", month: "long", day: "numeric" })}
+                  </p>
+                )}
+                {profit > 0 && (
+                  <p className="mt-1 text-sm text-emerald-400">Net profit: +{fmtR(profit)}{pct > 0 ? ` (${pct}%)` : ""}</p>
+                )}
+              </div>
+            );
+          })()}
           {loading ? (
             <div className="mt-4 grid place-items-center rounded-3xl glass p-10">
               <Loader2 className="h-5 w-5 animate-spin text-primary" />
@@ -479,7 +508,14 @@ const Circle = () => {
                 const awaiting = status === "pending" || status === "payment_pending";
 
                 let badge: { text: string; cls: string } | null = null;
-                if (status === "active" || status === "matched") badge = { text: "✅ Paid", cls: "bg-emerald-500/15 text-emerald-400" };
+                const payoutAmt = Number(b.payout_amount ?? 0);
+                const profit = payoutAmt - Number(b.fiat_amount ?? 0);
+                if (status === "paid") {
+                  badge = {
+                    text: `✅ Paid ${payoutAmt > 0 ? fmtR(payoutAmt) : ""}${profit > 0 ? ` · +${fmtR(profit)}` : ""}`,
+                    cls: "bg-purple-500/15 text-purple-400",
+                  };
+                } else if (status === "active" || status === "matched" || status === "vault") badge = { text: "🟢 Active in vault", cls: "bg-emerald-500/15 text-emerald-400" };
                 else if (status === "expired") badge = { text: "⏰ Expired", cls: "bg-destructive/15 text-destructive" };
                 else if (status === "rejected" || status === "cancelled" || status === "refunded") badge = { text: `🚫 ${status}`, cls: "bg-destructive/15 text-destructive" };
                 else if (awaiting && hoursLeft !== null) {

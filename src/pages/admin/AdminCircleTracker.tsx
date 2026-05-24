@@ -34,14 +34,15 @@ const TIER_COLORS: Record<Tier, string> = {
 };
 
 const STATUS_BADGE: Record<string, { label: string; cls: string }> = {
-  active:           { label: "Active in Vault",     cls: "bg-emerald-500/15 text-emerald-700 dark:text-emerald-300" },
-  vault:            { label: "Awaiting Payout",     cls: "bg-blue-500/15 text-blue-700 dark:text-blue-300" },
-  payment_pending:  { label: "Payment Pending",     cls: "bg-yellow-500/15 text-yellow-700 dark:text-yellow-300" },
-  pending:          { label: "Awaiting Confirmation", cls: "bg-muted text-muted-foreground" },
-  paid:             { label: "Paid Out",            cls: "bg-purple-500/15 text-purple-700 dark:text-purple-300" },
-  matched:          { label: "Matched",             cls: "bg-indigo-500/15 text-indigo-700 dark:text-indigo-300" },
-  rejected:         { label: "Rejected",            cls: "bg-destructive/15 text-destructive" },
-  expired:          { label: "Expired",             cls: "bg-muted text-muted-foreground" },
+  active:           { label: "🟢 Active",            cls: "bg-emerald-500/15 text-emerald-700 dark:text-emerald-300" },
+  vault:            { label: "🟢 Active",            cls: "bg-emerald-500/15 text-emerald-700 dark:text-emerald-300" },
+  overdue:          { label: "🔴 Overdue",           cls: "bg-red-500/15 text-red-700 dark:text-red-300" },
+  payment_pending:  { label: "🟡 Pending",           cls: "bg-yellow-500/15 text-yellow-700 dark:text-yellow-300" },
+  pending:          { label: "🟡 Pending",           cls: "bg-yellow-500/15 text-yellow-700 dark:text-yellow-300" },
+  paid:             { label: "🟣 Paid",              cls: "bg-purple-500/15 text-purple-700 dark:text-purple-300" },
+  matched:          { label: "Matched",              cls: "bg-indigo-500/15 text-indigo-700 dark:text-indigo-300" },
+  rejected:         { label: "⚪ Rejected",          cls: "bg-muted text-muted-foreground" },
+  expired:          { label: "Expired",              cls: "bg-muted text-muted-foreground" },
 };
 
 const zar = (n: number | null | undefined) =>
@@ -65,6 +66,7 @@ type Row = {
   days_waiting: number | null;
   bid_created: string;
   payment_confirmed_at: string | null;
+  payout_date: string | null;
   // member
   full_name: string;
   email: string | null;
@@ -188,7 +190,7 @@ export default function AdminCircleTracker() {
   const [tierFilter, setTierFilter] = useState<string>("all");
   const [statusFilter, setStatusFilter] = useState<string>("all");
   const [sortBy, setSortBy] = useState<string>("due");
-  const [quickTab, setQuickTab] = useState<string>("all");
+  const [quickTab, setQuickTab] = useState<string>("overdue");
   const [search, setSearch] = useState("");
   const [selected, setSelected] = useState<Set<string>>(new Set());
   const [breakdownRow, setBreakdownRow] = useState<Row | null>(null);
@@ -200,14 +202,13 @@ export default function AdminCircleTracker() {
       .select(`
         id, member_id, tier, fiat_amount, payout_amount, net_amount, status,
         payment_status, payment_method, payment_reference, paystack_reference, payment_ref,
-        vault_start, vault_end, days_waiting, created_at, payment_confirmed_at,
+        vault_start, vault_end, days_waiting, created_at, payment_confirmed_at, payout_date,
         members:member_id (
           id, full_name, email, phone, bank_name, bank_account, bank_branch,
           priority_score, consistency_score, time_waiting_score,
           contribution_volume_score, community_score, bid_boost_score
         )
       `)
-      .in("status", ["active", "vault", "payment_pending", "pending"])
       .order("created_at", { ascending: false });
 
     if (error) {
@@ -264,6 +265,7 @@ export default function AdminCircleTracker() {
         days_waiting: b.days_waiting,
         bid_created: b.created_at,
         payment_confirmed_at: b.payment_confirmed_at,
+        payout_date: b.payout_date ?? null,
         full_name: m.full_name || "Member",
         email: m.email,
         phone: m.phone,
@@ -323,14 +325,16 @@ export default function AdminCircleTracker() {
     if (tierFilter !== "all") list = list.filter((r) => r.tier === tierFilter);
     if (statusFilter !== "all") list = list.filter((r) => r.status === statusFilter);
 
-    if (quickTab === "due_today")
-      list = list.filter((r) => r.hours_remaining !== null && r.hours_remaining >= 0 && r.hours_remaining <= 24);
-    if (quickTab === "overdue")
-      list = list.filter((r) => r.hours_remaining !== null && r.hours_remaining < 0);
-    if (quickTab === "payment_pending")
-      list = list.filter((r) => r.status === "payment_pending");
-    if (quickTab === "high_priority")
-      list = list.filter((r) => r.priority_score > 300);
+    if (quickTab === "active")
+      list = list.filter((r) => r.status === "vault" && r.hours_remaining !== null && r.hours_remaining >= 0);
+    else if (quickTab === "overdue")
+      list = list.filter((r) => r.status === "vault" && r.hours_remaining !== null && r.hours_remaining < 0);
+    else if (quickTab === "paid")
+      list = list.filter((r) => r.status === "paid");
+    else if (quickTab === "pending")
+      list = list.filter((r) => r.status === "pending" || r.status === "payment_pending");
+    else if (quickTab === "rejected")
+      list = list.filter((r) => r.status === "rejected");
 
     if (search.trim()) {
       const q = search.trim().toLowerCase();
@@ -356,10 +360,12 @@ export default function AdminCircleTracker() {
 
   const counts = useMemo(() => ({
     all: ticked.length,
+    active: ticked.filter((r) => r.status === "vault" && r.hours_remaining !== null && r.hours_remaining >= 0).length,
+    overdue: ticked.filter((r) => r.status === "vault" && r.hours_remaining !== null && r.hours_remaining < 0).length,
+    paid: ticked.filter((r) => r.status === "paid").length,
+    pending: ticked.filter((r) => r.status === "pending" || r.status === "payment_pending").length,
+    rejected: ticked.filter((r) => r.status === "rejected").length,
     due_today: ticked.filter((r) => r.hours_remaining !== null && r.hours_remaining >= 0 && r.hours_remaining <= 24).length,
-    overdue: ticked.filter((r) => r.hours_remaining !== null && r.hours_remaining < 0).length,
-    payment_pending: ticked.filter((r) => r.status === "payment_pending").length,
-    high_priority: ticked.filter((r) => r.priority_score > 300).length,
   }), [ticked]);
 
   const stats = useMemo(() => {
@@ -609,10 +615,11 @@ export default function AdminCircleTracker() {
       <Tabs value={quickTab} onValueChange={setQuickTab}>
         <TabsList className="flex-wrap h-auto">
           <TabsTrigger value="all">All ({counts.all})</TabsTrigger>
-          <TabsTrigger value="due_today">Due Today ({counts.due_today})</TabsTrigger>
-          <TabsTrigger value="overdue">Overdue ({counts.overdue})</TabsTrigger>
-          <TabsTrigger value="payment_pending">Payment Pending ({counts.payment_pending})</TabsTrigger>
-          <TabsTrigger value="high_priority">High Priority ({counts.high_priority})</TabsTrigger>
+          <TabsTrigger value="active" className="data-[state=active]:bg-emerald-500/15 data-[state=active]:text-emerald-700">Active ({counts.active})</TabsTrigger>
+          <TabsTrigger value="overdue" className="data-[state=active]:bg-red-500/15 data-[state=active]:text-red-700">Overdue ({counts.overdue})</TabsTrigger>
+          <TabsTrigger value="paid" className="data-[state=active]:bg-purple-500/15 data-[state=active]:text-purple-700">Paid ({counts.paid})</TabsTrigger>
+          <TabsTrigger value="pending" className="data-[state=active]:bg-yellow-500/15 data-[state=active]:text-yellow-700">Pending ({counts.pending})</TabsTrigger>
+          <TabsTrigger value="rejected">Rejected ({counts.rejected})</TabsTrigger>
         </TabsList>
       </Tabs>
 
@@ -661,7 +668,10 @@ export default function AdminCircleTracker() {
               {filtered.map((r) => {
                 const payout = r.payout_amount ?? r.net_amount ?? r.fiat_amount;
                 const diff = payout - r.fiat_amount;
-                const status = STATUS_BADGE[r.status] || { label: r.status, cls: "bg-muted text-muted-foreground" };
+                 const isOverdue = r.status === "vault" && r.hours_remaining !== null && r.hours_remaining < 0;
+                 const status = isOverdue
+                   ? STATUS_BADGE.overdue
+                   : STATUS_BADGE[r.status] || { label: r.status, cls: "bg-muted text-muted-foreground" };
                 const ref = refFor(r);
                 return (
                   <TableRow key={r.bid_id}>
@@ -695,7 +705,18 @@ export default function AdminCircleTracker() {
                         </button>
                       ) : <span className="text-xs text-muted-foreground">—</span>}
                     </TableCell>
-                    <TableCell><CountdownCell hours={r.hours_remaining} tier={r.tier} /></TableCell>
+                    <TableCell>
+                      {r.status === "paid" ? (
+                        <div className="text-xs">
+                          <div className="font-medium text-purple-600 dark:text-purple-400">Paid</div>
+                          <div className="text-muted-foreground">
+                            {r.payout_date ? new Date(r.payout_date).toLocaleDateString() : "—"}
+                          </div>
+                        </div>
+                      ) : (
+                        <CountdownCell hours={r.hours_remaining} tier={r.tier} />
+                      )}
+                    </TableCell>
                     <TableCell>
                       <button className="text-left text-xs hover:underline" onClick={() => setBreakdownRow(r)}>
                         <div className="font-medium flex items-center gap-1"><TrendingUp className="h-3 w-3" />{r.priority_score.toFixed(0)}/100</div>
