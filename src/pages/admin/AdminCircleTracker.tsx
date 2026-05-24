@@ -416,20 +416,52 @@ export default function AdminCircleTracker() {
     URL.revokeObjectURL(url);
   };
 
+  const markBidPaid = async (
+    row: Row,
+    amount: number,
+    ref: string,
+  ): Promise<string | null> => {
+    const { error: rpcError } = await supabase.rpc("record_circle_payout", {
+      _bid_id: row.bid_id,
+      _net_amount: amount,
+      _method: row.payment_method || "manual",
+      _reference: ref,
+    } as any);
+    if (!rpcError) return null;
+    console.error("record_circle_payout failed", rpcError);
+    // Fallback: direct update (requires admin RLS UPDATE policy)
+    const { error: updError } = await supabase
+      .from("circle_bids")
+      .update({
+        status: "paid",
+        payout_amount: amount,
+        payout_date: new Date().toISOString(),
+        payment_ref: ref,
+      } as any)
+      .eq("id", row.bid_id);
+    if (updError) {
+      console.error("circle_bids update failed", updError);
+      return rpcError.message || updError.message;
+    }
+    return null;
+  };
+
   const processSelectedPayouts = async () => {
     const ids = Array.from(selected);
     if (!ids.length) return;
     if (!confirm(`Mark ${ids.length} bid(s) as paid?`)) return;
+    let ok = 0;
+    let firstError: string | null = null;
     for (const id of ids) {
       const row = ticked.find((r) => r.bid_id === id);
       if (!row) continue;
       const amount = row.payout_amount ?? row.net_amount ?? row.fiat_amount;
       const ref = row.payment_reference || row.paystack_reference || row.payment_ref || `MANUAL-${id.slice(0, 8)}`;
-      await supabase.rpc("record_circle_payout", {
-        _bid_id: id, _net_amount: amount, _method: row.payment_method || "manual", _reference: ref,
-      } as any);
+      const err = await markBidPaid(row, amount, ref);
+      if (err) { if (!firstError) firstError = err; } else { ok++; }
     }
-    toast({ title: "Payouts recorded", description: `${ids.length} bid(s) updated` });
+    if (ok > 0) toast({ title: "✅ Payment marked as complete", description: `${ok} bid(s) updated` });
+    if (firstError) toast({ title: "Some payouts failed", description: firstError, variant: "destructive" });
     setSelected(new Set());
     fetchData();
   };
