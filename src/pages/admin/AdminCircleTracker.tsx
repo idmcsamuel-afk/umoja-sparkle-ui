@@ -66,6 +66,7 @@ type Row = {
   days_waiting: number | null;
   bid_created: string;
   payment_confirmed_at: string | null;
+  payout_date: string | null;
   // member
   full_name: string;
   email: string | null;
