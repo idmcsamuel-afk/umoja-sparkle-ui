@@ -307,6 +307,9 @@ export default function Banking() {
                 </Button>
               </div>
 
+              <UsdtWalletCard />
+
+
               {/* Payouts history */}
               <div className="mt-8">
                 <h2 className="font-display text-xl flex items-center gap-2">
