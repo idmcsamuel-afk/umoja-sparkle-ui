@@ -201,8 +201,12 @@ const Circle = () => {
       .on(
         "postgres_changes",
         { event: "*", schema: "public", table: "circle_bids", filter: `member_id=eq.${user.id}` },
-        (payload) => {
+        (payload: any) => {
           console.log("[Circle] bid changed:", payload);
+          if (payload.eventType === "UPDATE" && payload.new?.status === "paid" && payload.old?.status !== "paid") {
+            const amt = Number(payload.new.payout_amount ?? 0);
+            toast.success(`🎉 Payout received! ${amt > 0 ? fmtR(amt) : ""} just landed in your account.`, { duration: 8000 });
+          }
           load();
         },
       )
