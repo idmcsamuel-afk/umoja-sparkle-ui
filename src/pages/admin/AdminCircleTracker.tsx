@@ -265,6 +265,7 @@ export default function AdminCircleTracker() {
         days_waiting: b.days_waiting,
         bid_created: b.created_at,
         payment_confirmed_at: b.payment_confirmed_at,
+        payout_date: b.payout_date ?? null,
         full_name: m.full_name || "Member",
         email: m.email,
         phone: m.phone,
