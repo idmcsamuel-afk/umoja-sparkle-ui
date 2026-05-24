@@ -77,6 +77,11 @@ async function publishToYouTube(opts: {
 
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response("ok", { headers: corsHeaders });
+  const _authHeader = req.headers.get("Authorization");
+  if (!_authHeader?.startsWith("Bearer ")) return new Response(JSON.stringify({ error: "Unauthorized" }), { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+  const _u = createClient(SUPABASE_URL, Deno.env.get("SUPABASE_ANON_KEY") ?? "", { global: { headers: { Authorization: _authHeader } } });
+  const { data: _c, error: _e } = await _u.auth.getClaims(_authHeader.replace("Bearer ", ""));
+  if (_e || !_c?.claims) return new Response(JSON.stringify({ error: "Unauthorized" }), { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } });
 
   try {
     const { contentId, platforms, publishNow } = await req.json();
