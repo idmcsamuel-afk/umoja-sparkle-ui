@@ -796,7 +796,20 @@ const Circle = () => {
                   </DialogDescription>
                 </DialogHeader>
 
-                <PaymentMethodSelector value={method} onChange={setMethod} />
+                <PaymentMethodSelector value={method} onChange={setMethod} cryptoEnabled={cryptoEnabled} />
+
+              {method === "usdt" && pendingBid && (
+                <UsdtPayPanel
+                  bidId={pendingBid.id}
+                  amountUsdt={pendingBid.usdtAmount ?? zarToUsdt(pendingBid.amount, usdtRate)}
+                  amountZar={pendingBid.amount}
+                  platformAddress={usdtAddress}
+                  deadlineMs={pendingBid.usdtDeadline}
+                  nowMs={now}
+                  onConfirmed={() => { closeModal(); load(); }}
+                />
+              )}
+
 
               {method === "eft" && !settingsReady ? (
                 <div className="rounded-2xl border border-destructive/40 bg-destructive/10 p-4 space-y-3">
