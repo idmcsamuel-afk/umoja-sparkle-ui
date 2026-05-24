@@ -53,6 +53,10 @@ async function fetchYouTubeStats(accessToken: string, videoId: string) {
 
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response("ok", { headers: corsHeaders });
+  const _cron = Deno.env.get("CRON_SECRET");
+  if (!_cron || req.headers.get("x-cron-secret") !== _cron) {
+    return new Response(JSON.stringify({ error: "Unauthorized" }), { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+  }
   try {
     const { userId } = await req.json().catch(() => ({}));
     if (!userId) {

@@ -17,6 +17,10 @@ const SERVICE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? "";
 
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response("ok", { headers: corsHeaders });
+  const _cron = Deno.env.get("CRON_SECRET");
+  if (!_cron || req.headers.get("x-cron-secret") !== _cron) {
+    return json({ error: "Unauthorized" }, 401);
+  }
 
   try {
     const supabase = createClient(SUPABASE_URL, SERVICE_KEY);

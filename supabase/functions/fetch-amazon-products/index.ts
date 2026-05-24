@@ -104,6 +104,26 @@ Deno.serve(async (req) => {
     return new Response('ok', { headers: corsHeaders });
   }
 
+  // Auth: require admin JWT or CRON_SECRET
+  const _cron = Deno.env.get('CRON_SECRET');
+  if (!_cron || req.headers.get('x-cron-secret') !== _cron) {
+    const _authHeader = req.headers.get('Authorization');
+    if (!_authHeader?.startsWith('Bearer ')) {
+      return new Response(JSON.stringify({ error: 'Unauthorized' }), { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
+    }
+    const _anon = createClient(Deno.env.get('SUPABASE_URL')!, Deno.env.get('SUPABASE_ANON_KEY')!);
+    const { data: _claims, error: _ce } = await _anon.auth.getClaims(_authHeader.replace('Bearer ', ''));
+    if (_ce || !_claims?.claims) {
+      return new Response(JSON.stringify({ error: 'Unauthorized' }), { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
+    }
+    const _admin = createClient(Deno.env.get('SUPABASE_URL')!, Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!);
+    const { data: _row } = await _admin.from('admin_users').select('user_id').eq('user_id', _claims.claims.sub).maybeSingle();
+    if (!_row) {
+      return new Response(JSON.stringify({ error: 'Forbidden' }), { status: 403, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
+    }
+  }
+
+
   try {
     const supabase = createClient(
       Deno.env.get('SUPABASE_URL')!,
