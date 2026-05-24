@@ -45,7 +45,6 @@ interface MyBid {
 interface CommunityStats {
   referrals: number;
   kyc_level: number;
-  active_days: number;
 }
 
 interface QueueSummary {
@@ -54,7 +53,91 @@ interface QueueSummary {
   userRank: number | null;
 }
 
-const TIER_MIN: Record<TierKey, number> = { seed: 200, growth: 2001, harvest: 10001 };
+interface CircleBidForScore {
+  id?: string;
+  member_id?: string | null;
+  status: string | null;
+  tier: string | null;
+  fiat_amount: number | null;
+  created_at: string | null;
+  vault_start?: string | null;
+  priority_score?: number | null;
+}
+
+interface MemberForScore {
+  referral_count?: number | null;
+  kyc_level?: number | null;
+}
+
+const TIER_MIN: Record<TierKey, number> = { seed: 200, growth: 2000, harvest: 10000 };
+
+const getTierMin = (tierName?: string | null) => {
+  if (tierName === "seed") return 200;
+  if (tierName === "growth") return 2000;
+  return 10000;
+};
+
+const contributionScoreForAmount = (amount: number) => {
+  if (amount >= 10000) return 15;
+  if (amount >= 5000) return 12;
+  if (amount >= 2000) return 9;
+  if (amount >= 1000) return 6;
+  if (amount >= 500) return 3;
+  if (amount >= 200) return 1;
+  return 0;
+};
+
+const calculatePriorityScore = (member: MemberForScore | null, bids: CircleBidForScore[], selectedTier: TierKey) => {
+  const totalBids = bids.filter((bid) => bid.status !== "rejected").length;
+  const paidBids = bids.filter((bid) => bid.status === "paid").length;
+  const paymentRate = totalBids > 0 ? paidBids / totalBids : 1;
+  const consistencyScore = paymentRate * 40;
+
+  const activeBids = bids.filter((bid) => bid.status === "vault");
+  const selectedTierActiveBids = activeBids.filter((bid) => bid.tier === selectedTier);
+  const queueBids = selectedTierActiveBids.length > 0 ? selectedTierActiveBids : activeBids;
+  const oldestActiveBid = queueBids.reduce<CircleBidForScore | null>((oldest, bid) => {
+    if (!bid.created_at) return oldest;
+    if (!oldest?.created_at) return bid;
+    return new Date(bid.created_at).getTime() < new Date(oldest.created_at).getTime() ? bid : oldest;
+  }, null);
+  const currentBid = queueBids.reduce<CircleBidForScore | null>((latest, bid) => {
+    if (!bid.created_at) return latest ?? bid;
+    if (!latest?.created_at) return bid;
+    return new Date(bid.created_at).getTime() > new Date(latest.created_at).getTime() ? bid : latest;
+  }, null);
+
+  const daysWaiting = oldestActiveBid?.created_at
+    ? Math.max(0, Math.floor((Date.now() - new Date(oldestActiveBid.created_at).getTime()) / 86400000))
+    : 0;
+  const timeWaitingScore = Math.min(daysWaiting, 30);
+  const bidAmount = Number(currentBid?.fiat_amount ?? 0);
+  const contributionScore = contributionScoreForAmount(bidAmount);
+  const referralCount = Number(member?.referral_count ?? 0);
+  const kycLevel = Number(member?.kyc_level ?? 0);
+  let communityScore = Math.min(referralCount * 0.5, 6);
+  if (kycLevel >= 3) communityScore += 2;
+  if (kycLevel >= 2) communityScore += 1;
+  communityScore = Math.min(communityScore, 10);
+  const tierMin = getTierMin(currentBid?.tier ?? selectedTier);
+  const boostAmount = Math.max(0, bidAmount - tierMin);
+  const bidBoostScore = Math.min(boostAmount / 100, 5);
+  const totalScore = consistencyScore + timeWaitingScore + contributionScore + communityScore + bidBoostScore;
+
+  return {
+    paymentRate,
+    consistencyScore,
+    daysWaiting,
+    timeWaitingScore,
+    bidAmount,
+    contributionScore,
+    referralCount,
+    kycLevel,
+    communityScore,
+    bidBoostScore,
+    totalScore,
+  };
+};
 
 export default function Priority() {
   const { user } = useAuth();
