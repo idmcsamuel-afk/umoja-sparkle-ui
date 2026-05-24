@@ -234,15 +234,18 @@ export default function Priority() {
 
       if (activeCountRes.error) console.error(activeCountRes.error);
       if (activeRowsRes.error) console.error(activeRowsRes.error);
-      if ((userBidRes as any).error) console.error((userBidRes as any).error);
-      if ((memberRes as any).error) console.error((memberRes as any).error);
-      if ((userBidsRes as any).error) console.error((userBidsRes as any).error);
-      if ((referralStatsRes as any).error) console.error((referralStatsRes as any).error);
+      const userBidError = (userBidRes as { error: unknown }).error;
+      const memberError = (memberRes as { error: unknown }).error;
+      const userBidsError = (userBidsRes as { error: unknown }).error;
+      const referralStatsError = (referralStatsRes as { error: unknown }).error;
+      if (userBidError) console.error(userBidError);
+      if (memberError) console.error(memberError);
+      if (userBidsError) console.error(userBidsError);
+      if (referralStatsError) console.error(referralStatsError);
 
       const activeUserBid = (userBidRes as { data: CircleBidForScore | null }).data;
-      const referralStatsRow = Array.isArray((referralStatsRes as { data: any }).data)
-        ? (referralStatsRes as { data: Array<{ total_refs?: number }> }).data[0]
-        : (referralStatsRes as { data: { total_refs?: number } | null }).data;
+      const referralStatsData = (referralStatsRes as { data: Array<{ total_refs?: number }> | { total_refs?: number } | null }).data;
+      const referralStatsRow = Array.isArray(referralStatsData) ? referralStatsData[0] : referralStatsData;
       const memberForScore = {
         ...((memberRes as { data: MemberForScore | null }).data ?? {}),
         referral_count: Number(referralStatsRow?.total_refs ?? 0),
