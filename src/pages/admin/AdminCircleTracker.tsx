@@ -707,10 +707,10 @@ export default function AdminCircleTracker() {
                       <div className="flex justify-end gap-1">
                         <Button size="sm" variant="outline" onClick={async () => {
                           const amt = payout;
-                          await supabase.rpc("record_circle_payout", {
-                            _bid_id: r.bid_id, _net_amount: amt, _method: r.payment_method || "manual", _reference: ref === "—" ? `MANUAL-${r.bid_id.slice(0, 8)}` : ref,
-                          } as any);
-                          toast({ title: "Payout recorded" });
+                          const refUsed = ref === "—" ? `MANUAL-${r.bid_id.slice(0, 8)}` : ref;
+                          const err = await markBidPaid(r, amt, refUsed);
+                          if (err) toast({ title: "Payout failed", description: err, variant: "destructive" });
+                          else toast({ title: "✅ Payment marked as complete" });
                           fetchData();
                         }}>Pay</Button>
                       </div>
