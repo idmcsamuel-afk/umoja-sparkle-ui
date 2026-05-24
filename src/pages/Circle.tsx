@@ -769,6 +769,34 @@ const Circle = () => {
                   )}
                 </div>
               ) : method === "eft" ? (
+                <>
+                  {pendingBid?.eftDeadline && (() => {
+                    const msLeft = pendingBid.eftDeadline - now;
+                    const expired = msLeft <= 0;
+                    const urgent = !expired && msLeft <= 30 * 60 * 1000;
+                    return (
+                      <div
+                        className={`rounded-2xl border p-3 text-sm ${
+                          expired
+                            ? "border-destructive/50 bg-destructive/10 text-destructive"
+                            : urgent
+                              ? "border-amber-500/50 bg-amber-500/10 text-amber-600"
+                              : "border-primary/40 bg-primary/10 text-primary"
+                        }`}
+                      >
+                        <p className="font-medium">
+                          {expired
+                            ? "⏰ Payment window expired — this bid is no longer valid."
+                            : "⏱️ Upload proof of payment within 2 hours"}
+                        </p>
+                        {!expired && (
+                          <p className="mt-1 font-mono text-base tabular-nums">
+                            Time remaining: {fmtCountdown(msLeft)}
+                          </p>
+                        )}
+                      </div>
+                    );
+                  })()}
                 <div className="space-y-2 rounded-2xl border border-border bg-secondary/40 p-4 text-sm">
                   <p className="text-[10px] uppercase tracking-wider text-muted-foreground pb-1">Your Payment Details</p>
                   {[
