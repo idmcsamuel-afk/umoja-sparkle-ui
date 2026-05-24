@@ -623,6 +623,7 @@ export default function AdminCircleTracker() {
           <TabsTrigger value="paid" className="data-[state=active]:bg-purple-500/15 data-[state=active]:text-purple-700">Paid ({counts.paid})</TabsTrigger>
           <TabsTrigger value="pending" className="data-[state=active]:bg-yellow-500/15 data-[state=active]:text-yellow-700">Pending ({counts.pending})</TabsTrigger>
           <TabsTrigger value="rejected">Rejected ({counts.rejected})</TabsTrigger>
+          <TabsTrigger value="expired" className="data-[state=active]:bg-muted data-[state=active]:text-muted-foreground">⏰ Expired ({counts.expired})</TabsTrigger>
         </TabsList>
       </Tabs>
 
