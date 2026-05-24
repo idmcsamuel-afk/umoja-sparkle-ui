@@ -128,9 +128,9 @@ export default function Priority() {
   const eligibleRows = useMemo(() => rows.filter((r) => r.eligible), [rows]);
   const myRank = useMemo(() => {
     if (!me) return null;
-    const idx = eligibleRows.findIndex((r) => r.bid_id === me.bid_id);
+    const idx = rows.findIndex((r) => r.bid_id === me.bid_id);
     return idx === -1 ? null : idx + 1;
-  }, [eligibleRows, me]);
+  }, [rows, me]);
 
   const estWeeks = useMemo(() => {
     if (!myRank) return null;
@@ -274,7 +274,7 @@ export default function Priority() {
                 <span className="font-display text-2xl text-gradient-gold">~{potentialScore}<span className="text-base text-muted-foreground">/100</span></span>
               </div>
               <p className="mt-1 text-[11px] text-muted-foreground">
-                Estimated rank: ~#{Math.max(1, Math.ceil(eligibleRows.length * 0.4) + 1)} of {eligibleRows.length || 0} active members
+                Estimated rank: ~#{Math.max(1, Math.ceil(rows.length * 0.4) + 1)} of {rows.length || 0} active members
               </p>
             </div>
           </section>
@@ -284,13 +284,13 @@ export default function Priority() {
               <div className="flex items-center gap-2">
                 <Trophy className="h-4 w-4 text-accent" />
                 <h3 className="font-display text-lg capitalize">{tier} queue</h3>
-                <span className="ml-auto text-[11px] text-muted-foreground">{eligibleRows.length} active</span>
+                <span className="ml-auto text-[11px] text-muted-foreground">{rows.length} active</span>
               </div>
-              {eligibleRows.length === 0 ? (
+              {rows.length === 0 ? (
                 <p className="mt-3 text-xs text-muted-foreground">No active bids in this tier yet — be the first.</p>
               ) : (
                 <ol className="mt-3 space-y-1.5">
-                  {eligibleRows.slice(0, 10).map((r, i) => (
+                  {rows.slice(0, 10).map((r, i) => (
                     <li key={r.bid_id} className="flex items-center justify-between rounded-xl bg-secondary/30 px-3 py-2 text-sm">
                       <span className="flex items-center gap-2">
                         <span className="font-mono text-xs text-muted-foreground w-5">#{i + 1}</span>
