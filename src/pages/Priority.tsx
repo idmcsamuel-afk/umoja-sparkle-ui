@@ -45,7 +45,6 @@ interface MyBid {
 interface CommunityStats {
   referrals: number;
   kyc_level: number;
-  active_days: number;
 }
 
 interface QueueSummary {
@@ -54,7 +53,86 @@ interface QueueSummary {
   userRank: number | null;
 }
 
-const TIER_MIN: Record<TierKey, number> = { seed: 200, growth: 2001, harvest: 10001 };
+interface CircleBidForScore {
+  id?: string;
+  member_id?: string | null;
+  status: string | null;
+  tier: string | null;
+  fiat_amount: number | null;
+  created_at: string | null;
+  vault_start?: string | null;
+  priority_score?: number | null;
+}
+
+interface MemberForScore {
+  referral_count?: number | null;
+  kyc_level?: number | null;
+}
+
+const TIER_MIN: Record<TierKey, number> = { seed: 200, growth: 2000, harvest: 10000 };
+
+const getTierMin = (tierName?: string | null) => {
+  if (tierName === "seed") return 200;
+  if (tierName === "growth") return 2000;
+  return 10000;
+};
+
+const contributionScoreForAmount = (amount: number, tierName?: string | null) => {
+  const tierMin = getTierMin(tierName);
+  return Math.min(15, (amount / Math.max(tierMin * 5, 1)) * 15);
+};
+
+const calculatePriorityScore = (member: MemberForScore | null, bids: CircleBidForScore[], selectedTier: TierKey) => {
+  const totalBids = bids.filter((bid) => bid.status !== "rejected").length;
+  const paidBids = bids.filter((bid) => ["paid", "vault", "matched"].includes(bid.status ?? "")).length;
+  const paymentRate = totalBids > 0 ? paidBids / totalBids : 1;
+  const consistencyScore = paymentRate * 40;
+
+  const activeBids = bids.filter((bid) => bid.status === "vault");
+  const selectedTierActiveBids = activeBids.filter((bid) => bid.tier === selectedTier);
+  const queueBids = selectedTierActiveBids.length > 0 ? selectedTierActiveBids : activeBids;
+  const oldestActiveBid = queueBids.reduce<CircleBidForScore | null>((oldest, bid) => {
+    if (!bid.created_at) return oldest;
+    if (!oldest?.created_at) return bid;
+    return new Date(bid.created_at).getTime() < new Date(oldest.created_at).getTime() ? bid : oldest;
+  }, null);
+  const currentBid = queueBids.reduce<CircleBidForScore | null>((latest, bid) => {
+    if (!bid.created_at) return latest ?? bid;
+    if (!latest?.created_at) return bid;
+    return new Date(bid.created_at).getTime() > new Date(latest.created_at).getTime() ? bid : latest;
+  }, null);
+
+  const daysWaiting = oldestActiveBid?.created_at
+    ? Math.max(0, Math.floor((Date.now() - new Date(oldestActiveBid.created_at).getTime()) / 86400000))
+    : 0;
+  const timeWaitingScore = Math.min(daysWaiting, 30);
+  const bidAmount = Number(currentBid?.fiat_amount ?? 0);
+  const contributionScore = contributionScoreForAmount(bidAmount, currentBid?.tier ?? selectedTier);
+  const referralCount = Number(member?.referral_count ?? 0);
+  const kycLevel = Number(member?.kyc_level ?? 0);
+  let communityScore = Math.min(referralCount * 0.5, 6);
+  if (kycLevel >= 3) communityScore += 2;
+  if (kycLevel >= 2) communityScore += 1;
+  communityScore = Math.min(communityScore, 10);
+  const tierMin = getTierMin(currentBid?.tier ?? selectedTier);
+  const boostAmount = Math.max(0, bidAmount - tierMin);
+  const bidBoostScore = Math.min(boostAmount / 100, 5);
+  const totalScore = consistencyScore + timeWaitingScore + contributionScore + communityScore + bidBoostScore;
+
+  return {
+    paymentRate,
+    consistencyScore,
+    daysWaiting,
+    timeWaitingScore,
+    bidAmount,
+    contributionScore,
+    referralCount,
+    kycLevel,
+    communityScore,
+    bidBoostScore,
+    totalScore,
+  };
+};
 
 export default function Priority() {
   const { user } = useAuth();
@@ -64,7 +142,7 @@ export default function Priority() {
   const [payouts, setPayouts] = useState<Record<TierKey, number>>(PAYOUTS_PER_SESSION);
   const [lastSnapshot, setLastSnapshot] = useState<{ priority_score: number; rank: number | null; session_at: string } | null>(null);
   const [myBid, setMyBid] = useState<MyBid | null>(null);
-  const [community, setCommunity] = useState<CommunityStats>({ referrals: 0, kyc_level: 0, active_days: 0 });
+  const [community, setCommunity] = useState<CommunityStats>({ referrals: 0, kyc_level: 0 });
   const [queueSummary, setQueueSummary] = useState<QueueSummary>({ total: 0, userBidExists: false, userRank: null });
 
   useEffect(() => {
@@ -97,20 +175,22 @@ export default function Priority() {
       console.log("[Priority] my bid:", { bid, bidErr, tier });
       setMyBid((bid as MyBid) ?? null);
 
-      const [{ count: refs }, { data: me }, { data: activeRows }] = await Promise.all([
-        supabase.from("members").select("id", { count: "exact", head: true }).eq("referred_by", user.id),
+      const [{ data: me }, { data: referralStats }] = await Promise.all([
         supabase.from("members").select("kyc_level").eq("id", user.id).maybeSingle(),
-        supabase.from("circle_bids").select("created_at").eq("member_id", user.id),
+        supabase.rpc("referral_stats", { _member: user.id }),
       ]);
-      const days = new Set((activeRows ?? []).map((r) => new Date(r.created_at).toISOString().slice(0, 10))).size;
-      setCommunity({ referrals: refs ?? 0, kyc_level: (me?.kyc_level as number) ?? 0, active_days: days });
+      const referralRow = Array.isArray(referralStats) ? referralStats[0] : referralStats;
+      setCommunity({
+        referrals: Number(referralRow?.total_refs ?? 0),
+        kyc_level: Number((me as MemberForScore | null)?.kyc_level ?? 0),
+      });
     })();
   }, [user?.id, tier]);
 
   useEffect(() => {
     setLoading(true);
     (async () => {
-      const [activeCountRes, activeRowsRes, userBidRes] = await Promise.all([
+      const [activeCountRes, activeRowsRes, userBidRes, memberRes, userBidsRes, referralStatsRes] = await Promise.all([
         supabase
           .from("circle_bids")
           .select("*", { count: "exact", head: true })
@@ -119,7 +199,7 @@ export default function Priority() {
           .not("vault_start", "is", null),
         supabase
           .from("circle_bids")
-          .select("id, member_id, fiat_amount, created_at, priority_score")
+          .select("id, member_id, fiat_amount, tier, status, created_at, vault_start")
           .eq("tier", tier)
           .eq("status", "vault")
           .not("vault_start", "is", null)
@@ -128,7 +208,7 @@ export default function Priority() {
         user?.id
           ? supabase
               .from("circle_bids")
-              .select("id, member_id, fiat_amount, created_at, priority_score")
+              .select("id, member_id, fiat_amount, tier, status, created_at, vault_start")
               .eq("member_id", user.id)
               .eq("tier", tier)
               .eq("status", "vault")
@@ -137,15 +217,43 @@ export default function Priority() {
               .limit(1)
               .maybeSingle()
           : Promise.resolve({ data: null, error: null } as const),
+        user?.id
+          ? supabase.from("members").select("kyc_level").eq("id", user.id).single()
+          : Promise.resolve({ data: null, error: null } as const),
+        user?.id
+          ? supabase
+              .from("circle_bids")
+              .select("id, member_id, fiat_amount, tier, status, created_at, vault_start")
+              .eq("member_id", user.id)
+              .order("created_at", { ascending: false })
+          : Promise.resolve({ data: [], error: null } as const),
+        user?.id
+          ? supabase.rpc("referral_stats", { _member: user.id })
+          : Promise.resolve({ data: null, error: null } as const),
       ]);
 
       if (activeCountRes.error) console.error(activeCountRes.error);
       if (activeRowsRes.error) console.error(activeRowsRes.error);
-      if ((userBidRes as any).error) console.error((userBidRes as any).error);
+      const userBidError = (userBidRes as { error: unknown }).error;
+      const memberError = (memberRes as { error: unknown }).error;
+      const userBidsError = (userBidsRes as { error: unknown }).error;
+      const referralStatsError = (referralStatsRes as { error: unknown }).error;
+      if (userBidError) console.error(userBidError);
+      if (memberError) console.error(memberError);
+      if (userBidsError) console.error(userBidsError);
+      if (referralStatsError) console.error(referralStatsError);
 
-      const activeUserBid = (userBidRes as { data: { created_at: string; priority_score?: number | null } | null }).data;
+      const activeUserBid = (userBidRes as { data: CircleBidForScore | null }).data;
+      const referralStatsData = (referralStatsRes as { data: Array<{ total_refs?: number }> | { total_refs?: number } | null }).data;
+      const referralStatsRow = Array.isArray(referralStatsData) ? referralStatsData[0] : referralStatsData;
+      const memberForScore = {
+        ...((memberRes as { data: MemberForScore | null }).data ?? {}),
+        referral_count: Number(referralStatsRow?.total_refs ?? 0),
+      };
+      const userBidsForScore = ((userBidsRes as { data: CircleBidForScore[] | null }).data ?? []);
+      const liveScore = calculatePriorityScore(memberForScore, userBidsForScore, tier);
       let userRank: number | null = null;
-      if (activeUserBid) {
+      if (activeUserBid?.created_at) {
         const { count: betterBids, error: betterBidsError } = await supabase
           .from("circle_bids")
           .select("*", { count: "exact", head: true })
@@ -155,32 +263,45 @@ export default function Priority() {
           .lt("created_at", activeUserBid.created_at);
         if (betterBidsError) console.error(betterBidsError);
         userRank = (betterBids ?? 0) + 1;
+      } else if (activeUserBid) {
+        userRank = 1;
       }
 
-      const visibleRows = ((activeRowsRes.data ?? []) as Array<{
-        id: string;
-        member_id: string;
-        fiat_amount: number;
-        created_at: string | null;
-        priority_score: number | null;
-      }>).map((bid) => ({
-        bid_id: bid.id,
-        member_id: bid.member_id,
-        full_name: bid.member_id === user?.id ? "You" : "Member",
-        fiat_amount: Number(bid.fiat_amount ?? 0),
-        consistency_pct: 100,
-        days_waiting: bid.created_at ? Math.max(0, Math.floor((Date.now() - new Date(bid.created_at).getTime()) / 86400000)) : 0,
-        consistency_score: 0,
-        time_waiting_score: 0,
-        volume_score: 0,
-        community_score: 0,
-        bid_boost_score: 0,
-        priority_score: Number(bid.member_id === user?.id ? (activeUserBid?.priority_score ?? bid.priority_score ?? 0) : (bid.priority_score ?? 0)),
+      const activeRows = [...((activeRowsRes.data ?? []) as CircleBidForScore[])];
+      if (activeUserBid && !activeRows.some((bid) => bid.id === activeUserBid.id)) {
+        activeRows.push(activeUserBid);
+      }
+      activeRows.sort((a, b) => new Date(a.created_at ?? 0).getTime() - new Date(b.created_at ?? 0).getTime());
+
+      const visibleRows = activeRows.map((bid) => {
+        const isUserBid = bid.member_id === user?.id;
+        const bidAmount = Number(bid.fiat_amount ?? 0);
+        const daysWaiting = bid.created_at ? Math.max(0, Math.floor((Date.now() - new Date(bid.created_at).getTime()) / 86400000)) : 0;
+        const contributionScore = contributionScoreForAmount(bidAmount, bid.tier ?? tier);
+        const tierMin = getTierMin(bid.tier ?? tier);
+        const bidBoostScore = Math.min(Math.max(0, bidAmount - tierMin) / 100, 5);
+        const priorityScore = isUserBid
+          ? liveScore.totalScore
+          : 40 + Math.min(daysWaiting, 30) + contributionScore + bidBoostScore;
+        return {
+        bid_id: bid.id ?? `${bid.member_id ?? "member"}-${bid.created_at ?? "active"}`,
+        member_id: bid.member_id ?? "",
+        full_name: isUserBid ? "You" : "Member",
+        fiat_amount: isUserBid ? liveScore.bidAmount : bidAmount,
+        consistency_pct: isUserBid ? liveScore.paymentRate * 100 : 100,
+        days_waiting: isUserBid ? liveScore.daysWaiting : daysWaiting,
+        consistency_score: isUserBid ? liveScore.consistencyScore : 40,
+        time_waiting_score: isUserBid ? liveScore.timeWaitingScore : Math.min(daysWaiting, 30),
+        volume_score: isUserBid ? liveScore.contributionScore : contributionScore,
+        community_score: isUserBid ? liveScore.communityScore : 0,
+        bid_boost_score: isUserBid ? liveScore.bidBoostScore : bidBoostScore,
+        priority_score: priorityScore,
         eligible: true,
         override_type: null,
         override_value: 0,
-        breakdown: {},
-      })) satisfies ScoreRow[];
+        breakdown: isUserBid ? { referrals: liveScore.referralCount, kyc_level: liveScore.kycLevel } : {},
+        };
+      }) satisfies ScoreRow[];
       setRows(visibleRows);
 
       const total = activeCountRes.count ?? 0;
@@ -241,7 +362,7 @@ export default function Priority() {
   // Community impact (max 10)
   const communityScore = Math.min(
     10,
-    community.referrals * 2 + community.active_days * 0.1 + (community.kyc_level >= 3 ? 2 : 0),
+    Math.min(community.referrals * 0.5, 6) + (community.kyc_level >= 3 ? 2 : 0) + (community.kyc_level >= 2 ? 1 : 0),
   );
 
   // Potential score for a hypothetical first bid at tier minimum
@@ -332,8 +453,8 @@ export default function Priority() {
                 <span className="ml-auto font-mono text-sm">{fmt(communityScore, 1)}<span className="text-muted-foreground">/10</span></span>
               </div>
               <ul className="mt-3 space-y-1.5 text-sm text-muted-foreground">
-                <li className="flex justify-between"><span>Referrals · {community.referrals} × 2pts</span><span className="font-mono text-foreground">+{(community.referrals * 2).toFixed(1)}</span></li>
-                <li className="flex justify-between"><span>Active days · {community.active_days} × 0.1pts</span><span className="font-mono text-foreground">+{(community.active_days * 0.1).toFixed(1)}</span></li>
+                <li className="flex justify-between"><span>Referrals · {community.referrals} × 0.5pts</span><span className="font-mono text-foreground">+{Math.min(community.referrals * 0.5, 6).toFixed(1)}</span></li>
+                <li className="flex justify-between"><span>KYC Level 2 bonus</span><span className="font-mono text-foreground">{community.kyc_level >= 2 ? "+1.0" : "0.0"}</span></li>
                 <li className="flex justify-between"><span>KYC Level 3 bonus</span><span className="font-mono text-foreground">{community.kyc_level >= 3 ? "+2.0" : "0.0"}</span></li>
               </ul>
               <p className="mt-3 text-[11px] text-muted-foreground">
