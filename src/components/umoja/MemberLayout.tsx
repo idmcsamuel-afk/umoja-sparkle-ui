@@ -23,6 +23,7 @@ export default function MemberLayout() {
             <Outlet />
           </main>
         </div>
+        <WhatsAppFab source="member" />
       </div>
     </SidebarProvider>
   );
