@@ -66,6 +66,8 @@ export default function Banking() {
   const [banking, setBanking] = useState<Banking>({
     bank_name: "", account_holder_name: "", account_number: "", account_type: "savings", branch_code: "",
   });
+  const [bankChoice, setBankChoice] = useState<string>("");
+  const [otherBankName, setOtherBankName] = useState<string>("");
   const [verified, setVerified] = useState(false);
   const [existing, setExisting] = useState(false);
   const [payouts, setPayouts] = useState<Payout[]>([]);
@@ -78,14 +80,22 @@ export default function Banking() {
         supabase.from("circle_payouts").select("*").eq("member_id", user.id).order("created_at", { ascending: false }),
       ]);
       if (b.data) {
+        const savedBank = b.data.bank_name ?? "";
         setBanking({
           id: b.data.id,
-          bank_name: b.data.bank_name ?? "",
+          bank_name: savedBank,
           account_holder_name: b.data.account_holder_name ?? "",
           account_number: b.data.account_number ?? "",
           account_type: b.data.account_type ?? "savings",
           branch_code: b.data.branch_code ?? "",
         });
+        const known = BANKS.some((b2) => b2.name === savedBank && b2.name !== "Other");
+        if (known) {
+          setBankChoice(savedBank);
+        } else if (savedBank) {
+          setBankChoice("Other");
+          setOtherBankName(savedBank === "Other" ? "" : savedBank);
+        }
         setVerified(!!b.data.verified);
         setExisting(true);
       }
