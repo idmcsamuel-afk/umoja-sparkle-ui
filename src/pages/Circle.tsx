@@ -138,6 +138,26 @@ const Circle = () => {
     return () => clearInterval(t);
   }, []);
 
+  // When user selects EFT on the pay step, shorten the bid's payment window to 2h.
+  useEffect(() => {
+    if (step !== "pay" || method !== "eft" || !pendingBid || pendingBid.eftDeadline) return;
+    const deadline = Date.now() + 2 * 60 * 60 * 1000;
+    const iso = new Date(deadline).toISOString();
+    (async () => {
+      const { error } = await supabase
+        .from("circle_bids")
+        .update({
+          payment_method: "eft",
+          payment_window_hours: 2,
+          payment_deadline: iso,
+        })
+        .eq("id", pendingBid.id);
+      if (!error) {
+        setPendingBid((pb) => (pb ? { ...pb, eftDeadline: deadline } : pb));
+      }
+    })();
+  }, [step, method, pendingBid]);
+
   const load = async () => {
     setLoading(true);
     // Best-effort: expire any unpaid bids whose deadline has passed.
