@@ -1,13 +1,15 @@
-import { CreditCard, Landmark } from "lucide-react";
+import { CreditCard, Landmark, Coins } from "lucide-react";
 
-export type PaymentMethod = "paystack" | "eft";
+export type PaymentMethod = "paystack" | "eft" | "usdt";
 
 export function PaymentMethodSelector({
   value,
   onChange,
+  cryptoEnabled = false,
 }: {
   value: PaymentMethod;
   onChange: (m: PaymentMethod) => void;
+  cryptoEnabled?: boolean;
 }) {
   const opts: Array<{
     id: PaymentMethod;
@@ -15,6 +17,7 @@ export function PaymentMethodSelector({
     desc: string;
     icon: typeof CreditCard;
     badge?: string;
+    hidden?: boolean;
   }> = [
     {
       id: "paystack",
@@ -29,13 +32,21 @@ export function PaymentMethodSelector({
       desc: "Manual transfer + proof upload. Admin approval (1–2 days).",
       icon: Landmark,
     },
+    {
+      id: "usdt",
+      title: "Cryptocurrency (USDT)",
+      desc: "Pay in USDT on Tron (TRC20). Instant settlement, low fees.",
+      icon: Coins,
+      badge: "Instant · TRC20",
+      hidden: !cryptoEnabled,
+    },
   ];
 
   return (
     <div className="space-y-2">
       <p className="text-[11px] uppercase tracking-[0.18em] text-accent">Choose payment method</p>
       <div className="grid gap-2">
-        {opts.map((o) => {
+        {opts.filter((o) => !o.hidden).map((o) => {
           const active = value === o.id;
           const Icon = o.icon;
           return (
@@ -54,7 +65,7 @@ export function PaymentMethodSelector({
                   <Icon className="h-5 w-5" />
                 </div>
                 <div className="flex-1">
-                  <div className="flex items-center gap-2">
+                  <div className="flex items-center gap-2 flex-wrap">
                     <p className="font-medium">{o.title}</p>
                     {o.badge && (
                       <span className="text-[10px] px-2 py-0.5 rounded-full bg-accent/20 text-accent uppercase tracking-wider">

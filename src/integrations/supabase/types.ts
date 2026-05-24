@@ -1021,6 +1021,7 @@ export type Database = {
       circle_bids: {
         Row: {
           allocated_at: string | null
+          amount_usdt: number | null
           consistency_percentage: number | null
           created_at: string | null
           days_waiting: number | null
@@ -1033,6 +1034,9 @@ export type Database = {
           payment_completed_at: string | null
           payment_confirmed_at: string | null
           payment_confirmed_by: string | null
+          payment_crypto_address: string | null
+          payment_crypto_network: string | null
+          payment_crypto_txhash: string | null
           payment_deadline: string | null
           payment_method: string | null
           payment_proof_url: string | null
@@ -1042,6 +1046,8 @@ export type Database = {
           payment_submitted_at: string | null
           payment_window_hours: number | null
           payout_amount: number | null
+          payout_crypto_network: string | null
+          payout_crypto_txhash: string | null
           payout_date: string | null
           payout_rank: number | null
           paystack_reference: string | null
@@ -1060,6 +1066,7 @@ export type Database = {
         }
         Insert: {
           allocated_at?: string | null
+          amount_usdt?: number | null
           consistency_percentage?: number | null
           created_at?: string | null
           days_waiting?: number | null
@@ -1072,6 +1079,9 @@ export type Database = {
           payment_completed_at?: string | null
           payment_confirmed_at?: string | null
           payment_confirmed_by?: string | null
+          payment_crypto_address?: string | null
+          payment_crypto_network?: string | null
+          payment_crypto_txhash?: string | null
           payment_deadline?: string | null
           payment_method?: string | null
           payment_proof_url?: string | null
@@ -1081,6 +1091,8 @@ export type Database = {
           payment_submitted_at?: string | null
           payment_window_hours?: number | null
           payout_amount?: number | null
+          payout_crypto_network?: string | null
+          payout_crypto_txhash?: string | null
           payout_date?: string | null
           payout_rank?: number | null
           paystack_reference?: string | null
@@ -1099,6 +1111,7 @@ export type Database = {
         }
         Update: {
           allocated_at?: string | null
+          amount_usdt?: number | null
           consistency_percentage?: number | null
           created_at?: string | null
           days_waiting?: number | null
@@ -1111,6 +1124,9 @@ export type Database = {
           payment_completed_at?: string | null
           payment_confirmed_at?: string | null
           payment_confirmed_by?: string | null
+          payment_crypto_address?: string | null
+          payment_crypto_network?: string | null
+          payment_crypto_txhash?: string | null
           payment_deadline?: string | null
           payment_method?: string | null
           payment_proof_url?: string | null
@@ -1120,6 +1136,8 @@ export type Database = {
           payment_submitted_at?: string | null
           payment_window_hours?: number | null
           payout_amount?: number | null
+          payout_crypto_network?: string | null
+          payout_crypto_txhash?: string | null
           payout_date?: string | null
           payout_rank?: number | null
           paystack_reference?: string | null
@@ -3247,6 +3265,7 @@ export type Database = {
           time_waiting_score: number
           total_cycles: number | null
           tour_banner_dismissed_at: string | null
+          usdt_wallet_trc20: string | null
         }
         Insert: {
           bank_account?: string | null
@@ -3309,6 +3328,7 @@ export type Database = {
           time_waiting_score?: number
           total_cycles?: number | null
           tour_banner_dismissed_at?: string | null
+          usdt_wallet_trc20?: string | null
         }
         Update: {
           bank_account?: string | null
@@ -3371,6 +3391,7 @@ export type Database = {
           time_waiting_score?: number
           total_cycles?: number | null
           tour_banner_dismissed_at?: string | null
+          usdt_wallet_trc20?: string | null
         }
         Relationships: [
           {
@@ -3509,6 +3530,7 @@ export type Database = {
           bank_name: string | null
           branch_code: string | null
           created_at: string
+          crypto_enabled: boolean
           growth_override_open: boolean
           harvest_override_open: boolean
           id: string
@@ -3520,6 +3542,8 @@ export type Database = {
           seed_override_open: boolean
           updated_at: string
           updated_by: string | null
+          usdt_trc20_address: string | null
+          usdt_zar_rate: number | null
         }
         Insert: {
           account_name?: string | null
@@ -3527,6 +3551,7 @@ export type Database = {
           bank_name?: string | null
           branch_code?: string | null
           created_at?: string
+          crypto_enabled?: boolean
           growth_override_open?: boolean
           harvest_override_open?: boolean
           id?: string
@@ -3538,6 +3563,8 @@ export type Database = {
           seed_override_open?: boolean
           updated_at?: string
           updated_by?: string | null
+          usdt_trc20_address?: string | null
+          usdt_zar_rate?: number | null
         }
         Update: {
           account_name?: string | null
@@ -3545,6 +3572,7 @@ export type Database = {
           bank_name?: string | null
           branch_code?: string | null
           created_at?: string
+          crypto_enabled?: boolean
           growth_override_open?: boolean
           harvest_override_open?: boolean
           id?: string
@@ -3556,6 +3584,8 @@ export type Database = {
           seed_override_open?: boolean
           updated_at?: string
           updated_by?: string | null
+          usdt_trc20_address?: string | null
+          usdt_zar_rate?: number | null
         }
         Relationships: []
       }

@@ -19,6 +19,8 @@ import { SparksDisclaimer } from "@/components/umoja/SparksDisclaimer";
 import { CircleStatusBanner } from "@/components/umoja/CircleStatusBanner";
 import { TimezoneSelector } from "@/components/umoja/TimezoneSelector";
 import { PaymentMethodSelector, type PaymentMethod } from "@/components/umoja/PaymentMethodSelector";
+import { UsdtPayPanel } from "@/components/umoja/UsdtPayPanel";
+import { useUsdtRate, zarToUsdt, fmtUsdt } from "@/hooks/useUsdtRate";
 import { usePaystack, buildReference } from "@/hooks/usePaystack";
 import { cn } from "@/lib/utils";
 import { CircleTierCard, type MyQueueStatus } from "@/components/umoja/CircleTierCard";
@@ -86,7 +88,10 @@ const Circle = () => {
   const [queueStatus, setQueueStatus] = useState<Record<string, MyQueueStatus>>({});
   const [loading, setLoading] = useState(true);
   const [settings, setSettings] = useState<Settings | null>(null);
+  const [cryptoEnabled, setCryptoEnabled] = useState(false);
+  const [usdtAddress, setUsdtAddress] = useState<string | null>(null);
   const [isAdmin, setIsAdmin] = useState(false);
+  const { data: usdtRate } = useUsdtRate();
 
   useEffect(() => { ttTrack("ViewContent", { content_type: "Circles" }); }, []);
 
@@ -105,7 +110,7 @@ const Circle = () => {
   const [step, setStep] = useState<"amount" | "pay">("amount");
   const [amount, setAmount] = useState("");
   const [busy, setBusy] = useState(false);
-  const [pendingBid, setPendingBid] = useState<{ id: string; amount: number; ref: string; eftDeadline?: number } | null>(null);
+  const [pendingBid, setPendingBid] = useState<{ id: string; amount: number; ref: string; eftDeadline?: number; usdtDeadline?: number; usdtAmount?: number } | null>(null);
   const [proofFile, setProofFile] = useState<File | null>(null);
   const [method, setMethod] = useState<PaymentMethod>("paystack");
   const { pay: payWithPaystack } = usePaystack();
@@ -158,6 +163,29 @@ const Circle = () => {
     })();
   }, [step, method, pendingBid]);
 
+  // When user selects USDT on the pay step, set a 1h window and compute USDT amount.
+  useEffect(() => {
+    if (step !== "pay" || method !== "usdt" || !pendingBid || pendingBid.usdtDeadline) return;
+    const deadline = Date.now() + 60 * 60 * 1000;
+    const iso = new Date(deadline).toISOString();
+    const usdtAmt = zarToUsdt(pendingBid.amount, usdtRate);
+    (async () => {
+      const { error } = await supabase
+        .from("circle_bids")
+        .update({
+          payment_method: "usdt",
+          payment_crypto_network: "TRC20",
+          payment_window_hours: 1,
+          payment_deadline: iso,
+          amount_usdt: usdtAmt,
+        })
+        .eq("id", pendingBid.id);
+      if (!error) {
+        setPendingBid((pb) => (pb ? { ...pb, usdtDeadline: deadline, usdtAmount: usdtAmt } : pb));
+      }
+    })();
+  }, [step, method, pendingBid, usdtRate]);
+
   const load = async () => {
     setLoading(true);
     // Best-effort: expire any unpaid bids whose deadline has passed.
@@ -189,6 +217,16 @@ const Circle = () => {
     setBids((bidsRes.data ?? []) as Bid[]);
     const settingsRow = Array.isArray(settingsRes.data) ? settingsRes.data[0] : settingsRes.data;
     setSettings((settingsRow ?? null) as Settings | null);
+
+    // Load USDT settings separately (not exposed by get_member_platform_settings RPC)
+    const { data: cryptoRow } = await supabase
+      .from("platform_settings")
+      .select("usdt_trc20_address, crypto_enabled")
+      .order("created_at", { ascending: false })
+      .limit(1)
+      .maybeSingle();
+    setCryptoEnabled(!!cryptoRow?.crypto_enabled);
+    setUsdtAddress(cryptoRow?.usdt_trc20_address ?? null);
 
     const qmap: Record<string, MyQueueStatus> = {};
     for (const r of (((queueRes as any).data ?? []) as MyQueueStatus[])) {
@@ -707,8 +745,11 @@ const Circle = () => {
                       className="h-16 pl-10 rounded-2xl bg-background border-2 border-accent/50 text-2xl font-display font-semibold focus-visible:ring-2 focus-visible:ring-accent focus-visible:border-accent"
                     />
                   </div>
-                  <p className="text-[11px] text-muted-foreground">
-                    Min {open && fmtR(open.min_entry)} · Max {open && fmtR(open.max_entry)}
+                  <p className="text-[11px] text-muted-foreground flex items-center justify-between gap-2">
+                    <span>Min {open && fmtR(open.min_entry)} · Max {open && fmtR(open.max_entry)}</span>
+                    {cryptoEnabled && Number(amount) > 0 && (
+                      <span className="text-accent/80">≈ {fmtUsdt(zarToUsdt(Number(amount), usdtRate))}</span>
+                    )}
                   </p>
                   {open && Number(amount) > 0 && (() => {
                     const amt = Number(amount);
@@ -758,7 +799,20 @@ const Circle = () => {
                   </DialogDescription>
                 </DialogHeader>
 
-                <PaymentMethodSelector value={method} onChange={setMethod} />
+                <PaymentMethodSelector value={method} onChange={setMethod} cryptoEnabled={cryptoEnabled} />
+
+              {method === "usdt" && pendingBid && (
+                <UsdtPayPanel
+                  bidId={pendingBid.id}
+                  amountUsdt={pendingBid.usdtAmount ?? zarToUsdt(pendingBid.amount, usdtRate)}
+                  amountZar={pendingBid.amount}
+                  platformAddress={usdtAddress}
+                  deadlineMs={pendingBid.usdtDeadline}
+                  nowMs={now}
+                  onConfirmed={() => { closeModal(); load(); }}
+                />
+              )}
+
 
               {method === "eft" && !settingsReady ? (
                 <div className="rounded-2xl border border-destructive/40 bg-destructive/10 p-4 space-y-3">
@@ -859,13 +913,15 @@ const Circle = () => {
                 >
                   <X className="h-4 w-4 mr-1" /> Cancel
                 </Button>
-                <Button
-                  onClick={submitPayment}
-                  disabled={busy || (method === "eft" && (!proofFile || !settingsReady))}
-                  className="flex-1 min-h-12 rounded-2xl bg-gradient-primary text-primary-foreground shadow-glow"
-                >
-                  {busy ? <Loader2 className="h-4 w-4 animate-spin" /> : method === "paystack" ? "Pay with card" : "I've Made Payment"}
-                </Button>
+                {method !== "usdt" && (
+                  <Button
+                    onClick={submitPayment}
+                    disabled={busy || (method === "eft" && (!proofFile || !settingsReady))}
+                    className="flex-1 min-h-12 rounded-2xl bg-gradient-primary text-primary-foreground shadow-glow"
+                  >
+                    {busy ? <Loader2 className="h-4 w-4 animate-spin" /> : method === "paystack" ? "Pay with card" : "I've Made Payment"}
+                  </Button>
+                )}
               </div>
             </>
           )}

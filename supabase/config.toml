@@ -1,5 +1,3 @@
-project_id = "lamohcoijkpigygiqyih"
-
 [functions.paystack-webhook]
 verify_jwt = false
 
@@ -11,3 +9,11 @@ verify_jwt = false
 
 [functions.send-push]
 verify_jwt = false
+
+[functions.usdt-rate]
+verify_jwt = false
+
+[functions.usdt-auto-verify]
+verify_jwt = false
+
+project_id = "lamohcoijkpigygiqyih"

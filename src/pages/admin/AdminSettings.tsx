@@ -197,6 +197,135 @@ export default function AdminSettings() {
       </div>
 
       <SessionTestingCard settingsId={s.id} />
+      <CryptoSettingsCard settingsId={s.id} />
+    </div>
+  );
+}
+
+// ---------- Crypto / USDT settings ----------
+
+function CryptoSettingsCard({ settingsId }: { settingsId?: string }) {
+  const [enabled, setEnabled] = useState(false);
+  const [addr, setAddr] = useState("");
+  const [rate, setRate] = useState("");
+  const [saving, setSaving] = useState(false);
+  const [loaded, setLoaded] = useState(false);
+
+  useEffect(() => {
+    (async () => {
+      const { data } = await supabase
+        .from("platform_settings")
+        .select("usdt_trc20_address, usdt_zar_rate, crypto_enabled")
+        .order("created_at", { ascending: false })
+        .limit(1)
+        .maybeSingle();
+      if (data) {
+        setEnabled(!!data.crypto_enabled);
+        setAddr(data.usdt_trc20_address ?? "");
+        setRate(data.usdt_zar_rate ? String(data.usdt_zar_rate) : "");
+      }
+      setLoaded(true);
+    })();
+  }, [settingsId]);
+
+  const save = async () => {
+    if (!settingsId) {
+      toast.error("Save bank settings first to create the settings row.");
+      return;
+    }
+    const trimmed = addr.trim();
+    if (enabled && trimmed && !/^T[a-zA-Z0-9]{33}$/.test(trimmed)) {
+      toast.error("Invalid TRC20 address (must start with T and be 34 chars)");
+      return;
+    }
+    setSaving(true);
+    const { error } = await supabase
+      .from("platform_settings")
+      .update({
+        crypto_enabled: enabled,
+        usdt_trc20_address: trimmed || null,
+        usdt_zar_rate: rate ? Number(rate) : null,
+      })
+      .eq("id", settingsId);
+    setSaving(false);
+    if (error) return toast.error(error.message);
+    toast.success("Crypto settings saved");
+  };
+
+  return (
+    <div className="mt-8 rounded-3xl border border-border bg-gradient-card p-6">
+      <div className="flex items-center gap-3 mb-4">
+        <div className="grid h-10 w-10 place-items-center rounded-2xl bg-primary/15 text-primary">
+          <Banknote className="h-5 w-5" />
+        </div>
+        <div>
+          <h2 className="font-display text-xl">Cryptocurrency (USDT)</h2>
+          <p className="text-xs text-muted-foreground mt-1">
+            Accept USDT on Tron (TRC20) for instant cross-border payments.
+          </p>
+        </div>
+      </div>
+
+      <div className="space-y-4">
+        <label className="flex items-center gap-3 cursor-pointer">
+          <input
+            type="checkbox"
+            checked={enabled}
+            onChange={(e) => setEnabled(e.target.checked)}
+            className="h-4 w-4 rounded border-border"
+          />
+          <span className="text-sm">Enable USDT payments for members</span>
+        </label>
+
+        <div className="space-y-2">
+          <Label className="text-xs uppercase tracking-[0.18em] text-muted-foreground">
+            USDT receiving address (TRC20)
+          </Label>
+          <Input
+            value={addr}
+            onChange={(e) => setAddr(e.target.value)}
+            placeholder="T..."
+            className="h-11 rounded-2xl bg-secondary/40 border-border font-mono text-xs"
+          />
+          {addr && (
+            <a
+              href={`https://tronscan.org/#/address/${addr.trim()}`}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="text-[11px] text-accent inline-flex items-center gap-1"
+            >
+              View on TronScan ↗
+            </a>
+          )}
+        </div>
+
+        <div className="space-y-2">
+          <Label className="text-xs uppercase tracking-[0.18em] text-muted-foreground">
+            Fallback ZAR per USD (optional)
+          </Label>
+          <Input
+            type="number"
+            step="0.01"
+            value={rate}
+            onChange={(e) => setRate(e.target.value)}
+            placeholder="18.50"
+            className="h-11 rounded-2xl bg-secondary/40 border-border"
+          />
+          <p className="text-[11px] text-muted-foreground">
+            Used only if the live exchange rate API fails. Live rate is fetched automatically.
+          </p>
+        </div>
+
+        <div className="pt-2 flex justify-end">
+          <Button
+            onClick={save}
+            disabled={saving || !loaded}
+            className="rounded-2xl bg-gradient-primary text-primary-foreground shadow-glow"
+          >
+            {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : <><Save className="h-4 w-4 mr-1" /> Save crypto settings</>}
+          </Button>
+        </div>
+      </div>
     </div>
   );
 }
