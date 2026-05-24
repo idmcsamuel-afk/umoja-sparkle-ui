@@ -184,6 +184,7 @@ const App = () => (
                 <Route path="automations" element={<AdminAutomations />} />
                 <Route path="podcasts" element={<AdminPodcasts />} />
                 <Route path="circle-tracker" element={<AdminCircleTracker />} />
+                <Route path="countries" element={<AdminCountries />} />
               </Route>
 
               <Route path="*" element={<NotFound />} />
