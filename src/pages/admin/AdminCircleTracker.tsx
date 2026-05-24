@@ -34,14 +34,15 @@ const TIER_COLORS: Record<Tier, string> = {
 };
 
 const STATUS_BADGE: Record<string, { label: string; cls: string }> = {
-  active:           { label: "Active in Vault",     cls: "bg-emerald-500/15 text-emerald-700 dark:text-emerald-300" },
-  vault:            { label: "Awaiting Payout",     cls: "bg-blue-500/15 text-blue-700 dark:text-blue-300" },
-  payment_pending:  { label: "Payment Pending",     cls: "bg-yellow-500/15 text-yellow-700 dark:text-yellow-300" },
-  pending:          { label: "Awaiting Confirmation", cls: "bg-muted text-muted-foreground" },
-  paid:             { label: "Paid Out",            cls: "bg-purple-500/15 text-purple-700 dark:text-purple-300" },
-  matched:          { label: "Matched",             cls: "bg-indigo-500/15 text-indigo-700 dark:text-indigo-300" },
-  rejected:         { label: "Rejected",            cls: "bg-destructive/15 text-destructive" },
-  expired:          { label: "Expired",             cls: "bg-muted text-muted-foreground" },
+  active:           { label: "🟢 Active",            cls: "bg-emerald-500/15 text-emerald-700 dark:text-emerald-300" },
+  vault:            { label: "🟢 Active",            cls: "bg-emerald-500/15 text-emerald-700 dark:text-emerald-300" },
+  overdue:          { label: "🔴 Overdue",           cls: "bg-red-500/15 text-red-700 dark:text-red-300" },
+  payment_pending:  { label: "🟡 Pending",           cls: "bg-yellow-500/15 text-yellow-700 dark:text-yellow-300" },
+  pending:          { label: "🟡 Pending",           cls: "bg-yellow-500/15 text-yellow-700 dark:text-yellow-300" },
+  paid:             { label: "🟣 Paid",              cls: "bg-purple-500/15 text-purple-700 dark:text-purple-300" },
+  matched:          { label: "Matched",              cls: "bg-indigo-500/15 text-indigo-700 dark:text-indigo-300" },
+  rejected:         { label: "⚪ Rejected",          cls: "bg-muted text-muted-foreground" },
+  expired:          { label: "Expired",              cls: "bg-muted text-muted-foreground" },
 };
 
 const zar = (n: number | null | undefined) =>
