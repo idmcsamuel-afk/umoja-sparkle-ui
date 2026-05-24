@@ -118,6 +118,10 @@ export default function Banking() {
     if (!user) return;
     const err = validate();
     if (err) { toast.error(err); return; }
+    if (bankChoice === "Other" && !otherBankName.trim()) {
+      toast.error("Please type your bank name");
+      return;
+    }
     setSaving(true);
     const payload = {
       member_id: user.id,
@@ -139,8 +143,20 @@ export default function Banking() {
   };
 
   const onBankChange = (v: string) => {
-    const found = BANKS.find((b) => b.name === v);
-    setBanking((s) => ({ ...s, bank_name: v, branch_code: found?.branch || s.branch_code }));
+    setBankChoice(v);
+    if (v === "Other") {
+      setBanking((s) => ({ ...s, bank_name: otherBankName.trim(), branch_code: "" }));
+    } else {
+      const found = BANKS.find((b) => b.name === v);
+      setBanking((s) => ({ ...s, bank_name: v, branch_code: found?.branch || s.branch_code }));
+    }
+  };
+
+  const onOtherBankNameChange = (v: string) => {
+    setOtherBankName(v);
+    if (bankChoice === "Other") {
+      setBanking((s) => ({ ...s, bank_name: v.trim() }));
+    }
   };
 
   const totals = payouts.reduce(
