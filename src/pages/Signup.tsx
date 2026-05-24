@@ -11,6 +11,7 @@ import { Label } from "@/components/ui/label";
 import { toast } from "sonner";
 import { useSocialProof, fmtR } from "@/hooks/useSocialProof";
 import { ttTrack } from "@/lib/tiktokPixel";
+import { WhatsAppCommunity } from "@/components/umoja/WhatsAppCommunity";
 
 const schema = z.object({
   full_name: z.string().trim().min(2, "Enter your full name").max(100),
@@ -427,6 +428,23 @@ const Signup = () => {
               {busy ? <Loader2 className="h-4 w-4 animate-spin" /> : (<>Create my account <ArrowRight className="ml-1 h-4 w-4" /></>)}
             </Button>
           </form>
+
+          <div className="mt-8 rounded-2xl border border-border bg-secondary/40 p-4">
+            <p className="text-xs font-medium uppercase tracking-wider text-muted-foreground">Next steps after signup</p>
+            <ol className="mt-2 space-y-1 text-sm text-foreground/85">
+              <li>1. Complete KYC</li>
+              <li>2. Join your first Circle</li>
+              <li>3. Join the WhatsApp Community ↓</li>
+            </ol>
+            <div className="mt-3">
+              <WhatsAppCommunity
+                variant="compact"
+                source="signup"
+                heading="Join WhatsApp Community"
+                subheading="Get instant support from our community"
+              />
+            </div>
+          </div>
 
           <p className="mt-8 text-center text-sm text-muted-foreground">
             Already a member?{" "}

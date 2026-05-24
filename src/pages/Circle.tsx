@@ -5,6 +5,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { Logo } from "@/components/umoja/Logo";
 import { BottomNav } from "@/components/umoja/BottomNav";
+import { WhatsAppCommunity } from "@/components/umoja/WhatsAppCommunity";
 import {
   Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter,
 } from "@/components/ui/dialog";
@@ -817,7 +818,13 @@ const Circle = () => {
       </Dialog>
 
       <section className="px-5 pt-8">
-        <div className="mx-auto max-w-md">
+        <div className="mx-auto max-w-md space-y-4">
+          <WhatsAppCommunity
+            variant="compact"
+            source="circle"
+            heading="Need help with Circle?"
+            subheading="Ask questions in our WhatsApp group"
+          />
           <SparksDisclaimer />
         </div>
       </section>

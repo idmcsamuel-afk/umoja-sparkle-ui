@@ -3,6 +3,7 @@ import { SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar";
 import { MemberSidebar } from "@/components/umoja/MemberSidebar";
 import { ProductTour } from "@/components/umoja/ProductTour";
 import { TourBanner } from "@/components/umoja/TourBanner";
+import { WhatsAppFab } from "@/components/umoja/WhatsAppCommunity";
 
 export default function MemberLayout() {
   return (
@@ -22,6 +23,7 @@ export default function MemberLayout() {
             <Outlet />
           </main>
         </div>
+        <WhatsAppFab source="member" />
       </div>
     </SidebarProvider>
   );
