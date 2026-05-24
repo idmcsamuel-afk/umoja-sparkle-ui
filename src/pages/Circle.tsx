@@ -465,6 +465,30 @@ const Circle = () => {
       <section className="px-5 pt-8">
         <div className="mx-auto max-w-md">
           <h2 className="font-display text-xl">My bids</h2>
+          {(() => {
+            const lastPaid = bids.find((b) => b.status === "paid");
+            if (!lastPaid) return null;
+            const amt = Number(lastPaid.payout_amount ?? 0);
+            const profit = amt - Number(lastPaid.fiat_amount ?? 0);
+            const pct = lastPaid.fiat_amount ? Math.round((profit / Number(lastPaid.fiat_amount)) * 100) : 0;
+            return (
+              <div className="mt-4 rounded-3xl border border-emerald-500/30 bg-gradient-to-br from-emerald-500/10 to-purple-500/10 p-5 animate-scale-in">
+                <div className="flex items-center gap-2 text-emerald-400 text-xs uppercase tracking-wider font-semibold">
+                  <span className="text-lg">✅</span> Payout completed
+                </div>
+                <p className="mt-2 font-display text-lg capitalize">{lastPaid.tier} circle</p>
+                <p className="mt-1 text-2xl font-display text-gradient-gold">You received: {fmtR(amt)}</p>
+                {lastPaid.payout_date && (
+                  <p className="mt-1 text-xs text-muted-foreground">
+                    Paid on: {new Date(lastPaid.payout_date).toLocaleDateString(undefined, { year: "numeric", month: "long", day: "numeric" })}
+                  </p>
+                )}
+                {profit > 0 && (
+                  <p className="mt-1 text-sm text-emerald-400">Net profit: +{fmtR(profit)}{pct > 0 ? ` (${pct}%)` : ""}</p>
+                )}
+              </div>
+            );
+          })()}
           {loading ? (
             <div className="mt-4 grid place-items-center rounded-3xl glass p-10">
               <Loader2 className="h-5 w-5 animate-spin text-primary" />
