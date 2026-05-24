@@ -110,7 +110,7 @@ export default function Priority() {
   useEffect(() => {
     setLoading(true);
     (async () => {
-      const [activeCountRes, activeRowsRes, userBidRes, queueRes, statsRes] = await Promise.all([
+      const [activeCountRes, activeRowsRes, userBidRes] = await Promise.all([
         supabase
           .from("circle_bids")
           .select("*", { count: "exact", head: true })
@@ -123,7 +123,7 @@ export default function Priority() {
           .eq("tier", tier)
           .eq("status", "vault")
           .not("vault_start", "is", null)
-          .order("created_at", { ascending: false })
+          .order("created_at", { ascending: true })
           .limit(10),
         user?.id
           ? supabase
@@ -137,18 +137,25 @@ export default function Priority() {
               .limit(1)
               .maybeSingle()
           : Promise.resolve({ data: null, error: null } as const),
-        user?.id ? supabase.rpc("get_my_circle_queue_status") : Promise.resolve({ data: [], error: null } as const),
-        supabase.rpc("circle_tier_stats"),
       ]);
 
       if (activeCountRes.error) console.error(activeCountRes.error);
       if (activeRowsRes.error) console.error(activeRowsRes.error);
       if ((userBidRes as any).error) console.error((userBidRes as any).error);
-      if ((queueRes as any).error) console.error((queueRes as any).error);
-      if ((statsRes as any).error) console.error((statsRes as any).error);
 
-      const queueRows = (((queueRes as any).data ?? []) as Array<{ tier: string; status: string | null; priority_score?: number | null; queue_position: number | null; total_active: number | null }>);
-      const myQueue = queueRows.find((row) => row.tier === tier);
+      const activeUserBid = (userBidRes as { data: { created_at: string; priority_score?: number | null } | null }).data;
+      let userRank: number | null = null;
+      if (activeUserBid) {
+        const { count: betterBids, error: betterBidsError } = await supabase
+          .from("circle_bids")
+          .select("*", { count: "exact", head: true })
+          .eq("tier", tier)
+          .eq("status", "vault")
+          .not("vault_start", "is", null)
+          .lt("created_at", activeUserBid.created_at);
+        if (betterBidsError) console.error(betterBidsError);
+        userRank = (betterBids ?? 0) + 1;
+      }
 
       const visibleRows = ((activeRowsRes.data ?? []) as Array<{
         id: string;
@@ -168,7 +175,7 @@ export default function Priority() {
         volume_score: 0,
         community_score: 0,
         bid_boost_score: 0,
-        priority_score: Number(bid.member_id === user?.id ? (myQueue?.priority_score ?? bid.priority_score ?? 0) : (bid.priority_score ?? 0)),
+        priority_score: Number(bid.member_id === user?.id ? (activeUserBid?.priority_score ?? bid.priority_score ?? 0) : (bid.priority_score ?? 0)),
         eligible: true,
         override_type: null,
         override_value: 0,
@@ -176,14 +183,11 @@ export default function Priority() {
       })) satisfies ScoreRow[];
       setRows(visibleRows);
 
-      const statsRows = (((statsRes as any).data ?? []) as Array<{ tier: string; members: number | string | null }>);
-      const statsTotal = Number(statsRows.find((row) => row.tier === tier)?.members ?? 0);
-      const directTotal = activeCountRes.count ?? 0;
-      const total = Math.max(directTotal, statsTotal, Number(myQueue?.total_active ?? 0));
+      const total = activeCountRes.count ?? 0;
       setQueueSummary({
         total,
-        userBidExists: myQueue?.status === "vault" || !!(userBidRes as any).data,
-        userRank: myQueue?.queue_position ?? null,
+        userBidExists: !!activeUserBid,
+        userRank,
       });
 
       if (user?.id) {
