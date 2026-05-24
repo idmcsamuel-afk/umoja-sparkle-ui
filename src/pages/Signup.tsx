@@ -243,6 +243,8 @@ const Signup = () => {
           full_name: parsed.data.full_name,
           email: parsed.data.email,
           phone: parsed.data.phone,
+          country_code: country,
+          currency_code: selectedCountry?.currency_code ?? "ZAR",
           is_active: true,
         },
         { onConflict: "id" }
