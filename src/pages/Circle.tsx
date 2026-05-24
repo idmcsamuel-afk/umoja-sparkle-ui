@@ -820,6 +820,7 @@ const Circle = () => {
                     </div>
                   ))}
                 </div>
+                </>
               ) : null}
 
               <div className="rounded-2xl border border-accent/40 bg-gradient-to-br from-primary/10 to-accent/10 p-4 text-sm space-y-2">
