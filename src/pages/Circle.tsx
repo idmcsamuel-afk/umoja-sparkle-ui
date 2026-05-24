@@ -818,7 +818,13 @@ const Circle = () => {
       </Dialog>
 
       <section className="px-5 pt-8">
-        <div className="mx-auto max-w-md">
+        <div className="mx-auto max-w-md space-y-4">
+          <WhatsAppCommunity
+            variant="compact"
+            source="circle"
+            heading="Need help with Circle?"
+            subheading="Ask questions in our WhatsApp group"
+          />
           <SparksDisclaimer />
         </div>
       </section>
