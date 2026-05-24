@@ -360,10 +360,12 @@ export default function AdminCircleTracker() {
 
   const counts = useMemo(() => ({
     all: ticked.length,
+    active: ticked.filter((r) => r.status === "vault" && r.hours_remaining !== null && r.hours_remaining >= 0).length,
+    overdue: ticked.filter((r) => r.status === "vault" && r.hours_remaining !== null && r.hours_remaining < 0).length,
+    paid: ticked.filter((r) => r.status === "paid").length,
+    pending: ticked.filter((r) => r.status === "pending" || r.status === "payment_pending").length,
+    rejected: ticked.filter((r) => r.status === "rejected").length,
     due_today: ticked.filter((r) => r.hours_remaining !== null && r.hours_remaining >= 0 && r.hours_remaining <= 24).length,
-    overdue: ticked.filter((r) => r.hours_remaining !== null && r.hours_remaining < 0).length,
-    payment_pending: ticked.filter((r) => r.status === "payment_pending").length,
-    high_priority: ticked.filter((r) => r.priority_score > 300).length,
   }), [ticked]);
 
   const stats = useMemo(() => {
