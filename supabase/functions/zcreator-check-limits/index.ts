@@ -17,6 +17,11 @@ const TIER_LIMITS: Record<string, { videos: number; platforms: string[] }> = {
 
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response("ok", { headers: corsHeaders });
+  const _authHeader = req.headers.get("Authorization");
+  if (!_authHeader?.startsWith("Bearer ")) return json({ allowed: false, error: "Unauthorized" }, 401);
+  const _u = createClient(Deno.env.get("SUPABASE_URL") ?? "", Deno.env.get("SUPABASE_ANON_KEY") ?? "", { global: { headers: { Authorization: _authHeader } } });
+  const { data: _c, error: _e } = await _u.auth.getClaims(_authHeader.replace("Bearer ", ""));
+  if (_e || !_c?.claims) return json({ allowed: false, error: "Unauthorized" }, 401);
   try {
     const { userId, platforms = [] } = await req.json();
     if (!userId) return json({ allowed: false, error: "userId required" }, 400);
