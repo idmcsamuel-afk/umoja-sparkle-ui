@@ -335,6 +335,8 @@ export default function AdminCircleTracker() {
       list = list.filter((r) => r.status === "pending" || r.status === "payment_pending");
     else if (quickTab === "rejected")
       list = list.filter((r) => r.status === "rejected");
+    else if (quickTab === "expired")
+      list = list.filter((r) => r.status === "expired");
 
     if (search.trim()) {
       const q = search.trim().toLowerCase();
@@ -365,6 +367,7 @@ export default function AdminCircleTracker() {
     paid: ticked.filter((r) => r.status === "paid").length,
     pending: ticked.filter((r) => r.status === "pending" || r.status === "payment_pending").length,
     rejected: ticked.filter((r) => r.status === "rejected").length,
+    expired: ticked.filter((r) => r.status === "expired").length,
     due_today: ticked.filter((r) => r.hours_remaining !== null && r.hours_remaining >= 0 && r.hours_remaining <= 24).length,
   }), [ticked]);
 
@@ -620,6 +623,7 @@ export default function AdminCircleTracker() {
           <TabsTrigger value="paid" className="data-[state=active]:bg-purple-500/15 data-[state=active]:text-purple-700">Paid ({counts.paid})</TabsTrigger>
           <TabsTrigger value="pending" className="data-[state=active]:bg-yellow-500/15 data-[state=active]:text-yellow-700">Pending ({counts.pending})</TabsTrigger>
           <TabsTrigger value="rejected">Rejected ({counts.rejected})</TabsTrigger>
+          <TabsTrigger value="expired" className="data-[state=active]:bg-muted data-[state=active]:text-muted-foreground">⏰ Expired ({counts.expired})</TabsTrigger>
         </TabsList>
       </Tabs>
 

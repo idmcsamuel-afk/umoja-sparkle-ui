@@ -105,7 +105,7 @@ const Circle = () => {
   const [step, setStep] = useState<"amount" | "pay">("amount");
   const [amount, setAmount] = useState("");
   const [busy, setBusy] = useState(false);
-  const [pendingBid, setPendingBid] = useState<{ id: string; amount: number; ref: string } | null>(null);
+  const [pendingBid, setPendingBid] = useState<{ id: string; amount: number; ref: string; eftDeadline?: number } | null>(null);
   const [proofFile, setProofFile] = useState<File | null>(null);
   const [method, setMethod] = useState<PaymentMethod>("paystack");
   const { pay: payWithPaystack } = usePaystack();
@@ -137,6 +137,26 @@ const Circle = () => {
     const t = setInterval(() => setNow(Date.now()), 1000);
     return () => clearInterval(t);
   }, []);
+
+  // When user selects EFT on the pay step, shorten the bid's payment window to 2h.
+  useEffect(() => {
+    if (step !== "pay" || method !== "eft" || !pendingBid || pendingBid.eftDeadline) return;
+    const deadline = Date.now() + 2 * 60 * 60 * 1000;
+    const iso = new Date(deadline).toISOString();
+    (async () => {
+      const { error } = await supabase
+        .from("circle_bids")
+        .update({
+          payment_method: "eft",
+          payment_window_hours: 2,
+          payment_deadline: iso,
+        })
+        .eq("id", pendingBid.id);
+      if (!error) {
+        setPendingBid((pb) => (pb ? { ...pb, eftDeadline: deadline } : pb));
+      }
+    })();
+  }, [step, method, pendingBid]);
 
   const load = async () => {
     setLoading(true);
@@ -521,7 +541,13 @@ const Circle = () => {
                 else if (status === "rejected" || status === "cancelled" || status === "refunded") badge = { text: `🚫 ${status}`, cls: "bg-destructive/15 text-destructive" };
                 else if (awaiting && hoursLeft !== null) {
                   if (hoursLeft <= 0) badge = { text: "⏰ Deadline passed", cls: "bg-destructive/15 text-destructive" };
-                  else if (hoursLeft <= 6) badge = { text: `⚠️ ${Math.max(1, Math.floor(hoursLeft))}h left to pay`, cls: "bg-amber-500/15 text-amber-400" };
+                  else if (hoursLeft <= 2) {
+                    const totalMin = Math.max(1, Math.floor(hoursLeft * 60));
+                    const h = Math.floor(totalMin / 60);
+                    const m = totalMin % 60;
+                    const label = h > 0 ? `${h}h ${m}m left to pay` : `${m}m left to pay`;
+                    badge = { text: `⏱️ ${label}`, cls: "bg-destructive/15 text-destructive" };
+                  } else if (hoursLeft <= 6) badge = { text: `⚠️ ${Math.max(1, Math.floor(hoursLeft))}h left to pay`, cls: "bg-amber-500/15 text-amber-400" };
                   else badge = { text: `⏳ ${Math.floor(hoursLeft)}h to pay`, cls: "bg-primary/15 text-primary" };
                 } else {
                   badge = { text: status, cls: "bg-secondary text-muted-foreground" };
@@ -749,6 +775,34 @@ const Circle = () => {
                   )}
                 </div>
               ) : method === "eft" ? (
+                <>
+                  {pendingBid?.eftDeadline && (() => {
+                    const msLeft = pendingBid.eftDeadline - now;
+                    const expired = msLeft <= 0;
+                    const urgent = !expired && msLeft <= 30 * 60 * 1000;
+                    return (
+                      <div
+                        className={`rounded-2xl border p-3 text-sm ${
+                          expired
+                            ? "border-destructive/50 bg-destructive/10 text-destructive"
+                            : urgent
+                              ? "border-amber-500/50 bg-amber-500/10 text-amber-600"
+                              : "border-primary/40 bg-primary/10 text-primary"
+                        }`}
+                      >
+                        <p className="font-medium">
+                          {expired
+                            ? "⏰ Payment window expired — this bid is no longer valid."
+                            : "⏱️ Upload proof of payment within 2 hours"}
+                        </p>
+                        {!expired && (
+                          <p className="mt-1 font-mono text-base tabular-nums">
+                            Time remaining: {fmtCountdown(msLeft)}
+                          </p>
+                        )}
+                      </div>
+                    );
+                  })()}
                 <div className="space-y-2 rounded-2xl border border-border bg-secondary/40 p-4 text-sm">
                   <p className="text-[10px] uppercase tracking-wider text-muted-foreground pb-1">Your Payment Details</p>
                   {[
@@ -772,6 +826,7 @@ const Circle = () => {
                     </div>
                   ))}
                 </div>
+                </>
               ) : null}
 
               <div className="rounded-2xl border border-accent/40 bg-gradient-to-br from-primary/10 to-accent/10 p-4 text-sm space-y-2">
