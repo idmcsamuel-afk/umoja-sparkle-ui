@@ -48,6 +48,12 @@ interface CommunityStats {
   active_days: number;
 }
 
+interface QueueSummary {
+  total: number;
+  userBidExists: boolean;
+  userRank: number | null;
+}
+
 const TIER_MIN: Record<TierKey, number> = { seed: 200, growth: 2001, harvest: 10001 };
 
 export default function Priority() {
@@ -59,6 +65,7 @@ export default function Priority() {
   const [lastSnapshot, setLastSnapshot] = useState<{ priority_score: number; rank: number | null; session_at: string } | null>(null);
   const [myBid, setMyBid] = useState<MyBid | null>(null);
   const [community, setCommunity] = useState<CommunityStats>({ referrals: 0, kyc_level: 0, active_days: 0 });
+  const [queueSummary, setQueueSummary] = useState<QueueSummary>({ total: 0, userBidExists: false, userRank: null });
 
   useEffect(() => {
     (async () => {
@@ -83,7 +90,7 @@ export default function Priority() {
         .select("id, status, fiat_amount, tier, created_at")
         .eq("member_id", user.id)
         .eq("tier", tier)
-        .in("status", ["active", "payment_pending", "matched", "pending"])
+        .in("status", ["vault", "active", "payment_pending", "matched", "pending"])
         .order("created_at", { ascending: false })
         .limit(1)
         .maybeSingle();
