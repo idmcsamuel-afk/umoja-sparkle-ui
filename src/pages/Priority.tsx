@@ -274,7 +274,7 @@ export default function Priority() {
                 <span className="font-display text-2xl text-gradient-gold">~{potentialScore}<span className="text-base text-muted-foreground">/100</span></span>
               </div>
               <p className="mt-1 text-[11px] text-muted-foreground">
-                Estimated rank: ~#{Math.max(1, Math.ceil(eligibleRows.length * 0.4) + 1)} of {eligibleRows.length || 0} active members
+                Estimated rank: ~#{Math.max(1, Math.ceil(rows.length * 0.4) + 1)} of {rows.length || 0} active members
               </p>
             </div>
           </section>
