@@ -429,6 +429,23 @@ const Signup = () => {
             </Button>
           </form>
 
+          <div className="mt-8 rounded-2xl border border-border bg-secondary/40 p-4">
+            <p className="text-xs font-medium uppercase tracking-wider text-muted-foreground">Next steps after signup</p>
+            <ol className="mt-2 space-y-1 text-sm text-foreground/85">
+              <li>1. Complete KYC</li>
+              <li>2. Join your first Circle</li>
+              <li>3. Join the WhatsApp Community ↓</li>
+            </ol>
+            <div className="mt-3">
+              <WhatsAppCommunity
+                variant="compact"
+                source="signup"
+                heading="Join WhatsApp Community"
+                subheading="Get instant support from our community"
+              />
+            </div>
+          </div>
+
           <p className="mt-8 text-center text-sm text-muted-foreground">
             Already a member?{" "}
             <Link to="/login" className="text-accent hover:underline font-medium">Sign in</Link>
