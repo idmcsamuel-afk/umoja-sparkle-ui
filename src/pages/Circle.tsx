@@ -163,6 +163,29 @@ const Circle = () => {
     })();
   }, [step, method, pendingBid]);
 
+  // When user selects USDT on the pay step, set a 1h window and compute USDT amount.
+  useEffect(() => {
+    if (step !== "pay" || method !== "usdt" || !pendingBid || pendingBid.usdtDeadline) return;
+    const deadline = Date.now() + 60 * 60 * 1000;
+    const iso = new Date(deadline).toISOString();
+    const usdtAmt = zarToUsdt(pendingBid.amount, usdtRate);
+    (async () => {
+      const { error } = await supabase
+        .from("circle_bids")
+        .update({
+          payment_method: "usdt",
+          payment_crypto_network: "TRC20",
+          payment_window_hours: 1,
+          payment_deadline: iso,
+          amount_usdt: usdtAmt,
+        })
+        .eq("id", pendingBid.id);
+      if (!error) {
+        setPendingBid((pb) => (pb ? { ...pb, usdtDeadline: deadline, usdtAmount: usdtAmt } : pb));
+      }
+    })();
+  }, [step, method, pendingBid, usdtRate]);
+
   const load = async () => {
     setLoading(true);
     // Best-effort: expire any unpaid bids whose deadline has passed.
