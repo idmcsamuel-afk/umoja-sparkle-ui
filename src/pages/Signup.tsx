@@ -34,8 +34,24 @@ const Signup = () => {
   const [referrerName, setReferrerName] = useState<string | null>(null);
   const [refStatus, setRefStatus] = useState<"none" | "checking" | "valid" | "invalid">(refParam ? "checking" : "none");
   const [form, setForm] = useState({ full_name: "", email: "", phone: "", password: "", invite_code: "" });
+  const [country, setCountry] = useState<string>("ZA");
+  const [countries, setCountries] = useState<Array<{ country_code: string; country_name: string; enabled: boolean; currency_code: string; currency_symbol: string }>>([]);
   const [busy, setBusy] = useState(false);
   const [duplicate, setDuplicate] = useState<null | { kind: "email" | "phone" | "account"; value: string }>(null);
+
+  useEffect(() => {
+    (async () => {
+      const { data } = await supabase
+        .from("country_configs" as any)
+        .select("country_code,country_name,enabled,currency_code,currency_symbol")
+        .order("country_name");
+      if (data) setCountries(data as any);
+    })();
+  }, []);
+
+  const selectedCountry = countries.find((c) => c.country_code === country);
+  const countryEnabled = selectedCountry?.enabled ?? (country === "ZA");
+  const FLAGS: Record<string, string> = { ZA: "🇿🇦", KE: "🇰🇪", NG: "🇳🇬", GH: "🇬🇭" };
 
   // Map raw auth/db errors to a friendly duplicate kind, or null if not a duplicate.
   const detectDuplicate = (raw: unknown): null | "email" | "phone" | "account" => {
