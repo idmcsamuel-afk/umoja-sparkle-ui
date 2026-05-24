@@ -668,7 +668,10 @@ export default function AdminCircleTracker() {
               {filtered.map((r) => {
                 const payout = r.payout_amount ?? r.net_amount ?? r.fiat_amount;
                 const diff = payout - r.fiat_amount;
-                const status = STATUS_BADGE[r.status] || { label: r.status, cls: "bg-muted text-muted-foreground" };
+                 const isOverdue = r.status === "vault" && r.hours_remaining !== null && r.hours_remaining < 0;
+                 const status = isOverdue
+                   ? STATUS_BADGE.overdue
+                   : STATUS_BADGE[r.status] || { label: r.status, cls: "bg-muted text-muted-foreground" };
                 const ref = refFor(r);
                 return (
                   <TableRow key={r.bid_id}>
