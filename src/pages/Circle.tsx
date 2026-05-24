@@ -105,7 +105,7 @@ const Circle = () => {
   const [step, setStep] = useState<"amount" | "pay">("amount");
   const [amount, setAmount] = useState("");
   const [busy, setBusy] = useState(false);
-  const [pendingBid, setPendingBid] = useState<{ id: string; amount: number; ref: string } | null>(null);
+  const [pendingBid, setPendingBid] = useState<{ id: string; amount: number; ref: string; eftDeadline?: number } | null>(null);
   const [proofFile, setProofFile] = useState<File | null>(null);
   const [method, setMethod] = useState<PaymentMethod>("paystack");
   const { pay: payWithPaystack } = usePaystack();
