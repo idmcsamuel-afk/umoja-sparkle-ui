@@ -88,7 +88,10 @@ const Circle = () => {
   const [queueStatus, setQueueStatus] = useState<Record<string, MyQueueStatus>>({});
   const [loading, setLoading] = useState(true);
   const [settings, setSettings] = useState<Settings | null>(null);
+  const [cryptoEnabled, setCryptoEnabled] = useState(false);
+  const [usdtAddress, setUsdtAddress] = useState<string | null>(null);
   const [isAdmin, setIsAdmin] = useState(false);
+  const { data: usdtRate } = useUsdtRate();
 
   useEffect(() => { ttTrack("ViewContent", { content_type: "Circles" }); }, []);
 
