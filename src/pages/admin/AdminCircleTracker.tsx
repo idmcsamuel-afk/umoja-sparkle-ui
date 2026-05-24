@@ -546,10 +546,9 @@ export default function AdminCircleTracker() {
                         <Copy className="h-3 w-3" /> Copy Bank Details
                       </Button>
                       <Button size="sm" onClick={async () => {
-                        await supabase.rpc("record_circle_payout", {
-                          _bid_id: r.bid_id, _net_amount: amount, _method: r.payment_method || "manual", _reference: ref,
-                        } as any);
-                        toast({ title: "Payout recorded" });
+                        const err = await markBidPaid(r, amount, ref);
+                        if (err) toast({ title: "Payout failed", description: err, variant: "destructive" });
+                        else toast({ title: "✅ Payment marked as complete" });
                         fetchData();
                       }}>
                         <Wallet className="h-3 w-3" /> Process Payout
