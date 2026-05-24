@@ -363,11 +363,11 @@ export default function Priority() {
                 <span className="font-display text-2xl text-gradient-gold">~{potentialScore}<span className="text-base text-muted-foreground">/100</span></span>
               </div>
               <p className="mt-1 text-[11px] text-muted-foreground">
-                {queueSummary.total > 0 && queueSummary.userBidExists && myRank
+                {queueSummary.userBidExists && myRank
                   ? `You're in position #${myRank} of ${queueSummary.total}`
-                  : queueSummary.total > 0
-                    ? `Estimated rank: ~#${Math.max(1, Math.ceil(queueSummary.total * 0.4) + 1)} of ${queueSummary.total} active members`
-                    : "No active bids yet"}
+                  : queueSummary.total === 0
+                    ? "No active bids yet"
+                    : `You're not in the queue yet — join ${tier} to compete`}
               </p>
             </div>
           </section>
