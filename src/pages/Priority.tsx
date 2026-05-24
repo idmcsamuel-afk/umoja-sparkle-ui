@@ -326,7 +326,7 @@ export default function Priority() {
   // Community impact (max 10)
   const communityScore = Math.min(
     10,
-    community.referrals * 2 + community.active_days * 0.1 + (community.kyc_level >= 3 ? 2 : 0),
+    Math.min(community.referrals * 0.5, 6) + (community.kyc_level >= 3 ? 2 : 0) + (community.kyc_level >= 2 ? 1 : 0),
   );
 
   // Potential score for a hypothetical first bid at tier minimum
@@ -417,8 +417,8 @@ export default function Priority() {
                 <span className="ml-auto font-mono text-sm">{fmt(communityScore, 1)}<span className="text-muted-foreground">/10</span></span>
               </div>
               <ul className="mt-3 space-y-1.5 text-sm text-muted-foreground">
-                <li className="flex justify-between"><span>Referrals · {community.referrals} × 2pts</span><span className="font-mono text-foreground">+{(community.referrals * 2).toFixed(1)}</span></li>
-                <li className="flex justify-between"><span>Active days · {community.active_days} × 0.1pts</span><span className="font-mono text-foreground">+{(community.active_days * 0.1).toFixed(1)}</span></li>
+                <li className="flex justify-between"><span>Referrals · {community.referrals} × 0.5pts</span><span className="font-mono text-foreground">+{Math.min(community.referrals * 0.5, 6).toFixed(1)}</span></li>
+                <li className="flex justify-between"><span>KYC Level 2 bonus</span><span className="font-mono text-foreground">{community.kyc_level >= 2 ? "+1.0" : "0.0"}</span></li>
                 <li className="flex justify-between"><span>KYC Level 3 bonus</span><span className="font-mono text-foreground">{community.kyc_level >= 3 ? "+2.0" : "0.0"}</span></li>
               </ul>
               <p className="mt-3 text-[11px] text-muted-foreground">
