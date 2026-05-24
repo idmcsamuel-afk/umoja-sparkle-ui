@@ -4,6 +4,7 @@ import { ArrowRight, Users, Sparkles, Car, TrendingUp, ShieldCheck, Globe2, Crow
 import { Button } from "@/components/ui/button";
 import { Logo } from "@/components/umoja/Logo";
 import { SiteFooter } from "@/components/umoja/SiteFooter";
+import { WhatsAppCommunity, WhatsAppFab } from "@/components/umoja/WhatsAppCommunity";
 import { useSocialProof, fmtR } from "@/hooks/useSocialProof";
 import hero from "@/assets/hero.jpg";
 import pattern from "@/assets/pattern.jpg";
