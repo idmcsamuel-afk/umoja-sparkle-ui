@@ -491,9 +491,16 @@ const Landing = () => {
               </Link>
             </Button>
           </div>
-          <SiteFooter />
         </div>
       </section>
+
+      <WhatsAppCommunity
+        source="landing"
+        subheading={`Join ${proof.membersCount.toLocaleString("en-ZA")}+ members on WhatsApp`}
+      />
+
+      <SiteFooter />
+      <WhatsAppFab source="landing" />
     </main>
   );
 };
