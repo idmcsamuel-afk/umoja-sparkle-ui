@@ -61,6 +61,12 @@ type Row = {
   payment_reference: string | null;
   paystack_reference: string | null;
   payment_ref: string | null;
+  // USDT
+  payment_crypto_txhash: string | null;
+  payment_crypto_network: string | null;
+  payment_crypto_address: string | null;
+  amount_usdt: number | null;
+  amount_usdt_received: number | null;
   vault_start: string | null;
   vault_end: string | null;
   days_waiting: number | null;
@@ -189,6 +195,7 @@ export default function AdminCircleTracker() {
   const [now, setNow] = useState(Date.now());
   const [tierFilter, setTierFilter] = useState<string>("all");
   const [statusFilter, setStatusFilter] = useState<string>("all");
+  const [methodFilter, setMethodFilter] = useState<string>("all");
   const [sortBy, setSortBy] = useState<string>("due");
   const [quickTab, setQuickTab] = useState<string>("overdue");
   const [search, setSearch] = useState("");
@@ -202,6 +209,8 @@ export default function AdminCircleTracker() {
       .select(`
         id, member_id, tier, fiat_amount, payout_amount, net_amount, status,
         payment_status, payment_method, payment_reference, paystack_reference, payment_ref,
+        payment_crypto_txhash, payment_crypto_network, payment_crypto_address,
+        amount_usdt, amount_usdt_received,
         vault_start, vault_end, days_waiting, created_at, payment_confirmed_at, payout_date,
         members:member_id (
           id, full_name, email, phone, bank_name, bank_account, bank_branch,
@@ -260,6 +269,11 @@ export default function AdminCircleTracker() {
         payment_reference: b.payment_reference,
         paystack_reference: b.paystack_reference,
         payment_ref: b.payment_ref,
+        payment_crypto_txhash: b.payment_crypto_txhash ?? null,
+        payment_crypto_network: b.payment_crypto_network ?? null,
+        payment_crypto_address: b.payment_crypto_address ?? null,
+        amount_usdt: b.amount_usdt ?? null,
+        amount_usdt_received: b.amount_usdt_received ?? null,
         vault_start: b.vault_start,
         vault_end: b.vault_end,
         days_waiting: b.days_waiting,
@@ -324,6 +338,7 @@ export default function AdminCircleTracker() {
     let list = ticked.slice();
     if (tierFilter !== "all") list = list.filter((r) => r.tier === tierFilter);
     if (statusFilter !== "all") list = list.filter((r) => r.status === statusFilter);
+    if (methodFilter !== "all") list = list.filter((r) => (r.payment_method || "").toLowerCase() === methodFilter);
 
     if (quickTab === "active")
       list = list.filter((r) => r.status === "vault" && r.hours_remaining !== null && r.hours_remaining >= 0);
@@ -358,7 +373,7 @@ export default function AdminCircleTracker() {
     });
 
     return list;
-  }, [ticked, tierFilter, statusFilter, sortBy, quickTab, search]);
+  }, [ticked, tierFilter, statusFilter, methodFilter, sortBy, quickTab, search]);
 
   const counts = useMemo(() => ({
     all: ticked.length,
@@ -606,6 +621,16 @@ export default function AdminCircleTracker() {
             <SelectItem value="pending">Pending</SelectItem>
           </SelectContent>
         </Select>
+        <Select value={methodFilter} onValueChange={setMethodFilter}>
+          <SelectTrigger className="w-[160px]"><SelectValue /></SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">All Methods</SelectItem>
+            <SelectItem value="paystack">💳 Card</SelectItem>
+            <SelectItem value="card">💳 Card (legacy)</SelectItem>
+            <SelectItem value="eft">🏦 EFT</SelectItem>
+            <SelectItem value="usdt">💰 USDT</SelectItem>
+          </SelectContent>
+        </Select>
         <Select value={sortBy} onValueChange={setSortBy}>
           <SelectTrigger className="w-[180px]"><SelectValue /></SelectTrigger>
           <SelectContent>
@@ -691,7 +716,21 @@ export default function AdminCircleTracker() {
                     <TableCell>
                       <Badge className={TIER_COLORS[r.tier]} variant="outline">{r.tier}</Badge>
                     </TableCell>
-                    <TableCell className="font-medium">{zar(r.fiat_amount)}</TableCell>
+                    <TableCell className="font-medium">
+                      {zar(r.fiat_amount)}
+                      {r.payment_method === "usdt" && r.amount_usdt && (
+                        <div className="text-xs text-muted-foreground">
+                          ${Number(r.amount_usdt).toFixed(2)} USDT
+                          {r.amount_usdt_received != null && Number(r.amount_usdt_received) > 0 && (
+                            <> · got ${Number(r.amount_usdt_received).toFixed(2)}
+                              {Number(r.amount_usdt_received) < Number(r.amount_usdt) && (
+                                <span className="text-orange-600"> (−${(Number(r.amount_usdt) - Number(r.amount_usdt_received)).toFixed(2)} fee)</span>
+                              )}
+                            </>
+                          )}
+                        </div>
+                      )}
+                    </TableCell>
                     <TableCell>
                       <div className="font-medium">{zar(payout)}</div>
                       {diff > 0 && <div className="text-xs text-emerald-600">+{zar(diff)}</div>}
@@ -699,12 +738,26 @@ export default function AdminCircleTracker() {
                     <TableCell><Badge className={status.cls} variant="outline">{status.label}</Badge></TableCell>
                     <TableCell>
                       <div className="flex items-center gap-1 text-xs">
-                        {r.payment_method === "card" ? <CreditCard className="h-3 w-3" /> : <Landmark className="h-3 w-3" />}
-                        {r.payment_method || "—"}
+                        {r.payment_method === "usdt"
+                          ? <>💰 <span>USDT</span></>
+                          : r.payment_method === "eft"
+                          ? <><Landmark className="h-3 w-3" /> EFT</>
+                          : r.payment_method === "paystack" || r.payment_method === "card"
+                          ? <><CreditCard className="h-3 w-3" /> Card</>
+                          : <>{r.payment_method || "—"}</>}
                       </div>
                     </TableCell>
                     <TableCell>
-                      {ref !== "—" ? (
+                      {r.payment_method === "usdt" && r.payment_crypto_txhash ? (
+                        <a
+                          href={`https://tronscan.org/#/transaction/${r.payment_crypto_txhash}`}
+                          target="_blank" rel="noopener noreferrer"
+                          className="text-xs font-mono hover:underline text-primary"
+                          title={r.payment_crypto_txhash}
+                        >
+                          {r.payment_crypto_txhash.slice(0, 8)}…{r.payment_crypto_txhash.slice(-4)} ↗
+                        </a>
+                      ) : ref !== "—" ? (
                         <button onClick={() => copy(ref, "Reference copied")} className="text-xs font-mono hover:underline flex items-center gap-1">
                           {ref.length > 14 ? `${ref.slice(0, 12)}…` : ref}
                           <Copy className="h-3 w-3" />
