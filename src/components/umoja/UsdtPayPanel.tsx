@@ -38,7 +38,7 @@ function friendlyUsdtError(code: string, details?: { expected?: number; received
     case "wrong_recipient":
       return "Wrong recipient address. The USDT must be sent to the UMOJA platform address shown above.";
     case "amount_too_low":
-      return `Amount mismatch. Expected ${Number(details?.expected ?? 0).toFixed(2)} USDT, received ${Number(details?.received ?? 0).toFixed(2)} USDT. Send the difference and retry.`;
+      return `Amount too low after network fees. Expected ~${Number(details?.expected ?? 0).toFixed(2)} USDT, received ${Number(details?.received ?? 0).toFixed(2)} USDT. Exchanges (Binance/Luno) often deduct $1–2 in fees — send a bit extra and retry.`;
     case "txhash_already_used":
       return "This transaction hash is already linked to another bid. Use a different transaction.";
     case "different_txhash_already_recorded":
