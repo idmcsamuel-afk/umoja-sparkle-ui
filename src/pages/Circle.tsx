@@ -192,8 +192,10 @@ const Circle = () => {
 
   const load = async () => {
     setLoading(true);
-    // Best-effort: expire any unpaid bids whose deadline has passed.
-    try { await supabase.rpc("expire_unpaid_bids"); } catch {}
+    // Best-effort: only authenticated members should trigger bid expiry cleanup.
+    if (user) {
+      try { await supabase.rpc("expire_unpaid_bids"); } catch {}
+    }
 
     const [tiersRes, bidsRes, statsRes, settingsRes, queueRes] = await Promise.all([
       supabase.from("circle_tiers").select("*").order("min_entry"),
@@ -205,7 +207,7 @@ const Circle = () => {
             .order("created_at", { ascending: false })
         : Promise.resolve({ data: [], error: null } as const),
       supabase.rpc("circle_tier_stats"),
-      supabase.rpc("get_member_platform_settings"),
+      supabase.functions.invoke("platform_settings"),
       user
         ? supabase.rpc("get_my_circle_queue_status")
         : Promise.resolve({ data: [], error: null } as const),
@@ -221,22 +223,8 @@ const Circle = () => {
     setBids((bidsRes.data ?? []) as Bid[]);
     const settingsRow = Array.isArray(settingsRes.data) ? settingsRes.data[0] : settingsRes.data;
     setSettings((settingsRow ?? null) as Settings | null);
-
-    // Only admins can read platform_settings directly; members must not hit this table.
-    // Avoid noisy connection/RLS failures on the public circle page.
-    if (user && isAdmin) {
-      const { data: cryptoRow } = await supabase
-        .from("platform_settings")
-        .select("usdt_trc20_address, crypto_enabled")
-        .order("created_at", { ascending: false })
-        .limit(1)
-        .maybeSingle();
-      setCryptoEnabled(!!cryptoRow?.crypto_enabled);
-      setUsdtAddress(cryptoRow?.usdt_trc20_address ?? null);
-    } else {
-      setCryptoEnabled(false);
-      setUsdtAddress(null);
-    }
+    setCryptoEnabled(!!(settingsRow as any)?.crypto_enabled);
+    setUsdtAddress((settingsRow as any)?.usdt_trc20_address ?? null);
 
     const qmap: Record<string, MyQueueStatus> = {};
     for (const r of (((queueRes as any).data ?? []) as MyQueueStatus[])) {
