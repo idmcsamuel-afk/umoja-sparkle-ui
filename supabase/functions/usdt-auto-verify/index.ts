@@ -63,10 +63,13 @@ Deno.serve(async (req) => {
         continue;
       }
       const nowIso = new Date().toISOString();
+      const vaultDays = b.tier === "growth" ? 7 : b.tier === "harvest" ? 14 : 5;
+      const vaultEndIso = new Date(Date.now() + vaultDays * 24 * 60 * 60 * 1000).toISOString();
       await supa.from("circle_bids").update({
         status: "vault",
         payment_confirmed_at: nowIso,
         vault_start: nowIso,
+        vault_end: vaultEndIso,
         amount_usdt_received: usdtAmount,
       }).eq("id", b.id);
       results.push({ id: b.id, ok: true });
