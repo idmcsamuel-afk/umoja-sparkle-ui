@@ -385,17 +385,29 @@ function UsdtWalletCard() {
   return (
     <div className="mt-6 rounded-3xl border border-border bg-gradient-card p-6 space-y-3">
       <div>
-        <h3 className="font-display text-lg">USDT payout wallet (optional)</h3>
+        <h3 className="font-display text-lg">Cryptocurrency details (optional)</h3>
         <p className="text-xs text-muted-foreground mt-1">
-          For payouts in USDT on Tron (TRC20). Leave blank to receive payouts via bank transfer only.
+          For receiving Circle payouts in USDT on Tron (TRC20). Leave blank to receive payouts via bank only.
         </p>
       </div>
-      <Input
-        value={addr}
-        onChange={(e) => setAddr(e.target.value)}
-        placeholder="T..."
-        className="h-11 rounded-2xl bg-secondary/40 border-border font-mono text-xs"
-      />
+      <div className="space-y-1">
+        <Label className="text-xs">USDT wallet address (TRC20)</Label>
+        <Input
+          value={addr}
+          onChange={(e) => setAddr(e.target.value)}
+          placeholder="T..."
+          className="h-11 rounded-2xl bg-secondary/40 border-border font-mono text-xs"
+          maxLength={34}
+        />
+      </div>
+      <div className="rounded-2xl border border-destructive/30 bg-destructive/5 p-3 text-[11px] text-destructive space-y-1">
+        <p className="font-medium">⚠️ Important</p>
+        <ul className="list-disc pl-4 space-y-0.5">
+          <li>Use TRC20 (Tron) network only</li>
+          <li>Double-check address before saving</li>
+          <li>Wrong address = lost funds</li>
+        </ul>
+      </div>
       <Button onClick={save} disabled={saving} className="w-full rounded-2xl bg-gradient-primary text-primary-foreground">
         {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : "Save USDT wallet"}
       </Button>
