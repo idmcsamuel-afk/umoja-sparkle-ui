@@ -716,7 +716,21 @@ export default function AdminCircleTracker() {
                     <TableCell>
                       <Badge className={TIER_COLORS[r.tier]} variant="outline">{r.tier}</Badge>
                     </TableCell>
-                    <TableCell className="font-medium">{zar(r.fiat_amount)}</TableCell>
+                    <TableCell className="font-medium">
+                      {zar(r.fiat_amount)}
+                      {r.payment_method === "usdt" && r.amount_usdt && (
+                        <div className="text-xs text-muted-foreground">
+                          ${Number(r.amount_usdt).toFixed(2)} USDT
+                          {r.amount_usdt_received != null && Number(r.amount_usdt_received) > 0 && (
+                            <> · got ${Number(r.amount_usdt_received).toFixed(2)}
+                              {Number(r.amount_usdt_received) < Number(r.amount_usdt) && (
+                                <span className="text-orange-600"> (−${(Number(r.amount_usdt) - Number(r.amount_usdt_received)).toFixed(2)} fee)</span>
+                              )}
+                            </>
+                          )}
+                        </div>
+                      )}
+                    </TableCell>
                     <TableCell>
                       <div className="font-medium">{zar(payout)}</div>
                       {diff > 0 && <div className="text-xs text-emerald-600">+{zar(diff)}</div>}
@@ -724,12 +738,26 @@ export default function AdminCircleTracker() {
                     <TableCell><Badge className={status.cls} variant="outline">{status.label}</Badge></TableCell>
                     <TableCell>
                       <div className="flex items-center gap-1 text-xs">
-                        {r.payment_method === "card" ? <CreditCard className="h-3 w-3" /> : <Landmark className="h-3 w-3" />}
-                        {r.payment_method || "—"}
+                        {r.payment_method === "usdt"
+                          ? <>💰 <span>USDT</span></>
+                          : r.payment_method === "eft"
+                          ? <><Landmark className="h-3 w-3" /> EFT</>
+                          : r.payment_method === "paystack" || r.payment_method === "card"
+                          ? <><CreditCard className="h-3 w-3" /> Card</>
+                          : <>{r.payment_method || "—"}</>}
                       </div>
                     </TableCell>
                     <TableCell>
-                      {ref !== "—" ? (
+                      {r.payment_method === "usdt" && r.payment_crypto_txhash ? (
+                        <a
+                          href={`https://tronscan.org/#/transaction/${r.payment_crypto_txhash}`}
+                          target="_blank" rel="noopener noreferrer"
+                          className="text-xs font-mono hover:underline text-primary"
+                          title={r.payment_crypto_txhash}
+                        >
+                          {r.payment_crypto_txhash.slice(0, 8)}…{r.payment_crypto_txhash.slice(-4)} ↗
+                        </a>
+                      ) : ref !== "—" ? (
                         <button onClick={() => copy(ref, "Reference copied")} className="text-xs font-mono hover:underline flex items-center gap-1">
                           {ref.length > 14 ? `${ref.slice(0, 12)}…` : ref}
                           <Copy className="h-3 w-3" />
