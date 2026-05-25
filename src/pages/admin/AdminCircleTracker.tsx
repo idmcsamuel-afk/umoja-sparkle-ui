@@ -392,13 +392,19 @@ export default function AdminCircleTracker() {
     const avgScore = activeVault.length
       ? activeVault.reduce((s, r) => s + r.priority_score, 0) / activeVault.length
       : 0;
+    const byMethod = (m: string) =>
+      ticked.filter((r) => (r.payment_method || "").toLowerCase() === m).length;
     return {
       activeVault: activeVault.length,
       dueToday: counts.due_today,
       totalPooled,
       avgScore: avgScore.toFixed(1),
+      card: byMethod("paystack") + byMethod("card"),
+      eft: byMethod("eft"),
+      usdt: byMethod("usdt"),
     };
   }, [ticked, counts]);
+
 
   const queue = useMemo(() =>
     ticked
