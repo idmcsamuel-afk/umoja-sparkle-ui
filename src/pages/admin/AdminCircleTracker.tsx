@@ -208,6 +208,8 @@ export default function AdminCircleTracker() {
       .select(`
         id, member_id, tier, fiat_amount, payout_amount, net_amount, status,
         payment_status, payment_method, payment_reference, paystack_reference, payment_ref,
+        payment_crypto_txhash, payment_crypto_network, payment_crypto_address,
+        amount_usdt, amount_usdt_received,
         vault_start, vault_end, days_waiting, created_at, payment_confirmed_at, payout_date,
         members:member_id (
           id, full_name, email, phone, bank_name, bank_account, bank_branch,
