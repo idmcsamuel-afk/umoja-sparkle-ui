@@ -20,9 +20,11 @@ import {
   Collapsible, CollapsibleContent, CollapsibleTrigger,
 } from "@/components/ui/collapsible";
 import { toast } from "@/hooks/use-toast";
+import { useUsdtRate, zarToUsdt, fmtUsdt } from "@/hooks/useUsdtRate";
 import {
   AlertTriangle, Clock, Copy, CreditCard, Eye, EyeOff, Landmark,
   MessageCircle, Search, Send, TrendingUp, Wallet, Download, CheckCircle2,
+  ExternalLink,
 } from "lucide-react";
 
 type Tier = "seed" | "growth" | "harvest";
@@ -92,6 +94,9 @@ type Row = {
   bd_account_holder: string | null;
   bd_account_number: string | null;
   bd_branch: string | null;
+  // crypto payout
+  usdt_wallet_trc20: string | null;
+  payout_crypto_txhash: string | null;
   // derived
   hours_remaining: number | null;
   days_remaining: number | null;
@@ -212,8 +217,10 @@ export default function AdminCircleTracker() {
         payment_crypto_txhash, payment_crypto_network, payment_crypto_address,
         amount_usdt, amount_usdt_received,
         vault_start, vault_end, days_waiting, created_at, payment_confirmed_at, payout_date,
+        payout_crypto_txhash,
         members:member_id (
           id, full_name, email, phone, bank_name, bank_account, bank_branch,
+          usdt_wallet_trc20,
           priority_score, consistency_score, time_waiting_score,
           contribution_volume_score, community_score, bid_boost_score
         )
@@ -296,6 +303,8 @@ export default function AdminCircleTracker() {
         bd_account_holder: bd.account_holder_name ?? null,
         bd_account_number: bd.account_number ?? null,
         bd_branch: bd.branch_code ?? null,
+        usdt_wallet_trc20: m.usdt_wallet_trc20 ?? null,
+        payout_crypto_txhash: b.payout_crypto_txhash ?? null,
         hours_remaining,
         days_remaining: hours_remaining !== null ? Math.floor(hours_remaining / 24) : null,
         priority_rank: 0,
