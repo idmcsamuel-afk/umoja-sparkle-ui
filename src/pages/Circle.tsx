@@ -207,7 +207,9 @@ const Circle = () => {
             .order("created_at", { ascending: false })
         : Promise.resolve({ data: [], error: null } as const),
       supabase.rpc("circle_tier_stats"),
-      supabase.functions.invoke("platform_settings"),
+      user
+        ? supabase.functions.invoke("platform_settings")
+        : Promise.resolve({ data: null, error: null } as const),
       user
         ? supabase.rpc("get_my_circle_queue_status")
         : Promise.resolve({ data: [], error: null } as const),
