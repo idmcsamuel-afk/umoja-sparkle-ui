@@ -392,13 +392,19 @@ export default function AdminCircleTracker() {
     const avgScore = activeVault.length
       ? activeVault.reduce((s, r) => s + r.priority_score, 0) / activeVault.length
       : 0;
+    const byMethod = (m: string) =>
+      ticked.filter((r) => (r.payment_method || "").toLowerCase() === m).length;
     return {
       activeVault: activeVault.length,
       dueToday: counts.due_today,
       totalPooled,
       avgScore: avgScore.toFixed(1),
+      card: byMethod("paystack") + byMethod("card"),
+      eft: byMethod("eft"),
+      usdt: byMethod("usdt"),
     };
   }, [ticked, counts]);
+
 
   const queue = useMemo(() =>
     ticked
@@ -536,6 +542,14 @@ export default function AdminCircleTracker() {
           <CheckCircle2 className="h-4 w-4" /> INFO: {stats.activeVault} active contributions being tracked
         </div>
       </div>
+
+      {/* Method breakdown */}
+      <div className="grid grid-cols-3 gap-3">
+        <Card><CardContent className="p-4"><div className="text-xs text-muted-foreground">💳 Card</div><div className="text-2xl font-bold">{stats.card}</div></CardContent></Card>
+        <Card><CardContent className="p-4"><div className="text-xs text-muted-foreground">🏦 EFT</div><div className="text-2xl font-bold">{stats.eft}</div></CardContent></Card>
+        <Card><CardContent className="p-4"><div className="text-xs text-muted-foreground">💰 USDT</div><div className="text-2xl font-bold">{stats.usdt}</div></CardContent></Card>
+      </div>
+
 
       {/* Stats */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
