@@ -634,6 +634,21 @@ const Circle = () => {
                         <span className="text-[10px] text-emerald-400">✅ Proof uploaded</span>
                       )}
                     </div>
+                    {awaiting && b.payment_method === "usdt" && !b.payment_crypto_txhash && (
+                      <div className="pl-14 flex items-center gap-2">
+                        <span className="inline-flex items-center rounded-full bg-amber-500/15 text-amber-400 px-2 py-0.5 text-[10px] font-medium">
+                          ⏳ Awaiting USDT verification
+                        </span>
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          className="h-7 rounded-full text-xs"
+                          onClick={() => setVerifyBid(b)}
+                        >
+                          Verify Payment
+                        </Button>
+                      </div>
+                    )}
                   </li>
                 );
               })}
