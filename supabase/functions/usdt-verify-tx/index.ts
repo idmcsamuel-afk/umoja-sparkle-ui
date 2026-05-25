@@ -1,6 +1,10 @@
 // Verify a TRC20 USDT transaction against a circle_bid.
 // POST { bidId: string, txHash: string }
-import { corsHeaders } from "npm:@supabase/supabase-js@2/cors";
+const corsHeaders = {
+  "Access-Control-Allow-Origin": "*",
+  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
+  "Access-Control-Allow-Methods": "POST, GET, OPTIONS, PUT, DELETE",
+};
 import { createClient } from "npm:@supabase/supabase-js@2";
 
 // USDT TRC20 contract address
