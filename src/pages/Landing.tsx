@@ -44,7 +44,7 @@ const stats = [
 
 const Landing = () => {
   const proof = useSocialProof();
-  useEffect(() => { import("@/lib/tiktokPixel").then(m => m.ttTrack("ViewContent", { content_type: "landing" })); }, []);
+  useEffect(() => { import("@/lib/tiktokPixel").then(m => m.ttTrack("ViewContent", { content_type: "product" })); }, []);
   return (
     <main className="relative min-h-screen overflow-hidden">
       {/* Ambient background */}
