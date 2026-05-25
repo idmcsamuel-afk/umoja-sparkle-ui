@@ -2,7 +2,7 @@ import { useEffect, useMemo, useState } from "react";
 import { Link } from "react-router-dom";
 import {
   ArrowUpRight, Users, Sparkles, Car, TrendingUp, ChevronRight, Loader2, User as UserIcon, Shield,
-  Calculator as CalcIcon, ShoppingBag, Repeat, Building2, ShieldAlert, Gift, Palette, ShoppingCart, CheckCircle2, Clock, XCircle,
+  Calculator as CalcIcon, ShoppingBag, Repeat, Building2, ShieldAlert, Gift, Palette, ShoppingCart, CheckCircle2, Clock, XCircle, ChevronDown, ChevronUp,
 } from "lucide-react";
 import { Logo } from "@/components/umoja/Logo";
 import { FulfillmentCard } from "@/components/umoja/FulfillmentCard";
@@ -66,6 +66,16 @@ const Dashboard = () => {
   const [isAdmin, setIsAdmin] = useState(false);
   const [kycLevel, setKycLevel] = useState<number | null>(null);
   const [hasContributed, setHasContributed] = useState<boolean | null>(null);
+  const [activityExpanded, setActivityExpanded] = useState<boolean>(() => {
+    try { return localStorage.getItem("umoja.activity.expanded") === "1"; } catch { return false; }
+  });
+  const toggleActivity = () => {
+    setActivityExpanded((v) => {
+      const next = !v;
+      try { localStorage.setItem("umoja.activity.expanded", next ? "1" : "0"); } catch {}
+      return next;
+    });
+  };
   const [propertyCount, setPropertyCount] = useState<number>(0);
   const [bc, setBc] = useState<{
     status: string | null;
@@ -679,7 +689,23 @@ const Dashboard = () => {
       {/* Activity */}
       <section className="px-5 pt-8">
         <div className="mx-auto max-w-md">
-          <h2 className="font-display text-xl">Activity</h2>
+          <button
+            type="button"
+            onClick={toggleActivity}
+            className="w-full flex items-center justify-between gap-3 rounded-2xl px-1 py-1 text-left transition-smooth hover:opacity-90"
+            aria-expanded={activityExpanded}
+            aria-controls="activity-feed"
+          >
+            <h2 className="font-display text-xl inline-flex items-center gap-2">
+              <span aria-hidden>📊</span> Activity
+              {activity.length > 0 && (
+                <span className="text-xs font-sans text-muted-foreground">({activity.length})</span>
+              )}
+            </h2>
+            <span className="inline-flex items-center gap-1 rounded-full border border-border bg-secondary/40 px-3 py-1 text-xs text-muted-foreground">
+              {activityExpanded ? <>Hide <ChevronUp className="h-3.5 w-3.5" /></> : <>Show all <ChevronDown className="h-3.5 w-3.5" /></>}
+            </span>
+          </button>
           {loading ? (
             <div className="mt-4 grid place-items-center rounded-3xl glass p-10">
               <Loader2 className="h-5 w-5 animate-spin text-primary" />
@@ -689,8 +715,11 @@ const Dashboard = () => {
               Nothing here yet — your story is about to begin.
             </div>
           ) : (
-            <ul className="mt-4 divide-y divide-border rounded-3xl border border-border bg-gradient-card overflow-hidden">
-              {activity.map((row, i) => {
+            <ul
+              id="activity-feed"
+              className="mt-4 divide-y divide-border rounded-3xl border border-border bg-gradient-card overflow-hidden"
+            >
+              {(activityExpanded ? activity : activity.slice(0, 3)).map((row, i) => {
                 const Icon = ICONS[row.kind];
                 return (
                   <li
@@ -713,6 +742,28 @@ const Dashboard = () => {
                   </li>
                 );
               })}
+              {!activityExpanded && activity.length > 3 && (
+                <li>
+                  <button
+                    type="button"
+                    onClick={toggleActivity}
+                    className="w-full px-4 py-3 text-center text-xs font-medium text-accent hover:bg-secondary/40 transition-smooth inline-flex items-center justify-center gap-1"
+                  >
+                    See {activity.length - 3} more <ChevronDown className="h-3.5 w-3.5" />
+                  </button>
+                </li>
+              )}
+              {activityExpanded && activity.length > 3 && (
+                <li>
+                  <button
+                    type="button"
+                    onClick={toggleActivity}
+                    className="w-full px-4 py-3 text-center text-xs font-medium text-muted-foreground hover:bg-secondary/40 transition-smooth inline-flex items-center justify-center gap-1"
+                  >
+                    Show less <ChevronUp className="h-3.5 w-3.5" />
+                  </button>
+                </li>
+              )}
             </ul>
           )}
         </div>
