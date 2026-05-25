@@ -968,6 +968,29 @@ const Circle = () => {
         </div>
       </section>
 
+      {/* Verify USDT payment for an existing pending bid */}
+      <Dialog open={!!verifyBid} onOpenChange={(v) => { if (!v) setVerifyBid(null); }}>
+        <DialogContent className="sm:max-w-md rounded-3xl">
+          <DialogHeader>
+            <DialogTitle className="font-display text-xl">Verify USDT Payment</DialogTitle>
+            <DialogDescription>
+              Paste your TRC20 transaction hash to confirm your {verifyBid?.tier} circle bid of {verifyBid && fmtR(Number(verifyBid.fiat_amount))}.
+            </DialogDescription>
+          </DialogHeader>
+          {verifyBid && (
+            <UsdtPayPanel
+              bidId={verifyBid.id}
+              amountUsdt={Number(verifyBid.amount_usdt ?? zarToUsdt(Number(verifyBid.fiat_amount), usdtRate))}
+              amountZar={Number(verifyBid.fiat_amount)}
+              platformAddress={usdtAddress}
+              deadlineMs={verifyBid.payment_deadline ? new Date(verifyBid.payment_deadline).getTime() : undefined}
+              nowMs={now}
+              onConfirmed={() => { setVerifyBid(null); load(); }}
+            />
+          )}
+        </DialogContent>
+      </Dialog>
+
       <CircleAcceptanceModal />
       <BottomNav />
     </main>
