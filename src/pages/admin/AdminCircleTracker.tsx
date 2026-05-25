@@ -621,6 +621,16 @@ export default function AdminCircleTracker() {
             <SelectItem value="pending">Pending</SelectItem>
           </SelectContent>
         </Select>
+        <Select value={methodFilter} onValueChange={setMethodFilter}>
+          <SelectTrigger className="w-[160px]"><SelectValue /></SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">All Methods</SelectItem>
+            <SelectItem value="paystack">💳 Card</SelectItem>
+            <SelectItem value="card">💳 Card (legacy)</SelectItem>
+            <SelectItem value="eft">🏦 EFT</SelectItem>
+            <SelectItem value="usdt">💰 USDT</SelectItem>
+          </SelectContent>
+        </Select>
         <Select value={sortBy} onValueChange={setSortBy}>
           <SelectTrigger className="w-[180px]"><SelectValue /></SelectTrigger>
           <SelectContent>
