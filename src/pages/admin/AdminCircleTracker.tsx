@@ -905,6 +905,92 @@ export default function AdminCircleTracker() {
           )}
         </DialogContent>
       </Dialog>
+
+      {/* USDT Payout dialog */}
+      <Dialog open={!!usdtPayoutRow} onOpenChange={(o) => { if (!o) { setUsdtPayoutRow(null); setUsdtPayoutHash(""); } }}>
+        <DialogContent>
+          <DialogHeader><DialogTitle>Process USDT Payout</DialogTitle></DialogHeader>
+          {usdtPayoutRow && (() => {
+            const r = usdtPayoutRow;
+            const payoutZar = r.payout_amount ?? r.net_amount ?? r.fiat_amount;
+            const payoutUsdt = zarToUsdt(payoutZar, usdtRate);
+            const wallet = r.usdt_wallet_trc20;
+            return (
+              <div className="space-y-3 text-sm">
+                <div className="text-muted-foreground">{r.full_name} · {r.tier}</div>
+                <div className="rounded-md border p-3 bg-muted/30">
+                  <div className="flex justify-between"><span>Payout (ZAR)</span><span className="font-mono">{zar(payoutZar)}</span></div>
+                  <div className="flex justify-between"><span>Payout (USDT)</span><span className="font-mono">{fmtUsdt(payoutUsdt)}</span></div>
+                  <div className="text-xs text-muted-foreground mt-1">Rate: 1 USD = R{usdtRate?.zar_per_usd.toFixed(2) ?? "—"}</div>
+                </div>
+                {wallet ? (
+                  <div className="space-y-2">
+                    <div className="text-xs text-muted-foreground">Member's USDT wallet (TRC20)</div>
+                    <div className="flex items-center gap-1">
+                      <code className="flex-1 text-xs font-mono break-all rounded bg-muted px-2 py-1">{wallet}</code>
+                      <Button size="icon" variant="ghost" className="h-7 w-7" onClick={() => copy(wallet, "Wallet copied")}><Copy className="h-3 w-3" /></Button>
+                      <Button size="icon" variant="ghost" className="h-7 w-7" asChild>
+                        <a href={`https://tronscan.org/#/address/${wallet}`} target="_blank" rel="noopener noreferrer"><ExternalLink className="h-3 w-3" /></a>
+                      </Button>
+                    </div>
+                    <div className="space-y-1 pt-2">
+                      <label className="text-xs text-muted-foreground">After sending — paste transaction hash</label>
+                      <Input value={usdtPayoutHash} onChange={(e) => setUsdtPayoutHash(e.target.value)} placeholder="TRC20 tx hash" className="font-mono text-xs" />
+                    </div>
+                    <Button
+                      className="w-full"
+                      disabled={!usdtPayoutHash.trim() || usdtPayoutSaving}
+                      onClick={async () => {
+                        const hash = usdtPayoutHash.trim().replace(/^0x/, "");
+                        if (hash.length < 16) { toast({ title: "Invalid hash", variant: "destructive" }); return; }
+                        setUsdtPayoutSaving(true);
+                        const err = await markBidPaid(r, payoutZar, hash);
+                        if (!err) {
+                          const { error: txErr } = await supabase
+                            .from("circle_bids")
+                            .update({ payout_crypto_txhash: hash } as any)
+                            .eq("id", r.bid_id);
+                          if (txErr) console.error("payout_crypto_txhash update failed", txErr);
+                        }
+                        setUsdtPayoutSaving(false);
+                        if (err) toast({ title: "Payout failed", description: err, variant: "destructive" });
+                        else {
+                          toast({ title: "✅ USDT payout marked as paid" });
+                          setUsdtPayoutRow(null);
+                          setUsdtPayoutHash("");
+                          fetchData();
+                        }
+                      }}
+                    >
+                      <Wallet className="h-3 w-3" /> Mark as Paid
+                    </Button>
+                  </div>
+                ) : (
+                  <div className="rounded-md border border-destructive/40 bg-destructive/10 p-3 text-xs space-y-2">
+                    <div className="flex items-center gap-1 font-medium text-destructive"><AlertTriangle className="h-3 w-3" /> USDT wallet not provided</div>
+                    <p className="text-muted-foreground">Member paid with USDT but hasn't added a TRC20 wallet. Options:</p>
+                    <ul className="list-disc pl-4 text-muted-foreground space-y-0.5">
+                      <li>Pay via bank instead ({zar(payoutZar)})</li>
+                      <li>Contact member to add USDT wallet under Profile → Banking</li>
+                    </ul>
+                    <div className="border-t pt-2 mt-2">
+                      <div className="font-medium">Bank details</div>
+                      <div className="text-muted-foreground">
+                        {r.bd_bank_name || r.bank_name || "—"} · Acc: {mask(r.bd_account_number || r.bank_account)} · {r.bd_account_holder || r.full_name}
+                      </div>
+                    </div>
+                    {r.phone && (
+                      <Button size="sm" variant="outline" className="w-full" onClick={() => window.open(`https://wa.me/${r.phone!.replace(/\D/g, "")}`)}>
+                        <MessageCircle className="h-3 w-3" /> Contact member
+                      </Button>
+                    )}
+                  </div>
+                )}
+              </div>
+            );
+          })()}
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
