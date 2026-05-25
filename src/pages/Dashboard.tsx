@@ -694,13 +694,40 @@ const Dashboard = () => {
             <div className="mt-4 grid place-items-center rounded-3xl glass p-10">
               <Loader2 className="h-5 w-5 animate-spin text-primary" />
             </div>
+      {/* Activity */}
+      <section className="px-5 pt-8">
+        <div className="mx-auto max-w-md">
+          <button
+            type="button"
+            onClick={toggleActivity}
+            className="w-full flex items-center justify-between gap-3 rounded-2xl px-1 py-1 text-left transition-smooth hover:opacity-90"
+            aria-expanded={activityExpanded}
+            aria-controls="activity-feed"
+          >
+            <h2 className="font-display text-xl inline-flex items-center gap-2">
+              <span aria-hidden>📊</span> Activity
+              {activity.length > 0 && (
+                <span className="text-xs font-sans text-muted-foreground">({activity.length})</span>
+              )}
+            </h2>
+            <span className="inline-flex items-center gap-1 rounded-full border border-border bg-secondary/40 px-3 py-1 text-xs text-muted-foreground">
+              {activityExpanded ? <>Hide <ChevronUp className="h-3.5 w-3.5" /></> : <>Show all <ChevronDown className="h-3.5 w-3.5" /></>}
+            </span>
+          </button>
+          {loading ? (
+            <div className="mt-4 grid place-items-center rounded-3xl glass p-10">
+              <Loader2 className="h-5 w-5 animate-spin text-primary" />
+            </div>
           ) : activity.length === 0 ? (
             <div className="mt-4 rounded-3xl glass p-6 text-center text-sm text-muted-foreground">
               Nothing here yet — your story is about to begin.
             </div>
           ) : (
-            <ul className="mt-4 divide-y divide-border rounded-3xl border border-border bg-gradient-card overflow-hidden">
-              {activity.map((row, i) => {
+            <ul
+              id="activity-feed"
+              className="mt-4 divide-y divide-border rounded-3xl border border-border bg-gradient-card overflow-hidden"
+            >
+              {(activityExpanded ? activity : activity.slice(0, 3)).map((row, i) => {
                 const Icon = ICONS[row.kind];
                 return (
                   <li
@@ -723,6 +750,28 @@ const Dashboard = () => {
                   </li>
                 );
               })}
+              {!activityExpanded && activity.length > 3 && (
+                <li>
+                  <button
+                    type="button"
+                    onClick={toggleActivity}
+                    className="w-full px-4 py-3 text-center text-xs font-medium text-accent hover:bg-secondary/40 transition-smooth inline-flex items-center justify-center gap-1"
+                  >
+                    See {activity.length - 3} more <ChevronDown className="h-3.5 w-3.5" />
+                  </button>
+                </li>
+              )}
+              {activityExpanded && activity.length > 3 && (
+                <li>
+                  <button
+                    type="button"
+                    onClick={toggleActivity}
+                    className="w-full px-4 py-3 text-center text-xs font-medium text-muted-foreground hover:bg-secondary/40 transition-smooth inline-flex items-center justify-center gap-1"
+                  >
+                    Show less <ChevronUp className="h-3.5 w-3.5" />
+                  </button>
+                </li>
+              )}
             </ul>
           )}
         </div>
