@@ -56,7 +56,9 @@ Deno.serve(async (req) => {
       const toTopic = (log.topics?.[2] ?? "").toLowerCase();
       if (!toTopic.endsWith(platformHex)) { results.push({ id: b.id, skip: "wrong_to" }); continue; }
       const usdtAmount = Number(BigInt("0x" + (log.data || "0"))) / 1_000_000;
-      if (usdtAmount + 0.01 < Number(b.amount_usdt) * 0.99) {
+      const expected = Number(b.amount_usdt);
+      const tolerance = expected < 50 ? expected * 0.15 : 7.5;
+      if (usdtAmount + 0.01 < expected - tolerance) {
         results.push({ id: b.id, skip: "amount_low" });
         continue;
       }
