@@ -129,6 +129,7 @@ Deno.serve(async (req) => {
         payment_confirmed_at: nowIso,
         status: "vault",
         vault_start: nowIso,
+        amount_usdt_received: usdtAmount,
       })
       .eq("id", bidId);
     if (updErr) return json({ ok: false, error: updErr.message }, 500);
