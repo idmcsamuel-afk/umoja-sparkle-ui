@@ -96,7 +96,7 @@ const Circle = () => {
   const [isAdmin, setIsAdmin] = useState(false);
   const { data: usdtRate } = useUsdtRate();
 
-  useEffect(() => { ttTrack("ViewContent", { content_type: "Circles" }); }, []);
+  useEffect(() => { ttTrack("ViewContent", { content_type: "product" }); }, []);
 
   useEffect(() => {
     if (!user) { setIsAdmin(false); return; }
@@ -354,7 +354,7 @@ const Circle = () => {
     ttTrack("InitiateCheckout", {
       value: amt,
       currency: "ZAR",
-      content_type: "circle_contribution",
+      content_type: "product",
       content_id: open.tier,
     });
     // Load top 2 leaders for this tier (privacy: only initials + masked code)
@@ -416,7 +416,7 @@ const Circle = () => {
         ttTrack("CompletePayment", {
           value: pendingBid.amount,
           currency: "ZAR",
-          content_type: "circle_contribution",
+          content_type: "product",
           content_id: open.tier,
         });
         load();
@@ -471,7 +471,7 @@ const Circle = () => {
     ttTrack("CompletePayment", {
       value: pendingBid.amount,
       currency: "ZAR",
-      content_type: "circle_contribution_eft",
+      content_type: "product",
       content_id: open.tier,
     });
     toast.success("Payment submitted — awaiting admin confirmation");
