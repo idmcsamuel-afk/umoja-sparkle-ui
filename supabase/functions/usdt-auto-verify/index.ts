@@ -67,6 +67,7 @@ Deno.serve(async (req) => {
         status: "vault",
         payment_confirmed_at: nowIso,
         vault_start: nowIso,
+        amount_usdt_received: usdtAmount,
       }).eq("id", b.id);
       results.push({ id: b.id, ok: true });
     } catch (e) {
