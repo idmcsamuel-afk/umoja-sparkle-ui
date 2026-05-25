@@ -27,11 +27,44 @@ function fmtCountdown(ms: number) {
   return h > 0 ? `${pad(h)}:${pad(m)}:${pad(s)}` : `${pad(m)}:${pad(s)}`;
 }
 
+function friendlyUsdtError(code: string, details?: { expected?: number; received?: number }) {
+  switch (code) {
+    case "tx_not_found":
+      return "Transaction not found yet. It may still be propagating — wait 1–2 minutes and retry.";
+    case "tx_failed_on_chain":
+      return "This transaction failed on the Tron network. Please send a new payment.";
+    case "not_a_usdt_transfer":
+      return "This is not a USDT transfer. Make sure you sent USDT on Tron (TRC20) — not ERC20 or another token.";
+    case "wrong_recipient":
+      return "Wrong recipient address. The USDT must be sent to the UMOJA platform address shown above.";
+    case "amount_too_low":
+      return `Amount mismatch. Expected ${Number(details?.expected ?? 0).toFixed(2)} USDT, received ${Number(details?.received ?? 0).toFixed(2)} USDT. Send the difference and retry.`;
+    case "txhash_already_used":
+      return "This transaction hash is already linked to another bid. Use a different transaction.";
+    case "different_txhash_already_recorded":
+      return "A different transaction hash is already recorded for this bid. Contact support if this is wrong.";
+    case "platform_address_not_configured":
+      return "Crypto payments are not fully configured. Please use another payment method or contact support.";
+    case "no_usdt_amount":
+      return "Bid is missing the USDT amount — please re-create the bid and try again.";
+    case "forbidden":
+    case "auth_required":
+      return "You don't have permission to verify this bid. Please log in again.";
+    case "bid_not_found":
+      return "Bid not found — it may have expired. Please create a new bid.";
+    case "invalid_txhash_format":
+      return "That doesn't look like a valid TRC20 transaction hash (should be 64 hex characters).";
+    default:
+      return `Verification failed (${code}). Please double-check the transaction hash and try again.`;
+  }
+}
+
 export function UsdtPayPanel({ bidId, amountUsdt, amountZar, platformAddress, deadlineMs, nowMs, onConfirmed }: Props) {
   const [copied, setCopied] = useState<string | null>(null);
   const [txhash, setTxhash] = useState("");
   const [verifying, setVerifying] = useState(false);
   const [helpOpen, setHelpOpen] = useState(false);
+  const [errorMsg, setErrorMsg] = useState<string | null>(null);
 
   const copy = (label: string, value: string) => {
     navigator.clipboard.writeText(value);
@@ -43,9 +76,10 @@ export function UsdtPayPanel({ bidId, amountUsdt, amountZar, platformAddress, de
   const expired = msLeft !== null && msLeft <= 0;
 
   const verify = async () => {
+    setErrorMsg(null);
     const clean = txhash.trim().replace(/^0x/, "");
     if (!/^[a-fA-F0-9]{64}$/.test(clean)) {
-      toast.error("Enter a valid 64-character transaction hash");
+      setErrorMsg("Enter a valid 64-character TRC20 transaction hash.");
       return;
     }
     setVerifying(true);
@@ -54,14 +88,21 @@ export function UsdtPayPanel({ bidId, amountUsdt, amountZar, platformAddress, de
         body: { bidId, txHash: clean },
       });
       if (error || !data?.ok) {
-        const code = (data as any)?.error ?? error?.message ?? "verify_failed";
-        toast.error(`Verification failed: ${code}`);
+        const code = (data as any)?.error ?? "verify_failed";
+        const msg = friendlyUsdtError(code, {
+          expected: (data as any)?.expected,
+          received: (data as any)?.received,
+        });
+        setErrorMsg(msg);
+        toast.error(msg);
       } else {
         toast.success(`USDT payment confirmed (${data.usdt_amount} USDT)`);
         onConfirmed();
       }
     } catch (e: any) {
-      toast.error(e?.message ?? "Verification failed");
+      const msg = e?.message ?? "Verification failed. Please retry.";
+      setErrorMsg(msg);
+      toast.error(msg);
     } finally {
       setVerifying(false);
     }
@@ -135,15 +176,31 @@ export function UsdtPayPanel({ bidId, amountUsdt, amountZar, platformAddress, de
           placeholder="64-character TRC20 transaction hash"
           className="h-11 rounded-2xl bg-background/60 font-mono text-xs"
         />
+        {errorMsg && (
+          <div className="rounded-xl border border-destructive/40 bg-destructive/10 p-2.5 text-xs text-destructive">
+            <p className="font-medium">⚠️ {errorMsg}</p>
+            <p className="mt-1 text-[10px] opacity-80">Tip: check the hash on TronScan, then paste it again and retry.</p>
+          </div>
+        )}
         <Button
           onClick={verify}
           disabled={verifying || expired || !txhash.trim()}
           className="w-full rounded-2xl bg-gradient-primary text-primary-foreground shadow-glow"
         >
-          {verifying ? <Loader2 className="h-4 w-4 animate-spin" /> : "Verify USDT payment"}
+          {verifying ? <Loader2 className="h-4 w-4 animate-spin" /> : errorMsg ? "Retry verification" : "Verify USDT payment"}
         </Button>
+        {txhash.trim().length >= 60 && (
+          <a
+            href={`https://tronscan.org/#/transaction/${txhash.trim().replace(/^0x/, "")}`}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="text-[10px] text-accent inline-flex items-center gap-1"
+          >
+            View this transaction on TronScan <ExternalLink className="h-3 w-3" />
+          </a>
+        )}
         <p className="text-[10px] text-muted-foreground">
-          We verify on-chain via TronScan. Confirmation usually takes seconds.
+          We verify on-chain via TronScan. Confirmation usually takes seconds. You can retry as many times as needed.
         </p>
       </div>
 

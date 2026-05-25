@@ -53,6 +53,9 @@ interface Bid {
   payment_deadline: string | null;
   payment_proof_url: string | null;
   payment_reference: string | null;
+  payment_method: string | null;
+  amount_usdt: number | null;
+  payment_crypto_txhash: string | null;
 }
 
 interface TierStats { pool: number; members: number; target: number; }
@@ -114,6 +117,7 @@ const Circle = () => {
   const [proofFile, setProofFile] = useState<File | null>(null);
   const [method, setMethod] = useState<PaymentMethod>("paystack");
   const { pay: payWithPaystack } = usePaystack();
+  const [verifyBid, setVerifyBid] = useState<Bid | null>(null);
   const [copied, setCopied] = useState<string | null>(null);
   const [leaders, setLeaders] = useState<Array<{ member_id: string; full_name: string; priority_score: number }>>([]);
   const [leadersLoading, setLeadersLoading] = useState(false);
@@ -196,7 +200,7 @@ const Circle = () => {
       user
         ? supabase
             .from("circle_bids")
-            .select("id, tier, fiat_amount, net_amount, status, created_at, vault_end, payout_amount, payout_date, payment_deadline, payment_proof_url, payment_reference")
+            .select("id, tier, fiat_amount, net_amount, status, created_at, vault_end, payout_amount, payout_date, payment_deadline, payment_proof_url, payment_reference, payment_method, amount_usdt, payment_crypto_txhash")
             .eq("member_id", user.id)
             .order("created_at", { ascending: false })
         : Promise.resolve({ data: [], error: null } as const),
@@ -630,6 +634,21 @@ const Circle = () => {
                         <span className="text-[10px] text-emerald-400">✅ Proof uploaded</span>
                       )}
                     </div>
+                    {awaiting && b.payment_method === "usdt" && !b.payment_crypto_txhash && (
+                      <div className="pl-14 flex items-center gap-2">
+                        <span className="inline-flex items-center rounded-full bg-amber-500/15 text-amber-400 px-2 py-0.5 text-[10px] font-medium">
+                          ⏳ Awaiting USDT verification
+                        </span>
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          className="h-7 rounded-full text-xs"
+                          onClick={() => setVerifyBid(b)}
+                        >
+                          Verify Payment
+                        </Button>
+                      </div>
+                    )}
                   </li>
                 );
               })}
@@ -948,6 +967,29 @@ const Circle = () => {
           <SparksDisclaimer />
         </div>
       </section>
+
+      {/* Verify USDT payment for an existing pending bid */}
+      <Dialog open={!!verifyBid} onOpenChange={(v) => { if (!v) setVerifyBid(null); }}>
+        <DialogContent className="sm:max-w-md rounded-3xl">
+          <DialogHeader>
+            <DialogTitle className="font-display text-xl">Verify USDT Payment</DialogTitle>
+            <DialogDescription>
+              Paste your TRC20 transaction hash to confirm your {verifyBid?.tier} circle bid of {verifyBid && fmtR(Number(verifyBid.fiat_amount))}.
+            </DialogDescription>
+          </DialogHeader>
+          {verifyBid && (
+            <UsdtPayPanel
+              bidId={verifyBid.id}
+              amountUsdt={Number(verifyBid.amount_usdt ?? zarToUsdt(Number(verifyBid.fiat_amount), usdtRate))}
+              amountZar={Number(verifyBid.fiat_amount)}
+              platformAddress={usdtAddress}
+              deadlineMs={verifyBid.payment_deadline ? new Date(verifyBid.payment_deadline).getTime() : undefined}
+              nowMs={now}
+              onConfirmed={() => { setVerifyBid(null); load(); }}
+            />
+          )}
+        </DialogContent>
+      </Dialog>
 
       <CircleAcceptanceModal />
       <BottomNav />
