@@ -176,15 +176,31 @@ export function UsdtPayPanel({ bidId, amountUsdt, amountZar, platformAddress, de
           placeholder="64-character TRC20 transaction hash"
           className="h-11 rounded-2xl bg-background/60 font-mono text-xs"
         />
+        {errorMsg && (
+          <div className="rounded-xl border border-destructive/40 bg-destructive/10 p-2.5 text-xs text-destructive">
+            <p className="font-medium">⚠️ {errorMsg}</p>
+            <p className="mt-1 text-[10px] opacity-80">Tip: check the hash on TronScan, then paste it again and retry.</p>
+          </div>
+        )}
         <Button
           onClick={verify}
           disabled={verifying || expired || !txhash.trim()}
           className="w-full rounded-2xl bg-gradient-primary text-primary-foreground shadow-glow"
         >
-          {verifying ? <Loader2 className="h-4 w-4 animate-spin" /> : "Verify USDT payment"}
+          {verifying ? <Loader2 className="h-4 w-4 animate-spin" /> : errorMsg ? "Retry verification" : "Verify USDT payment"}
         </Button>
+        {txhash.trim().length >= 60 && (
+          <a
+            href={`https://tronscan.org/#/transaction/${txhash.trim().replace(/^0x/, "")}`}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="text-[10px] text-accent inline-flex items-center gap-1"
+          >
+            View this transaction on TronScan <ExternalLink className="h-3 w-3" />
+          </a>
+        )}
         <p className="text-[10px] text-muted-foreground">
-          We verify on-chain via TronScan. Confirmation usually takes seconds.
+          We verify on-chain via TronScan. Confirmation usually takes seconds. You can retry as many times as needed.
         </p>
       </div>
 
