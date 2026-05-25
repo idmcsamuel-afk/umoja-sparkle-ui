@@ -761,6 +761,9 @@ export default function AdminCircleTracker() {
                     <TableCell>
                       <div className="font-medium">{zar(payout)}</div>
                       {diff > 0 && <div className="text-xs text-emerald-600">+{zar(diff)}</div>}
+                      {r.payment_method === "usdt" && (
+                        <div className="text-xs text-muted-foreground">or {fmtUsdt(zarToUsdt(payout, usdtRate))}</div>
+                      )}
                     </TableCell>
                     <TableCell><Badge className={status.cls} variant="outline">{status.label}</Badge></TableCell>
                     <TableCell>
@@ -828,14 +831,20 @@ export default function AdminCircleTracker() {
                             }
                           }}>Verify USDT</Button>
                         )}
-                        <Button size="sm" variant="outline" onClick={async () => {
-                          const amt = payout;
-                          const refUsed = ref === "—" ? `MANUAL-${r.bid_id.slice(0, 8)}` : ref;
-                          const err = await markBidPaid(r, amt, refUsed);
-                          if (err) toast({ title: "Payout failed", description: err, variant: "destructive" });
-                          else toast({ title: "✅ Payment marked as complete" });
-                          fetchData();
-                        }}>Pay</Button>
+                        {r.payment_method === "usdt" && r.status !== "paid" && (r.status === "vault" || r.status === "active") ? (
+                          <Button size="sm" variant="outline" onClick={() => { setUsdtPayoutRow(r); setUsdtPayoutHash(""); }}>
+                            <Wallet className="h-3 w-3" /> USDT Payout
+                          </Button>
+                        ) : (
+                          <Button size="sm" variant="outline" onClick={async () => {
+                            const amt = payout;
+                            const refUsed = ref === "—" ? `MANUAL-${r.bid_id.slice(0, 8)}` : ref;
+                            const err = await markBidPaid(r, amt, refUsed);
+                            if (err) toast({ title: "Payout failed", description: err, variant: "destructive" });
+                            else toast({ title: "✅ Payment marked as complete" });
+                            fetchData();
+                          }}>Pay</Button>
+                        )}
                       </div>
                     </TableCell>
                   </TableRow>
