@@ -195,6 +195,7 @@ export default function AdminCircleTracker() {
   const [now, setNow] = useState(Date.now());
   const [tierFilter, setTierFilter] = useState<string>("all");
   const [statusFilter, setStatusFilter] = useState<string>("all");
+  const [methodFilter, setMethodFilter] = useState<string>("all");
   const [sortBy, setSortBy] = useState<string>("due");
   const [quickTab, setQuickTab] = useState<string>("overdue");
   const [search, setSearch] = useState("");
