@@ -689,14 +689,6 @@ const Dashboard = () => {
       {/* Activity */}
       <section className="px-5 pt-8">
         <div className="mx-auto max-w-md">
-          <h2 className="font-display text-xl">Activity</h2>
-          {loading ? (
-            <div className="mt-4 grid place-items-center rounded-3xl glass p-10">
-              <Loader2 className="h-5 w-5 animate-spin text-primary" />
-            </div>
-      {/* Activity */}
-      <section className="px-5 pt-8">
-        <div className="mx-auto max-w-md">
           <button
             type="button"
             onClick={toggleActivity}
