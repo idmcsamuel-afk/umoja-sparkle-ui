@@ -1023,6 +1023,7 @@ export type Database = {
           allocated_at: string | null
           amount_usd: number | null
           amount_usdt: number | null
+          amount_usdt_received: number | null
           consistency_percentage: number | null
           created_at: string | null
           currency_code: string
@@ -1071,6 +1072,7 @@ export type Database = {
           allocated_at?: string | null
           amount_usd?: number | null
           amount_usdt?: number | null
+          amount_usdt_received?: number | null
           consistency_percentage?: number | null
           created_at?: string | null
           currency_code?: string
@@ -1119,6 +1121,7 @@ export type Database = {
           allocated_at?: string | null
           amount_usd?: number | null
           amount_usdt?: number | null
+          amount_usdt_received?: number | null
           consistency_percentage?: number | null
           created_at?: string | null
           currency_code?: string
