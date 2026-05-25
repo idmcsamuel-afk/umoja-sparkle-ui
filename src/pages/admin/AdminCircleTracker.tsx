@@ -373,7 +373,7 @@ export default function AdminCircleTracker() {
     });
 
     return list;
-  }, [ticked, tierFilter, statusFilter, sortBy, quickTab, search]);
+  }, [ticked, tierFilter, statusFilter, methodFilter, sortBy, quickTab, search]);
 
   const counts = useMemo(() => ({
     all: ticked.length,
