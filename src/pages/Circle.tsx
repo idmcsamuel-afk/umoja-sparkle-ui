@@ -53,6 +53,9 @@ interface Bid {
   payment_deadline: string | null;
   payment_proof_url: string | null;
   payment_reference: string | null;
+  payment_method: string | null;
+  amount_usdt: number | null;
+  payment_crypto_txhash: string | null;
 }
 
 interface TierStats { pool: number; members: number; target: number; }
