@@ -38,7 +38,7 @@ function friendlyUsdtError(code: string, details?: { expected?: number; received
     case "wrong_recipient":
       return "Wrong recipient address. The USDT must be sent to the UMOJA platform address shown above.";
     case "amount_too_low":
-      return `Amount mismatch. Expected ${Number(details?.expected ?? 0).toFixed(2)} USDT, received ${Number(details?.received ?? 0).toFixed(2)} USDT. Send the difference and retry.`;
+      return `Amount too low after network fees. Expected ~${Number(details?.expected ?? 0).toFixed(2)} USDT, received ${Number(details?.received ?? 0).toFixed(2)} USDT. Exchanges (Binance/Luno) often deduct $1–2 in fees — send a bit extra and retry.`;
     case "txhash_already_used":
       return "This transaction hash is already linked to another bid. Use a different transaction.";
     case "different_txhash_already_recorded":
@@ -164,6 +164,16 @@ export function UsdtPayPanel({ bidId, amountUsdt, amountZar, platformAddress, de
             </div>
           </div>
         ))}
+
+        <div className="rounded-xl border border-amber-500/40 bg-amber-500/10 p-2.5 text-[11px] text-amber-200 dark:text-amber-300">
+          <p className="font-medium">⚠️ Network fee notice</p>
+          <p className="mt-1 opacity-90">
+            Exchanges like Binance / Luno usually deduct <strong>$1–2 USDT</strong> in network fees. To make sure the full <strong>{amountUsdt.toFixed(2)} USDT</strong> arrives, send <strong>{(amountUsdt + 1.5).toFixed(2)} USDT</strong> (or more). We accept payments within a 15% tolerance to cover fees.
+          </p>
+          <p className="mt-1 opacity-80">
+            💡 Cheaper: withdraw to Trust Wallet first, then send (TRC20 fee ~$0.50).
+          </p>
+        </div>
       </div>
 
       <div className="space-y-2 rounded-2xl border border-border bg-secondary/40 p-4">

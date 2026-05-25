@@ -104,7 +104,11 @@ Deno.serve(async (req) => {
     const amountRaw = BigInt("0x" + (log.data || "0"));
     const usdtAmount = Number(amountRaw) / 1_000_000; // USDT has 6 decimals
     const expected = Number(bid.amount_usdt);
-    if (usdtAmount + 0.01 < expected * 0.99) {
+    // Allow tolerance for exchange network fees (Binance/Luno often deduct $1-2).
+    // Use 15% for small amounts, capped at $7.50 absolute for larger amounts.
+    const tolerance = expected < 50 ? expected * 0.15 : 7.5;
+    const minAcceptable = expected - tolerance;
+    if (usdtAmount + 0.01 < minAcceptable) {
       return json({ ok: false, error: "amount_too_low", expected, received: usdtAmount }, 400);
     }
 
