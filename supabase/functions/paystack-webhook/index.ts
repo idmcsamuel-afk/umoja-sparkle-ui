@@ -3,21 +3,28 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.45.0";
 import { createHmac } from "node:crypto";
 
+const corsHeaders = {
+  "Access-Control-Allow-Origin": "*",
+  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
+  "Access-Control-Allow-Methods": "POST, GET, OPTIONS, PUT, DELETE",
+};
+
 const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
 const SERVICE = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
 const PAYSTACK_SECRET = Deno.env.get("PAYSTACK_SECRET_KEY")!;
 const sb = createClient(SUPABASE_URL, SERVICE);
 
 Deno.serve(async (req) => {
-  if (req.method !== "POST") return new Response("ok");
+  if (req.method === "OPTIONS") return new Response("ok", { status: 200, headers: corsHeaders });
+  if (req.method !== "POST") return new Response("ok", { headers: corsHeaders });
   const raw = await req.text();
   const signature = req.headers.get("x-paystack-signature") ?? "";
   const expected = createHmac("sha512", PAYSTACK_SECRET).update(raw).digest("hex");
   if (signature !== expected) {
-    return new Response(JSON.stringify({ error: "bad signature" }), { status: 401 });
+    return new Response(JSON.stringify({ error: "bad signature" }), { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } });
   }
   let payload: any;
-  try { payload = JSON.parse(raw); } catch { return new Response("bad json", { status: 400 }); }
+  try { payload = JSON.parse(raw); } catch { return new Response("bad json", { status: 400, headers: corsHeaders }); }
   const event: string = payload.event ?? "";
   const data = payload.data ?? {};
   const reference: string | null = data.reference ?? data.subscription_code ?? null;
@@ -85,5 +92,5 @@ Deno.serve(async (req) => {
     error: processError,
   });
 
-  return new Response(JSON.stringify({ ok: true }), { headers: { "Content-Type": "application/json" } });
+  return new Response(JSON.stringify({ ok: true }), { headers: { ...corsHeaders, "Content-Type": "application/json" } });
 });

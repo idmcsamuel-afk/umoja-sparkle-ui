@@ -1,5 +1,10 @@
 // Flame AI — UMOJA's wealth advisor (GPT-4o)
-import { corsHeaders } from "https://esm.sh/@supabase/supabase-js@2.95.0/cors";
+const corsHeaders = {
+  "Access-Control-Allow-Origin": "*",
+  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
+  "Access-Control-Allow-Methods": "POST, GET, OPTIONS, PUT, DELETE",
+};
+
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.95.0";
 
 const SYSTEM_PROMPTS: Record<string, string> = {

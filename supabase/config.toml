@@ -16,4 +16,7 @@ verify_jwt = false
 [functions.usdt-auto-verify]
 verify_jwt = false
 
+[functions.platform_settings]
+verify_jwt = false
+
 project_id = "lamohcoijkpigygiqyih"
