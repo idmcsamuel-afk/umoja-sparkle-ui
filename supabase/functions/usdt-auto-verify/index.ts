@@ -1,6 +1,10 @@
 // Periodic auto-verify of pending USDT bids that have a txhash recorded.
 // Called by pg_cron every 5 minutes.
-import { corsHeaders } from "npm:@supabase/supabase-js@2/cors";
+const corsHeaders = {
+  "Access-Control-Allow-Origin": "*",
+  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
+  "Access-Control-Allow-Methods": "POST, GET, OPTIONS, PUT, DELETE",
+};
 import { createClient } from "npm:@supabase/supabase-js@2";
 
 const USDT_TRC20 = "TR7NHqjeKQxGTCi8q8ZY4pL8otSzgjLj6t";
