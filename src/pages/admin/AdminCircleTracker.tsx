@@ -732,6 +732,22 @@ export default function AdminCircleTracker() {
                     <TableCell><BankingCell row={r} /></TableCell>
                     <TableCell className="text-right">
                       <div className="flex justify-end gap-1">
+                        {r.payment_method === "usdt" && (r.status === "pending" || r.status === "payment_pending") && (
+                          <Button size="sm" variant="outline" onClick={async () => {
+                            const hash = window.prompt("Paste TRC20 transaction hash to verify:");
+                            if (!hash) return;
+                            const { data, error } = await supabase.functions.invoke("usdt-verify-tx", {
+                              body: { bidId: r.bid_id, txHash: hash.trim().replace(/^0x/, "") },
+                            });
+                            if (error || !(data as any)?.ok) {
+                              const code = (data as any)?.error ?? error?.message ?? "verify_failed";
+                              toast({ title: "USDT verification failed", description: String(code), variant: "destructive" });
+                            } else {
+                              toast({ title: "✅ USDT payment confirmed", description: `${(data as any).usdt_amount} USDT` });
+                              fetchData();
+                            }
+                          }}>Verify USDT</Button>
+                        )}
                         <Button size="sm" variant="outline" onClick={async () => {
                           const amt = payout;
                           const refUsed = ref === "—" ? `MANUAL-${r.bid_id.slice(0, 8)}` : ref;
