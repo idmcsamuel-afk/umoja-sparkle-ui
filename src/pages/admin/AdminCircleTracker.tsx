@@ -206,6 +206,10 @@ export default function AdminCircleTracker() {
   const [search, setSearch] = useState("");
   const [selected, setSelected] = useState<Set<string>>(new Set());
   const [breakdownRow, setBreakdownRow] = useState<Row | null>(null);
+  const [usdtPayoutRow, setUsdtPayoutRow] = useState<Row | null>(null);
+  const [usdtPayoutHash, setUsdtPayoutHash] = useState("");
+  const [usdtPayoutSaving, setUsdtPayoutSaving] = useState(false);
+  const { data: usdtRate } = useUsdtRate();
 
   const fetchData = async () => {
     setLoading(true);
