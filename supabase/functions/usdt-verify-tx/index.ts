@@ -118,6 +118,8 @@ Deno.serve(async (req) => {
 
     // Update bid -> mark as paid/confirmed via existing pipeline (set payment_confirmed_at)
     const nowIso = new Date().toISOString();
+    const vaultDays = bid.tier === "growth" ? 7 : bid.tier === "harvest" ? 14 : 5;
+    const vaultEndIso = new Date(Date.now() + vaultDays * 24 * 60 * 60 * 1000).toISOString();
     const { error: updErr } = await supa
       .from("circle_bids")
       .update({
@@ -129,6 +131,7 @@ Deno.serve(async (req) => {
         payment_confirmed_at: nowIso,
         status: "vault",
         vault_start: nowIso,
+        vault_end: vaultEndIso,
         amount_usdt_received: usdtAmount,
       })
       .eq("id", bidId);
