@@ -338,6 +338,7 @@ export default function AdminCircleTracker() {
     let list = ticked.slice();
     if (tierFilter !== "all") list = list.filter((r) => r.tier === tierFilter);
     if (statusFilter !== "all") list = list.filter((r) => r.status === statusFilter);
+    if (methodFilter !== "all") list = list.filter((r) => (r.payment_method || "").toLowerCase() === methodFilter);
 
     if (quickTab === "active")
       list = list.filter((r) => r.status === "vault" && r.hours_remaining !== null && r.hours_remaining >= 0);
