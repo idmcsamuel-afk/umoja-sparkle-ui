@@ -1,0 +1,1 @@
+ALTER TABLE public.circle_bids ADD COLUMN IF NOT EXISTS amount_usdt_received NUMERIC(10,2);
