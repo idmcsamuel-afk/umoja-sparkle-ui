@@ -61,6 +61,12 @@ type Row = {
   payment_reference: string | null;
   paystack_reference: string | null;
   payment_ref: string | null;
+  // USDT
+  payment_crypto_txhash: string | null;
+  payment_crypto_network: string | null;
+  payment_crypto_address: string | null;
+  amount_usdt: number | null;
+  amount_usdt_received: number | null;
   vault_start: string | null;
   vault_end: string | null;
   days_waiting: number | null;
