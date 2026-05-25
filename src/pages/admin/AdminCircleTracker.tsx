@@ -543,6 +543,14 @@ export default function AdminCircleTracker() {
         </div>
       </div>
 
+      {/* Method breakdown */}
+      <div className="grid grid-cols-3 gap-3">
+        <Card><CardContent className="p-4"><div className="text-xs text-muted-foreground">💳 Card</div><div className="text-2xl font-bold">{stats.card}</div></CardContent></Card>
+        <Card><CardContent className="p-4"><div className="text-xs text-muted-foreground">🏦 EFT</div><div className="text-2xl font-bold">{stats.eft}</div></CardContent></Card>
+        <Card><CardContent className="p-4"><div className="text-xs text-muted-foreground">💰 USDT</div><div className="text-2xl font-bold">{stats.usdt}</div></CardContent></Card>
+      </div>
+
+
       {/* Stats */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
         <Card><CardContent className="p-4"><div className="text-xs text-muted-foreground">Active Vault</div><div className="text-2xl font-bold">{stats.activeVault}</div></CardContent></Card>
