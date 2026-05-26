@@ -447,7 +447,7 @@ export default function AdminCircleTracker() {
         r.bd_bank_name || r.bank_name || "",
         r.bd_account_number || r.bank_account || "",
         r.bd_branch || r.bank_branch || "",
-        r.payout_amount ?? r.net_amount ?? r.fiat_amount,
+        resolvePayoutZar(r.fiat_amount, r.tier, r.payout_amount),
         r.payment_reference || r.paystack_reference || r.payment_ref || "",
         r.phone || "",
       ].map((v) => `"${String(v ?? "").replace(/"/g, '""')}"`).join(","));
@@ -498,7 +498,7 @@ export default function AdminCircleTracker() {
     for (const id of ids) {
       const row = ticked.find((r) => r.bid_id === id);
       if (!row) continue;
-      const amount = row.payout_amount ?? row.net_amount ?? row.fiat_amount;
+      const amount = resolvePayoutZar(row.fiat_amount, row.tier, row.payout_amount);
       const ref = row.payment_reference || row.paystack_reference || row.payment_ref || `MANUAL-${id.slice(0, 8)}`;
       const err = await markBidPaid(row, amount, ref);
       if (err) { if (!firstError) firstError = err; } else { ok++; }
@@ -582,7 +582,7 @@ export default function AdminCircleTracker() {
           </CardHeader>
           <CardContent className="space-y-3">
             {queue.map((r, i) => {
-              const amount = r.payout_amount ?? r.net_amount ?? r.fiat_amount;
+              const amount = resolvePayoutZar(r.fiat_amount, r.tier, r.payout_amount);
               const rawBank = r.bd_bank_name || r.bank_name || "";
               const bankMissing = !rawBank || rawBank.trim().toLowerCase() === "other";
               const bank = bankMissing ? "⚠️ Bank missing" : rawBank;
@@ -724,7 +724,7 @@ export default function AdminCircleTracker() {
                 <TableRow><TableCell colSpan={12} className="text-center py-8 text-muted-foreground">No contributions match these filters.</TableCell></TableRow>
               )}
               {filtered.map((r) => {
-                const payout = r.payout_amount ?? r.net_amount ?? r.fiat_amount;
+                const payout = resolvePayoutZar(r.fiat_amount, r.tier, r.payout_amount);
                 const diff = payout - r.fiat_amount;
                  const isOverdue = r.status === "vault" && r.hours_remaining !== null && r.hours_remaining < 0;
                  const status = isOverdue
@@ -858,7 +858,7 @@ export default function AdminCircleTracker() {
       {/* Mobile cards */}
       <div className="md:hidden space-y-3">
         {filtered.map((r) => {
-          const payout = r.payout_amount ?? r.net_amount ?? r.fiat_amount;
+          const payout = resolvePayoutZar(r.fiat_amount, r.tier, r.payout_amount);
           const diff = payout - r.fiat_amount;
           const status = STATUS_BADGE[r.status] || { label: r.status, cls: "" };
           return (
@@ -912,7 +912,7 @@ export default function AdminCircleTracker() {
           <DialogHeader><DialogTitle>Process USDT Payout</DialogTitle></DialogHeader>
           {usdtPayoutRow && (() => {
             const r = usdtPayoutRow;
-            const payoutZar = r.payout_amount ?? r.net_amount ?? r.fiat_amount;
+            const payoutZar = resolvePayoutZar(r.fiat_amount, r.tier, r.payout_amount);
             const payoutUsdt = zarToUsdt(payoutZar, usdtRate);
             const wallet = r.usdt_wallet_trc20;
             return (
