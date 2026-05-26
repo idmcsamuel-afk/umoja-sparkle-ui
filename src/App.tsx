@@ -41,6 +41,7 @@ import Referrals from "./pages/Referrals.tsx";
 import Priority from "./pages/Priority.tsx";
 import NotFound from "./pages/NotFound.tsx";
 import Blog from "./pages/Blog.tsx";
+import SparkTradeBeta from "./pages/SparkTradeBeta.tsx";
 import Terms from "./pages/Terms.tsx";
 import Privacy from "./pages/Privacy.tsx";
 import BlogPost from "./pages/BlogPost.tsx";
@@ -114,6 +115,7 @@ const App = () => (
               <Route path="/forgot-password" element={<ForgotPassword />} />
               <Route path="/reset-password" element={<ResetPassword />} />
               <Route path="/waitlist" element={<Waitlist />} />
+              <Route path="/spark-trade-beta" element={<SparkTradeBeta />} />
               <Route path="/terms" element={<Terms />} />
               <Route path="/privacy" element={<Privacy />} />
               <Route path="/blog" element={<Blog />} />
