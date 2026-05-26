@@ -139,6 +139,16 @@ const Landing = () => {
             ))}
           </div>
 
+          {/* Global payment methods */}
+          <div className="mt-4 rounded-2xl glass p-3 animate-fade-in [animation-delay:280ms]">
+            <p className="text-[10px] uppercase tracking-[0.18em] text-muted-foreground">Pay your way · works across Africa</p>
+            <ul className="mt-2 grid gap-1 text-xs text-foreground/90">
+              <li>💳 Card payment <span className="text-muted-foreground">— instant</span></li>
+              <li>🏦 Bank transfer (EFT) <span className="text-muted-foreground">— South Africa</span></li>
+              <li>⚡ USDT crypto <span className="text-muted-foreground">— global, no bank needed</span></li>
+            </ul>
+          </div>
+
           {/* Hero image */}
           <div className="relative mt-10 animate-scale-in [animation-delay:280ms]">
             <div className="relative overflow-hidden rounded-[28px] border border-border shadow-soft">
