@@ -396,24 +396,26 @@ export default function AdminCircleTracker() {
   }, [ticked, tierFilter, statusFilter, methodFilter, sortBy, quickTab, search]);
 
   const counts = useMemo(() => ({
-    all: ticked.length,
+    all: ticked.filter((r) => r.status !== "expired" && r.status !== "rejected").length,
     active: ticked.filter((r) => r.status === "vault" && r.hours_remaining !== null && r.hours_remaining >= 0).length,
     overdue: ticked.filter((r) => r.status === "vault" && r.hours_remaining !== null && r.hours_remaining < 0).length,
     paid: ticked.filter((r) => r.status === "paid").length,
-    pending: ticked.filter((r) => r.status === "pending" || r.status === "payment_pending").length,
+    pending: ticked.filter((r) => (r.status === "pending" || r.status === "payment_pending")).length,
     rejected: ticked.filter((r) => r.status === "rejected").length,
     expired: ticked.filter((r) => r.status === "expired").length,
-    due_today: ticked.filter((r) => r.hours_remaining !== null && r.hours_remaining >= 0 && r.hours_remaining <= 24).length,
+    due_today: ticked.filter((r) => r.status === "vault" && r.hours_remaining !== null && r.hours_remaining >= 0 && r.hours_remaining <= 24).length,
   }), [ticked]);
 
   const stats = useMemo(() => {
-    const activeVault = ticked.filter((r) => ["active", "vault"].includes(r.status));
+    // Exclude expired/rejected bids from all top-line stats
+    const live = ticked.filter((r) => r.status !== "expired" && r.status !== "rejected");
+    const activeVault = live.filter((r) => ["active", "vault"].includes(r.status));
     const totalPooled = activeVault.reduce((s, r) => s + r.fiat_amount, 0);
     const avgScore = activeVault.length
       ? activeVault.reduce((s, r) => s + r.priority_score, 0) / activeVault.length
       : 0;
     const byMethod = (m: string) =>
-      ticked.filter((r) => (r.payment_method || "").toLowerCase() === m).length;
+      live.filter((r) => (r.payment_method || "").toLowerCase() === m).length;
     return {
       activeVault: activeVault.length,
       dueToday: counts.due_today,
