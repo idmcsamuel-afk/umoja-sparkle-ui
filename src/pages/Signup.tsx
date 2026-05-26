@@ -132,6 +132,10 @@ const Signup = () => {
   const onSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setDuplicate(null);
+    if (!acceptTerms) {
+      toast.error("Please accept the Terms of Service and Privacy Policy");
+      return;
+    }
     const parsed = schema.safeParse(form);
     if (!parsed.success) {
       toast.error(parsed.error.issues[0].message);
