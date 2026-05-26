@@ -4,7 +4,7 @@ import { Logo } from "@/components/umoja/Logo";
 import { SiteFooter } from "@/components/umoja/SiteFooter";
 
 const SECTIONS = [
-  { id: "acceptance", title: "1. Acceptance of Terms" },
+  { id: "about", title: "1. About UMOJA" },
   { id: "eligibility", title: "2. Eligibility" },
   { id: "accounts", title: "3. Accounts & Security" },
   { id: "circles", title: "4. Wealth Circles & Contributions" },
@@ -66,11 +66,81 @@ const Terms = () => {
           </ol>
         </nav>
 
-        <section id="acceptance" className="mt-10 scroll-mt-24">
-          <h2 className="font-display text-2xl text-foreground">1. Acceptance of Terms</h2>
+        <section id="about" className="mt-10 scroll-mt-24">
+          <h2 className="font-display text-2xl text-foreground">1. About UMOJA</h2>
           <p className="mt-3">
-            By creating an account or using UMOJA ("the Platform"), you agree to be bound by these Terms of Service.
-            If you do not agree, you may not use the Platform.
+            UMOJA is a comprehensive community wealth platform with multiple income-generating and wealth-building
+            features. We are NOT:
+          </p>
+          <ul className="mt-3 list-disc space-y-1 pl-6">
+            <li>An investment company</li>
+            <li>A bank or financial institution</li>
+            <li>A money lending service</li>
+            <li>A pyramid or Ponzi scheme</li>
+          </ul>
+
+          <h3 className="mt-6 font-display text-xl text-foreground">Platform Features</h3>
+
+          <h4 className="mt-4 font-semibold text-foreground">1. Contribution Circles (Modern Stokvel)</h4>
+          <p className="mt-2">
+            Peer-to-peer contribution circles where members contribute funds, wait their turn in a priority queue,
+            and receive payouts based on predetermined multipliers (14%, 23.5%, or 42.5% returns).
+          </p>
+
+          <h4 className="mt-4 font-semibold text-foreground">2. Drive Program (Community Car Ownership)</h4>
+          <p className="mt-2">
+            A car financing program built on community contributions. Members contribute incrementally (like a
+            stokvel) to reach a target amount (e.g., R10,000 for an economy car). Once the target is reached, they
+            receive the car and make weekly or monthly payments to complete the purchase. No credit checks, no large
+            bank deposits, no traditional financing needed — just community members helping each other get cars in
+            turns.
+          </p>
+
+          <h4 className="mt-4 font-semibold text-foreground">3. Spark Trade (Group Buying Intelligence)</h4>
+          <p className="mt-2">
+            Data-validated group buying platform that shows members what products are already selling on Takealot,
+            Amazon, and Makro. Three intelligence tiers:
+          </p>
+          <ul className="mt-2 list-disc space-y-1 pl-6">
+            <li><strong>Buy Now:</strong> Products selling 100+/month (proven demand)</li>
+            <li><strong>Buy Soon:</strong> High search volume (10K+/month), low supply (first-mover advantage)</li>
+            <li><strong>Coming Wave:</strong> Trending globally on TikTok/YouTube, not yet in SA (highest upside)</li>
+          </ul>
+          <p className="mt-2">
+            Includes Finzite profitability calculator (accounts for all marketplace fees), group buying coordination
+            (wholesale prices without minimum orders), and optional "Fulfilled by UMOJA" service (we warehouse, list,
+            ship, and handle returns while you collect the margin).
+          </p>
+
+          <h4 className="mt-4 font-semibold text-foreground">4. Referral System</h4>
+          <p className="mt-2">Earn rewards for growing the community:</p>
+          <ul className="mt-2 list-disc space-y-1 pl-6">
+            <li>100 Spark Points per successful referral</li>
+            <li>50 Spark Points welcome bonus for new members</li>
+            <li>Referrals boost your Priority Score in Circles</li>
+            <li>Build passive income through network growth</li>
+          </ul>
+
+          <h4 className="mt-4 font-semibold text-foreground">5. Spark Points Ecosystem</h4>
+          <p className="mt-2">Loyalty rewards program where points can be:</p>
+          <ul className="mt-2 list-disc space-y-1 pl-6">
+            <li>Redeemed for platform benefits</li>
+            <li>Used to boost Circle priority</li>
+            <li>Exchanged for exclusive opportunities</li>
+            <li>Accumulated for community standing</li>
+          </ul>
+
+          <h3 className="mt-6 font-display text-xl text-foreground">Registered Entity</h3>
+          <p className="mt-2">
+            UMOJA RISE PTY LTD<br />
+            Registration: 2026/3595533/07<br />
+            Headquarters: Johannesburg, South Africa
+          </p>
+
+          <h3 className="mt-6 font-display text-xl text-foreground">Platform Scope</h3>
+          <p className="mt-2">
+            Currently serving South Africa with expansion to Kenya, Nigeria, and Ghana. Accepts payments in ZAR,
+            USDT cryptocurrency (global access), and expanding to KES, NGN, and GHS.
           </p>
         </section>
 
