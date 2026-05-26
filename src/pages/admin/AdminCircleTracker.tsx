@@ -203,7 +203,7 @@ export default function AdminCircleTracker() {
   const [statusFilter, setStatusFilter] = useState<string>("all");
   const [methodFilter, setMethodFilter] = useState<string>("all");
   const [sortBy, setSortBy] = useState<string>("due");
-  const [quickTab, setQuickTab] = useState<string>("overdue");
+  const [quickTab, setQuickTab] = useState<string>("all");
   const [search, setSearch] = useState("");
   const [selected, setSelected] = useState<Set<string>>(new Set());
   const [breakdownRow, setBreakdownRow] = useState<Row | null>(null);
@@ -354,14 +354,17 @@ export default function AdminCircleTracker() {
     if (statusFilter !== "all") list = list.filter((r) => r.status === statusFilter);
     if (methodFilter !== "all") list = list.filter((r) => (r.payment_method || "").toLowerCase() === methodFilter);
 
-    if (quickTab === "active")
+    if (quickTab === "all")
+      // Default view: hide expired and rejected — they clutter without action needed
+      list = list.filter((r) => r.status !== "expired" && r.status !== "rejected");
+    else if (quickTab === "active")
       list = list.filter((r) => r.status === "vault" && r.hours_remaining !== null && r.hours_remaining >= 0);
     else if (quickTab === "overdue")
       list = list.filter((r) => r.status === "vault" && r.hours_remaining !== null && r.hours_remaining < 0);
     else if (quickTab === "paid")
       list = list.filter((r) => r.status === "paid");
     else if (quickTab === "pending")
-      list = list.filter((r) => r.status === "pending" || r.status === "payment_pending");
+      list = list.filter((r) => (r.status === "pending" || r.status === "payment_pending"));
     else if (quickTab === "rejected")
       list = list.filter((r) => r.status === "rejected");
     else if (quickTab === "expired")
@@ -376,6 +379,9 @@ export default function AdminCircleTracker() {
     }
 
     list.sort((a, b) => {
+      if (quickTab === "expired") {
+        return new Date(b.bid_created).getTime() - new Date(a.bid_created).getTime();
+      }
       if (sortBy === "due") {
         const ah = a.hours_remaining ?? Infinity;
         const bh = b.hours_remaining ?? Infinity;
@@ -390,24 +396,26 @@ export default function AdminCircleTracker() {
   }, [ticked, tierFilter, statusFilter, methodFilter, sortBy, quickTab, search]);
 
   const counts = useMemo(() => ({
-    all: ticked.length,
+    all: ticked.filter((r) => r.status !== "expired" && r.status !== "rejected").length,
     active: ticked.filter((r) => r.status === "vault" && r.hours_remaining !== null && r.hours_remaining >= 0).length,
     overdue: ticked.filter((r) => r.status === "vault" && r.hours_remaining !== null && r.hours_remaining < 0).length,
     paid: ticked.filter((r) => r.status === "paid").length,
-    pending: ticked.filter((r) => r.status === "pending" || r.status === "payment_pending").length,
+    pending: ticked.filter((r) => (r.status === "pending" || r.status === "payment_pending")).length,
     rejected: ticked.filter((r) => r.status === "rejected").length,
     expired: ticked.filter((r) => r.status === "expired").length,
-    due_today: ticked.filter((r) => r.hours_remaining !== null && r.hours_remaining >= 0 && r.hours_remaining <= 24).length,
+    due_today: ticked.filter((r) => r.status === "vault" && r.hours_remaining !== null && r.hours_remaining >= 0 && r.hours_remaining <= 24).length,
   }), [ticked]);
 
   const stats = useMemo(() => {
-    const activeVault = ticked.filter((r) => ["active", "vault"].includes(r.status));
+    // Exclude expired/rejected bids from all top-line stats
+    const live = ticked.filter((r) => r.status !== "expired" && r.status !== "rejected");
+    const activeVault = live.filter((r) => ["active", "vault"].includes(r.status));
     const totalPooled = activeVault.reduce((s, r) => s + r.fiat_amount, 0);
     const avgScore = activeVault.length
       ? activeVault.reduce((s, r) => s + r.priority_score, 0) / activeVault.length
       : 0;
     const byMethod = (m: string) =>
-      ticked.filter((r) => (r.payment_method || "").toLowerCase() === m).length;
+      live.filter((r) => (r.payment_method || "").toLowerCase() === m).length;
     return {
       activeVault: activeVault.length,
       dueToday: counts.due_today,
@@ -816,35 +824,59 @@ export default function AdminCircleTracker() {
                     <TableCell><BankingCell row={r} /></TableCell>
                     <TableCell className="text-right">
                       <div className="flex justify-end gap-1">
-                        {r.payment_method === "usdt" && (r.status === "pending" || r.status === "payment_pending") && (
-                          <Button size="sm" variant="outline" onClick={async () => {
-                            const hash = window.prompt("Paste TRC20 transaction hash to verify:");
-                            if (!hash) return;
-                            const { data, error } = await supabase.functions.invoke("usdt-verify-tx", {
-                              body: { bidId: r.bid_id, txHash: hash.trim().replace(/^0x/, "") },
-                            });
-                            if (error || !(data as any)?.ok) {
-                              const code = (data as any)?.error ?? error?.message ?? "verify_failed";
-                              toast({ title: "USDT verification failed", description: String(code), variant: "destructive" });
-                            } else {
-                              toast({ title: "✅ USDT payment confirmed", description: `${(data as any).usdt_amount} USDT` });
-                              fetchData();
-                            }
-                          }}>Verify USDT</Button>
-                        )}
-                        {r.payment_method === "usdt" && r.status !== "paid" && (r.status === "vault" || r.status === "active") ? (
-                          <Button size="sm" variant="outline" onClick={() => { setUsdtPayoutRow(r); setUsdtPayoutHash(""); }}>
-                            <Wallet className="h-3 w-3" /> USDT Payout
-                          </Button>
+                        {r.status === "expired" ? (
+                          <>
+                            <Button size="sm" variant="outline" onClick={async () => {
+                              const { error: nErr } = await supabase.from("notifications").insert({
+                                member_id: r.member_id,
+                                title: "You can try again",
+                                body: "Your previous payment window expired. Tap to start a new bid.",
+                                kind: "circle",
+                                link: "/circle",
+                              } as any);
+                              if (nErr) toast({ title: "Notify failed", description: nErr.message, variant: "destructive" });
+                              else toast({ title: "✅ Retry invite sent", description: r.full_name });
+                            }}>Allow Retry</Button>
+                            <Button size="sm" variant="ghost" onClick={async () => {
+                              if (!confirm(`Delete expired bid for ${r.full_name}?`)) return;
+                              const { error: dErr } = await supabase.from("circle_bids").delete().eq("id", r.bid_id);
+                              if (dErr) toast({ title: "Delete failed", description: dErr.message, variant: "destructive" });
+                              else { toast({ title: "Deleted" }); fetchData(); }
+                            }}>Delete</Button>
+                          </>
                         ) : (
-                          <Button size="sm" variant="outline" onClick={async () => {
-                            const amt = payout;
-                            const refUsed = ref === "—" ? `MANUAL-${r.bid_id.slice(0, 8)}` : ref;
-                            const err = await markBidPaid(r, amt, refUsed);
-                            if (err) toast({ title: "Payout failed", description: err, variant: "destructive" });
-                            else toast({ title: "✅ Payment marked as complete" });
-                            fetchData();
-                          }}>Pay</Button>
+                          <>
+                            {r.payment_method === "usdt" && (r.status === "pending" || r.status === "payment_pending") && (
+                              <Button size="sm" variant="outline" onClick={async () => {
+                                const hash = window.prompt("Paste TRC20 transaction hash to verify:");
+                                if (!hash) return;
+                                const { data, error } = await supabase.functions.invoke("usdt-verify-tx", {
+                                  body: { bidId: r.bid_id, txHash: hash.trim().replace(/^0x/, "") },
+                                });
+                                if (error || !(data as any)?.ok) {
+                                  const code = (data as any)?.error ?? error?.message ?? "verify_failed";
+                                  toast({ title: "USDT verification failed", description: String(code), variant: "destructive" });
+                                } else {
+                                  toast({ title: "✅ USDT payment confirmed", description: `${(data as any).usdt_amount} USDT` });
+                                  fetchData();
+                                }
+                              }}>Verify USDT</Button>
+                            )}
+                            {r.payment_method === "usdt" && r.status !== "paid" && (r.status === "vault" || r.status === "active") ? (
+                              <Button size="sm" variant="outline" onClick={() => { setUsdtPayoutRow(r); setUsdtPayoutHash(""); }}>
+                                <Wallet className="h-3 w-3" /> USDT Payout
+                              </Button>
+                            ) : r.status !== "rejected" && (
+                              <Button size="sm" variant="outline" onClick={async () => {
+                                const amt = payout;
+                                const refUsed = ref === "—" ? `MANUAL-${r.bid_id.slice(0, 8)}` : ref;
+                                const err = await markBidPaid(r, amt, refUsed);
+                                if (err) toast({ title: "Payout failed", description: err, variant: "destructive" });
+                                else toast({ title: "✅ Payment marked as complete" });
+                                fetchData();
+                              }}>Pay</Button>
+                            )}
+                          </>
                         )}
                       </div>
                     </TableCell>
