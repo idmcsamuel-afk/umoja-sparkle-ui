@@ -21,6 +21,7 @@ import {
 } from "@/components/ui/collapsible";
 import { toast } from "@/hooks/use-toast";
 import { useUsdtRate, zarToUsdt, fmtUsdt } from "@/hooks/useUsdtRate";
+import { resolvePayoutZar } from "@/lib/circlePayout";
 import {
   AlertTriangle, Clock, Copy, CreditCard, Eye, EyeOff, Landmark,
   MessageCircle, Search, Send, TrendingUp, Wallet, Download, CheckCircle2,
