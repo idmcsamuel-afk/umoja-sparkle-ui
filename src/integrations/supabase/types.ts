@@ -4512,6 +4512,60 @@ export type Database = {
         }
         Relationships: []
       }
+      spark_trade_subscriptions: {
+        Row: {
+          access_end_date: string
+          access_start_date: string
+          amount_paid: number
+          billing_period: string
+          created_at: string
+          email: string
+          id: string
+          member_id: string | null
+          name: string
+          payment_date: string | null
+          payment_reference: string | null
+          status: string
+          tier: string
+          user_id: string | null
+          whatsapp: string
+        }
+        Insert: {
+          access_end_date: string
+          access_start_date?: string
+          amount_paid: number
+          billing_period: string
+          created_at?: string
+          email: string
+          id?: string
+          member_id?: string | null
+          name: string
+          payment_date?: string | null
+          payment_reference?: string | null
+          status?: string
+          tier: string
+          user_id?: string | null
+          whatsapp: string
+        }
+        Update: {
+          access_end_date?: string
+          access_start_date?: string
+          amount_paid?: number
+          billing_period?: string
+          created_at?: string
+          email?: string
+          id?: string
+          member_id?: string | null
+          name?: string
+          payment_date?: string | null
+          payment_reference?: string | null
+          status?: string
+          tier?: string
+          user_id?: string | null
+          whatsapp?: string
+        }
+        Relationships: []
+      }
       spark_transactions: {
         Row: {
           amount: number
