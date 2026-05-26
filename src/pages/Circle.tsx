@@ -320,9 +320,13 @@ const Circle = () => {
       return;
     }
     setBusy(true);
-    const platform_fee = +(amt * 0.02).toFixed(2);
-    const ubuntu_fund_cut = +(amt * 0.03).toFixed(2);
-    const net_amount = +(amt - platform_fee - ubuntu_fund_cut).toFixed(2);
+    // Model C: fees are taken from the GROSS payout, not the contribution.
+    const { computePayout } = await import("@/lib/circlePayout");
+    const breakdown = computePayout(amt, open.tier);
+    const platform_fee = breakdown.platformFee;
+    const ubuntu_fund_cut = breakdown.ubuntuFund;
+    const net_amount = breakdown.net;          // what the user actually receives
+    const payout_amount = breakdown.net;
 
     const { data, error } = await supabase
       .from("circle_bids")
@@ -334,6 +338,7 @@ const Circle = () => {
         platform_fee,
         ubuntu_fund_cut,
         net_amount,
+        payout_amount,
         status: "pending",
       })
       .select("id")
