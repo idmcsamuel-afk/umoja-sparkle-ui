@@ -824,35 +824,59 @@ export default function AdminCircleTracker() {
                     <TableCell><BankingCell row={r} /></TableCell>
                     <TableCell className="text-right">
                       <div className="flex justify-end gap-1">
-                        {r.payment_method === "usdt" && (r.status === "pending" || r.status === "payment_pending") && (
-                          <Button size="sm" variant="outline" onClick={async () => {
-                            const hash = window.prompt("Paste TRC20 transaction hash to verify:");
-                            if (!hash) return;
-                            const { data, error } = await supabase.functions.invoke("usdt-verify-tx", {
-                              body: { bidId: r.bid_id, txHash: hash.trim().replace(/^0x/, "") },
-                            });
-                            if (error || !(data as any)?.ok) {
-                              const code = (data as any)?.error ?? error?.message ?? "verify_failed";
-                              toast({ title: "USDT verification failed", description: String(code), variant: "destructive" });
-                            } else {
-                              toast({ title: "✅ USDT payment confirmed", description: `${(data as any).usdt_amount} USDT` });
-                              fetchData();
-                            }
-                          }}>Verify USDT</Button>
-                        )}
-                        {r.payment_method === "usdt" && r.status !== "paid" && (r.status === "vault" || r.status === "active") ? (
-                          <Button size="sm" variant="outline" onClick={() => { setUsdtPayoutRow(r); setUsdtPayoutHash(""); }}>
-                            <Wallet className="h-3 w-3" /> USDT Payout
-                          </Button>
+                        {r.status === "expired" ? (
+                          <>
+                            <Button size="sm" variant="outline" onClick={async () => {
+                              const { error: nErr } = await supabase.from("notifications").insert({
+                                member_id: r.member_id,
+                                title: "You can try again",
+                                body: "Your previous payment window expired. Tap to start a new bid.",
+                                kind: "circle",
+                                link: "/circle",
+                              } as any);
+                              if (nErr) toast({ title: "Notify failed", description: nErr.message, variant: "destructive" });
+                              else toast({ title: "✅ Retry invite sent", description: r.full_name });
+                            }}>Allow Retry</Button>
+                            <Button size="sm" variant="ghost" onClick={async () => {
+                              if (!confirm(`Delete expired bid for ${r.full_name}?`)) return;
+                              const { error: dErr } = await supabase.from("circle_bids").delete().eq("id", r.bid_id);
+                              if (dErr) toast({ title: "Delete failed", description: dErr.message, variant: "destructive" });
+                              else { toast({ title: "Deleted" }); fetchData(); }
+                            }}>Delete</Button>
+                          </>
                         ) : (
-                          <Button size="sm" variant="outline" onClick={async () => {
-                            const amt = payout;
-                            const refUsed = ref === "—" ? `MANUAL-${r.bid_id.slice(0, 8)}` : ref;
-                            const err = await markBidPaid(r, amt, refUsed);
-                            if (err) toast({ title: "Payout failed", description: err, variant: "destructive" });
-                            else toast({ title: "✅ Payment marked as complete" });
-                            fetchData();
-                          }}>Pay</Button>
+                          <>
+                            {r.payment_method === "usdt" && (r.status === "pending" || r.status === "payment_pending") && (
+                              <Button size="sm" variant="outline" onClick={async () => {
+                                const hash = window.prompt("Paste TRC20 transaction hash to verify:");
+                                if (!hash) return;
+                                const { data, error } = await supabase.functions.invoke("usdt-verify-tx", {
+                                  body: { bidId: r.bid_id, txHash: hash.trim().replace(/^0x/, "") },
+                                });
+                                if (error || !(data as any)?.ok) {
+                                  const code = (data as any)?.error ?? error?.message ?? "verify_failed";
+                                  toast({ title: "USDT verification failed", description: String(code), variant: "destructive" });
+                                } else {
+                                  toast({ title: "✅ USDT payment confirmed", description: `${(data as any).usdt_amount} USDT` });
+                                  fetchData();
+                                }
+                              }}>Verify USDT</Button>
+                            )}
+                            {r.payment_method === "usdt" && r.status !== "paid" && (r.status === "vault" || r.status === "active") ? (
+                              <Button size="sm" variant="outline" onClick={() => { setUsdtPayoutRow(r); setUsdtPayoutHash(""); }}>
+                                <Wallet className="h-3 w-3" /> USDT Payout
+                              </Button>
+                            ) : r.status !== "rejected" && (
+                              <Button size="sm" variant="outline" onClick={async () => {
+                                const amt = payout;
+                                const refUsed = ref === "—" ? `MANUAL-${r.bid_id.slice(0, 8)}` : ref;
+                                const err = await markBidPaid(r, amt, refUsed);
+                                if (err) toast({ title: "Payout failed", description: err, variant: "destructive" });
+                                else toast({ title: "✅ Payment marked as complete" });
+                                fetchData();
+                              }}>Pay</Button>
+                            )}
+                          </>
                         )}
                       </div>
                     </TableCell>
