@@ -73,7 +73,7 @@ const Referrals = () => {
 
   const shareWhatsApp = () => {
     const text = encodeURIComponent(
-      `Join me on UMOJA — community savings, group buying, and your first car in 12 months. Use my link to get 50 welcome Sparks ✨\n\n${link}`,
+      `Your friend invited you to join Africa's fastest-growing wealth circle 🌍\n\n✅ Works in South Africa, Kenya, Nigeria, Ghana & more\n✅ Pay with local currency or USDT crypto\n✅ Get paid in 5–14 days\n\nUse my link for 50 welcome Sparks ✨\n${link}`,
     );
     window.open(`https://wa.me/?text=${text}`, "_blank");
   };
