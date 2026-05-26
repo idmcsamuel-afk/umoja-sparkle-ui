@@ -114,6 +114,11 @@ const Referrals = () => {
             <p className="mt-2 text-sm text-muted-foreground">
               100 Sparks per signup · 30 bonus when they verify · They get 50 welcome Sparks.
             </p>
+            <div className="mt-3 rounded-2xl border border-accent/30 bg-accent/5 p-3 text-xs text-foreground/90 space-y-1">
+              <p>🌍 Works across Africa — South Africa, Kenya, Nigeria, Ghana & more</p>
+              <p>💱 Friends can pay in local currency or USDT crypto</p>
+              <p>⚡ Invite from anywhere on the continent</p>
+            </div>
           </div>
 
           {/* Stats */}
