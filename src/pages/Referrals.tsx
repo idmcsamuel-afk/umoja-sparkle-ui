@@ -73,7 +73,7 @@ const Referrals = () => {
 
   const shareWhatsApp = () => {
     const text = encodeURIComponent(
-      `Join me on UMOJA — community savings, group buying, and your first car in 12 months. Use my link to get 50 welcome Sparks ✨\n\n${link}`,
+      `Your friend invited you to join Africa's fastest-growing wealth circle 🌍\n\n✅ Works in South Africa, Kenya, Nigeria, Ghana & more\n✅ Pay with local currency or USDT crypto\n✅ Get paid in 5–14 days\n\nUse my link for 50 welcome Sparks ✨\n${link}`,
     );
     window.open(`https://wa.me/?text=${text}`, "_blank");
   };
@@ -114,6 +114,11 @@ const Referrals = () => {
             <p className="mt-2 text-sm text-muted-foreground">
               100 Sparks per signup · 30 bonus when they verify · They get 50 welcome Sparks.
             </p>
+            <div className="mt-3 rounded-2xl border border-accent/30 bg-accent/5 p-3 text-xs text-foreground/90 space-y-1">
+              <p>🌍 Works across Africa — South Africa, Kenya, Nigeria, Ghana & more</p>
+              <p>💱 Friends can pay in local currency or USDT crypto</p>
+              <p>⚡ Invite from anywhere on the continent</p>
+            </div>
           </div>
 
           {/* Stats */}

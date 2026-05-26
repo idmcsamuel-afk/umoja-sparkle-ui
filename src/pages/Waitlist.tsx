@@ -56,13 +56,13 @@ const Waitlist = () => {
         <div className="mx-auto max-w-md animate-fade-in">
           <div className="inline-flex items-center gap-2 rounded-full glass px-3 py-1.5 text-xs">
             <Globe2 className="h-3 w-3 text-accent" />
-            <span className="text-muted-foreground">Invite-only · South Africa first</span>
+            <span className="text-muted-foreground">Pan-African · Pay in ZAR or USDT</span>
           </div>
           <h1 className="mt-5 font-display text-[40px] leading-[1.05] tracking-tight">
             Join the <span className="text-gradient-gold italic font-[450]">waitlist.</span>
           </h1>
           <p className="mt-4 text-muted-foreground">
-            UMOJA is currently invite-only for South African residents. Join the waitlist to be notified when we open in your region.
+            UMOJA started in South Africa and is expanding across Africa. Pay with local methods or USDT cryptocurrency from anywhere on the continent.
           </p>
 
           {done ? (

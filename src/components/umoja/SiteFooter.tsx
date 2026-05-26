@@ -5,7 +5,10 @@ import { WHATSAPP_GROUP_URL } from "@/components/umoja/WhatsAppCommunity";
 export const SiteFooter = () => (
   <footer className="border-t border-border/60 mt-12 px-5 py-8">
     <div className="mx-auto max-w-6xl flex flex-col gap-6 text-xs text-muted-foreground sm:flex-row sm:items-start sm:justify-between">
-      <p>© {new Date().getFullYear()} UMOJA. Community Wealth Platform.</p>
+      <div>
+        <p>© {new Date().getFullYear()} UMOJA. Community Wealth Platform.</p>
+        <p className="mt-1 text-[11px] text-muted-foreground/80">Serving members across Africa · HQ: Johannesburg, South Africa</p>
+      </div>
       <div className="grid grid-cols-2 gap-6 sm:flex sm:gap-8">
         <div>
           <p className="mb-2 text-[11px] font-semibold uppercase tracking-wider text-foreground/70">Community</p>
