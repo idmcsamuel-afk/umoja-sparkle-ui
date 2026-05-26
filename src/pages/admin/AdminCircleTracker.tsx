@@ -379,6 +379,9 @@ export default function AdminCircleTracker() {
     }
 
     list.sort((a, b) => {
+      if (quickTab === "expired") {
+        return new Date(b.bid_created).getTime() - new Date(a.bid_created).getTime();
+      }
       if (sortBy === "due") {
         const ah = a.hours_remaining ?? Infinity;
         const bh = b.hours_remaining ?? Infinity;
