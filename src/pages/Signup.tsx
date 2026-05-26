@@ -480,7 +480,23 @@ const Signup = () => {
               <PasswordInput autoComplete="new-password" value={form.password} onChange={update("password")} className="h-12 rounded-2xl bg-secondary/60 border-border" placeholder="At least 6 characters" required />
             </div>
 
-            <Button type="submit" disabled={busy} className="w-full h-12 rounded-2xl bg-gradient-primary text-primary-foreground shadow-glow hover:opacity-95">
+            <label className="flex items-start gap-3 rounded-2xl border border-border bg-secondary/40 p-3 cursor-pointer">
+              <input
+                type="checkbox"
+                checked={acceptTerms}
+                onChange={(e) => setAcceptTerms(e.target.checked)}
+                className="mt-1 h-4 w-4 rounded border-border accent-primary"
+                required
+              />
+              <span className="text-xs leading-relaxed text-foreground/85">
+                I agree to the{" "}
+                <Link to="/terms" target="_blank" className="text-accent hover:underline">Terms of Service</Link>{" "}
+                and{" "}
+                <Link to="/privacy" target="_blank" className="text-accent hover:underline">Privacy Policy</Link>.
+              </span>
+            </label>
+
+            <Button type="submit" disabled={busy || !acceptTerms} className="w-full h-12 rounded-2xl bg-gradient-primary text-primary-foreground shadow-glow hover:opacity-95">
               {busy ? <Loader2 className="h-4 w-4 animate-spin" /> : (<>Create my account <ArrowRight className="ml-1 h-4 w-4" /></>)}
             </Button>
           </form>
