@@ -354,14 +354,17 @@ export default function AdminCircleTracker() {
     if (statusFilter !== "all") list = list.filter((r) => r.status === statusFilter);
     if (methodFilter !== "all") list = list.filter((r) => (r.payment_method || "").toLowerCase() === methodFilter);
 
-    if (quickTab === "active")
+    if (quickTab === "all")
+      // Default view: hide expired and rejected — they clutter without action needed
+      list = list.filter((r) => r.status !== "expired" && r.status !== "rejected");
+    else if (quickTab === "active")
       list = list.filter((r) => r.status === "vault" && r.hours_remaining !== null && r.hours_remaining >= 0);
     else if (quickTab === "overdue")
       list = list.filter((r) => r.status === "vault" && r.hours_remaining !== null && r.hours_remaining < 0);
     else if (quickTab === "paid")
       list = list.filter((r) => r.status === "paid");
     else if (quickTab === "pending")
-      list = list.filter((r) => r.status === "pending" || r.status === "payment_pending");
+      list = list.filter((r) => (r.status === "pending" || r.status === "payment_pending"));
     else if (quickTab === "rejected")
       list = list.filter((r) => r.status === "rejected");
     else if (quickTab === "expired")
