@@ -1024,6 +1024,7 @@ export type Database = {
           amount_usd: number | null
           amount_usdt: number | null
           amount_usdt_received: number | null
+          boost_count: number
           consistency_percentage: number | null
           created_at: string | null
           currency_code: string
@@ -1032,6 +1033,7 @@ export type Database = {
           expiration_notified: boolean | null
           fiat_amount: number
           id: string
+          last_boost_at: string | null
           matched_to: string | null
           member_id: string
           net_amount: number
@@ -1063,6 +1065,7 @@ export type Database = {
           status: string | null
           streak_bonus: number | null
           tier: string
+          total_sparks_spent_on_boosts: number
           ubuntu_fund_cut: number
           updated_at: string | null
           vault_end: string | null
@@ -1073,6 +1076,7 @@ export type Database = {
           amount_usd?: number | null
           amount_usdt?: number | null
           amount_usdt_received?: number | null
+          boost_count?: number
           consistency_percentage?: number | null
           created_at?: string | null
           currency_code?: string
@@ -1081,6 +1085,7 @@ export type Database = {
           expiration_notified?: boolean | null
           fiat_amount: number
           id?: string
+          last_boost_at?: string | null
           matched_to?: string | null
           member_id: string
           net_amount: number
@@ -1112,6 +1117,7 @@ export type Database = {
           status?: string | null
           streak_bonus?: number | null
           tier: string
+          total_sparks_spent_on_boosts?: number
           ubuntu_fund_cut: number
           updated_at?: string | null
           vault_end?: string | null
@@ -1122,6 +1128,7 @@ export type Database = {
           amount_usd?: number | null
           amount_usdt?: number | null
           amount_usdt_received?: number | null
+          boost_count?: number
           consistency_percentage?: number | null
           created_at?: string | null
           currency_code?: string
@@ -1130,6 +1137,7 @@ export type Database = {
           expiration_notified?: boolean | null
           fiat_amount?: number
           id?: string
+          last_boost_at?: string | null
           matched_to?: string | null
           member_id?: string
           net_amount?: number
@@ -1161,6 +1169,7 @@ export type Database = {
           status?: string | null
           streak_bonus?: number | null
           tier?: string
+          total_sparks_spent_on_boosts?: number
           ubuntu_fund_cut?: number
           updated_at?: string | null
           vault_end?: string | null
@@ -1187,6 +1196,63 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "circle_tiers"
             referencedColumns: ["tier"]
+          },
+        ]
+      }
+      circle_boosts: {
+        Row: {
+          bid_id: string
+          boost_number: number
+          created_at: string
+          id: string
+          member_id: string
+          new_priority_score: number | null
+          old_priority_score: number | null
+          position_after: number | null
+          position_before: number | null
+          priority_boost_amount: number
+          sparks_cost: number
+        }
+        Insert: {
+          bid_id: string
+          boost_number: number
+          created_at?: string
+          id?: string
+          member_id: string
+          new_priority_score?: number | null
+          old_priority_score?: number | null
+          position_after?: number | null
+          position_before?: number | null
+          priority_boost_amount?: number
+          sparks_cost?: number
+        }
+        Update: {
+          bid_id?: string
+          boost_number?: number
+          created_at?: string
+          id?: string
+          member_id?: string
+          new_priority_score?: number | null
+          old_priority_score?: number | null
+          position_after?: number | null
+          position_before?: number | null
+          priority_boost_amount?: number
+          sparks_cost?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "circle_boosts_bid_id_fkey"
+            columns: ["bid_id"]
+            isOneToOne: false
+            referencedRelation: "circle_bids"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "circle_boosts_member_id_fkey"
+            columns: ["member_id"]
+            isOneToOne: false
+            referencedRelation: "members"
+            referencedColumns: ["id"]
           },
         ]
       }
@@ -2259,6 +2325,44 @@ export type Database = {
           video_url?: string | null
         }
         Relationships: []
+      }
+      free_spark_claims: {
+        Row: {
+          claim_type: string
+          claimed_at: string
+          expires_at: string | null
+          id: string
+          member_id: string
+          sparks_awarded: number
+          status: string
+        }
+        Insert: {
+          claim_type: string
+          claimed_at?: string
+          expires_at?: string | null
+          id?: string
+          member_id: string
+          sparks_awarded: number
+          status?: string
+        }
+        Update: {
+          claim_type?: string
+          claimed_at?: string
+          expires_at?: string | null
+          id?: string
+          member_id?: string
+          sparks_awarded?: number
+          status?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "free_spark_claims_member_id_fkey"
+            columns: ["member_id"]
+            isOneToOne: false
+            referencedRelation: "members"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       fulfillment_applications: {
         Row: {
@@ -5871,6 +5975,7 @@ export type Database = {
         Returns: Json
       }
       award_kyc_referral_bonus: { Args: { _member?: string }; Returns: boolean }
+      boost_circle_bid: { Args: { _bid_id: string }; Returns: Json }
       bump_member_video_metric: {
         Args: { _id: string; _metric: string }
         Returns: undefined
@@ -5887,6 +5992,7 @@ export type Database = {
           tier: string
         }[]
       }
+      claim_free_sparks: { Args: { _claim_type: string }; Returns: Json }
       claim_signup_bonus: { Args: never; Returns: number }
       compute_session_scores: {
         Args: { _tier: string }
