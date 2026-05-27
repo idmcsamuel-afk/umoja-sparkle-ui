@@ -9,6 +9,8 @@ import { supabase } from "@/integrations/supabase/client";
 
 const items = [
   { to: "/admin", end: true, label: "Dashboard", icon: LayoutDashboard },
+  { to: "/admin/revenue-dashboard", label: "Revenue 💰", icon: TrendingUp },
+  { to: "/admin/fraud-dashboard", label: "Fraud 🛡️", icon: ShieldAlert },
   { to: "/admin/members", label: "Members", icon: Users },
   { to: "/admin/circles", label: "Circles", icon: Coins },
   { to: "/admin/circle-tracker", label: "Circle Tracker ⏱️", icon: TrendingUp },
