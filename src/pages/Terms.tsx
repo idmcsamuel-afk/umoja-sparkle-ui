@@ -260,6 +260,161 @@ const Terms = () => {
           </p>
         </section>
 
+        <section id="spark-pit" className="mt-10 scroll-mt-24">
+          <h2 className="font-display text-2xl text-foreground">16. Spark Pit Games & Entertainment</h2>
+
+          <h3 className="mt-4 font-display text-xl text-foreground">16.1 Games Are For Entertainment Only</h3>
+          <p className="mt-2">
+            The Spark Pit games (Spark Flip, Dream Draw, UMOJA Predictions, Daily Questions) are entertainment
+            products. They are <strong>NOT</strong> investment opportunities, ways to guarantee income, or sustainable
+            sources of money.
+          </p>
+
+          <h3 className="mt-6 font-display text-xl text-foreground">16.2 House Edge & Return to Player (RTP)</h3>
+          <p className="mt-2">All games have a house edge. On average, players lose money.</p>
+          <ul className="mt-2 list-disc pl-6 space-y-1">
+            <li>Spark Flip (Promotional Sparks): <strong>30% RTP</strong> (70% house edge)</li>
+            <li>Spark Flip (Earned/Purchased Sparks): <strong>45% RTP</strong> (55% house edge)</li>
+            <li>Dream Draw: <strong>80% RTP</strong> (20% house edge)</li>
+            <li>UMOJA Predictions: <strong>50% RTP</strong> (50% house edge)</li>
+            <li>Daily Questions: <strong>100% RTP</strong> (free entry, no house edge)</li>
+          </ul>
+          <p className="mt-2">
+            For every R100 wagered, players can expect to get back R0.30–R1.00 depending on game type. The remainder
+            becomes platform revenue.
+          </p>
+
+          <h3 className="mt-6 font-display text-xl text-foreground">16.3 No Guaranteed Returns</h3>
+          <ul className="mt-2 list-disc pl-6 space-y-1">
+            <li>You may lose all sparks wagered.</li>
+            <li>There is no guarantee of profit or recovery.</li>
+            <li>Past wins do not indicate future results.</li>
+            <li>Variance means some players win, most lose over time.</li>
+          </ul>
+
+          <h3 className="mt-6 font-display text-xl text-foreground">16.4 Spark Purchase & Withdrawal Terms</h3>
+          <ul className="mt-2 list-disc pl-6 space-y-1">
+            <li>Sparks are virtual in-game currency with no cash value until withdrawn.</li>
+            <li>Withdrawal is subject to: KYC verification, daily/weekly/monthly limits, and a 5% fee.</li>
+            <li>Withdrawals are processed as EFT transfers (24–48 hours standard).</li>
+            <li>
+              Promotional sparks expire after 30 days and cannot be withdrawn without first contributing an
+              equivalent amount to UMOJA Circles.
+            </li>
+          </ul>
+
+          <h3 className="mt-6 font-display text-xl text-foreground">16.5 Bid Boost Feature</h3>
+          <ul className="mt-2 list-disc pl-6 space-y-1">
+            <li>Users can spend 50 sparks to increase Circle queue priority (+10 priority points).</li>
+            <li>Maximum 3 boosts per Circle.</li>
+            <li>Does not guarantee first place in queue.</li>
+            <li>24-hour cooldown between boosts.</li>
+          </ul>
+
+          <h3 className="mt-6 font-display text-xl text-foreground">16.6 Responsible Gaming</h3>
+          <p className="mt-2"><strong>If you experience problem gambling:</strong></p>
+          <ul className="mt-2 list-disc pl-6 space-y-1">
+            <li>South Africa National Gambling Helpline: <strong>0800 006 008</strong></li>
+            <li>Gamblers Anonymous: <a className="text-accent hover:underline" href="https://www.gamblersanonymous.org.za" target="_blank" rel="noopener noreferrer">gamblersanonymous.org.za</a></li>
+            <li>SADAG (South African Depression & Anxiety Group): <strong>011 714 4779</strong></li>
+          </ul>
+          <p className="mt-3">We encourage you to:</p>
+          <ul className="mt-2 list-disc pl-6 space-y-1">
+            <li>Set spending limits before playing</li>
+            <li>Only spend money you can afford to lose</li>
+            <li>Take regular breaks</li>
+            <li>Never chase losses</li>
+            <li>Seek help if gambling impacts your mental health</li>
+          </ul>
+
+          <h3 className="mt-6 font-display text-xl text-foreground">16.7 Age Requirement</h3>
+          <p className="mt-2">
+            You must be <strong>18 years or older</strong> to use Spark Pit. By accessing Spark Pit, you confirm you
+            are of legal age.
+          </p>
+
+          <h3 className="mt-6 font-display text-xl text-foreground">16.8 Account Suspension for Responsible Gaming</h3>
+          <p className="mt-2">
+            You may request account suspension at any time by contacting{" "}
+            <a className="text-accent hover:underline" href="mailto:support@umojarise.com">support@umojarise.com</a>.
+            We will freeze your account for a minimum of 24 hours.
+          </p>
+        </section>
+
+        <section id="anti-fraud" className="mt-10 scroll-mt-24">
+          <h2 className="font-display text-2xl text-foreground">17. Anti-Gaming & Fraud Prevention</h2>
+
+          <h3 className="mt-4 font-display text-xl text-foreground">17.1 Fraud Detection</h3>
+          <p className="mt-2">UMOJA uses automated fraud detection to protect against:</p>
+          <ul className="mt-2 list-disc pl-6 space-y-1">
+            <li>Bot farm referral networks</li>
+            <li>Multi-accounting schemes</li>
+            <li>Rapid withdrawal arbitrage</li>
+            <li>KYC document fraud</li>
+          </ul>
+          <p className="mt-3"><strong>Detection Methods Include:</strong></p>
+          <ul className="mt-2 list-disc pl-6 space-y-1">
+            <li>IP address tracking</li>
+            <li>Device fingerprinting</li>
+            <li>Behavioral analysis</li>
+            <li>Payment pattern monitoring</li>
+          </ul>
+
+          <h3 className="mt-6 font-display text-xl text-foreground">17.2 Account Suspension & Reversal</h3>
+          <p className="mt-2">If fraud is detected:</p>
+          <ul className="mt-2 list-disc pl-6 space-y-1">
+            <li>Your account may be suspended</li>
+            <li>Fraudulent sparks may be reversed</li>
+            <li>Bonuses may be clawed back</li>
+            <li>Permanent ban may be applied</li>
+          </ul>
+          <p className="mt-3">
+            You have the right to appeal within 30 days by emailing{" "}
+            <a className="text-accent hover:underline" href="mailto:support@umojarise.com">support@umojarise.com</a>{" "}
+            with documentation.
+          </p>
+
+          <h3 className="mt-6 font-display text-xl text-foreground">17.3 Referral Terms</h3>
+          <ul className="mt-2 list-disc pl-6 space-y-1">
+            <li>Maximum 5 referrals per day</li>
+            <li>Maximum 100 referrals per month</li>
+            <li>First 5 referrals: 100 sparks each</li>
+            <li>Referrals 6–20: 50 sparks each</li>
+            <li>Referrals 21+: 0 sparks (no bonus)</li>
+            <li>Accounts with 50+ referrals require KYC Level 2 before withdrawal</li>
+          </ul>
+        </section>
+
+        <section id="withdrawal" className="mt-10 scroll-mt-24">
+          <h2 className="font-display text-2xl text-foreground">18. Withdrawal & Payment</h2>
+
+          <h3 className="mt-4 font-display text-xl text-foreground">18.1 Withdrawal Rate & Fees</h3>
+          <ul className="mt-2 list-disc pl-6 space-y-1">
+            <li>Rate: <strong>R1.40 per spark</strong> (market standard)</li>
+            <li>Fee: <strong>5%</strong> of withdrawal amount</li>
+            <li>Minimum withdrawal: <strong>R500</strong></li>
+            <li>Daily limit: R5,000</li>
+            <li>Weekly limit: R25,000</li>
+            <li>Monthly limit: R100,000</li>
+          </ul>
+
+          <h3 className="mt-6 font-display text-xl text-foreground">18.2 Withdrawal Processing</h3>
+          <ul className="mt-2 list-disc pl-6 space-y-1">
+            <li>Standard processing: 24–48 hours (EFT)</li>
+            <li>Method: Bank transfer only</li>
+            <li>KYC required (3 tiers based on amount)</li>
+            <li>Promotional sparks require Circle contribution before withdrawal</li>
+          </ul>
+
+          <h3 className="mt-6 font-display text-xl text-foreground">18.3 Failed Withdrawals</h3>
+          <p className="mt-2">If your withdrawal fails (bank issue, wrong details):</p>
+          <ul className="mt-2 list-disc pl-6 space-y-1">
+            <li>Sparks are returned to your account</li>
+            <li>Fee is refunded</li>
+            <li>You may retry after correcting details</li>
+          </ul>
+        </section>
+
         <div className="mt-12 border-t border-border pt-6">
           <Link to="/" className="text-sm text-accent hover:underline">← Back to Home</Link>
         </div>
