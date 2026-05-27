@@ -19,6 +19,7 @@ const SECTIONS = [
   { id: "transfers", title: "13. International Transfers" },
   { id: "changes", title: "14. Changes to This Policy" },
   { id: "contact", title: "15. Contact" },
+  { id: "gaming-data", title: "16. Gaming & Withdrawal Data" },
 ];
 
 const Privacy = () => {
