@@ -2326,6 +2326,76 @@ export type Database = {
         }
         Relationships: []
       }
+      fraud_flags: {
+        Row: {
+          created_at: string
+          details: Json | null
+          flag_type: string
+          id: string
+          member_id: string
+          resolved_at: string | null
+          severity: string
+        }
+        Insert: {
+          created_at?: string
+          details?: Json | null
+          flag_type: string
+          id?: string
+          member_id: string
+          resolved_at?: string | null
+          severity?: string
+        }
+        Update: {
+          created_at?: string
+          details?: Json | null
+          flag_type?: string
+          id?: string
+          member_id?: string
+          resolved_at?: string | null
+          severity?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "fraud_flags_member_id_fkey"
+            columns: ["member_id"]
+            isOneToOne: false
+            referencedRelation: "members"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      fraud_scores: {
+        Row: {
+          breakdown: Json | null
+          last_calculated_at: string
+          member_id: string
+          risk_level: string
+          score: number
+        }
+        Insert: {
+          breakdown?: Json | null
+          last_calculated_at?: string
+          member_id: string
+          risk_level?: string
+          score?: number
+        }
+        Update: {
+          breakdown?: Json | null
+          last_calculated_at?: string
+          member_id?: string
+          risk_level?: string
+          score?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "fraud_scores_member_id_fkey"
+            columns: ["member_id"]
+            isOneToOne: true
+            referencedRelation: "members"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       free_spark_claims: {
         Row: {
           claim_type: string
@@ -2925,6 +2995,54 @@ export type Database = {
             columns: ["order_id"]
             isOneToOne: false
             referencedRelation: "st_orders"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      investigation_cases: {
+        Row: {
+          assigned_to: string | null
+          created_at: string
+          id: string
+          member_id: string
+          opened_reason: string | null
+          resolution_notes: string | null
+          resolved_at: string | null
+          status: string
+        }
+        Insert: {
+          assigned_to?: string | null
+          created_at?: string
+          id?: string
+          member_id: string
+          opened_reason?: string | null
+          resolution_notes?: string | null
+          resolved_at?: string | null
+          status?: string
+        }
+        Update: {
+          assigned_to?: string | null
+          created_at?: string
+          id?: string
+          member_id?: string
+          opened_reason?: string | null
+          resolution_notes?: string | null
+          resolved_at?: string | null
+          status?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "investigation_cases_assigned_to_fkey"
+            columns: ["assigned_to"]
+            isOneToOne: false
+            referencedRelation: "members"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "investigation_cases_member_id_fkey"
+            columns: ["member_id"]
+            isOneToOne: false
+            referencedRelation: "members"
             referencedColumns: ["id"]
           },
         ]
@@ -5882,6 +6000,11 @@ export type Database = {
         Args: { _member: string; _months?: number }
         Returns: string
       }
+      admin_fraud_dashboard: { Args: never; Returns: Json }
+      admin_freeze_member: {
+        Args: { _member: string; _reason: string }
+        Returns: undefined
+      }
       admin_list_predictor_questions: {
         Args: never
         Returns: {
@@ -5916,6 +6039,7 @@ export type Database = {
           tx_type: string
         }[]
       }
+      admin_recalc_all_fraud_scores: { Args: never; Returns: number }
       admin_record_kyc_reminder: { Args: { _member: string }; Returns: Json }
       admin_referral_overview: { Args: never; Returns: Json }
       admin_reject_buyers_club: {
@@ -5926,6 +6050,7 @@ export type Database = {
         Args: { _application_id: string; _reason: string }
         Returns: undefined
       }
+      admin_revenue_dashboard: { Args: { _days?: number }; Returns: Json }
       admin_review_ugc_submission: {
         Args: {
           _decision: string
@@ -5943,6 +6068,7 @@ export type Database = {
           refs_this_month: number
         }[]
       }
+      admin_unfreeze_member: { Args: { _member: string }; Returns: undefined }
       apply_allocation: {
         Args: {
           _breakdown: Json
@@ -5984,6 +6110,7 @@ export type Database = {
         Args: { p_enrollment_id: string }
         Returns: number
       }
+      calculate_fraud_score: { Args: { _member: string }; Returns: Json }
       circle_tier_stats: {
         Args: never
         Returns: {

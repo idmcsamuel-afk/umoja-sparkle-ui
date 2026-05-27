@@ -79,6 +79,8 @@ import AdminFulfillment from "./pages/admin/AdminFulfillment";
 import MemberLayout from "./components/umoja/MemberLayout";
 import AdminContentDirector from "./pages/admin/AdminContentDirector.tsx";
 import AdminUgcSubmissions from "./pages/admin/AdminUgcSubmissions.tsx";
+import AdminFraudDashboard from "./pages/admin/AdminFraudDashboard.tsx";
+import AdminRevenueDashboard from "./pages/admin/AdminRevenueDashboard.tsx";
 import MemberVideos from "./pages/MemberVideos.tsx";
 import UploadVideo from "./pages/UploadVideo.tsx";
 
@@ -195,6 +197,8 @@ const App = () => (
                 <Route path="podcasts" element={<AdminPodcasts />} />
                 <Route path="circle-tracker" element={<AdminCircleTracker />} />
                 <Route path="countries" element={<AdminCountries />} />
+                <Route path="fraud-dashboard" element={<AdminFraudDashboard />} />
+                <Route path="revenue-dashboard" element={<AdminRevenueDashboard />} />
               </Route>
 
               <Route path="*" element={<NotFound />} />
