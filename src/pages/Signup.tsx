@@ -38,6 +38,7 @@ const Signup = () => {
   const [countries, setCountries] = useState<Array<{ country_code: string; country_name: string; enabled: boolean; currency_code: string; currency_symbol: string }>>([]);
   const [busy, setBusy] = useState(false);
   const [acceptTerms, setAcceptTerms] = useState(false);
+  const [ageConfirmed, setAgeConfirmed] = useState(false);
   const [duplicate, setDuplicate] = useState<null | { kind: "email" | "phone" | "account"; value: string }>(null);
 
   useEffect(() => {
