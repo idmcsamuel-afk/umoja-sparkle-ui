@@ -38,6 +38,7 @@ const Signup = () => {
   const [countries, setCountries] = useState<Array<{ country_code: string; country_name: string; enabled: boolean; currency_code: string; currency_symbol: string }>>([]);
   const [busy, setBusy] = useState(false);
   const [acceptTerms, setAcceptTerms] = useState(false);
+  const [ageConfirmed, setAgeConfirmed] = useState(false);
   const [duplicate, setDuplicate] = useState<null | { kind: "email" | "phone" | "account"; value: string }>(null);
 
   useEffect(() => {
@@ -132,6 +133,10 @@ const Signup = () => {
   const onSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setDuplicate(null);
+    if (!ageConfirmed) {
+      toast.error("You must confirm you are 18 years or older");
+      return;
+    }
     if (!acceptTerms) {
       toast.error("Please accept the Terms of Service and Privacy Policy");
       return;
@@ -251,7 +256,9 @@ const Signup = () => {
           country_code: country,
           currency_code: selectedCountry?.currency_code ?? "ZAR",
           is_active: true,
-        },
+          age_verified: true,
+          age_verified_at: new Date().toISOString(),
+        } as any,
         { onConflict: "id" }
       );
 
@@ -483,6 +490,19 @@ const Signup = () => {
             <label className="flex items-start gap-3 rounded-2xl border border-border bg-secondary/40 p-3 cursor-pointer">
               <input
                 type="checkbox"
+                checked={ageConfirmed}
+                onChange={(e) => setAgeConfirmed(e.target.checked)}
+                className="mt-1 h-4 w-4 rounded border-border accent-primary"
+                required
+              />
+              <span className="text-xs leading-relaxed text-foreground/85">
+                I confirm I am <strong>18 years or older</strong>. Spark Pit games are 18+ and have a house edge — you may lose all sparks wagered.
+              </span>
+            </label>
+
+            <label className="flex items-start gap-3 rounded-2xl border border-border bg-secondary/40 p-3 cursor-pointer">
+              <input
+                type="checkbox"
                 checked={acceptTerms}
                 onChange={(e) => setAcceptTerms(e.target.checked)}
                 className="mt-1 h-4 w-4 rounded border-border accent-primary"
@@ -496,7 +516,7 @@ const Signup = () => {
               </span>
             </label>
 
-            <Button type="submit" disabled={busy || !acceptTerms} className="w-full h-12 rounded-2xl bg-gradient-primary text-primary-foreground shadow-glow hover:opacity-95">
+            <Button type="submit" disabled={busy || !acceptTerms || !ageConfirmed} className="w-full h-12 rounded-2xl bg-gradient-primary text-primary-foreground shadow-glow hover:opacity-95">
               {busy ? <Loader2 className="h-4 w-4 animate-spin" /> : (<>Create my account <ArrowRight className="ml-1 h-4 w-4" /></>)}
             </Button>
           </form>

@@ -19,6 +19,7 @@ const SECTIONS = [
   { id: "transfers", title: "13. International Transfers" },
   { id: "changes", title: "14. Changes to This Policy" },
   { id: "contact", title: "15. Contact" },
+  { id: "gaming-data", title: "16. Gaming & Withdrawal Data" },
 ];
 
 const Privacy = () => {
@@ -182,6 +183,87 @@ const Privacy = () => {
           <p className="mt-3">
             Privacy questions? Email <a className="text-accent hover:underline" href="mailto:privacy@umojarise.com">privacy@umojarise.com</a>.
           </p>
+        </section>
+
+        <section id="gaming-data" className="mt-10 scroll-mt-24">
+          <h2 className="font-display text-2xl text-foreground">16. Gaming & Withdrawal Data</h2>
+
+          <h3 className="mt-4 font-display text-xl text-foreground">16.1 KYC Information Collected</h3>
+          <p className="mt-2">
+            When you request a withdrawal over R500, we collect and verify:
+          </p>
+          <ul className="mt-2 list-disc pl-6 space-y-1">
+            <li>Government-issued ID (photo, number, expiration)</li>
+            <li>Address proof (utility bill, lease agreement)</li>
+            <li>Bank account details (name, number, branch code)</li>
+            <li>Selfie/liveness check (for amounts &gt; R10,000)</li>
+            <li>Source of funds declaration (for amounts &gt; R50,000)</li>
+          </ul>
+
+          <h3 className="mt-6 font-display text-xl text-foreground">16.2 Data Retention</h3>
+          <p className="mt-2">We retain your KYC data for:</p>
+          <ul className="mt-2 list-disc pl-6 space-y-1">
+            <li><strong>5 years</strong> (FAIS compliance requirement)</li>
+            <li>Fraud investigation (indefinite if fraud confirmed)</li>
+            <li>Legal holds (if required by law)</li>
+          </ul>
+          <p className="mt-2">You may request data deletion after 5 years (except where legal holds apply).</p>
+
+          <h3 className="mt-6 font-display text-xl text-foreground">16.3 Fraud Detection Data</h3>
+          <p className="mt-2">We collect and process:</p>
+          <ul className="mt-2 list-disc pl-6 space-y-1">
+            <li>IP addresses (tracked for bot detection)</li>
+            <li>Device fingerprints (hardware/software signatures)</li>
+            <li>Game play history (stakes, outcomes, win/loss patterns)</li>
+            <li>Referral chains (who referred whom)</li>
+            <li>Payment history (all transactions)</li>
+            <li>Behavioral anomalies (rapid spending, suspicious patterns)</li>
+          </ul>
+          <p className="mt-3">This data is used to detect fraud and multi-accounting, prevent bot networks, enforce fair play, and comply with AML/CFT regulations.</p>
+
+          <h3 className="mt-6 font-display text-xl text-foreground">16.4 Data Sharing</h3>
+          <p className="mt-2">We share withdrawal data with:</p>
+          <ul className="mt-2 list-disc pl-6 space-y-1">
+            <li>Your bank (for EFT processing)</li>
+            <li>Payment processor Paystack (for payment verification)</li>
+            <li>SARB (South African Reserve Bank) if required by law</li>
+            <li>Law enforcement (if fraud/crime suspected)</li>
+          </ul>
+          <p className="mt-3"><strong>We do NOT sell your data to third parties.</strong></p>
+
+          <h3 className="mt-6 font-display text-xl text-foreground">16.5 POPIA Compliance</h3>
+          <p className="mt-2">Under POPIA, you have the right to:</p>
+          <ul className="mt-2 list-disc pl-6 space-y-1">
+            <li>Access your personal information</li>
+            <li>Correct inaccurate data</li>
+            <li>Request erasure (after 5-year retention)</li>
+            <li>Object to processing</li>
+            <li>Lodge complaints with the Information Regulator</li>
+          </ul>
+          <p className="mt-3">
+            To exercise these rights:{" "}
+            <a className="text-accent hover:underline" href="mailto:privacy@umojarise.com">privacy@umojarise.com</a>
+          </p>
+
+          <h3 className="mt-6 font-display text-xl text-foreground">16.6 Responsible Gaming Tracking</h3>
+          <p className="mt-2">We track your gameplay to protect you:</p>
+          <ul className="mt-2 list-disc pl-6 space-y-1">
+            <li>Daily/weekly/monthly session limits (optional)</li>
+            <li>Win/loss streaks (to identify problem gambling)</li>
+            <li>Login patterns (to detect addiction)</li>
+            <li>Self-exclusion requests (honored immediately)</li>
+          </ul>
+          <p className="mt-3">If we detect potential problem gambling, we will send a warning email, offer account suspension, and provide helpline resources. You can opt-in to enhanced responsible gaming at any time.</p>
+
+          <h3 className="mt-6 font-display text-xl text-foreground">16.7 SAR (Suspicious Activity Report) Filing</h3>
+          <p className="mt-2">If we detect activity matching AML/CFT red flags, we may file a SAR with SARB:</p>
+          <ul className="mt-2 list-disc pl-6 space-y-1">
+            <li>Large sudden withdrawals</li>
+            <li>Multiple accounts on the same IP (structuring)</li>
+            <li>Round-number transactions</li>
+            <li>Patterns matching money laundering</li>
+          </ul>
+          <p className="mt-3">This does not mean you are accused of a crime — it is regulatory compliance.</p>
         </section>
 
         <div className="mt-12 border-t border-border pt-6">

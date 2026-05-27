@@ -3597,6 +3597,8 @@ export type Database = {
       }
       members: {
         Row: {
+          age_verified: boolean
+          age_verified_at: string | null
           bank_account: string | null
           bank_branch: string | null
           bank_name: string | null
@@ -3666,6 +3668,8 @@ export type Database = {
           usdt_wallet_trc20: string | null
         }
         Insert: {
+          age_verified?: boolean
+          age_verified_at?: string | null
           bank_account?: string | null
           bank_branch?: string | null
           bank_name?: string | null
@@ -3735,6 +3739,8 @@ export type Database = {
           usdt_wallet_trc20?: string | null
         }
         Update: {
+          age_verified?: boolean
+          age_verified_at?: string | null
           bank_account?: string | null
           bank_branch?: string | null
           bank_name?: string | null
