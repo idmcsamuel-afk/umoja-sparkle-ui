@@ -256,7 +256,9 @@ const Signup = () => {
           country_code: country,
           currency_code: selectedCountry?.currency_code ?? "ZAR",
           is_active: true,
-        },
+          age_verified: true,
+          age_verified_at: new Date().toISOString(),
+        } as any,
         { onConflict: "id" }
       );
 
