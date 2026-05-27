@@ -118,8 +118,17 @@ export default function SparkFlip() {
     const payout = Number((data as any)?.payout ?? 0);
 
     setFace(result);
-    if (won) playWin();
-    else playLose();
+    if (won) {
+      playWin();
+      const wins = Number(localStorage.getItem("umoja_flip_win_streak") || "0") + 1;
+      localStorage.setItem("umoja_flip_win_streak", String(wins));
+      if (wins > 0 && wins % 5 === 0) {
+        window.dispatchEvent(new CustomEvent("umoja:win-streak", { detail: { wins } }));
+      }
+    } else {
+      playLose();
+      localStorage.setItem("umoja_flip_win_streak", "0");
+    }
     toast({
       title: won ? `🎉 ${result.toUpperCase()} — you win!` : `💔 ${result.toUpperCase()} — try again`,
       description: won ? `+${payout} ⚡ to earned wallet` : `-${stake} ⚡ from ${sparkType}`,
