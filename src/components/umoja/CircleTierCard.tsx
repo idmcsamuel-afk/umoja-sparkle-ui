@@ -3,6 +3,7 @@ import { Info, Lock, Plus, ChevronDown, Sparkles, Users } from "lucide-react";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { CircleSessionTimer } from "@/components/umoja/CircleSessionTimer";
+import { BoostPositionCard } from "@/components/umoja/BoostPositionCard";
 import { cn } from "@/lib/utils";
 
 interface Tier {
@@ -343,6 +344,14 @@ export function CircleTierCard({
               )}
               {detail && <p className="col-span-2 text-muted-foreground">{detail}</p>}
             </div>
+            {inQueue && s.bid_id && (
+              <BoostPositionCard
+                bidId={s.bid_id}
+                currentPosition={s.queue_position ?? null}
+                totalActive={s.total_active}
+                payoutDate={s.payout_date}
+              />
+            )}
           </div>
         );
       })()}
