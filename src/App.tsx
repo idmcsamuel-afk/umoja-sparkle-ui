@@ -144,6 +144,7 @@ const App = () => (
                 <Route path="/spark-pit" element={<ProtectedRoute><SparkPit /></ProtectedRoute>} />
                 <Route path="/spark-pit/dream-draw" element={<ProtectedRoute><DreamDraw /></ProtectedRoute>} />
                 <Route path="/spark-pit/spark-flip" element={<ProtectedRoute><SparkFlip /></ProtectedRoute>} />
+                <Route path="/buy-sparks" element={<ProtectedRoute><BuySparks /></ProtectedRoute>} />
                 <Route path="/kyc" element={<ProtectedRoute><Kyc /></ProtectedRoute>} />
                 <Route path="/learn" element={<ProtectedRoute><Learn /></ProtectedRoute>} />
                 <Route path="/podcast" element={<Navigate to="/learn" replace />} />
