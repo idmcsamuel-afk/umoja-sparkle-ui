@@ -142,7 +142,7 @@ export function SparkBalanceWidget() {
             <ShoppingCart className="h-4 w-4" /> Buy More
           </Link>
           <Link
-            to="/exchange"
+            to="/withdraw"
             className="flex items-center justify-center gap-1.5 rounded-xl border border-border bg-background px-3 py-2.5 text-sm font-semibold transition hover:bg-accent/10"
           >
             <ArrowDownToLine className="h-4 w-4" /> Withdraw
