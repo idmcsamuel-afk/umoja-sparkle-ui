@@ -19,6 +19,9 @@ const SECTIONS = [
   { id: "law", title: "13. Governing Law" },
   { id: "changes", title: "14. Changes to Terms" },
   { id: "contact", title: "15. Contact" },
+  { id: "spark-pit", title: "16. Spark Pit Games & Entertainment" },
+  { id: "anti-fraud", title: "17. Anti-Gaming & Fraud Prevention" },
+  { id: "withdrawal", title: "18. Withdrawal & Payment" },
 ];
 
 const Terms = () => {
