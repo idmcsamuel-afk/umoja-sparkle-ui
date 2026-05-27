@@ -43,6 +43,7 @@ import NotFound from "./pages/NotFound.tsx";
 import Blog from "./pages/Blog.tsx";
 import SparkTradeBeta from "./pages/SparkTradeBeta.tsx";
 import BuySparks from "./pages/BuySparks.tsx";
+import Withdraw from "./pages/Withdraw.tsx";
 import Terms from "./pages/Terms.tsx";
 import Privacy from "./pages/Privacy.tsx";
 import BlogPost from "./pages/BlogPost.tsx";
@@ -145,6 +146,7 @@ const App = () => (
                 <Route path="/spark-pit/dream-draw" element={<ProtectedRoute><DreamDraw /></ProtectedRoute>} />
                 <Route path="/spark-pit/spark-flip" element={<ProtectedRoute><SparkFlip /></ProtectedRoute>} />
                 <Route path="/buy-sparks" element={<ProtectedRoute><BuySparks /></ProtectedRoute>} />
+                <Route path="/withdraw" element={<ProtectedRoute><Withdraw /></ProtectedRoute>} />
                 <Route path="/kyc" element={<ProtectedRoute><Kyc /></ProtectedRoute>} />
                 <Route path="/learn" element={<ProtectedRoute><Learn /></ProtectedRoute>} />
                 <Route path="/podcast" element={<Navigate to="/learn" replace />} />

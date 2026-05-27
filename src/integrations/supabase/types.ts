@@ -3427,6 +3427,10 @@ export type Database = {
           phone: string
           phone_verified: boolean
           priority_score: number
+          promo_unlock_at: string | null
+          promo_unlock_bonus_sparks: number
+          promo_unlock_circle_id: string | null
+          promotional_sparks_unlocked: boolean
           rank: string | null
           referral_code: string | null
           referred_by: string | null
@@ -3492,6 +3496,10 @@ export type Database = {
           phone: string
           phone_verified?: boolean
           priority_score?: number
+          promo_unlock_at?: string | null
+          promo_unlock_bonus_sparks?: number
+          promo_unlock_circle_id?: string | null
+          promotional_sparks_unlocked?: boolean
           rank?: string | null
           referral_code?: string | null
           referred_by?: string | null
@@ -3557,6 +3565,10 @@ export type Database = {
           phone?: string
           phone_verified?: boolean
           priority_score?: number
+          promo_unlock_at?: string | null
+          promo_unlock_bonus_sparks?: number
+          promo_unlock_circle_id?: string | null
+          promotional_sparks_unlocked?: boolean
           rank?: string | null
           referral_code?: string | null
           referred_by?: string | null
@@ -3570,6 +3582,13 @@ export type Database = {
           usdt_wallet_trc20?: string | null
         }
         Relationships: [
+          {
+            foreignKeyName: "members_promo_unlock_circle_id_fkey"
+            columns: ["promo_unlock_circle_id"]
+            isOneToOne: false
+            referencedRelation: "circle_bids"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "members_referred_by_fkey"
             columns: ["referred_by"]
@@ -5192,6 +5211,90 @@ export type Database = {
         }
         Relationships: []
       }
+      withdrawal_requests: {
+        Row: {
+          account_holder: string
+          account_number: string
+          amount_r_gross: number
+          amount_r_net: number
+          amount_sparks: number
+          bank_name: string
+          branch_code: string | null
+          completed_at: string | null
+          created_at: string
+          failure_reason: string | null
+          fee_charged: number
+          fee_rate: number
+          id: string
+          includes_promotional: boolean
+          member_id: string
+          promotional_amount: number
+          reference_number: string
+          spark_rate: number
+          status: string
+          unlock_via_circle: string | null
+        }
+        Insert: {
+          account_holder: string
+          account_number: string
+          amount_r_gross: number
+          amount_r_net: number
+          amount_sparks: number
+          bank_name: string
+          branch_code?: string | null
+          completed_at?: string | null
+          created_at?: string
+          failure_reason?: string | null
+          fee_charged: number
+          fee_rate?: number
+          id?: string
+          includes_promotional?: boolean
+          member_id: string
+          promotional_amount?: number
+          reference_number: string
+          spark_rate?: number
+          status?: string
+          unlock_via_circle?: string | null
+        }
+        Update: {
+          account_holder?: string
+          account_number?: string
+          amount_r_gross?: number
+          amount_r_net?: number
+          amount_sparks?: number
+          bank_name?: string
+          branch_code?: string | null
+          completed_at?: string | null
+          created_at?: string
+          failure_reason?: string | null
+          fee_charged?: number
+          fee_rate?: number
+          id?: string
+          includes_promotional?: boolean
+          member_id?: string
+          promotional_amount?: number
+          reference_number?: string
+          spark_rate?: number
+          status?: string
+          unlock_via_circle?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "withdrawal_requests_member_id_fkey"
+            columns: ["member_id"]
+            isOneToOne: false
+            referencedRelation: "members"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "withdrawal_requests_unlock_via_circle_fkey"
+            columns: ["unlock_via_circle"]
+            isOneToOne: false
+            referencedRelation: "circle_bids"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       zcreator_analytics: {
         Row: {
           comments: number
@@ -5643,6 +5746,8 @@ export type Database = {
     }
     Functions: {
       _flip_contributed: { Args: { _member: string }; Returns: undefined }
+      _gen_withdrawal_ref: { Args: never; Returns: string }
+      _promo_unlock_bonus: { Args: { _fiat: number }; Returns: number }
       active_members_count: { Args: never; Returns: number }
       adjust_spark_balance: {
         Args: { _delta: number; _member: string; _note?: string }
@@ -5954,6 +6059,17 @@ export type Database = {
           _ref: string
         }
         Returns: string
+      }
+      submit_withdrawal_request: {
+        Args: {
+          _account_holder: string
+          _account_number: string
+          _amount_sparks: number
+          _bank_name: string
+          _branch_code?: string
+          _include_promotional?: boolean
+        }
+        Returns: Json
       }
       touch_last_seen: { Args: never; Returns: undefined }
     }
