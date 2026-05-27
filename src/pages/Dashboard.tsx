@@ -12,6 +12,7 @@ import { NotificationBell } from "@/components/umoja/NotificationBell";
 import { ActiveUsersBadge } from "@/components/umoja/ActiveUsersBadge";
 import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
+import { SparkBalanceWidget } from "@/components/umoja/SparkBalanceWidget";
 
 interface ActivityRow {
   id: string;
