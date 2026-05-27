@@ -339,6 +339,9 @@ const Dashboard = () => {
         </div>
       </header>
 
+      {/* Spark balance breakdown */}
+      <SparkBalanceWidget />
+
       {/* KYC banner */}
       {kycLevel !== null && kycLevel < 3 && (
         <section className="px-5 pt-4">
