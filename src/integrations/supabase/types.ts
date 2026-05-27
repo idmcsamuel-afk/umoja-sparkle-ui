@@ -2566,6 +2566,47 @@ export type Database = {
         }
         Relationships: []
       }
+      game_results: {
+        Row: {
+          bet_amount: number
+          created_at: string
+          game_type: string
+          id: string
+          member_id: string
+          outcome: string
+          spark_type: string
+          won_amount: number
+        }
+        Insert: {
+          bet_amount: number
+          created_at?: string
+          game_type: string
+          id?: string
+          member_id: string
+          outcome: string
+          spark_type: string
+          won_amount?: number
+        }
+        Update: {
+          bet_amount?: number
+          created_at?: string
+          game_type?: string
+          id?: string
+          member_id?: string
+          outcome?: string
+          spark_type?: string
+          won_amount?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "game_results_member_id_fkey"
+            columns: ["member_id"]
+            isOneToOne: false
+            referencedRelation: "members"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       group_buy_participants: {
         Row: {
           group_buy_id: string | null
@@ -4419,6 +4460,56 @@ export type Database = {
           },
         ]
       }
+      spark_purchases: {
+        Row: {
+          amount_paid: number
+          bonus_sparks: number
+          created_at: string
+          email: string
+          id: string
+          member_id: string | null
+          payment_reference: string | null
+          phone: string | null
+          sparks_added: number
+          status: string
+          tier: string
+        }
+        Insert: {
+          amount_paid: number
+          bonus_sparks?: number
+          created_at?: string
+          email: string
+          id?: string
+          member_id?: string | null
+          payment_reference?: string | null
+          phone?: string | null
+          sparks_added: number
+          status?: string
+          tier: string
+        }
+        Update: {
+          amount_paid?: number
+          bonus_sparks?: number
+          created_at?: string
+          email?: string
+          id?: string
+          member_id?: string | null
+          payment_reference?: string | null
+          phone?: string | null
+          sparks_added?: number
+          status?: string
+          tier?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "spark_purchases_member_id_fkey"
+            columns: ["member_id"]
+            isOneToOne: false
+            referencedRelation: "members"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       spark_trade_joins: {
         Row: {
           created_at: string
@@ -4626,20 +4717,32 @@ export type Database = {
       spark_wallets: {
         Row: {
           balance: number | null
+          earned_balance: number
           id: string
           member_id: string
+          promo_expires_at: string | null
+          promotional_balance: number
+          purchased_balance: number
           updated_at: string | null
         }
         Insert: {
           balance?: number | null
+          earned_balance?: number
           id?: string
           member_id: string
+          promo_expires_at?: string | null
+          promotional_balance?: number
+          purchased_balance?: number
           updated_at?: string | null
         }
         Update: {
           balance?: number | null
+          earned_balance?: number
           id?: string
           member_id?: string
+          promo_expires_at?: string | null
+          promotional_balance?: number
+          purchased_balance?: number
           updated_at?: string | null
         }
         Relationships: [
@@ -5641,6 +5744,23 @@ export type Database = {
         Returns: string
       }
       apply_referral_signup: { Args: { _code: string }; Returns: Json }
+      apply_spark_flip_outcome: {
+        Args: { _bet: number; _choice: string; _spark_type: string }
+        Returns: Json
+      }
+      apply_spark_purchase: {
+        Args: {
+          _amount_paid: number
+          _bonus: number
+          _email: string
+          _member: string
+          _phone: string
+          _reference: string
+          _sparks: number
+          _tier: string
+        }
+        Returns: Json
+      }
       assign_referrer: {
         Args: { _member: string; _referrer: string }
         Returns: Json
@@ -5821,6 +5941,7 @@ export type Database = {
         }[]
       }
       run_drive_allocation: { Args: { p_tier_id: string }; Returns: Json }
+      spark_balance_breakdown: { Args: { _member?: string }; Returns: Json }
       submit_buyers_club_payment: {
         Args: { _amount: number; _proof_url: string; _tier: string }
         Returns: undefined
