@@ -156,7 +156,7 @@ export const ProductTour = () => {
   return (
     <Joyride
       steps={TOUR_STEPS}
-      run={run}
+      run={run && !paused}
       continuous
       scrollToFirstStep
       onEvent={handleEvent}
