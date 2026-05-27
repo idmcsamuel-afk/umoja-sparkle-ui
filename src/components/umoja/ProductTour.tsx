@@ -110,6 +110,7 @@ export const ProductTour = () => {
   const { user, loading } = useAuth();
   const { pathname } = useLocation();
   const [run, setRun] = useState(false);
+  const [paused, setPaused] = useState(false);
 
   useEffect(() => {
     if (loading || !user) return;
@@ -118,6 +119,18 @@ export const ProductTour = () => {
     const t = setTimeout(() => setRun(true), 1000);
     return () => clearTimeout(t);
   }, [user, loading, pathname]);
+
+  // Pause/resume from popup events
+  useEffect(() => {
+    const pause = () => setPaused(true);
+    const resume = () => setPaused(false);
+    window.addEventListener("umoja:tour-pause", pause);
+    window.addEventListener("umoja:tour-resume", resume);
+    return () => {
+      window.removeEventListener("umoja:tour-pause", pause);
+      window.removeEventListener("umoja:tour-resume", resume);
+    };
+  }, []);
 
   // Listen for manual restart
   useEffect(() => {
