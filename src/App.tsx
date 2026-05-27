@@ -42,6 +42,7 @@ import Priority from "./pages/Priority.tsx";
 import NotFound from "./pages/NotFound.tsx";
 import Blog from "./pages/Blog.tsx";
 import SparkTradeBeta from "./pages/SparkTradeBeta.tsx";
+import BuySparks from "./pages/BuySparks.tsx";
 import Terms from "./pages/Terms.tsx";
 import Privacy from "./pages/Privacy.tsx";
 import BlogPost from "./pages/BlogPost.tsx";
