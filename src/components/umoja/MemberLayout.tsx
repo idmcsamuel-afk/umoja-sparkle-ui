@@ -5,8 +5,10 @@ import { ProductTour } from "@/components/umoja/ProductTour";
 import { TourBanner } from "@/components/umoja/TourBanner";
 import { WhatsAppFab } from "@/components/umoja/WhatsAppCommunity";
 import { FreeSparkPopups } from "@/components/umoja/FreeSparkPopups";
+import { useTourControl } from "@/hooks/useTourControl";
 
 export default function MemberLayout() {
+  useTourControl();
   return (
     <SidebarProvider defaultOpen>
       <ProductTour />

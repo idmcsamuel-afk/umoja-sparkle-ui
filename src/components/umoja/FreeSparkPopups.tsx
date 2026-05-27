@@ -146,6 +146,14 @@ export function FreeSparkPopups() {
     close();
   };
 
+  // Bridge open/close to the product tour
+  useEffect(() => {
+    if (active) window.dispatchEvent(new CustomEvent("umoja:popup-open"));
+    return () => {
+      if (active) window.dispatchEvent(new CustomEvent("umoja:popup-close"));
+    };
+  }, [active]);
+
   if (!active) return null;
   const Icon = active.type === "signup_bonus" ? Gift
     : active.type === "streak_5" ? Trophy
