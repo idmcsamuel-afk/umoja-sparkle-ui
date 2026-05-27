@@ -4,6 +4,7 @@ import { MemberSidebar } from "@/components/umoja/MemberSidebar";
 import { ProductTour } from "@/components/umoja/ProductTour";
 import { TourBanner } from "@/components/umoja/TourBanner";
 import { WhatsAppFab } from "@/components/umoja/WhatsAppCommunity";
+import { FreeSparkPopups } from "@/components/umoja/FreeSparkPopups";
 
 export default function MemberLayout() {
   return (
@@ -24,6 +25,7 @@ export default function MemberLayout() {
           </main>
         </div>
         <WhatsAppFab source="member" />
+        <FreeSparkPopups />
       </div>
     </SidebarProvider>
   );
