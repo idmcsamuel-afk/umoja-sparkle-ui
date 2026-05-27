@@ -133,6 +133,10 @@ const Signup = () => {
   const onSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setDuplicate(null);
+    if (!ageConfirmed) {
+      toast.error("You must confirm you are 18 years or older");
+      return;
+    }
     if (!acceptTerms) {
       toast.error("Please accept the Terms of Service and Privacy Policy");
       return;
