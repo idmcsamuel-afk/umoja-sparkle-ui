@@ -26,6 +26,7 @@ export default function SparkTradeMembership() {
   const nav = useNavigate();
   const { user } = useAuth();
   const { config, loading: countryLoading } = useMyCountry();
+  const { pay, ready: paystackReady } = usePaystack();
   const [current, setCurrent] = useState<Membership | null>(null);
   const [loading, setLoading] = useState(true);
   const [busyTier, setBusyTier] = useState<Tier | null>(null);
@@ -44,32 +45,85 @@ export default function SparkTradeMembership() {
     })();
   }, [user]);
 
-  const upgrade = async (tier: Tier) => {
-    if (!user) return;
-    setBusyTier(tier);
+  const tierKeyMap: Record<Tier, keyof typeof basePricesZAR> = {
+    buyers_club: "buyers_club",
+    storefront: "storefront",
+    fulfilled_by_umoja: "fulfilled",
+  };
+
+  const activateMembership = async (tier: Tier, reference: string) => {
     const nextPayment = new Date();
     nextPayment.setMonth(nextPayment.getMonth() + 1);
-
     const { error } = await supabase
       .from("product_memberships" as any)
       .upsert({
-        user_id: user.id,
+        user_id: user!.id,
         product: "spark_trade",
         tier,
         status: "active",
         membership_start_date: new Date().toISOString(),
         next_payment_date: nextPayment.toISOString(),
+        paystack_reference: reference,
+        payment_status: "success",
       }, { onConflict: "user_id,product" });
-
-    setBusyTier(null);
-    if (error) return toast.error(error.message);
-
-    toast.success("Membership activated 🎉");
+    if (error) {
+      toast.error(error.message);
+      return false;
+    }
     setCurrent({
       tier, status: "active",
       membership_start_date: new Date().toISOString(),
       next_payment_date: nextPayment.toISOString(),
     });
+    return true;
+  };
+
+  const upgrade = async (tier: Tier) => {
+    if (!user) return;
+    if (!user.email) {
+      toast.error("Add an email to your account before paying");
+      return;
+    }
+    if (!paystackReady) {
+      toast.error("Payment gateway loading… try again in a moment");
+      return;
+    }
+    setBusyTier(tier);
+
+    // Price: try local currency if Paystack supports it, else fall back to ZAR
+    const localCcy = config.currency_code;
+    const useLocal = PAYSTACK_SUPPORTED.has(localCcy);
+    const ccy = useLocal ? localCcy : "ZAR";
+    const tierKey = tierKeyMap[tier];
+    const amount = calculateTierPrice(tierKey, ccy);
+    if (amount == null || amount <= 0) {
+      setBusyTier(null);
+      toast.error("Could not determine price for your currency");
+      return;
+    }
+
+    const memberCode = (user.id || "U").replace(/-/g, "").slice(0, 10).toUpperCase();
+    const reference = buildReference("ST", tier.toUpperCase(), memberCode);
+
+    const result = await pay({
+      email: user.email,
+      amountZar: amount, // amount in major units of `currency`
+      currency: ccy,
+      reference,
+      metadata: {
+        payment_type: "spark_trade_membership",
+        member_id: user.id,
+        tier,
+        product: "spark_trade",
+      },
+    });
+
+    setBusyTier(null);
+
+    if (!result.ok) return; // toast already shown by hook
+    const ok = await activateMembership(tier, result.reference || reference);
+    if (!ok) return;
+    toast.success("Membership activated 🎉");
     if (tier === "storefront" || tier === "fulfilled_by_umoja") {
       nav("/spark-trade/onboarding");
     }
