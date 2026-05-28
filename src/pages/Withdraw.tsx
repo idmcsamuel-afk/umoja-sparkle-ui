@@ -115,7 +115,7 @@ export default function Withdraw() {
     loadAll();
     if (!user) return;
     const ch = supabase
-      .channel("withdraw-wallet-" + user.id)
+      .channel("withdraw-wallet-" + user.id + "-" + Math.random().toString(36).slice(2, 9))
       .on(
         "postgres_changes",
         { event: "*", schema: "public", table: "spark_wallets", filter: `member_id=eq.${user.id}` },

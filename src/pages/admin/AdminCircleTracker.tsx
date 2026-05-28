@@ -334,7 +334,7 @@ export default function AdminCircleTracker() {
   useEffect(() => {
     fetchData();
     const ch = supabase
-      .channel("admin-circle-tracker")
+      .channel("admin-circle-tracker-" + Math.random().toString(36).slice(2, 9))
       .on("postgres_changes", { event: "*", schema: "public", table: "circle_bids" }, () => fetchData())
       .subscribe();
     const t = setInterval(() => setNow(Date.now()), 60_000);

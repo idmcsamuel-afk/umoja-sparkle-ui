@@ -273,7 +273,7 @@ const Circle = () => {
     load();
     if (!user) return;
     const ch = supabase
-      .channel(`user_circle_updates_${user.id}`)
+      .channel(`user_circle_updates_${user.id}_${Math.random().toString(36).slice(2, 9)}`)
       .on(
         "postgres_changes",
         { event: "*", schema: "public", table: "circle_bids", filter: `member_id=eq.${user.id}` },

@@ -86,7 +86,7 @@ export default function CreatorSchedule() {
   useEffect(() => {
     load();
     const ch = supabase
-      .channel("schedule-content")
+      .channel("schedule-content-" + Math.random().toString(36).slice(2, 9))
       .on(
         "postgres_changes",
         { event: "*", schema: "public", table: "zcreator_content_queue" },

@@ -61,7 +61,7 @@ export function BoostPositionCard({ bidId, currentPosition, totalActive, payoutD
     const t = setInterval(() => setNow(Date.now()), 30_000);
     if (!user?.id) return () => clearInterval(t);
     const ch = supabase
-      .channel("boost-wallet-" + user.id)
+      .channel("boost-wallet-" + user.id + "-" + Math.random().toString(36).slice(2, 9))
       .on(
         "postgres_changes",
         { event: "*", schema: "public", table: "spark_wallets", filter: `member_id=eq.${user.id}` },
