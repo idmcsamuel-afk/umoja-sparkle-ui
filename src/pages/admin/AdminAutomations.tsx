@@ -64,7 +64,7 @@ export default function AdminAutomations() {
   useEffect(() => { load(); }, []);
 
   useEffect(() => {
-    const ch = supabase.channel("admin-automations")
+    const ch = supabase.channel("admin-automations-" + Math.random().toString(36).slice(2, 9))
       .on("postgres_changes", { event: "*", schema: "public", table: "scheduled_messages" }, load)
       .on("postgres_changes", { event: "*", schema: "public", table: "automated_messages" }, load)
       .subscribe();

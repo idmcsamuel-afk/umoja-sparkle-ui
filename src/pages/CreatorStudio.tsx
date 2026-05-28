@@ -128,7 +128,7 @@ export default function CreatorStudio() {
   useEffect(() => {
     if (!user) return;
     const ch = supabase
-      .channel("zcreator_queue_" + user.id)
+      .channel("zcreator_queue_" + user.id + "_" + Math.random().toString(36).slice(2, 9))
       .on(
         "postgres_changes",
         { event: "*", schema: "public", table: "zcreator_content_queue", filter: `user_id=eq.${user.id}` },

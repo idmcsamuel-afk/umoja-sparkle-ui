@@ -156,7 +156,7 @@ export default function Community() {
   // Realtime
   useEffect(() => {
     const ch = supabase
-      .channel("community-chat")
+      .channel("community-chat-" + Math.random().toString(36).slice(2, 9))
       .on("postgres_changes", { event: "INSERT", schema: "public", table: "chat_messages" }, async (payload) => {
         const m = payload.new as ChatMsg;
         setMessages((prev) => prev.some((x) => x.id === m.id) ? prev : [...prev, m]);

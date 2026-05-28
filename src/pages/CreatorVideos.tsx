@@ -126,7 +126,7 @@ export default function CreatorVideos() {
     loadQueuePositions();
     if (!user) return;
     const ch = supabase
-      .channel("zcreator-queue-videos")
+      .channel("zcreator-queue-videos-" + Math.random().toString(36).slice(2, 9))
       .on(
         "postgres_changes",
         { event: "*", schema: "public", table: "zcreator_content_queue", filter: `user_id=eq.${user.id}` },

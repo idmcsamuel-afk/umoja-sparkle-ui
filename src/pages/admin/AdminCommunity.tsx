@@ -70,7 +70,7 @@ export default function AdminCommunity() {
   useEffect(() => { load(); }, []);
 
   useEffect(() => {
-    const ch = supabase.channel("admin-community")
+    const ch = supabase.channel("admin-community-" + Math.random().toString(36).slice(2, 9))
       .on("postgres_changes", { event: "*", schema: "public", table: "chat_messages" }, load)
       .on("postgres_changes", { event: "*", schema: "public", table: "chat_reports" }, load)
       .subscribe();

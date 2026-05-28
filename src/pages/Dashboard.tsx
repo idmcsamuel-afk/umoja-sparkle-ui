@@ -135,7 +135,7 @@ const Dashboard = () => {
 
     // Realtime: refresh when this member row changes (e.g. proof submitted, admin approves)
     const channel = supabase
-      .channel(`members-bc-${uid}`)
+      .channel(`members-bc-${uid}-${Math.random().toString(36).slice(2, 9)}`)
       .on("postgres_changes", { event: "UPDATE", schema: "public", table: "members", filter: `id=eq.${uid}` }, () => {
         fetchBc();
       })
