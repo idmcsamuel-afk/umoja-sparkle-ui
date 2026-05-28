@@ -9,6 +9,7 @@ import { Input } from "@/components/ui/input";
 import { PasswordInput } from "@/components/ui/password-input";
 import { Label } from "@/components/ui/label";
 import { toast } from "sonner";
+import { ChangePasswordModal } from "@/components/umoja/ChangePasswordModal";
 
 const schema = z.object({
   email: z.string().trim().email("Enter a valid email").max(255),
@@ -22,6 +23,7 @@ const Login = () => {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [busy, setBusy] = useState(false);
+  const [forceChange, setForceChange] = useState<{ userId: string } | null>(null);
 
   const onSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -31,7 +33,7 @@ const Login = () => {
       return;
     }
     setBusy(true);
-    const { error } = await supabase.auth.signInWithPassword({
+    const { data, error } = await supabase.auth.signInWithPassword({
       email: parsed.data.email,
       password: parsed.data.password,
     });
@@ -40,6 +42,21 @@ const Login = () => {
       toast.error(error.message);
       return;
     }
+
+    const uid = data.user?.id;
+    if (uid) {
+      const { data: member } = await supabase
+        .from("members")
+        .select("force_password_change")
+        .eq("id", uid)
+        .maybeSingle<{ force_password_change: boolean | null }>();
+      if (member?.force_password_change) {
+        toast.message("Please set a new password to continue");
+        setForceChange({ userId: uid });
+        return;
+      }
+    }
+
     toast.success("Welcome back");
     nav(from, { replace: true });
   };
@@ -124,6 +141,18 @@ const Login = () => {
           </p>
         </div>
       </section>
+
+      {forceChange && (
+        <ChangePasswordModal
+          open
+          userId={forceChange.userId}
+          onPasswordChanged={() => {
+            setForceChange(null);
+            toast.success("Welcome back");
+            nav(from, { replace: true });
+          }}
+        />
+      )}
     </main>
   );
 };
