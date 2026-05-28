@@ -45,11 +45,13 @@ const Login = () => {
 
     const uid = data.user?.id;
     if (uid) {
-      const { data: member } = await supabase
-        .from("members")
+      const { data: member } = await (supabase
+        .from("members") as unknown as {
+          select: (s: string) => { eq: (k: string, v: string) => { maybeSingle: () => Promise<{ data: { force_password_change: boolean | null } | null }> } };
+        })
         .select("force_password_change")
         .eq("id", uid)
-        .maybeSingle<{ force_password_change: boolean | null }>();
+        .maybeSingle();
       if (member?.force_password_change) {
         toast.message("Please set a new password to continue");
         setForceChange({ userId: uid });
