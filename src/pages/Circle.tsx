@@ -96,6 +96,23 @@ const Circle = () => {
   const [isAdmin, setIsAdmin] = useState(false);
   const { data: usdtRate } = useUsdtRate();
 
+  // 🔍 DEBUG: black-screen / unmount diagnostics
+  useEffect(() => {
+    console.log("[CircleDebug] MOUNTED @", new Date().toLocaleTimeString());
+    return () => console.log("[CircleDebug] UNMOUNTED @", new Date().toLocaleTimeString());
+  }, []);
+  useEffect(() => {
+    const t = setInterval(() => {
+      console.log(
+        "[CircleDebug] ✅ alive @", new Date().toLocaleTimeString(),
+        "| loading=", loading, "tiers=", tiers.length, "bids=", bids.length,
+        "| bodyChildren=", document.body.childElementCount,
+      );
+    }, 1000);
+    return () => clearInterval(t);
+  }, [loading, tiers.length, bids.length]);
+  useEffect(() => { console.log("[CircleDebug] loading →", loading); }, [loading]);
+
   useEffect(() => { ttTrack("ViewContent", { content_type: "product" }); }, []);
 
   useEffect(() => {
