@@ -527,9 +527,9 @@ const Dashboard = () => {
 
               <div className="mt-6 grid grid-cols-3 gap-3">
                 {[
-                  { k: "Circle", v: fmtCompact(totals.circle) },
-                  { k: "Spark", v: fmtCompact(totals.spark) },
-                  { k: "Drive", v: fmtCompact(totals.drive) },
+                  { k: "Circle", v: fmtLocalCompact(totals.circle) },
+                  { k: "Spark", v: fmtLocalCompact(totals.spark) },
+                  { k: "Drive", v: fmtLocalCompact(totals.drive) },
                 ].map((s) => (
                   <div key={s.k} className="rounded-2xl bg-background/15 backdrop-blur p-3">
                     <p className="text-[10px] uppercase tracking-wider text-primary-foreground/75">{s.k}</p>
