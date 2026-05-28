@@ -13,6 +13,8 @@ import { ActiveUsersBadge } from "@/components/umoja/ActiveUsersBadge";
 import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
 import { SparkBalanceWidget } from "@/components/umoja/SparkBalanceWidget";
+import { useMyCountry } from "@/hooks/useCountryConfig";
+import { formatCurrency, currencySymbol } from "@/lib/currency";
 
 interface ActivityRow {
   id: string;
@@ -56,6 +58,15 @@ const ICONS = { circle: Users, spark: Sparkles, drive: Car, predict: TrendingUp 
 
 const Dashboard = () => {
   const { member, user } = useAuth();
+  const { config } = useMyCountry();
+  const cc = config.currency_code;
+  const fmtLocal = (n: number) => formatCurrency(n, cc);
+  const fmtLocalCompact = (n: number) => {
+    const s = currencySymbol(cc);
+    if (n >= 1_000_000) return `${s}${(n / 1_000_000).toFixed(n >= 10_000_000 ? 0 : 1)}M`;
+    if (n >= 1_000) return `${s}${(n / 1_000).toFixed(n >= 10_000 ? 0 : 1)}K`;
+    return fmtLocal(n);
+  };
   const firstName = member?.full_name?.split(" ")[0] ?? "friend";
 
   const [loading, setLoading] = useState(true);
@@ -311,7 +322,7 @@ const Dashboard = () => {
   const quickActions = [
     { to: "/circle", icon: Users, label: "Circle", desc: `${counts.circle} active`, tint: "from-primary/30 to-primary/5" },
     { to: "/spark", icon: Sparkles, label: "Spark", desc: `${counts.spark} order${counts.spark === 1 ? "" : "s"}`, tint: "from-accent/30 to-accent/5" },
-    { to: "/drive", icon: Car, label: "Drive", desc: fmtCompact(totals.drive), tint: "from-primary/25 to-accent/10" },
+    { to: "/drive", icon: Car, label: "Drive", desc: fmtLocalCompact(totals.drive), tint: "from-primary/25 to-accent/10" },
     { to: "/predictor", icon: TrendingUp, label: "Predict", desc: `${counts.predict} pick${counts.predict === 1 ? "" : "s"}`, tint: "from-accent/25 to-primary/10" },
   ];
 
@@ -507,7 +518,7 @@ const Dashboard = () => {
                 {loading ? (
                   <Loader2 className="h-7 w-7 animate-spin text-primary-foreground/80" />
                 ) : (
-                  <p className="font-display text-[44px] leading-none text-primary-foreground tracking-tight">{fmtR(totalWealth)}</p>
+                  <p className="font-display text-[44px] leading-none text-primary-foreground tracking-tight">{fmtLocal(totalWealth)}</p>
                 )}
               </div>
               <div className="mt-3 inline-flex items-center gap-1.5 rounded-full bg-background/15 px-3 py-1 text-xs text-primary-foreground">
@@ -516,9 +527,9 @@ const Dashboard = () => {
 
               <div className="mt-6 grid grid-cols-3 gap-3">
                 {[
-                  { k: "Circle", v: fmtCompact(totals.circle) },
-                  { k: "Spark", v: fmtCompact(totals.spark) },
-                  { k: "Drive", v: fmtCompact(totals.drive) },
+                  { k: "Circle", v: fmtLocalCompact(totals.circle) },
+                  { k: "Spark", v: fmtLocalCompact(totals.spark) },
+                  { k: "Drive", v: fmtLocalCompact(totals.drive) },
                 ].map((s) => (
                   <div key={s.k} className="rounded-2xl bg-background/15 backdrop-blur p-3">
                     <p className="text-[10px] uppercase tracking-wider text-primary-foreground/75">{s.k}</p>
