@@ -13,6 +13,8 @@ import { ActiveUsersBadge } from "@/components/umoja/ActiveUsersBadge";
 import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
 import { SparkBalanceWidget } from "@/components/umoja/SparkBalanceWidget";
+import { useMyCountry } from "@/hooks/useCountryConfig";
+import { formatCurrency, currencySymbol } from "@/lib/currency";
 
 interface ActivityRow {
   id: string;
