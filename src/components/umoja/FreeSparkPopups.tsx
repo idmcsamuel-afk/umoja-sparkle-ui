@@ -162,7 +162,7 @@ export function FreeSparkPopups() {
 
   return (
     <Dialog open onOpenChange={(o) => { if (!o) close(); }}>
-      <DialogContent className="max-w-sm rounded-3xl border-amber-500/30 bg-gradient-to-br from-amber-950/60 to-background">
+      <DialogContent className="z-[9999] max-w-sm rounded-3xl border-amber-500/30 bg-gradient-to-br from-amber-950 to-background pointer-events-auto">
         <DialogHeader className="items-center text-center">
           <div className="mx-auto grid h-14 w-14 place-items-center rounded-2xl bg-amber-500/20 text-amber-300 mb-2">
             <Icon className="h-7 w-7" />
