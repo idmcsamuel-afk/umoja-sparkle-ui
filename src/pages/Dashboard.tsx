@@ -58,6 +58,15 @@ const ICONS = { circle: Users, spark: Sparkles, drive: Car, predict: TrendingUp 
 
 const Dashboard = () => {
   const { member, user } = useAuth();
+  const { config } = useMyCountry();
+  const cc = config.currency_code;
+  const fmtLocal = (n: number) => formatCurrency(n, cc);
+  const fmtLocalCompact = (n: number) => {
+    const s = currencySymbol(cc);
+    if (n >= 1_000_000) return `${s}${(n / 1_000_000).toFixed(n >= 10_000_000 ? 0 : 1)}M`;
+    if (n >= 1_000) return `${s}${(n / 1_000).toFixed(n >= 10_000 ? 0 : 1)}K`;
+    return fmtLocal(n);
+  };
   const firstName = member?.full_name?.split(" ")[0] ?? "friend";
 
   const [loading, setLoading] = useState(true);
