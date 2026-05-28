@@ -56,7 +56,7 @@ export default function SparkTradeOnboarding() {
         .eq("user_id", user.id)
         .eq("product", "spark_trade")
         .maybeSingle();
-      setTier((data as { tier: Tier } | null)?.tier ?? null);
+      setTier((data as unknown as { tier: Tier } | null)?.tier ?? null);
     })();
   }, [user]);
 

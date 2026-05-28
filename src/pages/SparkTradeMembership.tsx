@@ -35,7 +35,7 @@ export default function SparkTradeMembership() {
         .eq("user_id", user.id)
         .eq("product", "spark_trade")
         .maybeSingle();
-      setCurrent(data as Membership | null);
+      setCurrent(data as unknown as Membership | null);
       setLoading(false);
     })();
   }, [user]);
