@@ -4,7 +4,7 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
-import { Loader2, Search, Ban, Pause, Trash2, RotateCcw, UserPlus, Crown, Copy, Check, Sparkles } from "lucide-react";
+import { Loader2, Search, Ban, Pause, Trash2, RotateCcw, UserPlus, Crown, Copy, Check, Sparkles, KeyRound } from "lucide-react";
 import { toast } from "sonner";
 import {
   AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
@@ -69,6 +69,39 @@ export default function AdminMembers() {
   const [adjustBusy, setAdjustBusy] = useState(false);
   const [txs, setTxs] = useState<TxRow[]>([]);
   const [txsLoading, setTxsLoading] = useState(false);
+
+  // Password reset modal
+  const [resetFor, setResetFor] = useState<Row | null>(null);
+  const [resetBusy, setResetBusy] = useState(false);
+  const [resetTempPwd, setResetTempPwd] = useState<string>("");
+  const [resetCopied, setResetCopied] = useState(false);
+
+  const generatePassword = async () => {
+    if (!resetFor) return;
+    setResetBusy(true);
+    const { data, error } = await supabase.functions.invoke("admin-reset-user-password", {
+      body: { userId: resetFor.id },
+    });
+    setResetBusy(false);
+    if (error || (data as { error?: string })?.error) {
+      return toast.error((data as { error?: string })?.error || error?.message || "Reset failed");
+    }
+    setResetTempPwd((data as { temp_password: string }).temp_password);
+  };
+
+  const copyTempPwd = async () => {
+    try {
+      await navigator.clipboard.writeText(resetTempPwd);
+      setResetCopied(true);
+      window.setTimeout(() => setResetCopied(false), 1500);
+    } catch { toast.error("Could not copy"); }
+  };
+
+  const closeReset = () => {
+    setResetFor(null);
+    setResetTempPwd("");
+    setResetCopied(false);
+  };
 
   const refCounts = useMemo(() => {
     const c = new Map<string, number>();
@@ -301,6 +334,9 @@ export default function AdminMembers() {
                         </Button>
                         <Button size="sm" variant="outline" className="h-8 px-2" title="Assign referrer" onClick={() => setAssignFor(r)}>
                           <UserPlus className="h-3.5 w-3.5" />
+                        </Button>
+                        <Button size="sm" variant="outline" className="h-8 px-2" title="Reset password" onClick={() => { setResetFor(r); setResetTempPwd(""); }}>
+                          <KeyRound className="h-3.5 w-3.5 text-accent" />
                         </Button>
                         {s !== "active" && (
                           <Button size="sm" variant="outline" className="h-8 px-2" onClick={() => setConfirm({ row: r, action: "active" })}>
