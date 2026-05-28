@@ -35,6 +35,7 @@ function fmtHM(ms: number) {
 }
 
 export function BoostPositionCard({ bidId, currentPosition, totalActive, payoutDate, onBoosted }: Props) {
+  const { user } = useAuth();
   const [bid, setBid] = useState<BidRow | null>(null);
   const [wallet, setWallet] = useState<Wallet | null>(null);
   const [busy, setBusy] = useState(false);
@@ -42,11 +43,13 @@ export function BoostPositionCard({ bidId, currentPosition, totalActive, payoutD
   const [last, setLast] = useState<{ before: number; after: number; payoutDays?: number } | null>(null);
 
   const load = async () => {
+    if (!user?.id) return;
     const [b, w] = await Promise.all([
       supabase.from("circle_bids").select("boost_count,last_boost_at,priority_score").eq("id", bidId).maybeSingle(),
       supabase
         .from("spark_wallets")
         .select("earned_balance,purchased_balance,promotional_balance,promo_expires_at")
+        .eq("member_id", user.id)
         .maybeSingle(),
     ]);
     if (b.data) setBid(b.data as any);
@@ -56,8 +59,22 @@ export function BoostPositionCard({ bidId, currentPosition, totalActive, payoutD
   useEffect(() => {
     load();
     const t = setInterval(() => setNow(Date.now()), 30_000);
-    return () => clearInterval(t);
-  }, [bidId]);
+    if (!user?.id) return () => clearInterval(t);
+    const ch = supabase
+      .channel("boost-wallet-" + user.id)
+      .on(
+        "postgres_changes",
+        { event: "*", schema: "public", table: "spark_wallets", filter: `member_id=eq.${user.id}` },
+        () => load(),
+      )
+      .subscribe();
+    return () => {
+      clearInterval(t);
+      supabase.removeChannel(ch);
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [bidId, user?.id]);
+
 
   if (!bid) return null;
 
