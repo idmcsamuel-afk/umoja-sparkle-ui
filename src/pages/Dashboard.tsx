@@ -322,7 +322,7 @@ const Dashboard = () => {
   const quickActions = [
     { to: "/circle", icon: Users, label: "Circle", desc: `${counts.circle} active`, tint: "from-primary/30 to-primary/5" },
     { to: "/spark", icon: Sparkles, label: "Spark", desc: `${counts.spark} order${counts.spark === 1 ? "" : "s"}`, tint: "from-accent/30 to-accent/5" },
-    { to: "/drive", icon: Car, label: "Drive", desc: fmtCompact(totals.drive), tint: "from-primary/25 to-accent/10" },
+    { to: "/drive", icon: Car, label: "Drive", desc: fmtLocalCompact(totals.drive), tint: "from-primary/25 to-accent/10" },
     { to: "/predictor", icon: TrendingUp, label: "Predict", desc: `${counts.predict} pick${counts.predict === 1 ? "" : "s"}`, tint: "from-accent/25 to-primary/10" },
   ];
 
