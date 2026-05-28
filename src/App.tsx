@@ -91,6 +91,8 @@ import CreatorSchedule from "./pages/CreatorSchedule.tsx";
 import CreatorAnalytics from "./pages/CreatorAnalytics.tsx";
 import CreatorSubscription from "./pages/CreatorSubscription.tsx";
 import Learn from "./pages/Learn.tsx";
+import SparkTradeMembership from "./pages/SparkTradeMembership.tsx";
+import SparkTradeOnboarding from "./pages/SparkTradeOnboarding.tsx";
 
 const queryClient = new QueryClient();
 
@@ -130,6 +132,8 @@ const App = () => (
                 <Route path="/trending" element={<ProtectedRoute><Trending /></ProtectedRoute>} />
                 <Route path="/circle" element={<ProtectedRoute><Circle /></ProtectedRoute>} />
                 <Route path="/spark" element={<ProtectedRoute><SparkTrade /></ProtectedRoute>} />
+                <Route path="/spark-trade/membership" element={<ProtectedRoute><SparkTradeMembership /></ProtectedRoute>} />
+                <Route path="/spark-trade/onboarding" element={<ProtectedRoute><SparkTradeOnboarding /></ProtectedRoute>} />
                 <Route path="/drive" element={<ProtectedRoute><Drive /></ProtectedRoute>} />
                 <Route path="/drive/dashboard" element={<ProtectedRoute><DriveDashboard /></ProtectedRoute>} />
                 <Route path="/predictor" element={<ProtectedRoute><Predictor /></ProtectedRoute>} />
