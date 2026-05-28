@@ -7,7 +7,8 @@ import { Button } from "@/components/ui/button";
 import { Logo } from "@/components/umoja/Logo";
 import { BottomNav } from "@/components/umoja/BottomNav";
 import { toast } from "sonner";
-import { useMyCountry, fmtMoney } from "@/hooks/useCountryConfig";
+import { useMyCountry } from "@/hooks/useCountryConfig";
+import { formatTierPrice, calculateTierPrice, formatCurrency } from "@/lib/currency";
 
 type Tier = "buyers_club" | "storefront" | "fulfilled_by_umoja";
 
