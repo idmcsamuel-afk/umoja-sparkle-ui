@@ -177,91 +177,103 @@ export default function SparkTradeMembership() {
               )}
 
               <div className="mt-6 space-y-4">
-                {/* Card 1: Buyers Club */}
-                <TierCard
-                  icon={<Sparkles className="h-5 w-5" />}
-                  title="Buyers Club"
-                  badge="All countries"
-                  priceLines={[formatTierPrice("buyers_club", config.currency_code) ?? "Coming soon"]}
-                  features={[
-                    "Buy wholesale with group",
-                    "200+ vetted products",
-                    "Real-time profit calculator",
-                    "Weekly payouts",
-                  ]}
-                  cta={current?.tier === "buyers_club" ? "Active" : "Get Started"}
-                  disabled={current?.tier === "buyers_club"}
-                  busy={busyTier === "buyers_club"}
-                  onClick={() => upgrade("buyers_club")}
-                />
+                {(() => {
+                  const localCcy = config.currency_code;
+                  const payCcy = PAYSTACK_SUPPORTED.has(localCcy) ? localCcy : "ZAR";
+                  const bcPrice = formatTierPrice("buyers_club", payCcy);
+                  const sfPrice = formatTierPrice("storefront", payCcy);
+                  const fulPrice = formatTierPrice("fulfilled", "ZAR");
+                  const ctaFor = (tier: Tier, label: string, price: string | null) =>
+                    current?.tier === tier ? "Active" : price ? `${label} — ${price}` : label;
+                  return (
+                    <>
+                      <TierCard
+                        icon={<Sparkles className="h-5 w-5" />}
+                        title="Buyers Club"
+                        badge="All countries"
+                        priceLines={[formatTierPrice("buyers_club", config.currency_code) ?? "Coming soon"]}
+                        features={[
+                          "Buy wholesale with group",
+                          "200+ vetted products",
+                          "Real-time profit calculator",
+                          "Weekly payouts",
+                        ]}
+                        cta={ctaFor("buyers_club", current ? "Switch to Buyers Club" : "Join Buyers Club", bcPrice)}
+                        disabled={current?.tier === "buyers_club"}
+                        busy={busyTier === "buyers_club"}
+                        onClick={() => upgrade("buyers_club")}
+                      />
 
-                {/* Card 2: Storefront */}
-                <TierCard
-                  icon={<Store className="h-5 w-5" />}
-                  title="Storefront + Buyers Club"
-                  badge="All countries"
-                  highlight
-                  priceLines={[formatTierPrice("storefront", config.currency_code) ?? "Coming soon"]}
-                  features={[
-                    "Everything in Buyers Club",
-                    "AI-powered personal storefront",
-                    "Auto-load products you buy",
-                    "AI generates listings",
-                    "AI auto-markets (social, email, WhatsApp)",
-                    "88% payout on sales (sliding 12–8% commission)",
-                    "Weekly payouts",
-                    "You ship directly (no fulfilment by us yet)",
-                  ]}
-                  profitExample={(() => {
-                    const buy = calculateTierPrice("buyers_club", config.currency_code);
-                    const unit = Math.round((buy ?? 499) * 0.09);
-                    const sell = unit * 4;
-                    const rev = sell * 50;
-                    const cost = unit * 50;
-                    const cut = Math.round(rev * 0.88);
-                    const profit = cut - cost;
-                    const margin = Math.round((profit / rev) * 100);
-                    return [
-                      `Buy 50 units @ ${formatCurrency(unit, config.currency_code)} = ${formatCurrency(cost, config.currency_code)}`,
-                      `Sell for ${formatCurrency(sell, config.currency_code)} each = ${formatCurrency(rev, config.currency_code)} revenue`,
-                      `Your cut: 88% = ${formatCurrency(cut, config.currency_code)}`,
-                      `Profit: ${formatCurrency(profit, config.currency_code)} (${margin}% margin)`,
-                    ];
-                  })()}
-                  cta={current?.tier === "storefront" ? "Active" : (current ? "Upgrade" : "Start Free Trial")}
-                  disabled={current?.tier === "storefront"}
-                  busy={busyTier === "storefront"}
-                  onClick={() => upgrade("storefront")}
-                />
+                      <TierCard
+                        icon={<Store className="h-5 w-5" />}
+                        title="Storefront + Buyers Club"
+                        badge="All countries"
+                        highlight
+                        priceLines={[formatTierPrice("storefront", config.currency_code) ?? "Coming soon"]}
+                        features={[
+                          "Everything in Buyers Club",
+                          "AI-powered personal storefront",
+                          "Auto-load products you buy",
+                          "AI generates listings",
+                          "AI auto-markets (social, email, WhatsApp)",
+                          "88% payout on sales (sliding 12–8% commission)",
+                          "Weekly payouts",
+                          "You ship directly (no fulfilment by us yet)",
+                        ]}
+                        profitExample={(() => {
+                          const buy = calculateTierPrice("buyers_club", config.currency_code);
+                          const unit = Math.round((buy ?? 499) * 0.09);
+                          const sell = unit * 4;
+                          const rev = sell * 50;
+                          const cost = unit * 50;
+                          const cut = Math.round(rev * 0.88);
+                          const profit = cut - cost;
+                          const margin = Math.round((profit / rev) * 100);
+                          return [
+                            `Buy 50 units @ ${formatCurrency(unit, config.currency_code)} = ${formatCurrency(cost, config.currency_code)}`,
+                            `Sell for ${formatCurrency(sell, config.currency_code)} each = ${formatCurrency(rev, config.currency_code)} revenue`,
+                            `Your cut: 88% = ${formatCurrency(cut, config.currency_code)}`,
+                            `Profit: ${formatCurrency(profit, config.currency_code)} (${margin}% margin)`,
+                          ];
+                        })()}
+                        cta={ctaFor("storefront", "Upgrade to Storefront", sfPrice)}
+                        disabled={current?.tier === "storefront"}
+                        busy={busyTier === "storefront"}
+                        onClick={() => upgrade("storefront")}
+                      />
 
-                {/* Card 3: Fulfilled by UMOJA — SA only */}
-                {isSA ? (
-                  <TierCard
-                    icon={<Truck className="h-5 w-5" />}
-                    title="Fulfilled by UMOJA + Storefront + Club"
-                    badge="South Africa only"
-                    priceLines={[formatTierPrice("fulfilled", "ZAR")!]}
-                    features={[
-                      "Everything in Storefront",
-                      "UMOJA handles fulfilment (packing, courier, returns)",
-                      "70% payout on sales (30% covers logistics)",
-                      "Weekly payouts",
-                      "Zero shipping work — we ship everything",
-                      "Real-time customer tracking",
-                      "Delivery photo proof",
-                    ]}
-                    profitExample={[
-                      "Buy 50 units @ R45 = R2,250",
-                      "Sell for R180 = R9,000 revenue",
-                      "We take 30% (fulfilment) = R2,700",
-                      "You keep 70% = R6,300",
-                      "Your profit: R4,050 (45% margin) — we ship",
-                    ]}
-                    cta={current?.tier === "fulfilled_by_umoja" ? "Active" : "Upgrade to Fulfilled"}
-                    disabled={current?.tier === "fulfilled_by_umoja"}
-                    busy={busyTier === "fulfilled_by_umoja"}
-                    onClick={() => upgrade("fulfilled_by_umoja")}
-                  />
+                      {isSA ? (
+                        <TierCard
+                          icon={<Truck className="h-5 w-5" />}
+                          title="Fulfilled by UMOJA + Storefront + Club"
+                          badge="South Africa only"
+                          priceLines={[formatTierPrice("fulfilled", "ZAR")!]}
+                          features={[
+                            "Everything in Storefront",
+                            "UMOJA handles fulfilment (packing, courier, returns)",
+                            "70% payout on sales (30% covers logistics)",
+                            "Weekly payouts",
+                            "Zero shipping work — we ship everything",
+                            "Real-time customer tracking",
+                            "Delivery photo proof",
+                          ]}
+                          profitExample={[
+                            "Buy 50 units @ R45 = R2,250",
+                            "Sell for R180 = R9,000 revenue",
+                            "We take 30% (fulfilment) = R2,700",
+                            "You keep 70% = R6,300",
+                            "Your profit: R4,050 (45% margin) — we ship",
+                          ]}
+                          cta={ctaFor("fulfilled_by_umoja", "Upgrade to Fulfilled", fulPrice)}
+                          disabled={current?.tier === "fulfilled_by_umoja"}
+                          busy={busyTier === "fulfilled_by_umoja"}
+                          onClick={() => upgrade("fulfilled_by_umoja")}
+                        />
+                      ) : null}
+                    </>
+                  );
+                })()}
+
                 ) : (
                   <div className="rounded-3xl border border-dashed border-border bg-secondary/30 p-5 text-center">
                     <Truck className="mx-auto h-5 w-5 text-muted-foreground" />
