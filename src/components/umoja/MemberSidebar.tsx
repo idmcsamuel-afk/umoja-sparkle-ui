@@ -18,6 +18,7 @@ const main = [
   { to: "/community", label: "Community", icon: MessageCircle },
   { to: "/priority", label: "Priority Queue", icon: Trophy },
   { to: "/spark", label: "Spark Trade", icon: Sparkles, tour: "spark-trade" },
+  { to: "/spark-trade/membership", label: "ST Membership", icon: Sparkles },
   { to: "/trending", label: "Trending 🔥", icon: Flame },
   { to: "/market", label: "Market", icon: Store },
   { to: "/exchange", label: "Exchange", icon: ArrowLeftRight },

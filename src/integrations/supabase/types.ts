@@ -316,6 +316,39 @@ export type Database = {
           },
         ]
       }
+      ai_preferences: {
+        Row: {
+          auto_email_campaigns: boolean
+          auto_generate_listings: boolean
+          auto_optimize_pricing: boolean
+          auto_social_posts: boolean
+          created_at: string
+          id: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          auto_email_campaigns?: boolean
+          auto_generate_listings?: boolean
+          auto_optimize_pricing?: boolean
+          auto_social_posts?: boolean
+          created_at?: string
+          id?: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          auto_email_campaigns?: boolean
+          auto_generate_listings?: boolean
+          auto_optimize_pricing?: boolean
+          auto_social_posts?: boolean
+          created_at?: string
+          id?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       ai_scheduled_posts: {
         Row: {
           created_at: string
@@ -1444,6 +1477,7 @@ export type Database = {
           harvest_min: number
           id: string
           max_monthly_contribution: number | null
+          monthly_price: number | null
           payment_gateways: Json
           requires_kyc: boolean
           seed_max: number
@@ -1463,6 +1497,7 @@ export type Database = {
           harvest_min: number
           id?: string
           max_monthly_contribution?: number | null
+          monthly_price?: number | null
           payment_gateways?: Json
           requires_kyc?: boolean
           seed_max: number
@@ -1482,6 +1517,7 @@ export type Database = {
           harvest_min?: number
           id?: string
           max_monthly_contribution?: number | null
+          monthly_price?: number | null
           payment_gateways?: Json
           requires_kyc?: boolean
           seed_max?: number
@@ -2515,6 +2551,45 @@ export type Database = {
           status?: string
           takealot_seller_id?: string | null
           updated_at?: string
+        }
+        Relationships: []
+      }
+      fulfillment_config: {
+        Row: {
+          base_rate: number | null
+          created_at: string
+          estimated_cost_per_unit: number | null
+          handling_fee: number | null
+          id: string
+          raw_response: Json | null
+          roboost_zone: string | null
+          updated_at: string
+          user_id: string
+          weight_surcharge: number | null
+        }
+        Insert: {
+          base_rate?: number | null
+          created_at?: string
+          estimated_cost_per_unit?: number | null
+          handling_fee?: number | null
+          id?: string
+          raw_response?: Json | null
+          roboost_zone?: string | null
+          updated_at?: string
+          user_id: string
+          weight_surcharge?: number | null
+        }
+        Update: {
+          base_rate?: number | null
+          created_at?: string
+          estimated_cost_per_unit?: number | null
+          handling_fee?: number | null
+          id?: string
+          raw_response?: Json | null
+          roboost_zone?: string | null
+          updated_at?: string
+          user_id?: string
+          weight_surcharge?: number | null
         }
         Relationships: []
       }
@@ -4199,6 +4274,42 @@ export type Database = {
         }
         Relationships: []
       }
+      product_memberships: {
+        Row: {
+          created_at: string
+          id: string
+          membership_start_date: string
+          next_payment_date: string | null
+          product: string
+          status: string
+          tier: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          membership_start_date?: string
+          next_payment_date?: string | null
+          product: string
+          status?: string
+          tier: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          membership_start_date?: string
+          next_payment_date?: string | null
+          product?: string
+          status?: string
+          tier?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       properties: {
         Row: {
           assembly_complete_date: string | null
@@ -5190,6 +5301,39 @@ export type Database = {
           units_sold_30d?: number | null
           week_of?: string
           wholesale_price?: number
+        }
+        Relationships: []
+      }
+      storefront_accounts: {
+        Row: {
+          brand_color: string | null
+          created_at: string
+          id: string
+          name: string
+          slug: string
+          tagline: string | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          brand_color?: string | null
+          created_at?: string
+          id?: string
+          name: string
+          slug: string
+          tagline?: string | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          brand_color?: string | null
+          created_at?: string
+          id?: string
+          name?: string
+          slug?: string
+          tagline?: string | null
+          updated_at?: string
+          user_id?: string
         }
         Relationships: []
       }
@@ -6232,6 +6376,7 @@ export type Database = {
         Returns: undefined
       }
       is_admin: { Args: { _uid: string }; Returns: boolean }
+      is_admin_user: { Args: never; Returns: boolean }
       join_spark_trade: { Args: { _id: string }; Returns: undefined }
       lookup_referrer: {
         Args: { _code: string }
