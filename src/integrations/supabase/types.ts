@@ -3625,6 +3625,7 @@ export type Database = {
           email: string | null
           email_preferences: Json
           first_contribution_at: string | null
+          force_password_change: boolean
           full_name: string
           has_buyers_club_access: boolean
           has_contributed: boolean
@@ -3643,7 +3644,10 @@ export type Database = {
           kyc_status: string | null
           kyc_submitted_at: string | null
           kyc_verified_at: string | null
+          last_password_changed: string | null
           last_seen_at: string | null
+          password_reset_at: string | null
+          password_reset_by: string | null
           paystack_customer_code: string | null
           paystack_plan_code: string | null
           paystack_reference: string | null
@@ -3696,6 +3700,7 @@ export type Database = {
           email?: string | null
           email_preferences?: Json
           first_contribution_at?: string | null
+          force_password_change?: boolean
           full_name: string
           has_buyers_club_access?: boolean
           has_contributed?: boolean
@@ -3714,7 +3719,10 @@ export type Database = {
           kyc_status?: string | null
           kyc_submitted_at?: string | null
           kyc_verified_at?: string | null
+          last_password_changed?: string | null
           last_seen_at?: string | null
+          password_reset_at?: string | null
+          password_reset_by?: string | null
           paystack_customer_code?: string | null
           paystack_plan_code?: string | null
           paystack_reference?: string | null
@@ -3767,6 +3775,7 @@ export type Database = {
           email?: string | null
           email_preferences?: Json
           first_contribution_at?: string | null
+          force_password_change?: boolean
           full_name?: string
           has_buyers_club_access?: boolean
           has_contributed?: boolean
@@ -3785,7 +3794,10 @@ export type Database = {
           kyc_status?: string | null
           kyc_submitted_at?: string | null
           kyc_verified_at?: string | null
+          last_password_changed?: string | null
           last_seen_at?: string | null
+          password_reset_at?: string | null
+          password_reset_by?: string | null
           paystack_customer_code?: string | null
           paystack_plan_code?: string | null
           paystack_reference?: string | null
