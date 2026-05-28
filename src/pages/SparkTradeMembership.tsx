@@ -8,7 +8,10 @@ import { Logo } from "@/components/umoja/Logo";
 import { BottomNav } from "@/components/umoja/BottomNav";
 import { toast } from "sonner";
 import { useMyCountry } from "@/hooks/useCountryConfig";
-import { formatTierPrice, calculateTierPrice, formatCurrency } from "@/lib/currency";
+import { formatTierPrice, calculateTierPrice, formatCurrency, basePricesZAR } from "@/lib/currency";
+import { usePaystack, buildReference } from "@/hooks/usePaystack";
+
+const PAYSTACK_SUPPORTED = new Set(["NGN", "ZAR", "KES", "GHS", "USD"]);
 
 type Tier = "buyers_club" | "storefront" | "fulfilled_by_umoja";
 
