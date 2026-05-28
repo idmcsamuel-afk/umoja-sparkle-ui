@@ -4,7 +4,7 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
-import { Loader2, Search, Ban, Pause, Trash2, RotateCcw, UserPlus, Crown, Copy, Check, Sparkles } from "lucide-react";
+import { Loader2, Search, Ban, Pause, Trash2, RotateCcw, UserPlus, Crown, Copy, Check, Sparkles, KeyRound } from "lucide-react";
 import { toast } from "sonner";
 import {
   AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
@@ -69,6 +69,39 @@ export default function AdminMembers() {
   const [adjustBusy, setAdjustBusy] = useState(false);
   const [txs, setTxs] = useState<TxRow[]>([]);
   const [txsLoading, setTxsLoading] = useState(false);
+
+  // Password reset modal
+  const [resetFor, setResetFor] = useState<Row | null>(null);
+  const [resetBusy, setResetBusy] = useState(false);
+  const [resetTempPwd, setResetTempPwd] = useState<string>("");
+  const [resetCopied, setResetCopied] = useState(false);
+
+  const generatePassword = async () => {
+    if (!resetFor) return;
+    setResetBusy(true);
+    const { data, error } = await supabase.functions.invoke("admin-reset-user-password", {
+      body: { userId: resetFor.id },
+    });
+    setResetBusy(false);
+    if (error || (data as { error?: string })?.error) {
+      return toast.error((data as { error?: string })?.error || error?.message || "Reset failed");
+    }
+    setResetTempPwd((data as { temp_password: string }).temp_password);
+  };
+
+  const copyTempPwd = async () => {
+    try {
+      await navigator.clipboard.writeText(resetTempPwd);
+      setResetCopied(true);
+      window.setTimeout(() => setResetCopied(false), 1500);
+    } catch { toast.error("Could not copy"); }
+  };
+
+  const closeReset = () => {
+    setResetFor(null);
+    setResetTempPwd("");
+    setResetCopied(false);
+  };
 
   const refCounts = useMemo(() => {
     const c = new Map<string, number>();
@@ -302,6 +335,9 @@ export default function AdminMembers() {
                         <Button size="sm" variant="outline" className="h-8 px-2" title="Assign referrer" onClick={() => setAssignFor(r)}>
                           <UserPlus className="h-3.5 w-3.5" />
                         </Button>
+                        <Button size="sm" variant="outline" className="h-8 px-2" title="Reset password" onClick={() => { setResetFor(r); setResetTempPwd(""); }}>
+                          <KeyRound className="h-3.5 w-3.5 text-accent" />
+                        </Button>
                         {s !== "active" && (
                           <Button size="sm" variant="outline" className="h-8 px-2" onClick={() => setConfirm({ row: r, action: "active" })}>
                             <RotateCcw className="h-3.5 w-3.5" />
@@ -446,6 +482,66 @@ export default function AdminMembers() {
               })}
             </div>
           </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Password Reset */}
+      <Dialog open={!!resetFor} onOpenChange={(o) => { if (!o) closeReset(); }}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle>Reset password</DialogTitle>
+            <DialogDescription>
+              {resetFor && (
+                <>Generate a temporary password for <b>{resetFor.full_name}</b> ({resetFor.email}). They will be forced to choose a new password on their next login.</>
+              )}
+            </DialogDescription>
+          </DialogHeader>
+
+          {!resetTempPwd ? (
+            <div className="space-y-4">
+              <ul className="text-sm text-muted-foreground space-y-1 list-disc pl-5">
+                <li>Generates a 12-character temporary password</li>
+                <li>Their current password stops working immediately</li>
+                <li>They must set a new password on next sign-in</li>
+                <li>Action is recorded in the admin audit log</li>
+              </ul>
+              <div className="flex justify-end gap-2">
+                <Button variant="outline" onClick={closeReset} disabled={resetBusy}>Cancel</Button>
+                <Button onClick={generatePassword} disabled={resetBusy} className="bg-gradient-primary text-primary-foreground">
+                  {resetBusy ? <Loader2 className="h-4 w-4 animate-spin" /> : "Generate temporary password"}
+                </Button>
+              </div>
+            </div>
+          ) : (
+            <div className="space-y-4">
+              <div className="rounded-2xl border border-accent/30 bg-accent/5 p-4">
+                <div className="text-[10px] uppercase tracking-[0.18em] text-muted-foreground">Temporary password</div>
+                <div className="mt-2 flex items-center gap-2">
+                  <code className="flex-1 font-mono text-lg tracking-wider bg-secondary/60 rounded-xl px-3 py-2 break-all">{resetTempPwd}</code>
+                  <Button variant="outline" size="sm" onClick={copyTempPwd}>
+                    {resetCopied ? <><Check className="h-3.5 w-3.5 mr-1 text-accent" /> Copied</> : <><Copy className="h-3.5 w-3.5 mr-1" /> Copy</>}
+                  </Button>
+                </div>
+                <p className="mt-2 text-xs text-muted-foreground">
+                  Share this securely with {resetFor?.full_name}. They will be required to change it on first sign-in.
+                </p>
+              </div>
+
+              <div>
+                <Label className="text-xs uppercase tracking-[0.18em] text-muted-foreground">Manual message</Label>
+                <textarea
+                  readOnly
+                  value={`Hi ${resetFor?.full_name ?? ""},\n\nYour UMOJA password has been reset by an administrator.\n\nTemporary password: ${resetTempPwd}\n\nSign in here: ${window.location.origin}/login\nYou'll be asked to choose a new password immediately.\n\n— UMOJA Team`}
+                  className="mt-2 w-full h-40 rounded-2xl bg-secondary/60 border border-border p-3 text-xs font-mono"
+                  onFocus={(e) => e.currentTarget.select()}
+                />
+              </div>
+
+              <div className="flex justify-end">
+                <Button onClick={closeReset} className="bg-gradient-primary text-primary-foreground">Done</Button>
+              </div>
+            </div>
+          )}
         </DialogContent>
       </Dialog>
     </div>
