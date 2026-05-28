@@ -126,10 +126,7 @@ export default function SparkTradeMembership() {
                   icon={<Sparkles className="h-5 w-5" />}
                   title="Buyers Club"
                   badge="All countries"
-                  priceLines={[
-                    `${fmtMoney(monthly / 2, config)} one-time`,
-                    `or ${fmtMoney(monthly / 2, config)}/month`,
-                  ]}
+                  priceLines={[formatTierPrice("buyers_club", config.currency_code) ?? "Coming soon"]}
                   features={[
                     "Buy wholesale with group",
                     "200+ vetted products",
@@ -148,7 +145,7 @@ export default function SparkTradeMembership() {
                   title="Storefront + Buyers Club"
                   badge="All countries"
                   highlight
-                  priceLines={[`${sym}${monthly.toLocaleString("en-US")}/month`]}
+                  priceLines={[formatTierPrice("storefront", config.currency_code) ?? "Coming soon"]}
                   features={[
                     "Everything in Buyers Club",
                     "AI-powered personal storefront",
@@ -159,12 +156,22 @@ export default function SparkTradeMembership() {
                     "Weekly payouts",
                     "You ship directly (no fulfilment by us yet)",
                   ]}
-                  profitExample={[
-                    `Buy 50 units @ ${sym}45 = ${sym}2,250`,
-                    `Sell for ${sym}180 each = ${sym}9,000 revenue`,
-                    `Your cut: 88% = ${sym}7,920`,
-                    `Profit: ${sym}5,670 (65% margin)`,
-                  ]}
+                  profitExample={(() => {
+                    const buy = calculateTierPrice("buyers_club", config.currency_code);
+                    const unit = Math.round((buy ?? 499) * 0.09);
+                    const sell = unit * 4;
+                    const rev = sell * 50;
+                    const cost = unit * 50;
+                    const cut = Math.round(rev * 0.88);
+                    const profit = cut - cost;
+                    const margin = Math.round((profit / rev) * 100);
+                    return [
+                      `Buy 50 units @ ${formatCurrency(unit, config.currency_code)} = ${formatCurrency(cost, config.currency_code)}`,
+                      `Sell for ${formatCurrency(sell, config.currency_code)} each = ${formatCurrency(rev, config.currency_code)} revenue`,
+                      `Your cut: 88% = ${formatCurrency(cut, config.currency_code)}`,
+                      `Profit: ${formatCurrency(profit, config.currency_code)} (${margin}% margin)`,
+                    ];
+                  })()}
                   cta={current?.tier === "storefront" ? "Active" : (current ? "Upgrade" : "Start Free Trial")}
                   disabled={current?.tier === "storefront"}
                   busy={busyTier === "storefront"}
@@ -172,12 +179,12 @@ export default function SparkTradeMembership() {
                 />
 
                 {/* Card 3: Fulfilled by UMOJA — SA only */}
-                {isSA && (
+                {isSA ? (
                   <TierCard
                     icon={<Truck className="h-5 w-5" />}
                     title="Fulfilled by UMOJA + Storefront + Club"
                     badge="South Africa only"
-                    priceLines={["R1,999/month"]}
+                    priceLines={[formatTierPrice("fulfilled", "ZAR")!]}
                     features={[
                       "Everything in Storefront",
                       "UMOJA handles fulfilment (packing, courier, returns)",
