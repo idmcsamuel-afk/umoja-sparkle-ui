@@ -72,8 +72,7 @@ export default function SparkTradeMembership() {
     }
   };
 
-  const monthly = Number(config.monthly_price ?? 999);
-  const sym = config.currency_symbol;
+  // pricing comes from src/lib/currency (ZAR base * exchange rate)
   const isSA = config.country_code === "ZA";
   const tierLabel: Record<Tier, string> = {
     buyers_club: "Buyers Club",
