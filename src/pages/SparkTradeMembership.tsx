@@ -206,6 +206,12 @@ export default function SparkTradeMembership() {
                     busy={busyTier === "fulfilled_by_umoja"}
                     onClick={() => upgrade("fulfilled_by_umoja")}
                   />
+                ) : (
+                  <div className="rounded-3xl border border-dashed border-border bg-secondary/30 p-5 text-center">
+                    <Truck className="mx-auto h-5 w-5 text-muted-foreground" />
+                    <p className="mt-2 font-display text-base">Fulfilled by UMOJA</p>
+                    <p className="text-xs text-muted-foreground">Available in SA only</p>
+                  </div>
                 )}
               </div>
             </>
