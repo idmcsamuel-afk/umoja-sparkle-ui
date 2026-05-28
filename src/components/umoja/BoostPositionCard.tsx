@@ -2,7 +2,9 @@ import { useEffect, useState } from "react";
 import { Rocket, Loader2, Clock, Sparkles } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { supabase } from "@/integrations/supabase/client";
+import { useAuth } from "@/hooks/useAuth";
 import { toast } from "sonner";
+
 
 interface BidRow {
   boost_count: number;
