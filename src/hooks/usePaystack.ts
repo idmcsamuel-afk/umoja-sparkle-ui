@@ -31,6 +31,7 @@ export interface PaystackPaymentArgs {
   reference: string;
   metadata?: Record<string, any>;
   plan?: string;
+  currency?: string; // defaults to ZAR; pass NGN, KES, GHS, USD for local-currency charges
 }
 
 export function usePaystack() {
