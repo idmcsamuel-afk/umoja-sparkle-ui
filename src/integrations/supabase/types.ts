@@ -3691,6 +3691,7 @@ export type Database = {
           community_score: number
           consistency_score: number
           contribution_volume_score: number
+          country: string | null
           country_code: string
           created_at: string | null
           currency_code: string
@@ -3701,12 +3702,14 @@ export type Database = {
           email_preferences: Json
           first_contribution_at: string | null
           force_password_change: boolean
+          fulfillment_partner_available: boolean | null
           full_name: string
           has_buyers_club_access: boolean
           has_contributed: boolean
           id: string
           id_number: string | null
           is_active: boolean | null
+          is_international: boolean | null
           kyc_document_url: string | null
           kyc_last_reminder_at: string | null
           kyc_level: number
@@ -3721,6 +3724,7 @@ export type Database = {
           kyc_verified_at: string | null
           last_password_changed: string | null
           last_seen_at: string | null
+          marketplace_preference: string | null
           password_reset_at: string | null
           password_reset_by: string | null
           paystack_customer_code: string | null
@@ -3766,6 +3770,7 @@ export type Database = {
           community_score?: number
           consistency_score?: number
           contribution_volume_score?: number
+          country?: string | null
           country_code?: string
           created_at?: string | null
           currency_code?: string
@@ -3776,12 +3781,14 @@ export type Database = {
           email_preferences?: Json
           first_contribution_at?: string | null
           force_password_change?: boolean
+          fulfillment_partner_available?: boolean | null
           full_name: string
           has_buyers_club_access?: boolean
           has_contributed?: boolean
           id?: string
           id_number?: string | null
           is_active?: boolean | null
+          is_international?: boolean | null
           kyc_document_url?: string | null
           kyc_last_reminder_at?: string | null
           kyc_level?: number
@@ -3796,6 +3803,7 @@ export type Database = {
           kyc_verified_at?: string | null
           last_password_changed?: string | null
           last_seen_at?: string | null
+          marketplace_preference?: string | null
           password_reset_at?: string | null
           password_reset_by?: string | null
           paystack_customer_code?: string | null
@@ -3841,6 +3849,7 @@ export type Database = {
           community_score?: number
           consistency_score?: number
           contribution_volume_score?: number
+          country?: string | null
           country_code?: string
           created_at?: string | null
           currency_code?: string
@@ -3851,12 +3860,14 @@ export type Database = {
           email_preferences?: Json
           first_contribution_at?: string | null
           force_password_change?: boolean
+          fulfillment_partner_available?: boolean | null
           full_name?: string
           has_buyers_club_access?: boolean
           has_contributed?: boolean
           id?: string
           id_number?: string | null
           is_active?: boolean | null
+          is_international?: boolean | null
           kyc_document_url?: string | null
           kyc_last_reminder_at?: string | null
           kyc_level?: number
@@ -3871,6 +3882,7 @@ export type Database = {
           kyc_verified_at?: string | null
           last_password_changed?: string | null
           last_seen_at?: string | null
+          marketplace_preference?: string | null
           password_reset_at?: string | null
           password_reset_by?: string | null
           paystack_customer_code?: string | null
@@ -4271,6 +4283,69 @@ export type Database = {
           sparks_cost?: number | null
           sparks_reward?: number | null
           status?: string | null
+        }
+        Relationships: []
+      }
+      product_feeds: {
+        Row: {
+          ai_confidence: number | null
+          ai_score: number | null
+          category: string | null
+          country: string
+          created_at: string
+          id: string
+          local_competition_count: number | null
+          local_marketplace: string | null
+          local_retail_price: number | null
+          local_search_volume: number | null
+          product_id: string
+          product_name: string
+          recommendation: string | null
+          supplier_cost: number | null
+          tier: string | null
+          trend_direction: string | null
+          trend_percentage: number | null
+          updated_at: string
+        }
+        Insert: {
+          ai_confidence?: number | null
+          ai_score?: number | null
+          category?: string | null
+          country: string
+          created_at?: string
+          id?: string
+          local_competition_count?: number | null
+          local_marketplace?: string | null
+          local_retail_price?: number | null
+          local_search_volume?: number | null
+          product_id?: string
+          product_name: string
+          recommendation?: string | null
+          supplier_cost?: number | null
+          tier?: string | null
+          trend_direction?: string | null
+          trend_percentage?: number | null
+          updated_at?: string
+        }
+        Update: {
+          ai_confidence?: number | null
+          ai_score?: number | null
+          category?: string | null
+          country?: string
+          created_at?: string
+          id?: string
+          local_competition_count?: number | null
+          local_marketplace?: string | null
+          local_retail_price?: number | null
+          local_search_volume?: number | null
+          product_id?: string
+          product_name?: string
+          recommendation?: string | null
+          supplier_cost?: number | null
+          tier?: string | null
+          trend_direction?: string | null
+          trend_percentage?: number | null
+          updated_at?: string
         }
         Relationships: []
       }
