@@ -16,7 +16,6 @@ const COUNTRIES = [
   { code: "ZA", label: "South Africa", flag: "🇿🇦" },
   { code: "NG", label: "Nigeria",      flag: "🇳🇬" },
   { code: "KE", label: "Kenya",        flag: "🇰🇪" },
-  { code: "ZW", label: "Zimbabwe",     flag: "🇿🇼" },
   { code: "ZM", label: "Zambia",       flag: "🇿🇲" },
   { code: "MZ", label: "Mozambique",   flag: "🇲🇿" },
 ] as const;
@@ -25,7 +24,7 @@ const schema = z.object({
   full_name: z.string().trim().min(2, "Enter your full name").max(120),
   email: z.string().trim().email("Enter a valid email").max(255),
   phone: z.string().trim().min(5, "Enter your phone number").max(30),
-  country_code: z.enum(["ZA","NG","KE","ZW","ZM","MZ"]),
+  country_code: z.enum(["ZA","NG","KE","ZM","MZ"]),
 });
 
 const Waitlist = () => {
