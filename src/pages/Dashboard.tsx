@@ -518,7 +518,7 @@ const Dashboard = () => {
                 {loading ? (
                   <Loader2 className="h-7 w-7 animate-spin text-primary-foreground/80" />
                 ) : (
-                  <p className="font-display text-[44px] leading-none text-primary-foreground tracking-tight">{fmtR(totalWealth)}</p>
+                  <p className="font-display text-[44px] leading-none text-primary-foreground tracking-tight">{fmtLocal(totalWealth)}</p>
                 )}
               </div>
               <div className="mt-3 inline-flex items-center gap-1.5 rounded-full bg-background/15 px-3 py-1 text-xs text-primary-foreground">
