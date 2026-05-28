@@ -1,3 +1,6 @@
+[functions.detect-and-set-country]
+verify_jwt = false
+
 [functions.paystack-webhook]
 verify_jwt = false
 
