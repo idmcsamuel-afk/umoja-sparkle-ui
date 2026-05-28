@@ -82,7 +82,7 @@ export function usePaystack() {
         key,
         email,
         amount: amountInKobo,
-        currency: "ZAR",
+        currency: args.currency || "ZAR",
         ref: cleanRef,
       };
       if (args.plan) txParams.plan = args.plan;
