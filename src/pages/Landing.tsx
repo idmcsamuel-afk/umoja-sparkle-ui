@@ -107,7 +107,7 @@ const Landing = () => {
           <div className="mt-7 flex flex-col gap-2.5 animate-slide-up [animation-delay:200ms]">
             <Button asChild size="lg" className="h-14 rounded-2xl bg-gradient-primary text-primary-foreground shadow-glow hover:opacity-95 px-5 text-base font-semibold">
               <Link to="/waitlist">
-                Join the waitlist <ArrowRight className="ml-1.5 h-4 w-4" />
+                Join Free <ArrowRight className="ml-1.5 h-4 w-4" />
               </Link>
             </Button>
             <div className="flex items-center gap-2">
@@ -209,7 +209,6 @@ const Landing = () => {
           {/* Quick anchor jumps */}
           <nav className="mt-8 flex flex-wrap gap-2 animate-fade-in" aria-label="Jump to section">
             {[
-              { href: "#founding", label: "Founding" },
               { href: "#pillars", label: "Pillars" },
               { href: "#sparkpit", label: "Spark Pit" },
               { href: "#trust", label: "Trust" },
@@ -223,110 +222,7 @@ const Landing = () => {
         </div>
       </section>
 
-      {/* Founding Members */}
-      <section id="founding" className="relative px-5 pt-20">
-        <div className="mx-auto max-w-md">
-          <p className="text-[11px] uppercase tracking-[0.22em] text-accent inline-flex items-center gap-2">
-            <Crown className="h-3.5 w-3.5" /> Founding Members
-          </p>
-          <h2 className="mt-3 font-display text-3xl leading-tight tracking-tight">
-            Become a <span className="text-gradient-gold italic font-[450]">Founding Member</span> 🏆
-          </h2>
-          <p className="mt-3 text-sm text-muted-foreground leading-relaxed">
-            Limited to the first 500 members. Lock in founding rates forever.
-          </p>
-
-          {/* Counter */}
-          <div className="mt-5 rounded-2xl glass p-4">
-            <div className="flex items-baseline justify-between">
-              <p className="text-sm">🔥 <span className="font-display text-lg text-gradient-gold">247</span> of 500 founding spots taken</p>
-              <span className="text-[10px] uppercase tracking-wider text-accent">253 left</span>
-            </div>
-            <div className="mt-2 h-1.5 w-full rounded-full bg-secondary overflow-hidden">
-              <div className="h-full rounded-full bg-gradient-gold animate-shimmer bg-[length:200%_100%]" style={{ width: "49.4%" }} />
-            </div>
-          </div>
-
-          <div className="mt-6 space-y-3">
-            {[
-              {
-                name: "Bronze Founding",
-                price: "R500",
-                accent: "from-amber-700/30 to-amber-900/10",
-                ring: "border-amber-600/40",
-                perks: [
-                  "Access to Seed Circle",
-                  "500 welcome Sparks",
-                  "Founding member badge",
-                  "Locked rate forever",
-                ],
-                cta: "Join Bronze",
-              },
-              {
-                name: "Silver Founding",
-                price: "R1,500",
-                accent: "from-slate-300/20 to-slate-500/10",
-                ring: "border-slate-300/40",
-                perks: [
-                  "Access to Seed + Growth Circles",
-                  "1,500 welcome Sparks",
-                  "Priority support",
-                  "Spark Trade early access",
-                  "Founding member badge",
-                ],
-                cta: "Join Silver",
-                featured: false,
-              },
-              {
-                name: "Gold Founding",
-                price: "R5,000",
-                accent: "from-accent/40 to-accent/10",
-                ring: "border-accent/60",
-                perks: [
-                  "Access to ALL Circles including Harvest",
-                  "5,000 welcome Sparks",
-                  "UMOJA Drive priority queue",
-                  "Dedicated account manager",
-                  "Exclusive founding Gold badge",
-                  "Early access to all new features",
-                ],
-                cta: "Join Gold",
-                featured: true,
-              },
-            ].map((tier, i) => (
-              <article
-                key={tier.name}
-                style={{ animationDelay: `${i * 80}ms` }}
-                className={`relative overflow-hidden rounded-3xl border ${tier.ring} bg-gradient-to-br ${tier.accent} p-5 animate-slide-up ${tier.featured ? "shadow-gold" : ""}`}
-              >
-                {tier.featured && (
-                  <span className="absolute right-4 top-4 rounded-full bg-gradient-gold px-2 py-0.5 text-[10px] uppercase tracking-wider text-primary-foreground">Most popular</span>
-                )}
-                <div className="flex items-baseline gap-2">
-                  <h3 className="font-display text-xl">{tier.name}</h3>
-                </div>
-                <p className="mt-1 font-display text-3xl text-gradient-gold">{tier.price}<span className="text-base text-muted-foreground font-sans"> one-time</span></p>
-                <ul className="mt-4 space-y-1.5 text-sm">
-                  {tier.perks.map((p) => (
-                    <li key={p} className="flex gap-2 text-foreground/90">
-                      <span className="text-accent">✓</span><span>{p}</span>
-                    </li>
-                  ))}
-                </ul>
-                <Button asChild size="lg" className="mt-5 w-full h-11 rounded-2xl bg-gradient-primary text-primary-foreground shadow-glow hover:opacity-95">
-                  <Link to="/waitlist">{tier.cta} →</Link>
-                </Button>
-              </article>
-            ))}
-          </div>
-
-          <div className="mt-5 rounded-2xl border border-accent/30 bg-accent/5 p-4 text-center">
-            <p className="text-xs text-accent-soft">
-              ⚡ Founding rates are one-time payments. After the first 500 members, plans become monthly subscriptions at 3× the price.
-            </p>
-          </div>
-        </div>
-      </section>
+      {/* Founding tier pricing removed — landing page is platform-wide and free to join. */}
 
       {/* Pillars */}
       <section id="pillars" className="relative px-5 pt-20">
