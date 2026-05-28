@@ -30,7 +30,7 @@ export default function SparkTradeMembership() {
     if (!user) return;
     (async () => {
       const { data } = await supabase
-        .from("product_memberships" as never)
+        .from("product_memberships" as any)
         .select("tier, status, membership_start_date, next_payment_date")
         .eq("user_id", user.id)
         .eq("product", "spark_trade")
@@ -47,7 +47,7 @@ export default function SparkTradeMembership() {
     nextPayment.setMonth(nextPayment.getMonth() + 1);
 
     const { error } = await supabase
-      .from("product_memberships" as never)
+      .from("product_memberships" as any)
       .upsert({
         user_id: user.id,
         product: "spark_trade",

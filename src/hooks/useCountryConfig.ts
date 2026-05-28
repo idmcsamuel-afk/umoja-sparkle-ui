@@ -15,6 +15,7 @@ export interface CountryConfig {
   harvest_min: number;
   harvest_max: number;
   payment_gateways: string[];
+  monthly_price?: number | null;
 }
 
 const FALLBACK: CountryConfig = {

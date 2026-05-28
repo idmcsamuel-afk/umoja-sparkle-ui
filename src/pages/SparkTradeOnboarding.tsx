@@ -51,7 +51,7 @@ export default function SparkTradeOnboarding() {
     if (!user) return;
     (async () => {
       const { data } = await supabase
-        .from("product_memberships" as never)
+        .from("product_memberships" as any)
         .select("tier")
         .eq("user_id", user.id)
         .eq("product", "spark_trade")
@@ -68,7 +68,7 @@ export default function SparkTradeOnboarding() {
     if (!user) return;
     if (name.trim().length < 2) return toast.error("Storefront name required");
     setSavingSf(true);
-    const { error } = await supabase.from("storefront_accounts" as never).upsert({
+    const { error } = await supabase.from("storefront_accounts" as any).upsert({
       user_id: user.id,
       name: name.trim(),
       slug,
@@ -93,7 +93,7 @@ export default function SparkTradeOnboarding() {
 
   const saveFulfillment = async () => {
     if (!user || !estimate) return;
-    const { error } = await supabase.from("fulfillment_config" as never).upsert({
+    const { error } = await supabase.from("fulfillment_config" as any).upsert({
       user_id: user.id,
       roboost_zone: zone,
       estimated_cost_per_unit: estimate.total_per_unit,
@@ -109,7 +109,7 @@ export default function SparkTradeOnboarding() {
   const savePrefs = async () => {
     if (!user) return;
     setSavingPrefs(true);
-    const { error } = await supabase.from("ai_preferences" as never).upsert({
+    const { error } = await supabase.from("ai_preferences" as any).upsert({
       user_id: user.id, ...prefs,
     }, { onConflict: "user_id" });
     setSavingPrefs(false);
