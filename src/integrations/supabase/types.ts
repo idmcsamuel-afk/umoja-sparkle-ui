@@ -3724,7 +3724,7 @@ export type Database = {
           kyc_verified_at: string | null
           last_password_changed: string | null
           last_seen_at: string | null
-          marketplace_preference: string | null
+          marketplace_preference: Json | null
           password_reset_at: string | null
           password_reset_by: string | null
           paystack_customer_code: string | null
@@ -3803,7 +3803,7 @@ export type Database = {
           kyc_verified_at?: string | null
           last_password_changed?: string | null
           last_seen_at?: string | null
-          marketplace_preference?: string | null
+          marketplace_preference?: Json | null
           password_reset_at?: string | null
           password_reset_by?: string | null
           paystack_customer_code?: string | null
@@ -3882,7 +3882,7 @@ export type Database = {
           kyc_verified_at?: string | null
           last_password_changed?: string | null
           last_seen_at?: string | null
-          marketplace_preference?: string | null
+          marketplace_preference?: Json | null
           password_reset_at?: string | null
           password_reset_by?: string | null
           paystack_customer_code?: string | null

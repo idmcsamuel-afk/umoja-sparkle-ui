@@ -25,19 +25,19 @@ function tempPassword(len = 14): string {
 
 type CountryProfile = {
   country: string;
-  marketplace_preference: string;
+  marketplace_preference: string[];
   currency_code: string;
   fulfillment_partner_available: boolean;
   is_international: boolean;
 };
 
 const COUNTRY_MAP: Record<string, CountryProfile> = {
-  ZA: { country: "SA",        marketplace_preference: "Takealot",     currency_code: "ZAR", fulfillment_partner_available: true,  is_international: false },
-  NG: { country: "Nigeria",   marketplace_preference: "Jumia",        currency_code: "NGN", fulfillment_partner_available: false, is_international: true  },
-  KE: { country: "Kenya",     marketplace_preference: "Jumia Kenya",  currency_code: "KES", fulfillment_partner_available: false, is_international: true  },
-  ZW: { country: "Zimbabwe",  marketplace_preference: "TBD",          currency_code: "ZWL", fulfillment_partner_available: false, is_international: true  },
-  ZM: { country: "Zambia",    marketplace_preference: "TBD",          currency_code: "ZMW", fulfillment_partner_available: false, is_international: true  },
-  MZ: { country: "Mozambique",marketplace_preference: "TBD",          currency_code: "MZN", fulfillment_partner_available: false, is_international: true  },
+  ZA: { country: "SA",        marketplace_preference: ["Takealot", "Makro", "Amazon.sa"], currency_code: "ZAR", fulfillment_partner_available: true,  is_international: false },
+  NG: { country: "Nigeria",   marketplace_preference: ["Jumia"],                          currency_code: "NGN", fulfillment_partner_available: false, is_international: true  },
+  KE: { country: "Kenya",     marketplace_preference: ["Jumia Kenya"],                    currency_code: "KES", fulfillment_partner_available: false, is_international: true  },
+  ZW: { country: "Zimbabwe",  marketplace_preference: [],                                 currency_code: "ZWL", fulfillment_partner_available: false, is_international: true  },
+  ZM: { country: "Zambia",    marketplace_preference: [],                                 currency_code: "ZMW", fulfillment_partner_available: false, is_international: true  },
+  MZ: { country: "Mozambique",marketplace_preference: [],                                 currency_code: "MZN", fulfillment_partner_available: false, is_international: true  },
 };
 
 Deno.serve(async (req) => {
