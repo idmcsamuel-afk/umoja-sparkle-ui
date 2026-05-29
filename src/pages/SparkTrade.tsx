@@ -287,11 +287,8 @@ const SparkTrade = () => {
                 <div className="min-w-0">
                   <p className="font-display text-lg leading-tight">Spark Trade Members Only</p>
                   <p className="mt-1 text-xs text-accent-soft leading-relaxed">
-                    Full product details, supplier pricing and group buys are unlocked for paid Buyers Club members. Gold founding-tier members get free access included.
+                    Full product details, supplier pricing and group buys are unlocked for paid Buyers Club members.
                   </p>
-                  <div className="mt-3 flex flex-wrap gap-2">
-                    <span className="text-[10px] uppercase tracking-[0.18em] rounded-full bg-amber-500/20 text-amber-400 px-2 py-0.5">🏆 Gold tier — free access</span>
-                  </div>
                   <button
                     onClick={() => setClubOpen(true)}
                     className="mt-4 inline-flex h-10 items-center gap-1.5 rounded-2xl bg-gradient-primary px-4 text-sm font-medium text-primary-foreground shadow-glow"

@@ -144,6 +144,23 @@ export default function SparkTradeMembership() {
     }
   };
 
+  const tierRank: Record<Tier, number> = { buyers_club: 1, storefront: 2, fulfilled_by_umoja: 3 };
+  const currentRank = current ? tierRank[current.tier] : 0;
+  const showTier = (t: Tier) => currentRank === 0 || tierRank[t] > currentRank || current?.tier === t;
+
+  const cancelMembership = async () => {
+    if (!user || !current) return;
+    if (!confirm("Cancel your membership? You will lose access at the end of the current billing period.")) return;
+    const { error } = await supabase
+      .from("product_memberships" as any)
+      .update({ status: "cancelled" })
+      .eq("user_id", user.id)
+      .eq("product", "spark_trade");
+    if (error) { toast.error(error.message); return; }
+    toast.success("Membership cancelled");
+    setCurrent(null);
+  };
+
   // pricing comes from src/lib/currency (ZAR base * exchange rate)
   const isSA = config.country_code === "ZA";
   const tierLabel: Record<Tier, string> = {
@@ -182,13 +199,16 @@ export default function SparkTradeMembership() {
             <>
               {current && (
                 <div className="mt-5 rounded-2xl border border-accent/30 bg-accent/5 p-4">
-                  <p className="text-xs text-muted-foreground">You are on</p>
+                  <p className="text-xs text-muted-foreground">📋 Your tier</p>
                   <p className="font-display text-lg text-gradient-gold">{tierLabel[current.tier]}</p>
                   <p className="text-[11px] text-muted-foreground mt-1">
                     Started {new Date(current.membership_start_date).toLocaleDateString()}
                     {current.next_payment_date ? ` · Next payment ${new Date(current.next_payment_date).toLocaleDateString()}` : ""}
                   </p>
                 </div>
+              )}
+              {current && currentRank < 3 && (
+                <p className="mt-6 text-sm font-medium text-foreground/90">Upgrade to a higher tier:</p>
               )}
 
               <div className="mt-6 space-y-4">
@@ -209,6 +229,7 @@ export default function SparkTradeMembership() {
                     current?.tier === tier ? "Active" : price ? `${label} — ${price}` : label;
                   return (
                     <>
+                      {showTier("buyers_club") && (
                       <TierCard
                         icon={<Sparkles className="h-5 w-5" />}
                         title="Buyers Club"
@@ -219,13 +240,16 @@ export default function SparkTradeMembership() {
                           "200+ vetted products",
                           "Real-time profit calculator",
                           "Weekly payouts",
+                          "Cancel anytime",
                         ]}
-                        cta={ctaFor("buyers_club", current ? "Switch to Buyers Club" : "Join Buyers Club", bcPrice)}
+                        cta={ctaFor("buyers_club", "Select Buyers Club", bcPrice)}
                         disabled={current?.tier === "buyers_club"}
                         busy={busyTier === "buyers_club"}
                         onClick={() => upgrade("buyers_club")}
                       />
+                      )}
 
+                      {showTier("storefront") && (
                       <TierCard
                         icon={<Store className="h-5 w-5" />}
                         title="Storefront + Buyers Club"
@@ -263,8 +287,9 @@ export default function SparkTradeMembership() {
                         busy={busyTier === "storefront"}
                         onClick={() => upgrade("storefront")}
                       />
+                      )}
 
-                      {isSA ? (
+                      {showTier("fulfilled_by_umoja") && (isSA ? (
                         <TierCard
                           icon={<Truck className="h-5 w-5" />}
                           title="Fulfilled by UMOJA + Storefront + Club"
@@ -292,16 +317,28 @@ export default function SparkTradeMembership() {
                           onClick={() => upgrade("fulfilled_by_umoja")}
                         />
                       ) : (
-                        <div className="rounded-3xl border border-dashed border-border bg-secondary/30 p-5 text-center">
+                        <div className="rounded-3xl border border-dashed border-border bg-secondary/30 p-5 text-center opacity-70">
                           <Truck className="mx-auto h-5 w-5 text-muted-foreground" />
                           <p className="mt-2 font-display text-base">Fulfilled by UMOJA</p>
-                          <p className="text-xs text-muted-foreground">Available in SA only</p>
+                          <p className="text-xs text-muted-foreground">Available in South Africa only</p>
+                          <p className="text-[11px] text-muted-foreground mt-1">Coming to {config.country_name ?? "your country"} soon</p>
                         </div>
-                      )}
+                      ))}
                     </>
                   );
                 })()}
               </div>
+
+              {current && (
+                <div className="mt-6 text-center">
+                  <button
+                    onClick={cancelMembership}
+                    className="text-xs text-muted-foreground hover:text-destructive underline underline-offset-4"
+                  >
+                    Cancel this membership
+                  </button>
+                </div>
+              )}
             </>
           )}
         </div>
