@@ -269,7 +269,7 @@ export default function SparkTradeMembership() {
                           icon={<Truck className="h-5 w-5" />}
                           title="Fulfilled by UMOJA + Storefront + Club"
                           badge="South Africa only"
-                          priceLines={[formatTierPrice("fulfilled", "ZAR")!]}
+                          priceLines={priceLinesFor("fulfilled", "ZAR")}
                           features={[
                             "Everything in Storefront",
                             "UMOJA handles fulfilment (packing, courier, returns)",
