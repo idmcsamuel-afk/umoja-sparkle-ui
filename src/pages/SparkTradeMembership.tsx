@@ -11,7 +11,8 @@ import { useMyCountry } from "@/hooks/useCountryConfig";
 import { formatTierPrice, calculateTierPrice, formatCurrency, basePricesZAR } from "@/lib/currency";
 import { usePaystack, buildReference } from "@/hooks/usePaystack";
 
-const PAYSTACK_SUPPORTED = new Set(["NGN", "ZAR", "KES", "GHS", "USD"]);
+// Paystack merchant account only supports ZAR — all charges are in ZAR.
+// Users see local-currency equivalent for transparency only.
 
 type Tier = "buyers_club" | "storefront" | "fulfilled_by_umoja";
 
