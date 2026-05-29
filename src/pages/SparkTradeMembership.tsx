@@ -199,13 +199,16 @@ export default function SparkTradeMembership() {
             <>
               {current && (
                 <div className="mt-5 rounded-2xl border border-accent/30 bg-accent/5 p-4">
-                  <p className="text-xs text-muted-foreground">You are on</p>
+                  <p className="text-xs text-muted-foreground">📋 Your tier</p>
                   <p className="font-display text-lg text-gradient-gold">{tierLabel[current.tier]}</p>
                   <p className="text-[11px] text-muted-foreground mt-1">
                     Started {new Date(current.membership_start_date).toLocaleDateString()}
                     {current.next_payment_date ? ` · Next payment ${new Date(current.next_payment_date).toLocaleDateString()}` : ""}
                   </p>
                 </div>
+              )}
+              {current && currentRank < 3 && (
+                <p className="mt-6 text-sm font-medium text-foreground/90">Upgrade to a higher tier:</p>
               )}
 
               <div className="mt-6 space-y-4">
