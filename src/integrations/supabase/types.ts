@@ -4351,10 +4351,15 @@ export type Database = {
       }
       product_memberships: {
         Row: {
+          amount_local_currency: number | null
+          amount_paid_zar: number | null
           created_at: string
           id: string
+          local_currency_code: string | null
           membership_start_date: string
           next_payment_date: string | null
+          payment_status: string | null
+          paystack_reference: string | null
           product: string
           status: string
           tier: string
@@ -4362,10 +4367,15 @@ export type Database = {
           user_id: string
         }
         Insert: {
+          amount_local_currency?: number | null
+          amount_paid_zar?: number | null
           created_at?: string
           id?: string
+          local_currency_code?: string | null
           membership_start_date?: string
           next_payment_date?: string | null
+          payment_status?: string | null
+          paystack_reference?: string | null
           product: string
           status?: string
           tier: string
@@ -4373,10 +4383,15 @@ export type Database = {
           user_id: string
         }
         Update: {
+          amount_local_currency?: number | null
+          amount_paid_zar?: number | null
           created_at?: string
           id?: string
+          local_currency_code?: string | null
           membership_start_date?: string
           next_payment_date?: string | null
+          payment_status?: string | null
+          paystack_reference?: string | null
           product?: string
           status?: string
           tier?: string
