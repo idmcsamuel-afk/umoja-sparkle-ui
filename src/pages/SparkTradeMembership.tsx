@@ -144,6 +144,23 @@ export default function SparkTradeMembership() {
     }
   };
 
+  const tierRank: Record<Tier, number> = { buyers_club: 1, storefront: 2, fulfilled_by_umoja: 3 };
+  const currentRank = current ? tierRank[current.tier] : 0;
+  const showTier = (t: Tier) => currentRank === 0 || tierRank[t] > currentRank || current?.tier === t;
+
+  const cancelMembership = async () => {
+    if (!user || !current) return;
+    if (!confirm("Cancel your membership? You will lose access at the end of the current billing period.")) return;
+    const { error } = await supabase
+      .from("product_memberships" as any)
+      .update({ status: "cancelled" })
+      .eq("user_id", user.id)
+      .eq("product", "spark_trade");
+    if (error) { toast.error(error.message); return; }
+    toast.success("Membership cancelled");
+    setCurrent(null);
+  };
+
   // pricing comes from src/lib/currency (ZAR base * exchange rate)
   const isSA = config.country_code === "ZA";
   const tierLabel: Record<Tier, string> = {
