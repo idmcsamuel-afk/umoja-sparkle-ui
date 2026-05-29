@@ -11,7 +11,8 @@ import { useMyCountry } from "@/hooks/useCountryConfig";
 import { formatTierPrice, calculateTierPrice, formatCurrency, basePricesZAR } from "@/lib/currency";
 import { usePaystack, buildReference } from "@/hooks/usePaystack";
 
-const PAYSTACK_SUPPORTED = new Set(["NGN", "ZAR", "KES", "GHS", "USD"]);
+// Paystack merchant account only supports ZAR — all charges are in ZAR.
+// Users see local-currency equivalent for transparency only.
 
 type Tier = "buyers_club" | "storefront" | "fulfilled_by_umoja";
 
@@ -51,7 +52,13 @@ export default function SparkTradeMembership() {
     fulfilled_by_umoja: "fulfilled",
   };
 
-  const activateMembership = async (tier: Tier, reference: string) => {
+  const activateMembership = async (
+    tier: Tier,
+    reference: string,
+    amountZar: number,
+    amountLocal: number,
+    localCurrency: string,
+  ) => {
     const nextPayment = new Date();
     nextPayment.setMonth(nextPayment.getMonth() + 1);
     const { error } = await supabase
@@ -65,6 +72,9 @@ export default function SparkTradeMembership() {
         next_payment_date: nextPayment.toISOString(),
         paystack_reference: reference,
         payment_status: "success",
+        amount_paid_zar: amountZar,
+        amount_local_currency: amountLocal,
+        local_currency_code: localCurrency,
       }, { onConflict: "user_id,product" });
     if (error) {
       toast.error(error.message);
@@ -90,38 +100,43 @@ export default function SparkTradeMembership() {
     }
     setBusyTier(tier);
 
-    // Price: try local currency if Paystack supports it, else fall back to ZAR
+    // Always charge in ZAR — Paystack merchant only supports ZAR.
     const localCcy = config.currency_code;
-    const useLocal = PAYSTACK_SUPPORTED.has(localCcy);
-    const ccy = useLocal ? localCcy : "ZAR";
     const tierKey = tierKeyMap[tier];
-    const amount = calculateTierPrice(tierKey, ccy);
-    if (amount == null || amount <= 0) {
+    const amountZar = calculateTierPrice(tierKey, "ZAR");
+    const amountLocal = calculateTierPrice(tierKey, localCcy) ?? amountZar ?? 0;
+    if (amountZar == null || amountZar <= 0) {
       setBusyTier(null);
-      toast.error("Could not determine price for your currency");
+      toast.error("Could not determine price");
       return;
     }
 
     const memberCode = (user.id || "U").replace(/-/g, "").slice(0, 10).toUpperCase();
     const reference = buildReference("ST", tier.toUpperCase(), memberCode);
 
+    if (localCcy !== "ZAR") {
+      toast.message(`Charging R${amountZar} ZAR for ${formatCurrency(amountLocal, localCcy)} of service`);
+    }
+
     const result = await pay({
       email: user.email,
-      amountZar: amount, // amount in major units of `currency`
-      currency: ccy,
+      amountZar,
+      currency: "ZAR",
       reference,
       metadata: {
         payment_type: "spark_trade_membership",
         member_id: user.id,
         tier,
         product: "spark_trade",
+        amount_local_currency: amountLocal,
+        local_currency_code: localCcy,
       },
     });
 
     setBusyTier(null);
 
-    if (!result.ok) return; // toast already shown by hook
-    const ok = await activateMembership(tier, result.reference || reference);
+    if (!result.ok) return;
+    const ok = await activateMembership(tier, result.reference || reference, amountZar, amountLocal, localCcy);
     if (!ok) return;
     toast.success("Membership activated 🎉");
     if (tier === "storefront" || tier === "fulfilled_by_umoja") {
@@ -179,9 +194,16 @@ export default function SparkTradeMembership() {
               <div className="mt-6 space-y-4">
                 {(() => {
                   const localCcy = config.currency_code;
-                  const payCcy = PAYSTACK_SUPPORTED.has(localCcy) ? localCcy : "ZAR";
-                  const bcPrice = formatTierPrice("buyers_club", payCcy);
-                  const sfPrice = formatTierPrice("storefront", payCcy);
+                  const zarNote = (tierKey: keyof typeof basePricesZAR) => {
+                    const zar = calculateTierPrice(tierKey, "ZAR")!;
+                    return localCcy === "ZAR" ? "Paystack accepts ZAR only" : `Pay R${zar} ZAR at checkout`;
+                  };
+                  const priceLinesFor = (tierKey: keyof typeof basePricesZAR, ccy: string) => [
+                    formatTierPrice(tierKey, ccy) ?? "Coming soon",
+                    zarNote(tierKey),
+                  ];
+                  const bcPrice = formatTierPrice("buyers_club", localCcy);
+                  const sfPrice = formatTierPrice("storefront", localCcy);
                   const fulPrice = formatTierPrice("fulfilled", "ZAR");
                   const ctaFor = (tier: Tier, label: string, price: string | null) =>
                     current?.tier === tier ? "Active" : price ? `${label} — ${price}` : label;
@@ -191,7 +213,7 @@ export default function SparkTradeMembership() {
                         icon={<Sparkles className="h-5 w-5" />}
                         title="Buyers Club"
                         badge="All countries"
-                        priceLines={[formatTierPrice("buyers_club", config.currency_code) ?? "Coming soon"]}
+                        priceLines={priceLinesFor("buyers_club", localCcy)}
                         features={[
                           "Buy wholesale with group",
                           "200+ vetted products",
@@ -209,7 +231,7 @@ export default function SparkTradeMembership() {
                         title="Storefront + Buyers Club"
                         badge="All countries"
                         highlight
-                        priceLines={[formatTierPrice("storefront", config.currency_code) ?? "Coming soon"]}
+                        priceLines={priceLinesFor("storefront", localCcy)}
                         features={[
                           "Everything in Buyers Club",
                           "AI-powered personal storefront",
@@ -247,7 +269,7 @@ export default function SparkTradeMembership() {
                           icon={<Truck className="h-5 w-5" />}
                           title="Fulfilled by UMOJA + Storefront + Club"
                           badge="South Africa only"
-                          priceLines={[formatTierPrice("fulfilled", "ZAR")!]}
+                          priceLines={priceLinesFor("fulfilled", "ZAR")}
                           features={[
                             "Everything in Storefront",
                             "UMOJA handles fulfilment (packing, courier, returns)",
