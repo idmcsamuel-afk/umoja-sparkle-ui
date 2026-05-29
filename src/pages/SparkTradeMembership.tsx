@@ -194,9 +194,16 @@ export default function SparkTradeMembership() {
               <div className="mt-6 space-y-4">
                 {(() => {
                   const localCcy = config.currency_code;
-                  const payCcy = PAYSTACK_SUPPORTED.has(localCcy) ? localCcy : "ZAR";
-                  const bcPrice = formatTierPrice("buyers_club", payCcy);
-                  const sfPrice = formatTierPrice("storefront", payCcy);
+                  const zarNote = (tierKey: keyof typeof basePricesZAR) => {
+                    const zar = calculateTierPrice(tierKey, "ZAR")!;
+                    return localCcy === "ZAR" ? "Paystack accepts ZAR only" : `Pay R${zar} ZAR at checkout`;
+                  };
+                  const priceLinesFor = (tierKey: keyof typeof basePricesZAR, ccy: string) => [
+                    formatTierPrice(tierKey, ccy) ?? "Coming soon",
+                    zarNote(tierKey),
+                  ];
+                  const bcPrice = formatTierPrice("buyers_club", localCcy);
+                  const sfPrice = formatTierPrice("storefront", localCcy);
                   const fulPrice = formatTierPrice("fulfilled", "ZAR");
                   const ctaFor = (tier: Tier, label: string, price: string | null) =>
                     current?.tier === tier ? "Active" : price ? `${label} — ${price}` : label;
