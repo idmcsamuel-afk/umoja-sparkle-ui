@@ -231,7 +231,7 @@ export default function SparkTradeMembership() {
                         title="Storefront + Buyers Club"
                         badge="All countries"
                         highlight
-                        priceLines={[formatTierPrice("storefront", config.currency_code) ?? "Coming soon"]}
+                        priceLines={priceLinesFor("storefront", localCcy)}
                         features={[
                           "Everything in Buyers Club",
                           "AI-powered personal storefront",
