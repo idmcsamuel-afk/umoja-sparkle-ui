@@ -13,6 +13,7 @@ const items: { to: string; label: string; icon: typeof Home; tour?: string }[] =
   { to: "/my-videos", label: "My Vids", icon: BarChart3 },
   { to: "/trending", label: "Trending", icon: Flame },
   { to: "/spark", label: "Spark", icon: Sparkles, tour: "spark-trade" },
+  { to: "/spark-trade/membership", label: "🌍 Plans", icon: Sparkles },
   { to: "/priority", label: "Queue", icon: Trophy },
   { to: "/market", label: "Market", icon: Store },
   { to: "/flame-marketing", label: "Create 🎨", icon: Palette },
