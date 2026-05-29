@@ -197,14 +197,7 @@ export function BuyersClubModal({ open, onOpenChange, onSuccess }: { open: boole
               );
             })}
             <div className="rounded-xl bg-secondary/40 p-3 text-[11px] text-muted-foreground space-y-1 mt-2">
-              <p>💡 Gold founding members receive FREE Buyers Club Pro access (R999/mo value)</p>
-              <p>⚠️ All members must meet monthly purchase minimums to maintain access (anti-spy protection)</p>
               <p>✅ Cancel anytime. No long-term commitment.</p>
-            </div>
-            <div className="rounded-xl border border-border/60 p-3 text-[11px] text-muted-foreground space-y-1">
-              <p className="font-semibold text-foreground">Not to be confused with Founding Tiers</p>
-              <p>Founding Tiers (one-time support): Bronze R2K · Silver R5K · Gold R10K</p>
-              <p>Buyers Club (monthly subscription): pricing managed in the subscription_plans table</p>
             </div>
           </div>
         )}
