@@ -213,7 +213,7 @@ export default function SparkTradeMembership() {
                         icon={<Sparkles className="h-5 w-5" />}
                         title="Buyers Club"
                         badge="All countries"
-                        priceLines={[formatTierPrice("buyers_club", config.currency_code) ?? "Coming soon"]}
+                        priceLines={priceLinesFor("buyers_club", localCcy)}
                         features={[
                           "Buy wholesale with group",
                           "200+ vetted products",
