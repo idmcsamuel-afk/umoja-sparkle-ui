@@ -229,6 +229,7 @@ export default function SparkTradeMembership() {
                     current?.tier === tier ? "Active" : price ? `${label} — ${price}` : label;
                   return (
                     <>
+                      {showTier("buyers_club") && (
                       <TierCard
                         icon={<Sparkles className="h-5 w-5" />}
                         title="Buyers Club"
@@ -239,12 +240,14 @@ export default function SparkTradeMembership() {
                           "200+ vetted products",
                           "Real-time profit calculator",
                           "Weekly payouts",
+                          "Cancel anytime",
                         ]}
-                        cta={ctaFor("buyers_club", current ? "Switch to Buyers Club" : "Join Buyers Club", bcPrice)}
+                        cta={ctaFor("buyers_club", "Select Buyers Club", bcPrice)}
                         disabled={current?.tier === "buyers_club"}
                         busy={busyTier === "buyers_club"}
                         onClick={() => upgrade("buyers_club")}
                       />
+                      )}
 
                       <TierCard
                         icon={<Store className="h-5 w-5" />}
