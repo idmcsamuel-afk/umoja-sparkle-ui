@@ -249,6 +249,7 @@ export default function SparkTradeMembership() {
                       />
                       )}
 
+                      {showTier("storefront") && (
                       <TierCard
                         icon={<Store className="h-5 w-5" />}
                         title="Storefront + Buyers Club"
@@ -286,8 +287,9 @@ export default function SparkTradeMembership() {
                         busy={busyTier === "storefront"}
                         onClick={() => upgrade("storefront")}
                       />
+                      )}
 
-                      {isSA ? (
+                      {showTier("fulfilled_by_umoja") && (isSA ? (
                         <TierCard
                           icon={<Truck className="h-5 w-5" />}
                           title="Fulfilled by UMOJA + Storefront + Club"
@@ -315,16 +317,28 @@ export default function SparkTradeMembership() {
                           onClick={() => upgrade("fulfilled_by_umoja")}
                         />
                       ) : (
-                        <div className="rounded-3xl border border-dashed border-border bg-secondary/30 p-5 text-center">
+                        <div className="rounded-3xl border border-dashed border-border bg-secondary/30 p-5 text-center opacity-70">
                           <Truck className="mx-auto h-5 w-5 text-muted-foreground" />
                           <p className="mt-2 font-display text-base">Fulfilled by UMOJA</p>
-                          <p className="text-xs text-muted-foreground">Available in SA only</p>
+                          <p className="text-xs text-muted-foreground">Available in South Africa only</p>
+                          <p className="text-[11px] text-muted-foreground mt-1">Coming to {config.country_name ?? "your country"} soon</p>
                         </div>
-                      )}
+                      ))}
                     </>
                   );
                 })()}
               </div>
+
+              {current && (
+                <div className="mt-6 text-center">
+                  <button
+                    onClick={cancelMembership}
+                    className="text-xs text-muted-foreground hover:text-destructive underline underline-offset-4"
+                  >
+                    Cancel this membership
+                  </button>
+                </div>
+              )}
             </>
           )}
         </div>
