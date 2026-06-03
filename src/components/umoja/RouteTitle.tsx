@@ -1,5 +1,6 @@
-import { useEffect } from "react";
+import { useEffect, useRef } from "react";
 import { useLocation } from "react-router-dom";
+import { fbqPageView } from "@/lib/metaPixel";
 
 const TITLES: Record<string, string> = {
   "/": "Home",
@@ -35,8 +36,16 @@ const titleFor = (path: string) => {
 
 export const RouteTitle = () => {
   const { pathname } = useLocation();
+  // Skip the very first mount: index.html already fires PageView on load,
+  // so we only track subsequent SPA route changes here to avoid duplicates.
+  const firstRender = useRef(true);
   useEffect(() => {
     document.title = `UMOJA — ${titleFor(pathname)}`;
+    if (firstRender.current) {
+      firstRender.current = false;
+      return;
+    }
+    fbqPageView();
   }, [pathname]);
   return null;
 };

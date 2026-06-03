@@ -11,6 +11,7 @@ import { Label } from "@/components/ui/label";
 import { toast } from "sonner";
 import { useSocialProof, fmtR } from "@/hooks/useSocialProof";
 import { ttTrack } from "@/lib/tiktokPixel";
+import { fbqTrack } from "@/lib/metaPixel";
 import { WhatsAppCommunity } from "@/components/umoja/WhatsAppCommunity";
 
 const schema = z.object({
@@ -340,6 +341,7 @@ const Signup = () => {
 
     setBusy(false);
     ttTrack("CompleteRegistration", { content_name: "umoja_signup" });
+    fbqTrack("Lead", { content_name: "umoja_signup", country: country });
     toast.success(`You've earned 50 welcome Sparks! ✨${refMsg}`, { duration: 6000 });
 
     if (data.session) nav("/dashboard", { replace: true });
