@@ -11,6 +11,7 @@ import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from "@/components/ui/select";
 import { toast } from "sonner";
+import { fbqTrack } from "@/lib/metaPixel";
 
 const COUNTRIES = [
   { code: "ZA", label: "South Africa", flag: "🇿🇦" },
@@ -65,6 +66,7 @@ const Waitlist = () => {
         setBusy(false);
         return;
       }
+      fbqTrack("Lead", { content_name: "umoja_waitlist", country: parsed.data.country_code });
       toast.success("Welcome to UMOJA RISE 🎉");
       nav("/dashboard", { replace: true });
     } catch (err) {
