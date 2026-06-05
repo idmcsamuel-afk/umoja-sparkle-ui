@@ -300,11 +300,17 @@ const Circle = () => {
   const startBid = async (t: Tier, defaultAmt: number) => {
     if (!t.is_active) return;
     if (!hasAcceptedCircle()) { toast.info("Please accept the Circle terms first."); return; }
-    // Country gate: Circles currently only available for ZA members.
+    // Country gate: allow any country that is enabled in country_configs.
     if (user) {
       const { data: m } = await supabase.from("members").select("country_code").eq("id", user.id).maybeSingle();
-      const cc = (m as any)?.country_code ?? "ZA";
-      if (cc !== "ZA") {
+      const cc = ((m as any)?.country_code ?? "ZA").toUpperCase();
+      const { data: cfg } = await supabase
+        .from("country_configs" as any)
+        .select("enabled")
+        .eq("country_code", cc)
+        .maybeSingle();
+      // Only block if we have a config row and it is explicitly disabled.
+      if (cfg && (cfg as any).enabled === false) {
         toast.error("Circles aren't available in your country yet. Coming soon!");
         return;
       }
