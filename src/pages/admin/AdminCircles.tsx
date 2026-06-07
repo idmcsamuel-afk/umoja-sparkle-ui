@@ -299,6 +299,14 @@ export default function AdminCircles() {
                       <X className="h-4 w-4 mr-1" /> Reject
                     </Button>
                     <Button
+                      variant="outline"
+                      onClick={() => extendDeadline(bid)}
+                      disabled={busy === bid.id}
+                      className="rounded-2xl"
+                    >
+                      ⏱ Extend deadline
+                    </Button>
+                    <Button
                       variant="ghost"
                       onClick={() => setOpenHistory((cur) => (cur === bid.id ? null : bid.id))}
                       className="rounded-2xl"
@@ -314,6 +322,64 @@ export default function AdminCircles() {
                   )}
                 </li>
               ))}
+            </ul>
+          )}
+        </div>
+      ) : (
+        <div className="mt-6">
+          {awaiting.length === 0 ? (
+            <div className="rounded-3xl border border-border bg-gradient-card p-10 text-center text-sm text-muted-foreground">
+              No bids awaiting EFT proof.
+            </div>
+          ) : (
+            <ul className="space-y-3">
+              {awaiting.map((bid) => {
+                const deadlineMs = bid.payment_deadline ? new Date(bid.payment_deadline).getTime() : 0;
+                const msLeft = deadlineMs - Date.now();
+                const expired = msLeft <= 0;
+                const hh = Math.max(0, Math.floor(msLeft / 3_600_000));
+                const mm = Math.max(0, Math.floor((msLeft % 3_600_000) / 60_000));
+                return (
+                  <li key={bid.id} className="rounded-3xl border border-border bg-gradient-card p-5">
+                    <div className="flex flex-wrap items-start justify-between gap-3">
+                      <div className="min-w-0">
+                        <p className="font-display text-lg">{bid.member_name}</p>
+                        <p className="text-xs text-muted-foreground truncate">{bid.member_email}</p>
+                        <p className="mt-2 text-xs">
+                          <span className="capitalize text-accent">{bid.tier}</span> ·
+                          <span className="ml-1 font-mono">{bid.payment_reference ?? "—"}</span>
+                        </p>
+                        <p className={`mt-1 text-[11px] ${expired ? "text-destructive" : "text-muted-foreground"}`}>
+                          {expired
+                            ? `⏰ Deadline passed ${new Date(deadlineMs).toLocaleString()}`
+                            : `⏱ ${hh}h ${mm}m left · deadline ${new Date(deadlineMs).toLocaleString()}`}
+                        </p>
+                      </div>
+                      <div className="text-right">
+                        <p className="text-[10px] uppercase tracking-wider text-muted-foreground">Amount</p>
+                        <p className="font-display text-xl text-gradient-gold">{fmtR(Number(bid.fiat_amount))}</p>
+                      </div>
+                    </div>
+                    <div className="mt-4 flex flex-wrap gap-2">
+                      <Button
+                        onClick={() => extendDeadline(bid)}
+                        disabled={busy === bid.id}
+                        className="rounded-2xl bg-gradient-primary text-primary-foreground shadow-glow"
+                      >
+                        {busy === bid.id ? <Loader2 className="h-4 w-4 animate-spin" /> : "⏱ Extend deadline"}
+                      </Button>
+                      <Button
+                        variant="outline"
+                        onClick={() => reject(bid)}
+                        disabled={busy === bid.id}
+                        className="rounded-2xl text-destructive"
+                      >
+                        <X className="h-4 w-4 mr-1" /> Reject
+                      </Button>
+                    </div>
+                  </li>
+                );
+              })}
             </ul>
           )}
         </div>
