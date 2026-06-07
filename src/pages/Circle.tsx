@@ -714,6 +714,33 @@ const Circle = () => {
                         </Button>
                       </div>
                     )}
+                    {awaiting && b.payment_method !== "usdt" && b.payment_method !== "paystack" && !b.payment_proof_url && hoursLeft !== null && hoursLeft > 0 && (
+                      <div className="pl-14 flex items-center gap-2">
+                        <input
+                          id={`proof-${b.id}`}
+                          type="file"
+                          accept="image/*,application/pdf"
+                          className="hidden"
+                          onChange={(e) => {
+                            const f = e.target.files?.[0];
+                            if (f) uploadProofForBid(b, f);
+                            e.target.value = "";
+                          }}
+                        />
+                        <Button
+                          size="sm"
+                          className="h-7 rounded-full text-xs bg-gradient-primary text-primary-foreground shadow-glow"
+                          disabled={uploadingBidId === b.id}
+                          onClick={() => document.getElementById(`proof-${b.id}`)?.click()}
+                        >
+                          {uploadingBidId === b.id ? (
+                            <><Loader2 className="h-3 w-3 mr-1 animate-spin" /> Uploading…</>
+                          ) : (
+                            <><Upload className="h-3 w-3 mr-1" /> Upload proof of payment</>
+                          )}
+                        </Button>
+                      </div>
+                    )}
                   </li>
                 );
               })}
