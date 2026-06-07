@@ -135,6 +135,47 @@ const Circle = () => {
   const [method, setMethod] = useState<PaymentMethod>("paystack");
   const { pay: payWithPaystack } = usePaystack();
   const [verifyBid, setVerifyBid] = useState<Bid | null>(null);
+  const [uploadingBidId, setUploadingBidId] = useState<string | null>(null);
+
+  const uploadProofForBid = async (bid: Bid, file: File) => {
+    if (!user) return;
+    setUploadingBidId(bid.id);
+    try {
+      const ext = file.name.split(".").pop()?.toLowerCase() || "jpg";
+      const path = `${user.id}/${bid.id}.${ext}`;
+      const up = await supabase.storage
+        .from("payment-proofs")
+        .upload(path, file, { upsert: true, contentType: file.type || undefined });
+      if (up.error) { toast.error(up.error.message); return; }
+      const { error: updErr } = await supabase
+        .from("circle_bids")
+        .update({
+          status: "payment_pending",
+          payment_proof_url: path,
+          payment_method: "eft",
+          payment_submitted_at: new Date().toISOString(),
+        })
+        .eq("id", bid.id);
+      if (updErr) { toast.error(updErr.message); return; }
+      const { data: admins } = await supabase.from("admin_users").select("user_id");
+      if (admins?.length) {
+        const memberName = user.email ?? "Member";
+        await supabase.from("notifications").insert(
+          admins.map((a) => ({
+            member_id: a.user_id,
+            title: "💰 New EFT to verify",
+            body: `${memberName} submitted ${fmtR(Number(bid.fiat_amount))} for ${bid.tier}`,
+            kind: "payment",
+            link: "/admin/circles",
+          })),
+        );
+      }
+      toast.success("Proof uploaded — awaiting admin confirmation");
+      load();
+    } finally {
+      setUploadingBidId(null);
+    }
+  };
   const [copied, setCopied] = useState<string | null>(null);
   const [leaders, setLeaders] = useState<Array<{ member_id: string; full_name: string; priority_score: number }>>([]);
   const [leadersLoading, setLeadersLoading] = useState(false);
@@ -670,6 +711,33 @@ const Circle = () => {
                           onClick={() => setVerifyBid(b)}
                         >
                           Verify Payment
+                        </Button>
+                      </div>
+                    )}
+                    {awaiting && b.payment_method !== "usdt" && b.payment_method !== "paystack" && !b.payment_proof_url && hoursLeft !== null && hoursLeft > 0 && (
+                      <div className="pl-14 flex items-center gap-2">
+                        <input
+                          id={`proof-${b.id}`}
+                          type="file"
+                          accept="image/*,application/pdf"
+                          className="hidden"
+                          onChange={(e) => {
+                            const f = e.target.files?.[0];
+                            if (f) uploadProofForBid(b, f);
+                            e.target.value = "";
+                          }}
+                        />
+                        <Button
+                          size="sm"
+                          className="h-7 rounded-full text-xs bg-gradient-primary text-primary-foreground shadow-glow"
+                          disabled={uploadingBidId === b.id}
+                          onClick={() => document.getElementById(`proof-${b.id}`)?.click()}
+                        >
+                          {uploadingBidId === b.id ? (
+                            <><Loader2 className="h-3 w-3 mr-1 animate-spin" /> Uploading…</>
+                          ) : (
+                            <><Upload className="h-3 w-3 mr-1" /> Upload proof of payment</>
+                          )}
                         </Button>
                       </div>
                     )}
