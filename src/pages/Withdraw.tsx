@@ -89,7 +89,7 @@ export default function Withdraw() {
 
   const loadAll = async () => {
     if (!user) return;
-    const [{ data: br }, { data: mb }] = await Promise.all([
+    const [{ data: br }, { data: mb }, { data: bd }] = await Promise.all([
       supabase.rpc("spark_balance_breakdown", { _member: user.id }),
       supabase
         .from("members")
@@ -98,16 +98,29 @@ export default function Withdraw() {
         )
         .eq("id", user.id)
         .maybeSingle(),
+      supabase
+        .from("member_banking_details")
+        .select("bank_name, account_holder_name, account_number, branch_code")
+        .eq("member_id", user.id)
+        .maybeSingle(),
     ]);
     if (br) setBreakdown(br as unknown as Breakdown);
     if (mb) {
       const m = mb as unknown as MemberInfo;
       setMember(m);
-      if (m.bank_name) setBankName(m.bank_name);
-      if (m.bank_account) setAccountNumber(m.bank_account);
-      if (m.bank_branch) setBranchCode(m.bank_branch);
-      if (m.full_name && !accountHolder) setAccountHolder(m.full_name);
     }
+    // Prefer the registered banking details from the Banking page,
+    // fall back to legacy fields on members.
+    const reg = bd as any;
+    const fallback = mb as any;
+    const pickBank = reg?.bank_name ?? fallback?.bank_name ?? "";
+    const pickAccount = reg?.account_number ?? fallback?.bank_account ?? "";
+    const pickBranch = reg?.branch_code ?? fallback?.bank_branch ?? "";
+    const pickHolder = reg?.account_holder_name ?? fallback?.full_name ?? "";
+    if (pickBank) setBankName(pickBank);
+    if (pickAccount) setAccountNumber(pickAccount);
+    if (pickBranch) setBranchCode(pickBranch);
+    if (pickHolder) setAccountHolder((prev) => prev || pickHolder);
     setLoading(false);
   };
 
