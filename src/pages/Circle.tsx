@@ -739,6 +739,16 @@ const Circle = () => {
                             <><Upload className="h-3 w-3 mr-1" /> Upload proof of payment</>
                           )}
                         </Button>
+                        {deadlineMs && (
+                          <span
+                            className={`font-mono text-xs tabular-nums ${
+                              hoursLeft <= 0.5 ? "text-destructive" : hoursLeft <= 1 ? "text-amber-400" : "text-muted-foreground"
+                            }`}
+                            aria-label="Time left to upload proof"
+                          >
+                            ⏱ {fmtCountdown(deadlineMs - now)} left
+                          </span>
+                        )}
                       </div>
                     )}
                   </li>
