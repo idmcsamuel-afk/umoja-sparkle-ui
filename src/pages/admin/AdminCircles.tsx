@@ -73,24 +73,57 @@ export default function AdminCircles() {
     }));
 
     const pendingBids = (p.data ?? []) as PendingBid[];
-    if (pendingBids.length) {
-      const ids = Array.from(new Set(pendingBids.map((x) => x.member_id)));
+    const awaitingBids = (a.data ?? []) as PendingBid[];
+    const allMemberIds = Array.from(new Set([...pendingBids, ...awaitingBids].map((x) => x.member_id)));
+    if (allMemberIds.length) {
       const { data: members } = await supabase
         .from("members")
         .select("id, full_name, email")
-        .in("id", ids);
+        .in("id", allMemberIds);
       const map = new Map((members ?? []).map((m: { id: string; full_name: string | null; email: string | null }) => [m.id, m]));
-      pendingBids.forEach((x) => {
+      const hydrate = (x: PendingBid) => {
         const m = map.get(x.member_id);
         x.member_name = m?.full_name ?? "Member";
         x.member_email = m?.email ?? "";
-      });
+      };
+      pendingBids.forEach(hydrate);
+      awaitingBids.forEach(hydrate);
     }
     setPending(pendingBids);
+    setAwaiting(awaitingBids);
     setLoading(false);
   };
 
   useEffect(() => { load(); }, []);
+
+  const extendDeadline = async (bid: PendingBid) => {
+    const raw = window.prompt(`Extend payment deadline for ${bid.member_name} by how many hours?`, "2");
+    if (!raw) return;
+    const hours = Number(raw);
+    if (!Number.isFinite(hours) || hours <= 0 || hours > 168) {
+      toast.error("Enter a number between 0 and 168 hours");
+      return;
+    }
+    const base = bid.payment_deadline ? new Date(bid.payment_deadline).getTime() : Date.now();
+    const newDeadline = new Date(Math.max(base, Date.now()) + hours * 3_600_000).toISOString();
+    setBusy(bid.id);
+    const { error } = await supabase
+      .from("circle_bids")
+      .update({ payment_deadline: newDeadline })
+      .eq("id", bid.id);
+    if (error) { toast.error(error.message); setBusy(null); return; }
+    await supabase.from("notifications").insert({
+      member_id: bid.member_id,
+      title: "⏱ Payment deadline extended",
+      body: `Your ${bid.tier} bid deadline was extended by ${hours}h. New deadline: ${new Date(newDeadline).toLocaleString()}.`,
+      kind: "payment",
+      link: "/circle",
+    });
+    toast.success(`Deadline extended by ${hours}h`);
+    setBusy(null);
+    load();
+  };
+
 
   const openProof = async (path: string) => {
     const { data, error } = await supabase.storage.from("payment-proofs").createSignedUrl(path, 60);
