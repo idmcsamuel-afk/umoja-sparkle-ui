@@ -19,8 +19,79 @@ const schema = z.object({
   email: z.string().trim().email("Enter a valid email").max(255),
   phone: z.string().trim().min(7, "Enter a valid phone").max(20),
   password: z.string().min(6, "At least 6 characters").max(100),
-  invite_code: z.string().trim().max(64).optional(),
 });
+
+// Global country list — UMOJA accepts members worldwide who pay in USDT.
+// Local payment rails (e.g. Paystack/EFT) still depend on country_configs in the DB,
+// but every country can join and contribute via USDT.
+const GLOBAL_COUNTRIES: Array<{ code: string; name: string; flag: string }> = [
+  { code: "ZA", name: "South Africa", flag: "🇿🇦" },
+  { code: "NG", name: "Nigeria", flag: "🇳🇬" },
+  { code: "KE", name: "Kenya", flag: "🇰🇪" },
+  { code: "GH", name: "Ghana", flag: "🇬🇭" },
+  { code: "ZM", name: "Zambia", flag: "🇿🇲" },
+  { code: "ZW", name: "Zimbabwe", flag: "🇿🇼" },
+  { code: "MZ", name: "Mozambique", flag: "🇲🇿" },
+  { code: "BW", name: "Botswana", flag: "🇧🇼" },
+  { code: "NA", name: "Namibia", flag: "🇳🇦" },
+  { code: "TZ", name: "Tanzania", flag: "🇹🇿" },
+  { code: "UG", name: "Uganda", flag: "🇺🇬" },
+  { code: "RW", name: "Rwanda", flag: "🇷🇼" },
+  { code: "ET", name: "Ethiopia", flag: "🇪🇹" },
+  { code: "EG", name: "Egypt", flag: "🇪🇬" },
+  { code: "MA", name: "Morocco", flag: "🇲🇦" },
+  { code: "SN", name: "Senegal", flag: "🇸🇳" },
+  { code: "CI", name: "Côte d'Ivoire", flag: "🇨🇮" },
+  { code: "CM", name: "Cameroon", flag: "🇨🇲" },
+  { code: "AO", name: "Angola", flag: "🇦🇴" },
+  { code: "GB", name: "United Kingdom", flag: "🇬🇧" },
+  { code: "IE", name: "Ireland", flag: "🇮🇪" },
+  { code: "US", name: "United States", flag: "🇺🇸" },
+  { code: "CA", name: "Canada", flag: "🇨🇦" },
+  { code: "AU", name: "Australia", flag: "🇦🇺" },
+  { code: "NZ", name: "New Zealand", flag: "🇳🇿" },
+  { code: "PK", name: "Pakistan", flag: "🇵🇰" },
+  { code: "IN", name: "India", flag: "🇮🇳" },
+  { code: "BD", name: "Bangladesh", flag: "🇧🇩" },
+  { code: "AE", name: "United Arab Emirates", flag: "🇦🇪" },
+  { code: "SA", name: "Saudi Arabia", flag: "🇸🇦" },
+  { code: "QA", name: "Qatar", flag: "🇶🇦" },
+  { code: "KW", name: "Kuwait", flag: "🇰🇼" },
+  { code: "OM", name: "Oman", flag: "🇴🇲" },
+  { code: "BH", name: "Bahrain", flag: "🇧🇭" },
+  { code: "TR", name: "Türkiye", flag: "🇹🇷" },
+  { code: "DE", name: "Germany", flag: "🇩🇪" },
+  { code: "FR", name: "France", flag: "🇫🇷" },
+  { code: "NL", name: "Netherlands", flag: "🇳🇱" },
+  { code: "BE", name: "Belgium", flag: "🇧🇪" },
+  { code: "ES", name: "Spain", flag: "🇪🇸" },
+  { code: "PT", name: "Portugal", flag: "🇵🇹" },
+  { code: "IT", name: "Italy", flag: "🇮🇹" },
+  { code: "CH", name: "Switzerland", flag: "🇨🇭" },
+  { code: "SE", name: "Sweden", flag: "🇸🇪" },
+  { code: "NO", name: "Norway", flag: "🇳🇴" },
+  { code: "DK", name: "Denmark", flag: "🇩🇰" },
+  { code: "FI", name: "Finland", flag: "🇫🇮" },
+  { code: "PL", name: "Poland", flag: "🇵🇱" },
+  { code: "RO", name: "Romania", flag: "🇷🇴" },
+  { code: "GR", name: "Greece", flag: "🇬🇷" },
+  { code: "MY", name: "Malaysia", flag: "🇲🇾" },
+  { code: "SG", name: "Singapore", flag: "🇸🇬" },
+  { code: "ID", name: "Indonesia", flag: "🇮🇩" },
+  { code: "PH", name: "Philippines", flag: "🇵🇭" },
+  { code: "TH", name: "Thailand", flag: "🇹🇭" },
+  { code: "VN", name: "Vietnam", flag: "🇻🇳" },
+  { code: "HK", name: "Hong Kong", flag: "🇭🇰" },
+  { code: "JP", name: "Japan", flag: "🇯🇵" },
+  { code: "KR", name: "South Korea", flag: "🇰🇷" },
+  { code: "BR", name: "Brazil", flag: "🇧🇷" },
+  { code: "MX", name: "Mexico", flag: "🇲🇽" },
+  { code: "AR", name: "Argentina", flag: "🇦🇷" },
+  { code: "CL", name: "Chile", flag: "🇨🇱" },
+  { code: "CO", name: "Colombia", flag: "🇨🇴" },
+  { code: "PE", name: "Peru", flag: "🇵🇪" },
+  { code: "OTHER", name: "Other (Worldwide)", flag: "🌍" },
+];
 
 const Signup = () => {
   const nav = useNavigate();
@@ -34,27 +105,14 @@ const Signup = () => {
   }, [urlRef]);
   const [referrerName, setReferrerName] = useState<string | null>(null);
   const [refStatus, setRefStatus] = useState<"none" | "checking" | "valid" | "invalid">(refParam ? "checking" : "none");
-  const [form, setForm] = useState({ full_name: "", email: "", phone: "", password: "", invite_code: "" });
+  const [form, setForm] = useState({ full_name: "", email: "", phone: "", password: "" });
   const [country, setCountry] = useState<string>("ZA");
-  const [countries, setCountries] = useState<Array<{ country_code: string; country_name: string; enabled: boolean; currency_code: string; currency_symbol: string }>>([]);
   const [busy, setBusy] = useState(false);
   const [acceptTerms, setAcceptTerms] = useState(false);
   const [ageConfirmed, setAgeConfirmed] = useState(false);
   const [duplicate, setDuplicate] = useState<null | { kind: "email" | "phone" | "account"; value: string }>(null);
 
-  useEffect(() => {
-    (async () => {
-      const { data } = await supabase
-        .from("country_configs" as any)
-        .select("country_code,country_name,enabled,currency_code,currency_symbol")
-        .order("country_name");
-      if (data) setCountries(data as any);
-    })();
-  }, []);
-
-  const selectedCountry = countries.find((c) => c.country_code === country);
-  const countryEnabled = selectedCountry?.enabled ?? (country === "ZA");
-  const FLAGS: Record<string, string> = { ZA: "🇿🇦", KE: "🇰🇪", NG: "🇳🇬", GH: "🇬🇭" };
+  const selectedCountry = GLOBAL_COUNTRIES.find((c) => c.code === country);
 
   // Map raw auth/db errors to a friendly duplicate kind, or null if not a duplicate.
   const detectDuplicate = (raw: unknown): null | "email" | "phone" | "account" => {
@@ -82,15 +140,8 @@ const Signup = () => {
     if (!refParam) { setRefStatus("none"); return; }
     setRefStatus("checking");
     (async () => {
-      console.log("[Signup] Validating code:", refParam);
       const { data, error } = await supabase.rpc("lookup_referrer", { _code: refParam });
-      console.log("[Signup] Raw RPC response:", { data, error });
-      console.log("[Signup] Data type:", typeof data, "isArray:", Array.isArray(data));
-      console.log("[Signup] Data content:", JSON.stringify(data));
-
       if (error) {
-        console.error("[Signup] lookup_referrer RPC error:", error);
-        // Fallback to direct table lookup
         const { data: row } = await supabase
           .from("members").select("id, full_name").eq("referral_code", refParam).maybeSingle();
         if (row?.full_name) {
@@ -107,7 +158,6 @@ const Signup = () => {
       else if (data && typeof data === "object" && (data as { id?: string }).id) referrer = data as typeof referrer;
 
       if (!referrer || !referrer.full_name) {
-        console.warn("[Signup] No referrer found for code:", refParam);
         setRefStatus("invalid");
         return;
       }
@@ -115,14 +165,12 @@ const Signup = () => {
       const { data: sess } = await supabase.auth.getSession();
       const currentUid = sess?.session?.user?.id ?? null;
       if (currentUid && currentUid === referrer.id) {
-        console.warn("[Signup] self-referral blocked", { refParam, currentUid });
         setRefStatus("invalid");
         try { localStorage.removeItem("umoja_referral_code"); } catch {}
         toast.error("You can't use your own referral link.");
         return;
       }
 
-      console.log("[Signup] ✅ Valid referrer:", referrer.full_name);
       setReferrerName(referrer.full_name);
       setRefStatus("valid");
     })();
@@ -131,9 +179,15 @@ const Signup = () => {
   const update = (k: keyof typeof form) => (e: React.ChangeEvent<HTMLInputElement>) =>
     setForm((f) => ({ ...f, [k]: e.target.value }));
 
+  const hasValidReferral = !!refParam && refStatus === "valid";
+
   const onSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setDuplicate(null);
+    if (!hasValidReferral) {
+      toast.error("UMOJA is referral-only. Ask an existing member for their invite link.");
+      return;
+    }
     if (!ageConfirmed) {
       toast.error("You must confirm you are 18 years or older");
       return;
@@ -148,48 +202,6 @@ const Signup = () => {
       return;
     }
     setBusy(true);
-
-    // Country gate: if the chosen country isn't enabled, add to waitlist and stop signup.
-    if (!countryEnabled) {
-      await supabase.from("country_waitlist" as any).insert({
-        email: parsed.data.email,
-        full_name: parsed.data.full_name,
-        phone: parsed.data.phone,
-        country_code: country,
-      });
-      setBusy(false);
-      toast.success(`Thanks! We'll notify you when UMOJA opens in ${selectedCountry?.country_name ?? country}.`);
-      nav("/waitlist");
-      return;
-    }
-
-    // Gate: SA phone OR valid invite code (only applies when country is ZA)
-    const phoneSA = parsed.data.phone.replace(/\s+/g, "").startsWith("+27");
-    const code = parsed.data.invite_code?.trim();
-
-    let inviteRedeemed = false;
-    if (code) {
-      const { data: ok, error: rpcErr } = await supabase.rpc("redeem_invite_code", { _code: code });
-      if (rpcErr) {
-        setBusy(false);
-        toast.error("Could not validate invite code");
-        return;
-      }
-      if (!ok) {
-        setBusy(false);
-        toast.error("Invite code is invalid or already used");
-        return;
-      }
-      inviteRedeemed = true;
-    }
-
-    const hasValidReferral = !!refParam && refStatus === "valid";
-
-    if (!phoneSA && !inviteRedeemed && !hasValidReferral) {
-      setBusy(false);
-      toast.error("UMOJA is currently invite-only outside South Africa. Use a referral link, enter a valid invite code, or join the waitlist.");
-      return;
-    }
 
     // Pre-flight: check if email or phone is already registered in members.
     try {
@@ -242,10 +254,18 @@ const Signup = () => {
 
     const uid = data.user.id;
     const hasSession = !!data.session;
-    console.log("[signup] auth.signUp ok", { uid, hasSession, refParam, refStatus });
 
-    // The handle_new_auth_user trigger already inserts the members row, so use upsert
-    // to enrich it (full_name/email/phone) without colliding on the primary key.
+    // Look up currency from country_configs if available; default to USDT for global members.
+    let currencyCode = "USDT";
+    try {
+      const { data: cfg } = await supabase
+        .from("country_configs" as any)
+        .select("currency_code")
+        .eq("country_code", country)
+        .maybeSingle();
+      if (cfg && (cfg as any).currency_code) currencyCode = (cfg as any).currency_code;
+    } catch {}
+
     const { error: memberErr } = await supabase
       .from("members")
       .upsert(
@@ -255,7 +275,7 @@ const Signup = () => {
           email: parsed.data.email,
           phone: parsed.data.phone,
           country_code: country,
-          currency_code: selectedCountry?.currency_code ?? "ZAR",
+          currency_code: currencyCode,
           is_active: true,
           age_verified: true,
           age_verified_at: new Date().toISOString(),
@@ -264,26 +284,18 @@ const Signup = () => {
       );
 
     if (memberErr) {
-      console.error("[signup] member upsert failed", memberErr);
       const kind = detectDuplicate(memberErr);
       if (kind === "phone") {
         setBusy(false);
         setDuplicate({ kind: "phone", value: parsed.data.phone });
         return;
       }
-      // Non-fatal otherwise — trigger row exists. Continue so we still try referral/bonus.
     }
 
-    // claim_signup_bonus and apply_referral_signup BOTH require auth.uid().
-    // If email confirmation is required, there's no session yet — defer to first login.
     if (hasSession) {
-      const { data: bonus, error: bonusErr } = await supabase.rpc("claim_signup_bonus");
-      console.log("[signup] claim_signup_bonus", { bonus, bonusErr });
-    } else {
-      console.log("[signup] no session yet (email confirm) — bonuses deferred to first login");
+      await supabase.rpc("claim_signup_bonus");
     }
 
-    // Fetch member referral code for the welcome email
     const { data: meRow } = await supabase.from("members").select("referral_code").eq("id", uid).maybeSingle();
     supabase.functions.invoke("send-email", {
       body: {
@@ -296,20 +308,10 @@ const Signup = () => {
     }).catch(() => {});
 
     let refMsg = "";
-    if (refParam && refStatus !== "invalid" && hasSession) {
-      console.log("[signup] calling apply_referral_signup", { uid, refParam });
+    if (hasSession) {
       const { data: res, error: refErr } = await supabase.rpc("apply_referral_signup", { _code: refParam });
       const r = res as { ok?: boolean; reason?: string; referrer_name?: string; referrer_id?: string } | null;
-      console.log("[Signup] ========= REFERRAL RESULT =========");
-      console.log("[Signup] Success:", !!r?.ok);
-      console.log("[Signup] Reason/Error:", r?.reason ?? refErr?.message ?? "(none)");
-      console.log("[Signup] Referrer ID:", r?.referrer_id ?? "(none)");
-      console.log("[Signup] Referrer Name:", r?.referrer_name ?? "(none)");
-      console.log("[Signup] Raw data:", JSON.stringify(res));
-      console.log("[Signup] Raw error:", JSON.stringify(refErr));
-      console.log("[Signup] ======================================");
       if (refErr || !r?.ok) {
-        console.warn("[signup] referral NOT applied", { refErr, reason: r?.reason });
         toast.warning(`Referral code couldn't be applied (${r?.reason ?? refErr?.message ?? "unknown"}).`);
       } else {
         refMsg = ` Your referrer ${r.referrer_name ?? ""} earned 100 Sparks too 🎁`;
@@ -331,13 +333,8 @@ const Signup = () => {
         }
         try { localStorage.removeItem("umoja_referral_code"); } catch {}
       }
-    } else if (refParam && refStatus === "invalid") {
-      toast.warning("Invalid referral code — signup allowed without referral bonus.");
-      try { localStorage.removeItem("umoja_referral_code"); } catch {}
-    } else if (refParam && !hasSession) {
-      console.log("[signup] referral deferred to first login (still in localStorage):", refParam);
-      // Keep umoja_referral_code so useAuth applies it after email confirmation.
     }
+    // If no session yet (email confirm), keep refParam in localStorage so useAuth applies it.
 
     setBusy(false);
     ttTrack("CompleteRegistration", { content_name: "umoja_signup" });
@@ -384,27 +381,29 @@ const Signup = () => {
             </div>
           </div>
 
-          <div className="mt-5 rounded-2xl border border-accent/30 bg-accent/5 p-4 flex gap-3">
-            <Lock className="h-4 w-4 text-accent shrink-0 mt-0.5" />
-            <p className="text-xs text-accent-soft leading-relaxed">
-              UMOJA is currently invite-only for South African residents.{" "}
-              <Link to="/waitlist" className="underline text-accent">Join the waitlist</Link> to be notified when we open in your region.
-            </p>
-          </div>
+          {!hasValidReferral && (
+            <div className="mt-5 rounded-2xl border border-accent/30 bg-accent/5 p-4 flex gap-3">
+              <Lock className="h-4 w-4 text-accent shrink-0 mt-0.5" />
+              <p className="text-xs text-accent-soft leading-relaxed">
+                UMOJA is <strong>referral-only and open worldwide</strong>. Members in every country can join and contribute via USDT.
+                Ask an existing member to share their invite link with you.
+              </p>
+            </div>
+          )}
 
           {refParam && refStatus === "checking" && (
             <div className="mt-3 rounded-2xl border border-border bg-secondary/40 p-4 text-xs text-muted-foreground">
               Checking referral code <strong className="font-mono">{refParam}</strong>…
             </div>
           )}
-          {refParam && refStatus === "valid" && (
+          {hasValidReferral && (
             <div className="mt-3 rounded-2xl border border-accent/40 bg-accent/10 p-4 text-xs text-accent-soft">
               🎉 You were invited by <strong>{referrerName ?? refParam}</strong>. You'll both earn Sparks when you join.
             </div>
           )}
           {refParam && refStatus === "invalid" && (
             <div className="mt-3 rounded-2xl border border-destructive/40 bg-destructive/10 p-4 text-xs text-destructive">
-              ⚠️ Referral code <strong className="font-mono">{refParam}</strong> isn't valid. You can still sign up — you just won't get a referral bonus.
+              ⚠️ Referral code <strong className="font-mono">{refParam}</strong> isn't valid. Please ask the member for a fresh invite link.
             </div>
           )}
 
@@ -445,100 +444,107 @@ const Signup = () => {
             </div>
           )}
 
-
-
-          <form onSubmit={onSubmit} className="mt-8 space-y-5">
-            <div className="space-y-2">
-              <Label className="text-xs uppercase tracking-[0.18em] text-muted-foreground">Country</Label>
-              <select
-                value={country}
-                onChange={(e) => setCountry(e.target.value)}
-                className="w-full h-12 rounded-2xl bg-secondary/60 border border-border px-3 text-sm"
-              >
-                {(countries.length ? countries : [{ country_code: "ZA", country_name: "South Africa", enabled: true, currency_code: "ZAR", currency_symbol: "R" }]).map((c) => (
-                  <option key={c.country_code} value={c.country_code}>
-                    {FLAGS[c.country_code] ?? "🌍"} {c.country_name}{c.enabled ? "" : " (Coming Soon)"}
-                  </option>
-                ))}
-              </select>
-              {!countryEnabled && (
-                <p className="text-[11px] text-amber-400">
-                  UMOJA isn't live in {selectedCountry?.country_name ?? "your country"} yet. Submit to join the waitlist — we'll notify you at launch.
+          {hasValidReferral ? (
+            <form onSubmit={onSubmit} className="mt-8 space-y-5">
+              <div className="space-y-2">
+                <Label className="text-xs uppercase tracking-[0.18em] text-muted-foreground">Country</Label>
+                <select
+                  value={country}
+                  onChange={(e) => setCountry(e.target.value)}
+                  className="w-full h-12 rounded-2xl bg-secondary/60 border border-border px-3 text-sm"
+                >
+                  {GLOBAL_COUNTRIES.map((c) => (
+                    <option key={c.code} value={c.code}>
+                      {c.flag} {c.name}
+                    </option>
+                  ))}
+                </select>
+                <p className="text-[11px] text-muted-foreground">
+                  Members worldwide contribute and get paid out in USDT. Local rails (EFT/Paystack) are also available where supported.
                 </p>
-              )}
-            </div>
-            <div className="space-y-2">
-              <Label className="text-xs uppercase tracking-[0.18em] text-muted-foreground">Full name</Label>
-              <Input value={form.full_name} onChange={update("full_name")} className="h-12 rounded-2xl bg-secondary/60 border-border" placeholder="Amara Khumalo" required />
-            </div>
-            <div className="space-y-2">
-              <Label className="text-xs uppercase tracking-[0.18em] text-muted-foreground">Email</Label>
-              <Input type="email" autoComplete="email" value={form.email} onChange={update("email")} className="h-12 rounded-2xl bg-secondary/60 border-border" placeholder="you@umoja.africa" required />
-            </div>
-            <div className="space-y-2">
-              <Label className="text-xs uppercase tracking-[0.18em] text-muted-foreground">Phone</Label>
-              <Input type="tel" autoComplete="tel" value={form.phone} onChange={update("phone")} className="h-12 rounded-2xl bg-secondary/60 border-border" placeholder="+27 …" required />
-              <p className="text-[11px] text-muted-foreground">South African numbers (+27) are auto-approved.</p>
-            </div>
-            <div className="space-y-2">
-              <Label className="text-xs uppercase tracking-[0.18em] text-muted-foreground">Invite code (optional)</Label>
-              <Input value={form.invite_code} onChange={update("invite_code")} className="h-12 rounded-2xl bg-secondary/60 border-border" placeholder="Required outside +27" />
-            </div>
-            <div className="space-y-2">
-              <Label className="text-xs uppercase tracking-[0.18em] text-muted-foreground">Password</Label>
-              <PasswordInput autoComplete="new-password" value={form.password} onChange={update("password")} className="h-12 rounded-2xl bg-secondary/60 border-border" placeholder="At least 6 characters" required />
-            </div>
+              </div>
+              <div className="space-y-2">
+                <Label className="text-xs uppercase tracking-[0.18em] text-muted-foreground">Full name</Label>
+                <Input value={form.full_name} onChange={update("full_name")} className="h-12 rounded-2xl bg-secondary/60 border-border" placeholder="Amara Khumalo" required />
+              </div>
+              <div className="space-y-2">
+                <Label className="text-xs uppercase tracking-[0.18em] text-muted-foreground">Email</Label>
+                <Input type="email" autoComplete="email" value={form.email} onChange={update("email")} className="h-12 rounded-2xl bg-secondary/60 border-border" placeholder="you@umoja.africa" required />
+              </div>
+              <div className="space-y-2">
+                <Label className="text-xs uppercase tracking-[0.18em] text-muted-foreground">Phone</Label>
+                <Input type="tel" autoComplete="tel" value={form.phone} onChange={update("phone")} className="h-12 rounded-2xl bg-secondary/60 border-border" placeholder="+country code …" required />
+              </div>
+              <div className="space-y-2">
+                <Label className="text-xs uppercase tracking-[0.18em] text-muted-foreground">Password</Label>
+                <PasswordInput autoComplete="new-password" value={form.password} onChange={update("password")} className="h-12 rounded-2xl bg-secondary/60 border-border" placeholder="At least 6 characters" required />
+              </div>
 
-            <label className="flex items-start gap-3 rounded-2xl border border-border bg-secondary/40 p-3 cursor-pointer">
-              <input
-                type="checkbox"
-                checked={ageConfirmed}
-                onChange={(e) => setAgeConfirmed(e.target.checked)}
-                className="mt-1 h-4 w-4 rounded border-border accent-primary"
-                required
-              />
-              <span className="text-xs leading-relaxed text-foreground/85">
-                I confirm I am <strong>18 years or older</strong>. Spark Pit games are 18+ and have a house edge — you may lose all sparks wagered.
-              </span>
-            </label>
+              <label className="flex items-start gap-3 rounded-2xl border border-border bg-secondary/40 p-3 cursor-pointer">
+                <input
+                  type="checkbox"
+                  checked={ageConfirmed}
+                  onChange={(e) => setAgeConfirmed(e.target.checked)}
+                  className="mt-1 h-4 w-4 rounded border-border accent-primary"
+                  required
+                />
+                <span className="text-xs leading-relaxed text-foreground/85">
+                  I confirm I am <strong>18 years or older</strong>. Spark Pit games are 18+ and have a house edge — you may lose all sparks wagered.
+                </span>
+              </label>
 
-            <label className="flex items-start gap-3 rounded-2xl border border-border bg-secondary/40 p-3 cursor-pointer">
-              <input
-                type="checkbox"
-                checked={acceptTerms}
-                onChange={(e) => setAcceptTerms(e.target.checked)}
-                className="mt-1 h-4 w-4 rounded border-border accent-primary"
-                required
-              />
-              <span className="text-xs leading-relaxed text-foreground/85">
-                I agree to the{" "}
-                <Link to="/terms" target="_blank" className="text-accent hover:underline">Terms of Service</Link>{" "}
-                and{" "}
-                <Link to="/privacy" target="_blank" className="text-accent hover:underline">Privacy Policy</Link>.
-              </span>
-            </label>
+              <label className="flex items-start gap-3 rounded-2xl border border-border bg-secondary/40 p-3 cursor-pointer">
+                <input
+                  type="checkbox"
+                  checked={acceptTerms}
+                  onChange={(e) => setAcceptTerms(e.target.checked)}
+                  className="mt-1 h-4 w-4 rounded border-border accent-primary"
+                  required
+                />
+                <span className="text-xs leading-relaxed text-foreground/85">
+                  I agree to the{" "}
+                  <Link to="/terms" target="_blank" className="text-accent hover:underline">Terms of Service</Link>{" "}
+                  and{" "}
+                  <Link to="/privacy" target="_blank" className="text-accent hover:underline">Privacy Policy</Link>.
+                </span>
+              </label>
 
-            <Button type="submit" disabled={busy || !acceptTerms || !ageConfirmed} className="w-full h-12 rounded-2xl bg-gradient-primary text-primary-foreground shadow-glow hover:opacity-95">
-              {busy ? <Loader2 className="h-4 w-4 animate-spin" /> : (<>Create my account <ArrowRight className="ml-1 h-4 w-4" /></>)}
-            </Button>
-          </form>
-
-          <div className="mt-8 rounded-2xl border border-border bg-secondary/40 p-4">
-            <p className="text-xs font-medium uppercase tracking-wider text-muted-foreground">Next steps after signup</p>
-            <ol className="mt-2 space-y-1 text-sm text-foreground/85">
-              <li>1. Complete KYC</li>
-              <li>2. Join your first Circle</li>
-              <li>3. Join the WhatsApp Community ↓</li>
-            </ol>
-            <div className="mt-3">
-              <WhatsAppCommunity
-                variant="compact"
-                source="signup"
-                heading="Join WhatsApp Community"
-                subheading="Get instant support from our community"
-              />
+              <Button type="submit" disabled={busy || !acceptTerms || !ageConfirmed} className="w-full h-12 rounded-2xl bg-gradient-primary text-primary-foreground shadow-glow hover:opacity-95">
+                {busy ? <Loader2 className="h-4 w-4 animate-spin" /> : (<>Create my account <ArrowRight className="ml-1 h-4 w-4" /></>)}
+              </Button>
+            </form>
+          ) : (
+            <div className="mt-8 rounded-2xl border border-border bg-secondary/40 p-6 text-center space-y-3">
+              <Lock className="h-6 w-6 text-accent mx-auto" />
+              <h2 className="font-display text-xl">Invitation required</h2>
+              <p className="text-sm text-muted-foreground">
+                Signup is only available through a member's referral link.
+                If you already have an invite link, open it now to continue.
+              </p>
+              <Button asChild variant="outline" className="rounded-xl">
+                <Link to="/login">I already have an account</Link>
+              </Button>
             </div>
-          </div>
+          )}
+
+          {hasValidReferral && (
+            <div className="mt-8 rounded-2xl border border-border bg-secondary/40 p-4">
+              <p className="text-xs font-medium uppercase tracking-wider text-muted-foreground">Next steps after signup</p>
+              <ol className="mt-2 space-y-1 text-sm text-foreground/85">
+                <li>1. Complete KYC</li>
+                <li>2. Join your first Circle</li>
+                <li>3. Join the WhatsApp Community ↓</li>
+              </ol>
+              <div className="mt-3">
+                <WhatsAppCommunity
+                  variant="compact"
+                  source="signup"
+                  heading="Join WhatsApp Community"
+                  subheading="Get instant support from our community"
+                />
+              </div>
+            </div>
+          )}
 
           <p className="mt-8 text-center text-sm text-muted-foreground">
             Already a member?{" "}

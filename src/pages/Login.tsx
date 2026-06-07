@@ -138,7 +138,7 @@ const Login = () => {
 
           <p className="mt-8 text-center text-sm text-muted-foreground">
             New to the circle?{" "}
-            <Link to="/signup" className="text-accent hover:underline font-medium">Create an account</Link>
+            <Link to="/waitlist" className="text-accent hover:underline font-medium">Get an invite</Link>
           </p>
         </div>
       </section>
