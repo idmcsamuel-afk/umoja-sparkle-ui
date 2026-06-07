@@ -20,30 +20,47 @@ interface PendingBid {
   payment_reference: string | null;
   payment_proof_url: string | null;
   payment_submitted_at: string | null;
+  payment_deadline: string | null;
+  payment_method: string | null;
   created_at: string | null;
   member_name?: string;
   member_email?: string;
 }
 
 export default function AdminCircles() {
-  const [tab, setTab] = useState<"tiers" | "pending">("tiers");
+  const [tab, setTab] = useState<"tiers" | "pending" | "awaiting">("tiers");
   const [loading, setLoading] = useState(true);
   const [rows, setRows] = useState<TierRow[]>([]);
   const [pending, setPending] = useState<PendingBid[]>([]);
+  const [awaiting, setAwaiting] = useState<PendingBid[]>([]);
   const [busy, setBusy] = useState<string | null>(null);
   const [openHistory, setOpenHistory] = useState<string | null>(null);
+  const [, setTick] = useState(0);
+
+  useEffect(() => {
+    const t = setInterval(() => setTick((x) => x + 1), 1000);
+    return () => clearInterval(t);
+  }, []);
 
   const load = async () => {
     setLoading(true);
-    const [t, b, p] = await Promise.all([
+    const [t, b, p, a] = await Promise.all([
       supabase.from("circle_tiers").select("*").order("min_entry"),
       supabase.from("circle_bids").select("tier, net_amount, member_id, status").in("status", ["pending", "payment_pending", "active", "matched"]),
       supabase
         .from("circle_bids")
-        .select("id, member_id, tier, fiat_amount, payment_reference, payment_proof_url, payment_submitted_at, created_at")
+        .select("id, member_id, tier, fiat_amount, payment_reference, payment_proof_url, payment_submitted_at, payment_deadline, payment_method, created_at")
         .eq("status", "payment_pending")
         .order("payment_submitted_at", { ascending: true }),
+      supabase
+        .from("circle_bids")
+        .select("id, member_id, tier, fiat_amount, payment_reference, payment_proof_url, payment_submitted_at, payment_deadline, payment_method, created_at")
+        .eq("status", "pending")
+        .is("payment_proof_url", null)
+        .not("payment_deadline", "is", null)
+        .order("payment_deadline", { ascending: true }),
     ]);
+
     const bids = (b.data ?? []) as { tier: string; net_amount: number; member_id: string }[];
     const tiers = (t.data ?? []) as Array<Omit<TierRow, "pool" | "members">>;
     setRows(tiers.map((x) => {
