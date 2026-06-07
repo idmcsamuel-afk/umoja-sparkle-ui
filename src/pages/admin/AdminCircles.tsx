@@ -208,6 +208,7 @@ export default function AdminCircles() {
         {[
           { id: "tiers" as const, label: "Tiers" },
           { id: "pending" as const, label: `Pending payments${pending.length ? ` (${pending.length})` : ""}` },
+          { id: "awaiting" as const, label: `Awaiting EFT${awaiting.length ? ` (${awaiting.length})` : ""}` },
         ].map((x) => (
           <button
             key={x.id}
