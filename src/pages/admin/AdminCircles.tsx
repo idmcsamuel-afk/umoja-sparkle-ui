@@ -246,7 +246,7 @@ export default function AdminCircles() {
             </div>
           ))}
         </div>
-      ) : (
+      ) : tab === "pending" ? (
         <div className="mt-6">
           {pending.length === 0 ? (
             <div className="rounded-3xl border border-border bg-gradient-card p-10 text-center text-sm text-muted-foreground">
