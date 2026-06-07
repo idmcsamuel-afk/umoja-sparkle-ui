@@ -20,30 +20,47 @@ interface PendingBid {
   payment_reference: string | null;
   payment_proof_url: string | null;
   payment_submitted_at: string | null;
+  payment_deadline: string | null;
+  payment_method: string | null;
   created_at: string | null;
   member_name?: string;
   member_email?: string;
 }
 
 export default function AdminCircles() {
-  const [tab, setTab] = useState<"tiers" | "pending">("tiers");
+  const [tab, setTab] = useState<"tiers" | "pending" | "awaiting">("tiers");
   const [loading, setLoading] = useState(true);
   const [rows, setRows] = useState<TierRow[]>([]);
   const [pending, setPending] = useState<PendingBid[]>([]);
+  const [awaiting, setAwaiting] = useState<PendingBid[]>([]);
   const [busy, setBusy] = useState<string | null>(null);
   const [openHistory, setOpenHistory] = useState<string | null>(null);
+  const [, setTick] = useState(0);
+
+  useEffect(() => {
+    const t = setInterval(() => setTick((x) => x + 1), 1000);
+    return () => clearInterval(t);
+  }, []);
 
   const load = async () => {
     setLoading(true);
-    const [t, b, p] = await Promise.all([
+    const [t, b, p, a] = await Promise.all([
       supabase.from("circle_tiers").select("*").order("min_entry"),
       supabase.from("circle_bids").select("tier, net_amount, member_id, status").in("status", ["pending", "payment_pending", "active", "matched"]),
       supabase
         .from("circle_bids")
-        .select("id, member_id, tier, fiat_amount, payment_reference, payment_proof_url, payment_submitted_at, created_at")
+        .select("id, member_id, tier, fiat_amount, payment_reference, payment_proof_url, payment_submitted_at, payment_deadline, payment_method, created_at")
         .eq("status", "payment_pending")
         .order("payment_submitted_at", { ascending: true }),
+      supabase
+        .from("circle_bids")
+        .select("id, member_id, tier, fiat_amount, payment_reference, payment_proof_url, payment_submitted_at, payment_deadline, payment_method, created_at")
+        .eq("status", "pending")
+        .is("payment_proof_url", null)
+        .not("payment_deadline", "is", null)
+        .order("payment_deadline", { ascending: true }),
     ]);
+
     const bids = (b.data ?? []) as { tier: string; net_amount: number; member_id: string }[];
     const tiers = (t.data ?? []) as Array<Omit<TierRow, "pool" | "members">>;
     setRows(tiers.map((x) => {
@@ -56,24 +73,57 @@ export default function AdminCircles() {
     }));
 
     const pendingBids = (p.data ?? []) as PendingBid[];
-    if (pendingBids.length) {
-      const ids = Array.from(new Set(pendingBids.map((x) => x.member_id)));
+    const awaitingBids = (a.data ?? []) as PendingBid[];
+    const allMemberIds = Array.from(new Set([...pendingBids, ...awaitingBids].map((x) => x.member_id)));
+    if (allMemberIds.length) {
       const { data: members } = await supabase
         .from("members")
         .select("id, full_name, email")
-        .in("id", ids);
+        .in("id", allMemberIds);
       const map = new Map((members ?? []).map((m: { id: string; full_name: string | null; email: string | null }) => [m.id, m]));
-      pendingBids.forEach((x) => {
+      const hydrate = (x: PendingBid) => {
         const m = map.get(x.member_id);
         x.member_name = m?.full_name ?? "Member";
         x.member_email = m?.email ?? "";
-      });
+      };
+      pendingBids.forEach(hydrate);
+      awaitingBids.forEach(hydrate);
     }
     setPending(pendingBids);
+    setAwaiting(awaitingBids);
     setLoading(false);
   };
 
   useEffect(() => { load(); }, []);
+
+  const extendDeadline = async (bid: PendingBid) => {
+    const raw = window.prompt(`Extend payment deadline for ${bid.member_name} by how many hours?`, "2");
+    if (!raw) return;
+    const hours = Number(raw);
+    if (!Number.isFinite(hours) || hours <= 0 || hours > 168) {
+      toast.error("Enter a number between 0 and 168 hours");
+      return;
+    }
+    const base = bid.payment_deadline ? new Date(bid.payment_deadline).getTime() : Date.now();
+    const newDeadline = new Date(Math.max(base, Date.now()) + hours * 3_600_000).toISOString();
+    setBusy(bid.id);
+    const { error } = await supabase
+      .from("circle_bids")
+      .update({ payment_deadline: newDeadline })
+      .eq("id", bid.id);
+    if (error) { toast.error(error.message); setBusy(null); return; }
+    await supabase.from("notifications").insert({
+      member_id: bid.member_id,
+      title: "⏱ Payment deadline extended",
+      body: `Your ${bid.tier} bid deadline was extended by ${hours}h. New deadline: ${new Date(newDeadline).toLocaleString()}.`,
+      kind: "payment",
+      link: "/circle",
+    });
+    toast.success(`Deadline extended by ${hours}h`);
+    setBusy(null);
+    load();
+  };
+
 
   const openProof = async (path: string) => {
     const { data, error } = await supabase.storage.from("payment-proofs").createSignedUrl(path, 60);
@@ -158,6 +208,7 @@ export default function AdminCircles() {
         {[
           { id: "tiers" as const, label: "Tiers" },
           { id: "pending" as const, label: `Pending payments${pending.length ? ` (${pending.length})` : ""}` },
+          { id: "awaiting" as const, label: `Awaiting EFT${awaiting.length ? ` (${awaiting.length})` : ""}` },
         ].map((x) => (
           <button
             key={x.id}
@@ -195,7 +246,7 @@ export default function AdminCircles() {
             </div>
           ))}
         </div>
-      ) : (
+      ) : tab === "pending" ? (
         <div className="mt-6">
           {pending.length === 0 ? (
             <div className="rounded-3xl border border-border bg-gradient-card p-10 text-center text-sm text-muted-foreground">
@@ -248,6 +299,14 @@ export default function AdminCircles() {
                       <X className="h-4 w-4 mr-1" /> Reject
                     </Button>
                     <Button
+                      variant="outline"
+                      onClick={() => extendDeadline(bid)}
+                      disabled={busy === bid.id}
+                      className="rounded-2xl"
+                    >
+                      ⏱ Extend deadline
+                    </Button>
+                    <Button
                       variant="ghost"
                       onClick={() => setOpenHistory((cur) => (cur === bid.id ? null : bid.id))}
                       className="rounded-2xl"
@@ -263,6 +322,64 @@ export default function AdminCircles() {
                   )}
                 </li>
               ))}
+            </ul>
+          )}
+        </div>
+      ) : (
+        <div className="mt-6">
+          {awaiting.length === 0 ? (
+            <div className="rounded-3xl border border-border bg-gradient-card p-10 text-center text-sm text-muted-foreground">
+              No bids awaiting EFT proof.
+            </div>
+          ) : (
+            <ul className="space-y-3">
+              {awaiting.map((bid) => {
+                const deadlineMs = bid.payment_deadline ? new Date(bid.payment_deadline).getTime() : 0;
+                const msLeft = deadlineMs - Date.now();
+                const expired = msLeft <= 0;
+                const hh = Math.max(0, Math.floor(msLeft / 3_600_000));
+                const mm = Math.max(0, Math.floor((msLeft % 3_600_000) / 60_000));
+                return (
+                  <li key={bid.id} className="rounded-3xl border border-border bg-gradient-card p-5">
+                    <div className="flex flex-wrap items-start justify-between gap-3">
+                      <div className="min-w-0">
+                        <p className="font-display text-lg">{bid.member_name}</p>
+                        <p className="text-xs text-muted-foreground truncate">{bid.member_email}</p>
+                        <p className="mt-2 text-xs">
+                          <span className="capitalize text-accent">{bid.tier}</span> ·
+                          <span className="ml-1 font-mono">{bid.payment_reference ?? "—"}</span>
+                        </p>
+                        <p className={`mt-1 text-[11px] ${expired ? "text-destructive" : "text-muted-foreground"}`}>
+                          {expired
+                            ? `⏰ Deadline passed ${new Date(deadlineMs).toLocaleString()}`
+                            : `⏱ ${hh}h ${mm}m left · deadline ${new Date(deadlineMs).toLocaleString()}`}
+                        </p>
+                      </div>
+                      <div className="text-right">
+                        <p className="text-[10px] uppercase tracking-wider text-muted-foreground">Amount</p>
+                        <p className="font-display text-xl text-gradient-gold">{fmtR(Number(bid.fiat_amount))}</p>
+                      </div>
+                    </div>
+                    <div className="mt-4 flex flex-wrap gap-2">
+                      <Button
+                        onClick={() => extendDeadline(bid)}
+                        disabled={busy === bid.id}
+                        className="rounded-2xl bg-gradient-primary text-primary-foreground shadow-glow"
+                      >
+                        {busy === bid.id ? <Loader2 className="h-4 w-4 animate-spin" /> : "⏱ Extend deadline"}
+                      </Button>
+                      <Button
+                        variant="outline"
+                        onClick={() => reject(bid)}
+                        disabled={busy === bid.id}
+                        className="rounded-2xl text-destructive"
+                      >
+                        <X className="h-4 w-4 mr-1" /> Reject
+                      </Button>
+                    </div>
+                  </li>
+                );
+              })}
             </ul>
           )}
         </div>

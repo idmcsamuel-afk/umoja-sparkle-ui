@@ -714,8 +714,8 @@ const Circle = () => {
                         </Button>
                       </div>
                     )}
-                    {awaiting && b.payment_method !== "usdt" && b.payment_method !== "paystack" && !b.payment_proof_url && hoursLeft !== null && hoursLeft > 0 && (
-                      <div className="pl-14 flex items-center gap-2">
+                    {awaiting && b.payment_method !== "usdt" && b.payment_method !== "paystack" && !b.payment_proof_url && hoursLeft !== null && (
+                      <div className="pl-14 flex items-center gap-2 flex-wrap">
                         <input
                           id={`proof-${b.id}`}
                           type="file"
@@ -730,7 +730,7 @@ const Circle = () => {
                         <Button
                           size="sm"
                           className="h-7 rounded-full text-xs bg-gradient-primary text-primary-foreground shadow-glow"
-                          disabled={uploadingBidId === b.id}
+                          disabled={uploadingBidId === b.id || hoursLeft <= 0}
                           onClick={() => document.getElementById(`proof-${b.id}`)?.click()}
                         >
                           {uploadingBidId === b.id ? (
@@ -739,7 +739,7 @@ const Circle = () => {
                             <><Upload className="h-3 w-3 mr-1" /> Upload proof of payment</>
                           )}
                         </Button>
-                        {deadlineMs && (
+                        {deadlineMs && hoursLeft > 0 && (
                           <span
                             className={`font-mono text-xs tabular-nums ${
                               hoursLeft <= 0.5 ? "text-destructive" : hoursLeft <= 1 ? "text-amber-400" : "text-muted-foreground"
@@ -747,6 +747,11 @@ const Circle = () => {
                             aria-label="Time left to upload proof"
                           >
                             ⏱ {fmtCountdown(deadlineMs - now)} left
+                          </span>
+                        )}
+                        {hoursLeft <= 0 && (
+                          <span className="text-[11px] text-destructive">
+                            ⏰ Deadline passed — contact admin to extend
                           </span>
                         )}
                       </div>
