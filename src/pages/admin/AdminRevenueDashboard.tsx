@@ -1,7 +1,8 @@
 import { useEffect, useState } from "react";
+import { Link } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { Card } from "@/components/ui/card";
-import { TrendingUp, Users, Wallet, Coins, Loader2 } from "lucide-react";
+import { TrendingUp, Users, Wallet, Coins, Loader2, AlertTriangle } from "lucide-react";
 import { ResponsiveContainer, LineChart, Line, XAxis, YAxis, Tooltip, CartesianGrid, Legend } from "recharts";
 
 interface TrendRow {
@@ -29,13 +30,26 @@ const Z = (v?: number) => `R${Number(v ?? 0).toLocaleString("en-ZA", { maximumFr
 export default function AdminRevenueDashboard() {
   const [data, setData] = useState<RevenueData | null>(null);
   const [loading, setLoading] = useState(true);
+  const [overdue, setOverdue] = useState<number | null>(null);
 
   useEffect(() => {
+    const loadOverdue = async () => {
+      // Live count of vault bids whose payout window has expired.
+      const { count } = await supabase
+        .from("circle_bids")
+        .select("id", { count: "exact", head: true })
+        .eq("status", "vault")
+        .lt("vault_end", new Date().toISOString());
+      setOverdue(count ?? 0);
+    };
     (async () => {
       const { data: d } = await supabase.rpc("admin_revenue_dashboard", { _days: 30 });
       setData(d as unknown as RevenueData);
       setLoading(false);
     })();
+    loadOverdue();
+    const t = setInterval(loadOverdue, 60_000);
+    return () => clearInterval(t);
   }, []);
 
   if (loading) {
@@ -74,6 +88,24 @@ export default function AdminRevenueDashboard() {
           {data.totals.total_members.toLocaleString()} total members · live 24h metrics
         </p>
       </div>
+
+      <Card className={`p-4 flex items-center justify-between ${overdue && overdue > 0 ? "border-red-500/40 bg-red-500/5" : ""}`}>
+        <div className="flex items-center gap-3">
+          <AlertTriangle className={`h-5 w-5 ${overdue && overdue > 0 ? "text-red-500" : "text-muted-foreground"}`} />
+          <div>
+            <p className="text-sm font-semibold">
+              {overdue === null ? "Loading overdue payouts…" : `${overdue} payout${overdue === 1 ? "" : "s"} past due date`}
+            </p>
+            <p className="text-xs text-muted-foreground">
+              Vault bids whose payout window has expired without payment. Refreshes every minute.
+            </p>
+          </div>
+        </div>
+        <Link to="/admin/circle-tracker" className="text-sm font-medium text-primary hover:underline whitespace-nowrap">
+          View all overdue →
+        </Link>
+      </Card>
+
 
       <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
         {tiles.map(({ label, value, icon: Icon }) => (

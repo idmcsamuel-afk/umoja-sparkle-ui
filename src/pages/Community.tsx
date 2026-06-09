@@ -107,16 +107,20 @@ export default function Community() {
   useEffect(() => {
     let cancelled = false;
     (async () => {
+      // Fetch the most recent 500 messages, then display oldest→newest.
+      // Previously we ordered ASCENDING with limit 200, which trimmed off recent
+      // messages once the table grew past 200 rows.
       const { data: msgs } = await supabase
         .from("chat_messages")
         .select("*")
         .eq("is_deleted", false)
-        .order("created_at", { ascending: true })
-        .limit(200);
+        .order("created_at", { ascending: false })
+        .limit(500);
       if (cancelled || !msgs) return;
-      setMessages(msgs as ChatMsg[]);
+      const ordered = (msgs as ChatMsg[]).slice().reverse();
+      setMessages(ordered);
 
-      const ids = Array.from(new Set(msgs.map((m: any) => m.member_id).filter(Boolean)));
+      const ids = Array.from(new Set(ordered.map((m: any) => m.member_id).filter(Boolean)));
       if (ids.length) {
         const { data: mems } = await supabase
           .from("members")

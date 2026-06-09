@@ -66,6 +66,7 @@ import AdminDrive from "./pages/admin/AdminDrive";
 import AdminPredictor from "./pages/admin/AdminPredictor";
 import AdminKycReview from "./pages/admin/AdminKycReview";
 import AdminPayouts from "./pages/admin/AdminPayouts";
+import AdminWithdrawals from "./pages/admin/AdminWithdrawals";
 import AdminInvites from "./pages/admin/AdminInvites";
 import AdminReferrals from "./pages/admin/AdminReferrals";
 import AdminSettings from "./pages/admin/AdminSettings";
@@ -182,6 +183,7 @@ const App = () => (
                 <Route path="predictor" element={<AdminPredictor />} />
                 <Route path="kyc-review" element={<AdminKycReview />} />
                 <Route path="payouts" element={<AdminPayouts />} />
+                <Route path="withdrawals" element={<AdminWithdrawals />} />
                 <Route path="invites" element={<AdminInvites />} />
                 <Route path="referrals" element={<AdminReferrals />} />
                 <Route path="settings" element={<AdminSettings />} />
