@@ -1,7 +1,8 @@
 import { useEffect, useState } from "react";
+import { Link } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { Card } from "@/components/ui/card";
-import { TrendingUp, Users, Wallet, Coins, Loader2 } from "lucide-react";
+import { TrendingUp, Users, Wallet, Coins, Loader2, AlertTriangle } from "lucide-react";
 import { ResponsiveContainer, LineChart, Line, XAxis, YAxis, Tooltip, CartesianGrid, Legend } from "recharts";
 
 interface TrendRow {
@@ -29,13 +30,26 @@ const Z = (v?: number) => `R${Number(v ?? 0).toLocaleString("en-ZA", { maximumFr
 export default function AdminRevenueDashboard() {
   const [data, setData] = useState<RevenueData | null>(null);
   const [loading, setLoading] = useState(true);
+  const [overdue, setOverdue] = useState<number | null>(null);
 
   useEffect(() => {
+    const loadOverdue = async () => {
+      // Live count of vault bids whose payout window has expired.
+      const { count } = await supabase
+        .from("circle_bids")
+        .select("id", { count: "exact", head: true })
+        .eq("status", "vault")
+        .lt("vault_end", new Date().toISOString());
+      setOverdue(count ?? 0);
+    };
     (async () => {
       const { data: d } = await supabase.rpc("admin_revenue_dashboard", { _days: 30 });
       setData(d as unknown as RevenueData);
       setLoading(false);
     })();
+    loadOverdue();
+    const t = setInterval(loadOverdue, 60_000);
+    return () => clearInterval(t);
   }, []);
 
   if (loading) {
