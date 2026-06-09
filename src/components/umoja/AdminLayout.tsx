@@ -25,6 +25,7 @@ const items = [
   { to: "/admin/predictor", label: "Predictor", icon: TrendingUp },
   { to: "/admin/kyc-review", label: "KYC review", icon: ShieldCheck },
   { to: "/admin/payouts", label: "Payouts", icon: Wallet },
+  { to: "/admin/withdrawals", label: "Withdrawals 💸", icon: ArrowLeft },
   { to: "/admin/invites", label: "Invites", icon: Ticket },
   { to: "/admin/referrals", label: "Referrals", icon: Gift },
   { to: "/admin/notifications", label: "Notifications", icon: Mail },
