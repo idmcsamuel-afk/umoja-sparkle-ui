@@ -89,6 +89,24 @@ export default function AdminRevenueDashboard() {
         </p>
       </div>
 
+      <Card className={`p-4 flex items-center justify-between ${overdue && overdue > 0 ? "border-red-500/40 bg-red-500/5" : ""}`}>
+        <div className="flex items-center gap-3">
+          <AlertTriangle className={`h-5 w-5 ${overdue && overdue > 0 ? "text-red-500" : "text-muted-foreground"}`} />
+          <div>
+            <p className="text-sm font-semibold">
+              {overdue === null ? "Loading overdue payouts…" : `${overdue} payout${overdue === 1 ? "" : "s"} past due date`}
+            </p>
+            <p className="text-xs text-muted-foreground">
+              Vault bids whose payout window has expired without payment. Refreshes every minute.
+            </p>
+          </div>
+        </div>
+        <Link to="/admin/circle-tracker" className="text-sm font-medium text-primary hover:underline whitespace-nowrap">
+          View all overdue →
+        </Link>
+      </Card>
+
+
       <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
         {tiles.map(({ label, value, icon: Icon }) => (
           <Card key={label} className="p-4">
