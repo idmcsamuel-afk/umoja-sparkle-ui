@@ -3,7 +3,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import {
-  Loader2, CheckCircle2, XCircle, Phone, FileText, Camera, Mail, AlertTriangle, ShieldCheck,
+  Loader2, CheckCircle2, XCircle, Phone, FileText, Camera, Mail, AlertTriangle, ShieldCheck, RotateCcw,
 } from "lucide-react";
 import { toast } from "sonner";
 import {
