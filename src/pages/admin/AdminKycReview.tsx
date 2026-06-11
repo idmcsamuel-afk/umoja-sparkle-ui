@@ -3,7 +3,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import {
-  Loader2, CheckCircle2, XCircle, Phone, FileText, Camera, Mail, AlertTriangle, ShieldCheck,
+  Loader2, CheckCircle2, XCircle, Phone, FileText, Camera, Mail, AlertTriangle, ShieldCheck, RotateCcw,
 } from "lucide-react";
 import { toast } from "sonner";
 import {
@@ -177,6 +177,16 @@ export default function AdminKycReview() {
     load();
   };
 
+  const revert = async (r: Row) => {
+    if (!confirm(`Revert KYC approval for ${r.full_name}? They will need to resubmit.`)) return;
+    setBusyId(r.id);
+    const { error } = await supabase.rpc("admin_revert_kyc", { _member: r.id, _reason: "Reverted by admin for re-verification" });
+    setBusyId(null);
+    if (error) return toast.error(error.message);
+    toast.success("KYC reverted");
+    load();
+  };
+
   return (
     <TooltipProvider>
       <div>
@@ -240,6 +250,16 @@ export default function AdminKycReview() {
                         <ShieldCheck className="h-3 w-3" /> Verified
                       </span>
                     )}
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      disabled={busyId === r.id}
+                      onClick={() => revert(r)}
+                      title="Revert approval (resets KYC so member must resubmit)"
+                      className="shrink-0 h-7 px-2 text-xs text-muted-foreground hover:text-destructive"
+                    >
+                      {busyId === r.id ? <Loader2 className="h-3 w-3 animate-spin" /> : <RotateCcw className="h-3 w-3" />}
+                    </Button>
                   </div>
                 ))}
               </div>

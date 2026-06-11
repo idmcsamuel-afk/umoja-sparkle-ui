@@ -6303,6 +6303,10 @@ export type Database = {
         Returns: undefined
       }
       admin_revenue_dashboard: { Args: { _days?: number }; Returns: Json }
+      admin_revert_kyc: {
+        Args: { _member: string; _reason?: string }
+        Returns: undefined
+      }
       admin_review_ugc_submission: {
         Args: {
           _decision: string
