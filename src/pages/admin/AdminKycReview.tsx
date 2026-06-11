@@ -250,6 +250,16 @@ export default function AdminKycReview() {
                         <ShieldCheck className="h-3 w-3" /> Verified
                       </span>
                     )}
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      disabled={busyId === r.id}
+                      onClick={() => revert(r)}
+                      title="Revert approval (resets KYC so member must resubmit)"
+                      className="shrink-0 h-7 px-2 text-xs text-muted-foreground hover:text-destructive"
+                    >
+                      {busyId === r.id ? <Loader2 className="h-3 w-3 animate-spin" /> : <RotateCcw className="h-3 w-3" />}
+                    </Button>
                   </div>
                 ))}
               </div>
