@@ -29,6 +29,7 @@ export default function MemberLayout() {
         </div>
         <WhatsAppFab source="member" />
         <FreeSparkPopups />
+        <KycReminderPopup />
       </div>
     </SidebarProvider>
   );
