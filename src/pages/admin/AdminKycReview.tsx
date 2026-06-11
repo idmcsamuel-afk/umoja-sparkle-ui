@@ -177,6 +177,16 @@ export default function AdminKycReview() {
     load();
   };
 
+  const revert = async (r: Row) => {
+    if (!confirm(`Revert KYC approval for ${r.full_name}? They will need to resubmit.`)) return;
+    setBusyId(r.id);
+    const { error } = await supabase.rpc("admin_revert_kyc", { _member: r.id, _reason: "Reverted by admin for re-verification" });
+    setBusyId(null);
+    if (error) return toast.error(error.message);
+    toast.success("KYC reverted");
+    load();
+  };
+
   return (
     <TooltipProvider>
       <div>
