@@ -565,8 +565,11 @@ export default function AdminCircleTracker() {
       {/* Alerts */}
       <div className="space-y-2">
         {counts.overdue > 0 && (
-          <div className="rounded-md border border-destructive/40 bg-destructive/10 px-4 py-2 text-sm text-destructive flex items-center gap-2">
-            <AlertTriangle className="h-4 w-4" /> URGENT: {counts.overdue} payout(s) overdue
+          <div className="rounded-md border border-destructive/40 bg-destructive/10 px-4 py-2 text-sm text-destructive flex flex-wrap items-center gap-x-3 gap-y-1">
+            <span className="flex items-center gap-2"><AlertTriangle className="h-4 w-4" /> 🔴 {counts.overdue} payout(s) OVERDUE</span>
+            {counts.overdue_first > 0 && (
+              <span className="font-medium">🆕 {counts.overdue_first} are FIRST-TIME payouts (PRIORITY)</span>
+            )}
           </div>
         )}
         {counts.due_today > 0 && (
