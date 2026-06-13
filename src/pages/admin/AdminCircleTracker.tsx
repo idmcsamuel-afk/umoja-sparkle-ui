@@ -618,7 +618,7 @@ export default function AdminCircleTracker() {
                 <div key={r.bid_id} className={`rounded-md border bg-card p-3 ${bankMissing ? "border-destructive/40" : ""}`}>
                   <div className="flex flex-wrap items-center justify-between gap-2">
                     <div className={`text-sm font-medium ${bankMissing ? "text-destructive" : ""}`}>
-                      #{i + 1}. {r.full_name} — {zar(amount)} — {bank} {mask(acct)} — Score {r.priority_score.toFixed(0)}
+                      #{i + 1}. {r.full_name} {r.is_first_payout && <span className="ml-1 text-amber-600 dark:text-amber-400">🆕 FIRST PAYOUT</span>} — {zar(amount)} — {bank} {mask(acct)} — Score {r.priority_score.toFixed(0)}
                     </div>
                     <div className="flex flex-wrap gap-2">
                       <Button size="sm" variant="outline" onClick={() => copy(`${r.full_name}\n${bank}\n${acct}\n${r.bd_branch || r.bank_branch || ""}\n${zar(amount)}\nRef: ${ref}`, "Bank details copied")}>
