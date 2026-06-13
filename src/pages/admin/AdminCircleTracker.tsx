@@ -59,6 +59,7 @@ type Row = {
   payout_amount: number | null;
   net_amount: number | null;
   status: string;
+  is_first_payout: boolean;
   payment_status: string | null;
   payment_method: string | null;
   payment_reference: string | null;
@@ -217,7 +218,7 @@ export default function AdminCircleTracker() {
     const { data: bids, error } = await supabase
       .from("circle_bids")
       .select(`
-        id, member_id, tier, fiat_amount, payout_amount, net_amount, status,
+        id, member_id, tier, fiat_amount, payout_amount, net_amount, status, is_first_payout,
         payment_status, payment_method, payment_reference, paystack_reference, payment_ref,
         payment_crypto_txhash, payment_crypto_network, payment_crypto_address,
         amount_usdt, amount_usdt_received,
@@ -276,6 +277,7 @@ export default function AdminCircleTracker() {
         payout_amount: b.payout_amount,
         net_amount: b.net_amount,
         status: b.status,
+        is_first_payout: !!b.is_first_payout,
         payment_status: b.payment_status,
         payment_method: b.payment_method,
         payment_reference: b.payment_reference,
@@ -360,7 +362,10 @@ export default function AdminCircleTracker() {
     else if (quickTab === "active")
       list = list.filter((r) => r.status === "vault" && r.hours_remaining !== null && r.hours_remaining >= 0);
     else if (quickTab === "overdue")
-      list = list.filter((r) => r.status === "vault" && r.hours_remaining !== null && r.hours_remaining < 0);
+      list = list.filter((r) =>
+        r.status === "overdue" ||
+        (r.status === "vault" && r.hours_remaining !== null && r.hours_remaining < 0)
+      );
     else if (quickTab === "paid")
       list = list.filter((r) => r.status === "paid");
     else if (quickTab === "pending")
@@ -382,10 +387,13 @@ export default function AdminCircleTracker() {
       if (quickTab === "expired") {
         return new Date(b.bid_created).getTime() - new Date(a.bid_created).getTime();
       }
+      // Always prioritize first-time payouts at top of any view
+      if (a.is_first_payout !== b.is_first_payout) return a.is_first_payout ? -1 : 1;
       if (sortBy === "due") {
         const ah = a.hours_remaining ?? Infinity;
         const bh = b.hours_remaining ?? Infinity;
-        return ah - bh;
+        if (ah !== bh) return ah - bh;
+        return b.fiat_amount - a.fiat_amount;
       }
       if (sortBy === "score") return b.priority_score - a.priority_score;
       if (sortBy === "amount") return b.fiat_amount - a.fiat_amount;
@@ -395,16 +403,22 @@ export default function AdminCircleTracker() {
     return list;
   }, [ticked, tierFilter, statusFilter, methodFilter, sortBy, quickTab, search]);
 
-  const counts = useMemo(() => ({
-    all: ticked.filter((r) => r.status !== "expired" && r.status !== "rejected").length,
-    active: ticked.filter((r) => r.status === "vault" && r.hours_remaining !== null && r.hours_remaining >= 0).length,
-    overdue: ticked.filter((r) => r.status === "vault" && r.hours_remaining !== null && r.hours_remaining < 0).length,
-    paid: ticked.filter((r) => r.status === "paid").length,
-    pending: ticked.filter((r) => (r.status === "pending" || r.status === "payment_pending")).length,
-    rejected: ticked.filter((r) => r.status === "rejected").length,
-    expired: ticked.filter((r) => r.status === "expired").length,
-    due_today: ticked.filter((r) => r.status === "vault" && r.hours_remaining !== null && r.hours_remaining >= 0 && r.hours_remaining <= 24).length,
-  }), [ticked]);
+  const counts = useMemo(() => {
+    const isOverdue = (r: Row) =>
+      r.status === "overdue" ||
+      (r.status === "vault" && r.hours_remaining !== null && r.hours_remaining < 0);
+    return {
+      all: ticked.filter((r) => r.status !== "expired" && r.status !== "rejected").length,
+      active: ticked.filter((r) => r.status === "vault" && r.hours_remaining !== null && r.hours_remaining >= 0).length,
+      overdue: ticked.filter(isOverdue).length,
+      overdue_first: ticked.filter((r) => isOverdue(r) && r.is_first_payout).length,
+      paid: ticked.filter((r) => r.status === "paid").length,
+      pending: ticked.filter((r) => (r.status === "pending" || r.status === "payment_pending")).length,
+      rejected: ticked.filter((r) => r.status === "rejected").length,
+      expired: ticked.filter((r) => r.status === "expired").length,
+      due_today: ticked.filter((r) => r.status === "vault" && r.hours_remaining !== null && r.hours_remaining >= 0 && r.hours_remaining <= 24).length,
+    };
+  }, [ticked]);
 
   const stats = useMemo(() => {
     // Exclude expired/rejected bids from all top-line stats
@@ -448,11 +462,12 @@ export default function AdminCircleTracker() {
 
   const exportCsv = () => {
     const list = filtered.filter((r) => selected.size === 0 || selected.has(r.bid_id));
-    const headers = ["Name", "Bank", "Account", "Branch", "Amount", "Reference", "Phone"];
+    const headers = ["Name", "First Payout", "Bank", "Account", "Branch", "Amount", "Reference", "Phone"];
     const lines = [headers.join(",")];
     list.forEach((r) => {
       lines.push([
         r.full_name,
+        r.is_first_payout ? "YES" : "NO",
         r.bd_bank_name || r.bank_name || "",
         r.bd_account_number || r.bank_account || "",
         r.bd_branch || r.bank_branch || "",
@@ -551,8 +566,11 @@ export default function AdminCircleTracker() {
       {/* Alerts */}
       <div className="space-y-2">
         {counts.overdue > 0 && (
-          <div className="rounded-md border border-destructive/40 bg-destructive/10 px-4 py-2 text-sm text-destructive flex items-center gap-2">
-            <AlertTriangle className="h-4 w-4" /> URGENT: {counts.overdue} payout(s) overdue
+          <div className="rounded-md border border-destructive/40 bg-destructive/10 px-4 py-2 text-sm text-destructive flex flex-wrap items-center gap-x-3 gap-y-1">
+            <span className="flex items-center gap-2"><AlertTriangle className="h-4 w-4" /> 🔴 {counts.overdue} payout(s) OVERDUE</span>
+            {counts.overdue_first > 0 && (
+              <span className="font-medium">🆕 {counts.overdue_first} are FIRST-TIME payouts (PRIORITY)</span>
+            )}
           </div>
         )}
         {counts.due_today > 0 && (
@@ -601,7 +619,7 @@ export default function AdminCircleTracker() {
                 <div key={r.bid_id} className={`rounded-md border bg-card p-3 ${bankMissing ? "border-destructive/40" : ""}`}>
                   <div className="flex flex-wrap items-center justify-between gap-2">
                     <div className={`text-sm font-medium ${bankMissing ? "text-destructive" : ""}`}>
-                      #{i + 1}. {r.full_name} — {zar(amount)} — {bank} {mask(acct)} — Score {r.priority_score.toFixed(0)}
+                      #{i + 1}. {r.full_name} {r.is_first_payout && <span className="ml-1 text-amber-600 dark:text-amber-400">🆕 FIRST PAYOUT</span>} — {zar(amount)} — {bank} {mask(acct)} — Score {r.priority_score.toFixed(0)}
                     </div>
                     <div className="flex flex-wrap gap-2">
                       <Button size="sm" variant="outline" onClick={() => copy(`${r.full_name}\n${bank}\n${acct}\n${r.bd_branch || r.bank_branch || ""}\n${zar(amount)}\nRef: ${ref}`, "Bank details copied")}>
@@ -746,7 +764,14 @@ export default function AdminCircleTracker() {
                       <Checkbox checked={selected.has(r.bid_id)} onCheckedChange={(c) => toggleOne(r.bid_id, !!c)} />
                     </TableCell>
                     <TableCell>
-                      <div className="font-medium text-sm">{r.full_name}</div>
+                      <div className="font-medium text-sm flex items-center gap-1.5">
+                        {r.full_name}
+                        {r.is_first_payout && (
+                          <Badge variant="outline" className="bg-amber-500/15 text-amber-700 dark:text-amber-300 border-amber-500/40 text-[10px] px-1.5 py-0">
+                            🆕 FIRST
+                          </Badge>
+                        )}
+                      </div>
                       <div className="text-xs text-muted-foreground">{r.email}</div>
                     </TableCell>
                     <TableCell>
@@ -898,7 +923,10 @@ export default function AdminCircleTracker() {
             <Card key={r.bid_id}>
               <CardContent className="p-3 space-y-2">
                 <div className="flex items-center justify-between">
-                  <div className="font-medium">{r.full_name}</div>
+                  <div className="font-medium flex items-center gap-1.5">
+                    {r.full_name}
+                    {r.is_first_payout && <span className="text-[10px] text-amber-600 dark:text-amber-400">🆕 FIRST</span>}
+                  </div>
                   <Badge className={TIER_COLORS[r.tier]} variant="outline">{r.tier}</Badge>
                 </div>
                 <div className="text-sm">{zar(r.fiat_amount)} → {zar(payout)} {diff > 0 && <span className="text-emerald-600">(+{zar(diff)})</span>}</div>
