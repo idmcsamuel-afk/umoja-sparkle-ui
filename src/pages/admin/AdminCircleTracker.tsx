@@ -59,6 +59,7 @@ type Row = {
   payout_amount: number | null;
   net_amount: number | null;
   status: string;
+  is_first_payout: boolean;
   payment_status: string | null;
   payment_method: string | null;
   payment_reference: string | null;
