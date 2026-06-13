@@ -922,7 +922,10 @@ export default function AdminCircleTracker() {
             <Card key={r.bid_id}>
               <CardContent className="p-3 space-y-2">
                 <div className="flex items-center justify-between">
-                  <div className="font-medium">{r.full_name}</div>
+                  <div className="font-medium flex items-center gap-1.5">
+                    {r.full_name}
+                    {r.is_first_payout && <span className="text-[10px] text-amber-600 dark:text-amber-400">🆕 FIRST</span>}
+                  </div>
                   <Badge className={TIER_COLORS[r.tier]} variant="outline">{r.tier}</Badge>
                 </div>
                 <div className="text-sm">{zar(r.fiat_amount)} → {zar(payout)} {diff > 0 && <span className="text-emerald-600">(+{zar(diff)})</span>}</div>
