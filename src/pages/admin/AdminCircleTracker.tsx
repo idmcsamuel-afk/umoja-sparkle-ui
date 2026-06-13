@@ -403,16 +403,22 @@ export default function AdminCircleTracker() {
     return list;
   }, [ticked, tierFilter, statusFilter, methodFilter, sortBy, quickTab, search]);
 
-  const counts = useMemo(() => ({
-    all: ticked.filter((r) => r.status !== "expired" && r.status !== "rejected").length,
-    active: ticked.filter((r) => r.status === "vault" && r.hours_remaining !== null && r.hours_remaining >= 0).length,
-    overdue: ticked.filter((r) => r.status === "vault" && r.hours_remaining !== null && r.hours_remaining < 0).length,
-    paid: ticked.filter((r) => r.status === "paid").length,
-    pending: ticked.filter((r) => (r.status === "pending" || r.status === "payment_pending")).length,
-    rejected: ticked.filter((r) => r.status === "rejected").length,
-    expired: ticked.filter((r) => r.status === "expired").length,
-    due_today: ticked.filter((r) => r.status === "vault" && r.hours_remaining !== null && r.hours_remaining >= 0 && r.hours_remaining <= 24).length,
-  }), [ticked]);
+  const counts = useMemo(() => {
+    const isOverdue = (r: Row) =>
+      r.status === "overdue" ||
+      (r.status === "vault" && r.hours_remaining !== null && r.hours_remaining < 0);
+    return {
+      all: ticked.filter((r) => r.status !== "expired" && r.status !== "rejected").length,
+      active: ticked.filter((r) => r.status === "vault" && r.hours_remaining !== null && r.hours_remaining >= 0).length,
+      overdue: ticked.filter(isOverdue).length,
+      overdue_first: ticked.filter((r) => isOverdue(r) && r.is_first_payout).length,
+      paid: ticked.filter((r) => r.status === "paid").length,
+      pending: ticked.filter((r) => (r.status === "pending" || r.status === "payment_pending")).length,
+      rejected: ticked.filter((r) => r.status === "rejected").length,
+      expired: ticked.filter((r) => r.status === "expired").length,
+      due_today: ticked.filter((r) => r.status === "vault" && r.hours_remaining !== null && r.hours_remaining >= 0 && r.hours_remaining <= 24).length,
+    };
+  }, [ticked]);
 
   const stats = useMemo(() => {
     // Exclude expired/rejected bids from all top-line stats
