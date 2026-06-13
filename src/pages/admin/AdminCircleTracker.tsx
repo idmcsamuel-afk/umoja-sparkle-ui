@@ -277,6 +277,7 @@ export default function AdminCircleTracker() {
         payout_amount: b.payout_amount,
         net_amount: b.net_amount,
         status: b.status,
+        is_first_payout: !!b.is_first_payout,
         payment_status: b.payment_status,
         payment_method: b.payment_method,
         payment_reference: b.payment_reference,
