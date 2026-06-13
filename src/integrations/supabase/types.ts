@@ -6328,6 +6328,13 @@ export type Database = {
         }[]
       }
       admin_unfreeze_member: { Args: { _member: string }; Returns: undefined }
+      allocate_circle_payouts: {
+        Args: never
+        Returns: {
+          allocated_count: number
+          error_message: string
+        }[]
+      }
       apply_allocation: {
         Args: {
           _breakdown: Json
