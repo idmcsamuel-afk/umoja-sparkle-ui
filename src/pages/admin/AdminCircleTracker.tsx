@@ -383,6 +383,11 @@ export default function AdminCircleTracker() {
       );
     }
 
+    // "Payout Due" sort should ONLY surface vault/overdue rows (never paid/rejected/expired/pending)
+    if (sortBy === "due") {
+      list = list.filter((r) => r.status === "vault" || r.status === "overdue");
+    }
+
     list.sort((a, b) => {
       if (quickTab === "expired") {
         return new Date(b.bid_created).getTime() - new Date(a.bid_created).getTime();
