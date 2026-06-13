@@ -218,7 +218,7 @@ export default function AdminCircleTracker() {
     const { data: bids, error } = await supabase
       .from("circle_bids")
       .select(`
-        id, member_id, tier, fiat_amount, payout_amount, net_amount, status,
+        id, member_id, tier, fiat_amount, payout_amount, net_amount, status, is_first_payout,
         payment_status, payment_method, payment_reference, paystack_reference, payment_ref,
         payment_crypto_txhash, payment_crypto_network, payment_crypto_address,
         amount_usdt, amount_usdt_received,
