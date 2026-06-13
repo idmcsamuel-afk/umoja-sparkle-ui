@@ -1066,6 +1066,7 @@ export type Database = {
           expiration_notified: boolean | null
           fiat_amount: number
           id: string
+          is_first_payout: boolean
           last_boost_at: string | null
           matched_to: string | null
           member_id: string
@@ -1118,6 +1119,7 @@ export type Database = {
           expiration_notified?: boolean | null
           fiat_amount: number
           id?: string
+          is_first_payout?: boolean
           last_boost_at?: string | null
           matched_to?: string | null
           member_id: string
@@ -1170,6 +1172,7 @@ export type Database = {
           expiration_notified?: boolean | null
           fiat_amount?: number
           id?: string
+          is_first_payout?: boolean
           last_boost_at?: string | null
           matched_to?: string | null
           member_id?: string
@@ -6479,6 +6482,7 @@ export type Database = {
         }[]
       }
       mark_contributed: { Args: { _member?: string }; Returns: undefined }
+      mark_overdue_circle_payouts: { Args: never; Returns: number }
       member_video_leaderboard: {
         Args: { _limit?: number }
         Returns: {
