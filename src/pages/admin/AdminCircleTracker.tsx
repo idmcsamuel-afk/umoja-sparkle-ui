@@ -362,7 +362,10 @@ export default function AdminCircleTracker() {
     else if (quickTab === "active")
       list = list.filter((r) => r.status === "vault" && r.hours_remaining !== null && r.hours_remaining >= 0);
     else if (quickTab === "overdue")
-      list = list.filter((r) => r.status === "vault" && r.hours_remaining !== null && r.hours_remaining < 0);
+      list = list.filter((r) =>
+        r.status === "overdue" ||
+        (r.status === "vault" && r.hours_remaining !== null && r.hours_remaining < 0)
+      );
     else if (quickTab === "paid")
       list = list.filter((r) => r.status === "paid");
     else if (quickTab === "pending")
@@ -384,10 +387,13 @@ export default function AdminCircleTracker() {
       if (quickTab === "expired") {
         return new Date(b.bid_created).getTime() - new Date(a.bid_created).getTime();
       }
+      // Always prioritize first-time payouts at top of any view
+      if (a.is_first_payout !== b.is_first_payout) return a.is_first_payout ? -1 : 1;
       if (sortBy === "due") {
         const ah = a.hours_remaining ?? Infinity;
         const bh = b.hours_remaining ?? Infinity;
-        return ah - bh;
+        if (ah !== bh) return ah - bh;
+        return b.fiat_amount - a.fiat_amount;
       }
       if (sortBy === "score") return b.priority_score - a.priority_score;
       if (sortBy === "amount") return b.fiat_amount - a.fiat_amount;
