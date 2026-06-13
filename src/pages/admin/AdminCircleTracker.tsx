@@ -462,11 +462,12 @@ export default function AdminCircleTracker() {
 
   const exportCsv = () => {
     const list = filtered.filter((r) => selected.size === 0 || selected.has(r.bid_id));
-    const headers = ["Name", "Bank", "Account", "Branch", "Amount", "Reference", "Phone"];
+    const headers = ["Name", "First Payout", "Bank", "Account", "Branch", "Amount", "Reference", "Phone"];
     const lines = [headers.join(",")];
     list.forEach((r) => {
       lines.push([
         r.full_name,
+        r.is_first_payout ? "YES" : "NO",
         r.bd_bank_name || r.bank_name || "",
         r.bd_account_number || r.bank_account || "",
         r.bd_branch || r.bank_branch || "",
