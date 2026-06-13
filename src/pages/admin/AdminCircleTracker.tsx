@@ -763,7 +763,14 @@ export default function AdminCircleTracker() {
                       <Checkbox checked={selected.has(r.bid_id)} onCheckedChange={(c) => toggleOne(r.bid_id, !!c)} />
                     </TableCell>
                     <TableCell>
-                      <div className="font-medium text-sm">{r.full_name}</div>
+                      <div className="font-medium text-sm flex items-center gap-1.5">
+                        {r.full_name}
+                        {r.is_first_payout && (
+                          <Badge variant="outline" className="bg-amber-500/15 text-amber-700 dark:text-amber-300 border-amber-500/40 text-[10px] px-1.5 py-0">
+                            🆕 FIRST
+                          </Badge>
+                        )}
+                      </div>
                       <div className="text-xs text-muted-foreground">{r.email}</div>
                     </TableCell>
                     <TableCell>
