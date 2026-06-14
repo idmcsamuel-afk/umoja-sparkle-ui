@@ -313,14 +313,26 @@ export default function Withdraw() {
           <BalanceRow
             label="Earned Sparks"
             value={earnedBalance}
-            note="Withdrawable ✓"
-            tone="ok"
+            note={hasContributed ? "Withdrawable ✓" : "Locked — contribute to a Circle to unlock"}
+            tone={hasContributed ? "ok" : "warn"}
           />
           <BalanceRow
             label="Purchased Sparks"
             value={purchasedBalance}
             note="Withdrawable ✓"
             tone="ok"
+          />
+          <BalanceRow
+            label="Referral Sparks"
+            value={referralBalance}
+            note={
+              referralBalance === 0
+                ? "Earn by inviting friends"
+                : referralReleasable > 0
+                  ? `${referralReleasable} unlocked for cash · ${referralLocked} locked`
+                  : "Locked — contribute to unlock (R3 contribution → R2 of referral cash)"
+            }
+            tone={referralBalance === 0 ? "ok" : referralReleasable > 0 ? "ok" : "warn"}
           />
           <div className="mt-3 flex items-center justify-between rounded-lg bg-foreground/5 p-3">
             <span className="text-sm font-semibold">
@@ -333,6 +345,33 @@ export default function Withdraw() {
           </p>
         </CardContent>
       </Card>
+
+      {/* Referral unlock card */}
+      {referralBalance > 0 && referralLocked > 0 && (
+        <Card className="border-fuchsia-500/40 bg-fuchsia-500/5">
+          <CardContent className="pt-5">
+            <div className="flex items-start gap-3">
+              <Unlock className="h-5 w-5 text-fuchsia-600 mt-0.5" />
+              <div className="text-sm flex-1">
+                <p className="font-semibold">Unlock your referral Sparks</p>
+                <p className="text-muted-foreground mt-1 text-xs">
+                  Referral Sparks become withdrawable when you invest in the community. For every R3 you
+                  contribute to a Circle, R2 of referral Sparks unlocks for cash.
+                </p>
+                <p className="mt-2 text-xs">
+                  You have <b>{referralBalance}</b> referral Sparks · <b>{referralReleasable}</b> unlocked
+                  {referralLocked > 0 && (
+                    <> · contribute <b>R{Math.max(0, Math.ceil(referralLocked * 1.5) - qualifyingZar).toFixed(0)}</b> more to unlock the remaining <b>{referralLocked}</b></>
+                  )}
+                </p>
+                <Button asChild size="sm" className="mt-3">
+                  <Link to="/circle">Contribute now</Link>
+                </Button>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+      )}
 
       {/* Promo unlock card */}
       {promoBalance > 0 && (
