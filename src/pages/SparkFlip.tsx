@@ -75,6 +75,7 @@ export default function SparkFlip() {
     if (!bal) return;
     if (bal.earned >= stake) setSparkType("earned");
     else if (bal.purchased >= stake) setSparkType("purchased");
+    else if (bal.referral >= stake) setSparkType("referral");
     else if (bal.promotional >= stake) setSparkType("promotional");
   }, [bal, stake]);
 
