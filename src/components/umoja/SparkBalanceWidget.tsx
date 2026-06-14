@@ -74,19 +74,26 @@ export function SparkBalanceWidget() {
           </span>
         </div>
 
+        <TooltipProvider delayDuration={150}>
         <div className="mt-4 space-y-3">
           {/* Promotional */}
-          <div className="rounded-xl border border-orange-500/30 bg-orange-500/5 p-3">
+          <div className="rounded-xl border border-amber-500/30 bg-amber-500/5 p-3">
             <div className="flex items-center justify-between">
-              <span className="text-xs font-medium text-orange-600 dark:text-orange-300">
-                Promotional Sparks
+              <span className="flex items-center gap-1 text-xs font-medium text-amber-700 dark:text-amber-300">
+                🟡 Promotional Sparks
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <Info className="h-3 w-3 cursor-help opacity-60" />
+                  </TooltipTrigger>
+                  <TooltipContent className="max-w-[220px] text-[11px]">{BUCKET_TOOLTIPS.promotional}</TooltipContent>
+                </Tooltip>
               </span>
-              <span className="text-lg font-bold text-orange-700 dark:text-orange-200">
+              <span className="text-lg font-bold text-amber-700 dark:text-amber-200">
                 {data.promotional}
               </span>
             </div>
             <p className="mt-1 text-[11px] text-muted-foreground">
-              Hard Mode (30% win) · Not withdrawable
+              Play in Spark Pit · Not withdrawable
               {promoDays !== null && data.promotional > 0 && (
                 <span className={promoUrgent ? " text-destructive font-medium" : ""}>
                   {" "}· Expires in {promoDays}d
@@ -98,34 +105,54 @@ export function SparkBalanceWidget() {
           {/* Earned */}
           <div className="rounded-xl border border-emerald-500/30 bg-emerald-500/5 p-3">
             <div className="flex items-center justify-between">
-              <span className="text-xs font-medium text-emerald-700 dark:text-emerald-300">
-                Earned Sparks
+              <span className="flex items-center gap-1 text-xs font-medium text-emerald-700 dark:text-emerald-300">
+                🟢 Earned Sparks
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <Info className="h-3 w-3 cursor-help opacity-60" />
+                  </TooltipTrigger>
+                  <TooltipContent className="max-w-[220px] text-[11px]">{BUCKET_TOOLTIPS.earned}</TooltipContent>
+                </Tooltip>
               </span>
               <span className="text-lg font-bold text-emerald-700 dark:text-emerald-200">
                 {data.earned}
               </span>
             </div>
-            <p className="mt-1 text-[11px] text-muted-foreground">Normal (45% win) · Withdrawable ✓</p>
+            <p className="mt-1 text-[11px] text-muted-foreground">
+              {data.has_contributed ? "Withdrawable ✓" : "Withdrawable after first contribution"}
+            </p>
           </div>
 
           {/* Purchased */}
           <div className="rounded-xl border border-blue-500/30 bg-blue-500/5 p-3">
             <div className="flex items-center justify-between">
-              <span className="text-xs font-medium text-blue-700 dark:text-blue-300">
-                Purchased Sparks
+              <span className="flex items-center gap-1 text-xs font-medium text-blue-700 dark:text-blue-300">
+                🔵 Purchased Sparks
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <Info className="h-3 w-3 cursor-help opacity-60" />
+                  </TooltipTrigger>
+                  <TooltipContent className="max-w-[220px] text-[11px]">{BUCKET_TOOLTIPS.purchased}</TooltipContent>
+                </Tooltip>
               </span>
               <span className="text-lg font-bold text-blue-700 dark:text-blue-200">
                 {data.purchased}
               </span>
             </div>
-            <p className="mt-1 text-[11px] text-muted-foreground">Normal (45% win) · Withdrawable ✓</p>
+            <p className="mt-1 text-[11px] text-muted-foreground">Play or withdraw anytime ✓</p>
           </div>
 
           {/* Referral */}
           <div className="rounded-xl border border-fuchsia-500/30 bg-fuchsia-500/5 p-3">
             <div className="flex items-center justify-between">
-              <span className="text-xs font-medium text-fuchsia-700 dark:text-fuchsia-300">
-                Referral Sparks
+              <span className="flex items-center gap-1 text-xs font-medium text-fuchsia-700 dark:text-fuchsia-300">
+                🟣 Referral Sparks
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <Info className="h-3 w-3 cursor-help opacity-60" />
+                  </TooltipTrigger>
+                  <TooltipContent className="max-w-[220px] text-[11px]">{BUCKET_TOOLTIPS.referral}</TooltipContent>
+                </Tooltip>
               </span>
               <span className="text-lg font-bold text-fuchsia-700 dark:text-fuchsia-200">
                 {data.referral}
@@ -135,9 +162,9 @@ export function SparkBalanceWidget() {
               Playable now ·{" "}
               {data.referral_releasable > 0
                 ? `${data.referral_releasable} unlocked for cash`
-                : "Contribute to unlock for cash (R3 → R2)"}
+                : "Invest in a Circle to unlock (R3 in → R2 out)"}
               {data.referral_locked > 0 && data.referral_releasable > 0 && (
-                <> · {data.referral_locked} still locked</>
+                <> · {data.referral_locked} still to unlock</>
               )}
             </p>
           </div>
@@ -158,6 +185,8 @@ export function SparkBalanceWidget() {
             </div>
           </div>
         </div>
+        <SparksExplainer />
+        </TooltipProvider>
 
         {promoUrgent && (
           <div className="mt-3 flex items-start gap-2 rounded-lg border border-destructive/40 bg-destructive/10 p-2 text-[11px] text-destructive">
