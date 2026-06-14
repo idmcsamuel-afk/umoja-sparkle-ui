@@ -78,6 +78,7 @@ const Dashboard = () => {
   const [isAdmin, setIsAdmin] = useState(false);
   const [kycLevel, setKycLevel] = useState<number | null>(null);
   const [hasContributed, setHasContributed] = useState<boolean | null>(null);
+  const [referralLocked, setReferralLocked] = useState<number>(0);
   const [activityExpanded, setActivityExpanded] = useState<boolean>(() => {
     try { return localStorage.getItem("umoja.activity.expanded") === "1"; } catch { return false; }
   });
