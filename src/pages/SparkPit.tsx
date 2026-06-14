@@ -15,8 +15,8 @@ export default function SparkPit() {
   useEffect(() => {
     if (!user) return;
     (async () => {
-      const { data: w } = await supabase.from("spark_wallets").select("balance").eq("member_id", user.id).maybeSingle();
-      setBalance(Number(w?.balance ?? 0));
+      const { data: br } = await supabase.rpc("spark_balance_breakdown", { _member: user.id });
+      setBalance(Number((br as any)?.total_playable ?? (br as any)?.total ?? 0));
       const since = new Date(); since.setHours(0, 0, 0, 0);
       const { data: flips } = await supabase
         .from("spark_flip_games").select("payout").eq("member_id", user.id).gte("created_at", since.toISOString());

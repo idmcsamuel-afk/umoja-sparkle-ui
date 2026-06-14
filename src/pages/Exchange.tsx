@@ -77,7 +77,7 @@ export default function Exchange() {
             .limit(50)
         : Promise.resolve({ data: [], error: null } as const),
       user
-        ? supabase.from("spark_wallets").select("balance").eq("member_id", user.id).maybeSingle()
+        ? supabase.rpc("spark_balance_breakdown", { _member: user.id })
         : Promise.resolve({ data: null, error: null } as const),
       user
         ? supabase.from("members").select("has_contributed").eq("id", user.id).maybeSingle()
@@ -85,7 +85,7 @@ export default function Exchange() {
     ]);
     setOffers((oRes.data ?? []) as Offer[]);
     setTxns((tRes.data ?? []) as Txn[]);
-    setBalance(Number((wRes.data as { balance?: number } | null)?.balance ?? 0));
+    setBalance(Number((wRes.data as any)?.total_playable ?? (wRes.data as any)?.total ?? 0));
     setHasContributed(!!(mRes.data as { has_contributed?: boolean } | null)?.has_contributed);
     setLoading(false);
   };

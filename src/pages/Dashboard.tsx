@@ -188,7 +188,7 @@ const Dashboard = () => {
         supabase.from("drive_members")
           .select("id, circle_id, total_contributed, status, joined_at")
           .eq("member_id", uid),
-        supabase.from("spark_wallets").select("balance").eq("member_id", uid).maybeSingle(),
+        supabase.rpc("spark_balance_breakdown", { _member: uid }),
         supabase.from("predictor_entries")
           .select("id, selected_answer, sparks_won, sparks_spent, is_correct, created_at, question_id")
           .eq("member_id", uid),
@@ -220,7 +220,7 @@ const Dashboard = () => {
         .reduce((s, b) => s + Number(b.net_amount ?? b.fiat_amount ?? 0), 0);
       const driveTotal = drives.reduce((s, d) => s + Number(d.total_contributed ?? 0), 0);
       const sparkTotal = orders.reduce((s, o) => s + Number(o.order_total ?? 0), 0);
-      const sparksBalance = Number(wallet?.balance ?? 0);
+      const sparksBalance = Number((wallet as any)?.total_playable ?? (wallet as any)?.total ?? 0);
 
       setTotals({ circle: circleTotal, spark: sparkTotal, drive: driveTotal, sparks: sparksBalance });
       setCounts({
