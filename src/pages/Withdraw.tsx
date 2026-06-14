@@ -34,6 +34,7 @@ interface Breakdown {
   total_withdrawable: number;
   referral_releasable: number;
   referral_locked: number;
+  referral_sparks_withdrawn: number;
   promo_expires_at: string | null;
   zar_value: number;
   has_contributed: boolean;
