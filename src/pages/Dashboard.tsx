@@ -188,7 +188,7 @@ const Dashboard = () => {
         supabase.from("drive_members")
           .select("id, circle_id, total_contributed, status, joined_at")
           .eq("member_id", uid),
-        supabase.from("spark_wallets").select("balance").eq("member_id", uid).maybeSingle(),
+        supabase.rpc("spark_balance_breakdown", { _member: uid }),
         supabase.from("predictor_entries")
           .select("id, selected_answer, sparks_won, sparks_spent, is_correct, created_at, question_id")
           .eq("member_id", uid),
