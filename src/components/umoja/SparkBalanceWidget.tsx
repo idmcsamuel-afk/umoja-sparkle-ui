@@ -2,7 +2,9 @@ import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
-import { Sparkles, Wallet, ShoppingCart, ArrowDownToLine, AlertCircle } from "lucide-react";
+import { Sparkles, Wallet, ShoppingCart, ArrowDownToLine, AlertCircle, Info } from "lucide-react";
+import { SparksExplainer, BUCKET_TOOLTIPS } from "./SparksExplainer";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 
 interface Breakdown {
   promotional: number;
