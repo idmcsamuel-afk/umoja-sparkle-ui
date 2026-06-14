@@ -5186,6 +5186,8 @@ export type Database = {
           promo_expires_at: string | null
           promotional_balance: number
           purchased_balance: number
+          referral_balance: number
+          referral_sparks_withdrawn: number
           updated_at: string | null
         }
         Insert: {
@@ -5196,6 +5198,8 @@ export type Database = {
           promo_expires_at?: string | null
           promotional_balance?: number
           purchased_balance?: number
+          referral_balance?: number
+          referral_sparks_withdrawn?: number
           updated_at?: string | null
         }
         Update: {
@@ -5206,6 +5210,8 @@ export type Database = {
           promo_expires_at?: string | null
           promotional_balance?: number
           purchased_balance?: number
+          referral_balance?: number
+          referral_sparks_withdrawn?: number
           updated_at?: string | null
         }
         Relationships: [
@@ -6518,6 +6524,10 @@ export type Database = {
           sparks_won: number
         }[]
       }
+      qualifying_contribution_zar: {
+        Args: { _member: string }
+        Returns: number
+      }
       record_circle_payout: {
         Args: {
           _bid_id: string
@@ -6546,6 +6556,7 @@ export type Database = {
           total_refs: number
         }[]
       }
+      releasable_referral_sparks: { Args: { _member: string }; Returns: number }
       run_drive_allocation: { Args: { p_tier_id: string }; Returns: Json }
       spark_balance_breakdown: { Args: { _member?: string }; Returns: Json }
       submit_buyers_club_payment: {
