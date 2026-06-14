@@ -160,15 +160,16 @@ export default function SparkFlip() {
           <div className="text-[11px] uppercase tracking-wider text-amber-300/80 mb-2">
             Playing with
           </div>
-          <div className="grid grid-cols-3 gap-2">
-            {(["promotional", "earned", "purchased"] as const).map((t) => {
+          <div className="grid grid-cols-4 gap-2">
+            {(["promotional", "earned", "purchased", "referral"] as const).map((t) => {
               const avail = bal?.[t] ?? 0;
               const active = sparkType === t;
-              const labels = { promotional: "Promo", earned: "Earned", purchased: "Purchased" };
+              const labels = { promotional: "Promo", earned: "Earned", purchased: "Purchased", referral: "Referral" };
               const colors = {
                 promotional: active ? "bg-orange-500/90 text-white" : "bg-orange-500/10 text-orange-300 border border-orange-500/30",
                 earned: active ? "bg-emerald-500/90 text-white" : "bg-emerald-500/10 text-emerald-300 border border-emerald-500/30",
                 purchased: active ? "bg-blue-500/90 text-white" : "bg-blue-500/10 text-blue-300 border border-blue-500/30",
+                referral: active ? "bg-fuchsia-500/90 text-white" : "bg-fuchsia-500/10 text-fuchsia-300 border border-fuchsia-500/30",
               };
               return (
                 <button
