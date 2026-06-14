@@ -6,6 +6,7 @@ import { SparksDisclaimer } from "@/components/umoja/SparksDisclaimer";
 import { Card } from "@/components/ui/card";
 import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
+import { SparksExplainer } from "@/components/umoja/SparksExplainer";
 
 export default function SparkPit() {
   const { user } = useAuth();
