@@ -157,9 +157,16 @@ export default function Withdraw() {
   const promoBalance = breakdown?.promotional ?? 0;
   const earnedBalance = breakdown?.earned ?? 0;
   const purchasedBalance = breakdown?.purchased ?? 0;
+  const referralBalance = breakdown?.referral ?? 0;
+  const referralReleasable = breakdown?.referral_releasable ?? 0;
+  const referralLocked = breakdown?.referral_locked ?? Math.max(0, referralBalance - referralReleasable);
+  const hasContributed = !!breakdown?.has_contributed;
+  const qualifyingZar = breakdown?.qualifying_contribution_zar ?? 0;
+  const earnedWithdrawable = hasContributed ? earnedBalance : 0;
 
   const maxWithdrawable =
-    earnedBalance + purchasedBalance + (includePromo && promoUnlocked ? promoBalance : 0);
+    purchasedBalance + earnedWithdrawable + referralReleasable +
+    (includePromo && promoUnlocked ? promoBalance : 0);
 
   const accountAgeDays = member
     ? Math.floor((Date.now() - new Date(member.created_at).getTime()) / 86400000)
