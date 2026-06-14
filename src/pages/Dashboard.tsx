@@ -144,6 +144,10 @@ const Dashboard = () => {
       });
     };
     fetchBc();
+    (async () => {
+      const { data: br } = await supabase.rpc("spark_balance_breakdown", { _member: uid });
+      setReferralLocked(Number((br as any)?.referral_locked ?? 0));
+    })();
 
     // Realtime: refresh when this member row changes (e.g. proof submitted, admin approves)
     const channel = supabase
