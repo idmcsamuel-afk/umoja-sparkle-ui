@@ -13,13 +13,15 @@ import { MuteButton } from "@/components/umoja/MuteButton";
 const STAKES = [20, 50, 100, 200, 500] as const;
 const DAILY_LIMIT = 10;
 
-type SparkType = "promotional" | "earned" | "purchased";
+type SparkType = "promotional" | "earned" | "purchased" | "referral";
 
 interface Breakdown {
   promotional: number;
   earned: number;
   purchased: number;
+  referral: number;
   total: number;
+  total_playable: number;
   withdrawable: number;
   promo_expires_at: string | null;
   zar_value: number;
