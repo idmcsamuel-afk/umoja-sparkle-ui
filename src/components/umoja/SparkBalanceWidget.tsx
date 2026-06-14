@@ -119,17 +119,40 @@ export function SparkBalanceWidget() {
             <p className="mt-1 text-[11px] text-muted-foreground">Normal (45% win) · Withdrawable ✓</p>
           </div>
 
+          {/* Referral */}
+          <div className="rounded-xl border border-fuchsia-500/30 bg-fuchsia-500/5 p-3">
+            <div className="flex items-center justify-between">
+              <span className="text-xs font-medium text-fuchsia-700 dark:text-fuchsia-300">
+                Referral Sparks
+              </span>
+              <span className="text-lg font-bold text-fuchsia-700 dark:text-fuchsia-200">
+                {data.referral}
+              </span>
+            </div>
+            <p className="mt-1 text-[11px] text-muted-foreground">
+              Playable now ·{" "}
+              {data.referral_releasable > 0
+                ? `${data.referral_releasable} unlocked for cash`
+                : "Contribute to unlock for cash (R3 → R2)"}
+              {data.referral_locked > 0 && data.referral_releasable > 0 && (
+                <> · {data.referral_locked} still locked</>
+              )}
+            </p>
+          </div>
+
           {/* Totals */}
           <div className="rounded-xl bg-foreground/5 p-3">
             <div className="flex items-center justify-between text-sm">
               <span className="font-semibold">Total Balance</span>
-              <span className="text-xl font-extrabold">{data.total}</span>
+              <span className="text-xl font-extrabold">{data.total_playable ?? data.total}</span>
             </div>
             <div className="mt-1 flex items-center justify-between text-xs text-muted-foreground">
               <span className="flex items-center gap-1">
                 <Wallet className="h-3 w-3" /> Withdrawable
               </span>
-              <span className="font-medium text-foreground">{data.withdrawable}</span>
+              <span className="font-medium text-foreground">
+                {data.total_withdrawable ?? data.withdrawable}
+              </span>
             </div>
           </div>
         </div>
