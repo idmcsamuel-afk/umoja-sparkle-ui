@@ -27,10 +27,17 @@ interface Breakdown {
   promotional: number;
   earned: number;
   purchased: number;
+  referral: number;
   total: number;
+  total_playable: number;
   withdrawable: number;
+  total_withdrawable: number;
+  referral_releasable: number;
+  referral_locked: number;
   promo_expires_at: string | null;
   zar_value: number;
+  has_contributed: boolean;
+  qualifying_contribution_zar: number;
 }
 
 interface MemberInfo {
