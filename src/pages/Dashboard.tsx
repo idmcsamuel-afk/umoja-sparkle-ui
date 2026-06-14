@@ -78,6 +78,7 @@ const Dashboard = () => {
   const [isAdmin, setIsAdmin] = useState(false);
   const [kycLevel, setKycLevel] = useState<number | null>(null);
   const [hasContributed, setHasContributed] = useState<boolean | null>(null);
+  const [referralLocked, setReferralLocked] = useState<number>(0);
   const [activityExpanded, setActivityExpanded] = useState<boolean>(() => {
     try { return localStorage.getItem("umoja.activity.expanded") === "1"; } catch { return false; }
   });
@@ -143,6 +144,10 @@ const Dashboard = () => {
       });
     };
     fetchBc();
+    (async () => {
+      const { data: br } = await supabase.rpc("spark_balance_breakdown", { _member: uid });
+      setReferralLocked(Number((br as any)?.referral_locked ?? 0));
+    })();
 
     // Realtime: refresh when this member row changes (e.g. proof submitted, admin approves)
     const channel = supabase
@@ -379,10 +384,14 @@ const Dashboard = () => {
         <section className="px-5 pt-4">
           <div className={`mx-auto flex max-w-md items-center gap-3 rounded-2xl border p-3 text-xs ${hasContributed ? "border-primary/30 bg-primary/5 text-primary" : "border-accent/40 bg-accent/10 text-accent-soft"}`}>
             {hasContributed ? (
-              <>✓ Withdrawal enabled — you can sell Sparks for cash on the Exchange.</>
+              referralLocked > 0 ? (
+                <>✓ Withdrawal enabled · S~{referralLocked} referral Sparks pending contribution.</>
+              ) : (
+                <>✓ Withdrawal enabled — you can sell Sparks for cash on the Exchange.</>
+              )
             ) : (
               <>
-                <span>⚠️ Contribute to unlock cash withdrawals.</span>
+                <span>⚠️ Contribute to unlock withdrawals.</span>
                 <Link to="/circle" className="ml-auto rounded-full bg-gradient-gold px-3 py-1 font-medium text-amber-950">View options</Link>
               </>
             )}

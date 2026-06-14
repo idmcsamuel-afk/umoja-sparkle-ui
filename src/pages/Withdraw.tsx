@@ -34,6 +34,7 @@ interface Breakdown {
   total_withdrawable: number;
   referral_releasable: number;
   referral_locked: number;
+  referral_sparks_withdrawn: number;
   promo_expires_at: string | null;
   zar_value: number;
   has_contributed: boolean;
@@ -347,31 +348,40 @@ export default function Withdraw() {
       </Card>
 
       {/* Referral unlock card */}
-      {referralBalance > 0 && referralLocked > 0 && (
-        <Card className="border-fuchsia-500/40 bg-fuchsia-500/5">
-          <CardContent className="pt-5">
-            <div className="flex items-start gap-3">
-              <Unlock className="h-5 w-5 text-fuchsia-600 mt-0.5" />
-              <div className="text-sm flex-1">
-                <p className="font-semibold">Unlock your referral Sparks</p>
-                <p className="text-muted-foreground mt-1 text-xs">
-                  Referral Sparks become withdrawable when you invest in the community. For every R3 you
-                  contribute to a Circle, R2 of referral Sparks unlocks for cash.
-                </p>
-                <p className="mt-2 text-xs">
-                  You have <b>{referralBalance}</b> referral Sparks · <b>{referralReleasable}</b> unlocked
-                  {referralLocked > 0 && (
-                    <> · contribute <b>R{Math.max(0, Math.ceil(referralLocked * 1.5) - qualifyingZar).toFixed(0)}</b> more to unlock the remaining <b>{referralLocked}</b></>
-                  )}
-                </p>
-                <Button asChild size="sm" className="mt-3">
-                  <Link to="/circle">Contribute now</Link>
-                </Button>
+      {referralBalance > 0 && referralLocked > 0 && (() => {
+        // Exact ZAR contribution needed to unlock the remaining locked referral Sparks.
+        // releasable_referral_sparks() = floor(qualifying/1.5) - withdrawn (capped at balance)
+        // To unlock the full balance we need: floor((qualifying+X)/1.5) - withdrawn >= balance
+        // => X >= 1.5*(balance + withdrawn) - qualifying
+        const withdrawn = breakdown?.referral_sparks_withdrawn ?? 0;
+        const amountToUnlockRest = Math.max(
+          0,
+          Math.ceil(1.5 * (referralBalance + withdrawn) - qualifyingZar),
+        );
+        return (
+          <Card className="border-fuchsia-500/40 bg-fuchsia-500/5">
+            <CardContent className="pt-5">
+              <div className="flex items-start gap-3">
+                <Unlock className="h-5 w-5 text-fuchsia-600 mt-0.5" />
+                <div className="text-sm flex-1">
+                  <p className="font-semibold">Unlock your referral Sparks</p>
+                  <p className="text-muted-foreground mt-1 text-xs">
+                    Referral Sparks become cash when you invest in the community. For every R3 you
+                    contribute to a Circle, R2 unlocks.
+                  </p>
+                  <p className="mt-2 text-xs">
+                    You have <b>S~{referralBalance}</b> referral Sparks. <b>S~{referralReleasable}</b> unlocked
+                    and ready. Contribute <b>R{amountToUnlockRest}</b> to unlock the remaining <b>S~{referralLocked}</b>.
+                  </p>
+                  <Button asChild size="sm" className="mt-3">
+                    <Link to="/circle">Join a Circle to unlock →</Link>
+                  </Button>
+                </div>
               </div>
-            </div>
-          </CardContent>
-        </Card>
-      )}
+            </CardContent>
+          </Card>
+        );
+      })()}
 
       {/* Promo unlock card */}
       {promoBalance > 0 && (

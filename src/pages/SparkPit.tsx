@@ -6,6 +6,7 @@ import { SparksDisclaimer } from "@/components/umoja/SparksDisclaimer";
 import { Card } from "@/components/ui/card";
 import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
+import { SparksExplainer } from "@/components/umoja/SparksExplainer";
 
 export default function SparkPit() {
   const { user } = useAuth();
@@ -50,7 +51,9 @@ export default function SparkPit() {
           </div>
           <div className="text-amber-200 font-bold">+{todayWon.toLocaleString()} ⚡</div>
         </Card>
+        <SparksExplainer />
       </div>
+
 
       <main className="px-5 space-y-4">
         <GameCard
