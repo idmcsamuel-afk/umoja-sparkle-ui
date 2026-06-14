@@ -51,6 +51,8 @@ export default function SparkPit() {
           </div>
           <div className="text-amber-200 font-bold">+{todayWon.toLocaleString()} ⚡</div>
         </Card>
+      <div className="px-5 mb-5">
+        <SparksExplainer />
       </div>
 
       <main className="px-5 space-y-4">
