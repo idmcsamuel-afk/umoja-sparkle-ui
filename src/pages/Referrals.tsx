@@ -128,8 +128,9 @@ const Referrals = () => {
               <div className="mt-1 text-3xl font-display">{stats.total_refs}</div>
             </div>
             <div className="glass rounded-3xl p-5">
-              <div className="flex items-center gap-2 text-xs text-muted-foreground"><Sparkles className="h-3.5 w-3.5 text-accent" /> Sparks earned</div>
+              <div className="flex items-center gap-2 text-xs text-muted-foreground"><Sparkles className="h-3.5 w-3.5 text-accent" /> Lifetime Sparks earned from referrals</div>
               <div className="mt-1 text-3xl font-display text-gradient-gold">{Math.round(stats.sparks_earned)}</div>
+              <p className="mt-1 text-[10px] text-muted-foreground">Total ever credited from your referrals. Your spendable referral balance is shown on your wallet.</p>
             </div>
           </div>
 
