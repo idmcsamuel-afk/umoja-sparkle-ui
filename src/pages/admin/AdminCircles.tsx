@@ -323,6 +323,14 @@ export default function AdminCircles() {
                       ⏱ Extend deadline
                     </Button>
                     <Button
+                      variant="outline"
+                      onClick={() => extendDeadline(bid)}
+                      disabled={busy === bid.id}
+                      className="rounded-2xl"
+                    >
+                      ⏱ Extend deadline
+                    </Button>
+                    <Button
                       variant="ghost"
                       onClick={() => setOpenHistory((cur) => (cur === bid.id ? null : bid.id))}
                       className="rounded-2xl"
