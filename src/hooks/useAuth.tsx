@@ -76,10 +76,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   };
 
   useEffect(() => {
-    const ensureSignupBonus = () => {
-      supabase.rpc("claim_signup_bonus").catch((e) =>
-        console.warn("[useAuth] claim_signup_bonus failed", e)
-      );
+    const ensureSignupBonus = async () => {
+      try {
+        await supabase.rpc("claim_signup_bonus");
+      } catch (e) {
+        console.warn("[useAuth] claim_signup_bonus failed", e);
+      }
     };
 
     const { data: sub } = supabase.auth.onAuthStateChange((_event, s) => {
