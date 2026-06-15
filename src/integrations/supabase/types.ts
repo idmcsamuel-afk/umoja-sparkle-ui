@@ -1094,6 +1094,7 @@ export type Database = {
           platform_fee: number
           priority_score: number | null
           priority_slot: boolean | null
+          proof_extended_until: string | null
           score_breakdown: Json | null
           spark_amount: number
           status: string | null
@@ -1147,6 +1148,7 @@ export type Database = {
           platform_fee: number
           priority_score?: number | null
           priority_slot?: boolean | null
+          proof_extended_until?: string | null
           score_breakdown?: Json | null
           spark_amount: number
           status?: string | null
@@ -1200,6 +1202,7 @@ export type Database = {
           platform_fee?: number
           priority_score?: number | null
           priority_slot?: boolean | null
+          proof_extended_until?: string | null
           score_breakdown?: Json | null
           spark_amount?: number
           status?: string | null

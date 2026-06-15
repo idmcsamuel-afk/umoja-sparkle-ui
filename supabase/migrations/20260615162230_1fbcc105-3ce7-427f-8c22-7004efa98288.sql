@@ -1,0 +1,1 @@
+ALTER TABLE public.circle_bids ADD COLUMN IF NOT EXISTS proof_extended_until timestamptz;
