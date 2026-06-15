@@ -243,15 +243,13 @@ export default function Priority() {
       const liveScore = calculatePriorityScore(memberForScore, userBidsForScore, tier);
       let userRank: number | null = null;
       if (activeUserBid?.created_at) {
-        const { count: betterBids, error: betterBidsError } = await supabase
-          .from("circle_bids")
-          .select("*", { count: "exact", head: true })
-          .eq("tier", tier)
-          .eq("status", "vault")
-          .not("vault_start", "is", null)
-          .lt("created_at", activeUserBid.created_at);
+        const { data: betterBids, error: betterBidsError } = await supabase.rpc("get_vault_queue_position", {
+          _tier: tier,
+          _created_at: activeUserBid.created_at,
+        });
         if (betterBidsError) console.error(betterBidsError);
-        userRank = (betterBids ?? 0) + 1;
+        userRank = Number(betterBids ?? 0) + 1;
+
       } else if (activeUserBid) {
         userRank = 1;
       }
