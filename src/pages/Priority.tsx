@@ -293,7 +293,7 @@ export default function Priority() {
       }) satisfies ScoreRow[];
       setRows(visibleRows);
 
-      const total = activeCountRes.count ?? 0;
+      const total = Number(activeCountRes.data ?? 0);
       setQueueSummary({
         total,
         userBidExists: !!activeUserBid,
