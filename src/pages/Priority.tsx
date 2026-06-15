@@ -191,20 +191,9 @@ export default function Priority() {
     setLoading(true);
     (async () => {
       const [activeCountRes, activeRowsRes, userBidRes, memberRes, userBidsRes, referralStatsRes] = await Promise.all([
-        supabase
-          .from("circle_bids")
-          .select("*", { count: "exact", head: true })
-          .eq("tier", tier)
-          .eq("status", "vault")
-          .not("vault_start", "is", null),
-        supabase
-          .from("circle_bids")
-          .select("id, member_id, fiat_amount, tier, status, created_at, vault_start")
-          .eq("tier", tier)
-          .eq("status", "vault")
-          .not("vault_start", "is", null)
-          .order("created_at", { ascending: true })
-          .limit(10),
+        supabase.rpc("get_vault_queue_count", { _tier: tier }),
+        supabase.rpc("get_vault_queue", { _tier: tier, _limit: 10 }),
+
         user?.id
           ? supabase
               .from("circle_bids")
