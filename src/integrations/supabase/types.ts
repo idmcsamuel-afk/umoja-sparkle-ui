@@ -6476,6 +6476,23 @@ export type Database = {
         }[]
       }
       get_predictor_answer: { Args: { _question: string }; Returns: string }
+      get_vault_queue: {
+        Args: { _limit?: number; _tier: string }
+        Returns: {
+          created_at: string
+          fiat_amount: number
+          id: string
+          member_id: string
+          status: string
+          tier: string
+          vault_start: string
+        }[]
+      }
+      get_vault_queue_count: { Args: { _tier: string }; Returns: number }
+      get_vault_queue_position: {
+        Args: { _created_at: string; _tier: string }
+        Returns: number
+      }
       increment_podcast_play: { Args: { _episode: string }; Returns: undefined }
       increment_storefront_view: {
         Args: { _owner: string }

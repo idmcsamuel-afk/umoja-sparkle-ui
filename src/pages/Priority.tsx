@@ -191,20 +191,9 @@ export default function Priority() {
     setLoading(true);
     (async () => {
       const [activeCountRes, activeRowsRes, userBidRes, memberRes, userBidsRes, referralStatsRes] = await Promise.all([
-        supabase
-          .from("circle_bids")
-          .select("*", { count: "exact", head: true })
-          .eq("tier", tier)
-          .eq("status", "vault")
-          .not("vault_start", "is", null),
-        supabase
-          .from("circle_bids")
-          .select("id, member_id, fiat_amount, tier, status, created_at, vault_start")
-          .eq("tier", tier)
-          .eq("status", "vault")
-          .not("vault_start", "is", null)
-          .order("created_at", { ascending: true })
-          .limit(10),
+        supabase.rpc("get_vault_queue_count", { _tier: tier }),
+        supabase.rpc("get_vault_queue", { _tier: tier, _limit: 10 }),
+
         user?.id
           ? supabase
               .from("circle_bids")
@@ -254,15 +243,13 @@ export default function Priority() {
       const liveScore = calculatePriorityScore(memberForScore, userBidsForScore, tier);
       let userRank: number | null = null;
       if (activeUserBid?.created_at) {
-        const { count: betterBids, error: betterBidsError } = await supabase
-          .from("circle_bids")
-          .select("*", { count: "exact", head: true })
-          .eq("tier", tier)
-          .eq("status", "vault")
-          .not("vault_start", "is", null)
-          .lt("created_at", activeUserBid.created_at);
+        const { data: betterBids, error: betterBidsError } = await supabase.rpc("get_vault_queue_position", {
+          _tier: tier,
+          _created_at: activeUserBid.created_at,
+        });
         if (betterBidsError) console.error(betterBidsError);
-        userRank = (betterBids ?? 0) + 1;
+        userRank = Number(betterBids ?? 0) + 1;
+
       } else if (activeUserBid) {
         userRank = 1;
       }
@@ -304,7 +291,7 @@ export default function Priority() {
       }) satisfies ScoreRow[];
       setRows(visibleRows);
 
-      const total = activeCountRes.count ?? 0;
+      const total = Number(activeCountRes.data ?? 0);
       setQueueSummary({
         total,
         userBidExists: !!activeUserBid,
