@@ -97,29 +97,45 @@ export default function AdminCircles() {
   useEffect(() => { load(); }, []);
 
   const extendDeadline = async (bid: PendingBid) => {
-    const raw = window.prompt(`Extend payment deadline for ${bid.member_name} by how many hours?`, "2");
+    const raw = window.prompt(`Extend payment deadline for ${bid.member_name} by how many days? (1-24)`, "2");
     if (!raw) return;
-    const hours = Number(raw);
-    if (!Number.isFinite(hours) || hours <= 0 || hours > 168) {
-      toast.error("Enter a number between 0 and 168 hours");
+    const days = Number(raw);
+    if (!Number.isFinite(days) || days <= 0 || days > 24) {
+      toast.error("Enter a number between 1 and 24 days");
       return;
     }
-    const base = bid.payment_deadline ? new Date(bid.payment_deadline).getTime() : Date.now();
-    const newDeadline = new Date(Math.max(base, Date.now()) + hours * 3_600_000).toISOString();
+    const hours = days * 24;
+    const baseMs = bid.payment_deadline ? new Date(bid.payment_deadline).getTime() : Date.now();
+    const oldDeadline = bid.payment_deadline ?? new Date(baseMs).toISOString();
+    const newDeadlineIso = new Date(Math.max(baseMs, Date.now()) + hours * 3_600_000).toISOString();
     setBusy(bid.id);
     const { error } = await supabase
       .from("circle_bids")
-      .update({ payment_deadline: newDeadline })
+      .update({ payment_deadline: newDeadlineIso, proof_extended_until: newDeadlineIso })
       .eq("id", bid.id);
     if (error) { toast.error(error.message); setBusy(null); return; }
+    const { data: auth } = await supabase.auth.getUser();
+    await supabase.from("admin_audit_log").insert({
+      actor_id: auth.user?.id ?? null,
+      action: "circle_bid.extend_deadline",
+      target_member: bid.member_id,
+      details: {
+        bid_id: bid.id,
+        tier: bid.tier,
+        days_extended: days,
+        hours_extended: hours,
+        old_deadline: oldDeadline,
+        new_deadline: newDeadlineIso,
+      },
+    });
     await supabase.from("notifications").insert({
       member_id: bid.member_id,
       title: "⏱ Payment deadline extended",
-      body: `Your ${bid.tier} bid deadline was extended by ${hours}h. New deadline: ${new Date(newDeadline).toLocaleString()}.`,
+      body: `Your ${bid.tier} bid deadline was extended by ${days} day${days === 1 ? "" : "s"}. New deadline: ${new Date(newDeadlineIso).toLocaleString()}.`,
       kind: "payment",
       link: "/circle",
     });
-    toast.success(`Deadline extended by ${hours}h`);
+    toast.success(`Deadline extended by ${days} day${days === 1 ? "" : "s"}`);
     setBusy(null);
     load();
   };
