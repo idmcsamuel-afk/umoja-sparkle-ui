@@ -127,10 +127,10 @@ export default function AdminBuyersClub() {
                           <ExternalLink className="h-3 w-3" /> Proof
                         </Button>
                       )}
-                      {!r.has_buyers_club_access && r.buyers_club_status !== "rejected" && (
+                      {r.buyers_club_status === "pending" && (
                         <>
                           <Button size="sm" disabled={busy === r.id} onClick={() => approve(r.id)} className="bg-primary text-primary-foreground">
-                            {busy === r.id ? <Loader2 className="h-3 w-3 animate-spin" /> : <Check className="h-3 w-3" />} Approve
+                            {busy === r.id ? <Loader2 className="h-3 w-3 animate-spin" /> : <Check className="h-3 w-3" />} {r.has_buyers_club_access ? "Approve renewal" : "Approve"}
                           </Button>
                           <Button size="sm" variant="outline" className="text-destructive border-destructive/40" onClick={() => setReject({ id: r.id, reason: "" })}>
                             <X className="h-3 w-3" /> Reject
