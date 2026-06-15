@@ -76,12 +76,19 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   };
 
   useEffect(() => {
+    const ensureSignupBonus = () => {
+      supabase.rpc("claim_signup_bonus").catch((e) =>
+        console.warn("[useAuth] claim_signup_bonus failed", e)
+      );
+    };
+
     const { data: sub } = supabase.auth.onAuthStateChange((_event, s) => {
       setSession(s);
       setUser(s?.user ?? null);
       if (s?.user) {
         setTimeout(() => {
           loadMember(s.user.id);
+          ensureSignupBonus();
           applyPendingReferral();
         }, 0);
       } else {
@@ -94,6 +101,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       setUser(s?.user ?? null);
       if (s?.user) {
         loadMember(s.user.id).finally(() => setLoading(false));
+        ensureSignupBonus();
         applyPendingReferral();
       } else {
         setLoading(false);
