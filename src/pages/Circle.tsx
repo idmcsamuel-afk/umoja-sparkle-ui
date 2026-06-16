@@ -28,6 +28,10 @@ import { ReferralPromo } from "@/components/umoja/ReferralPromo";
 import { LiveActivityTicker } from "@/components/umoja/LiveActivityTicker";
 import { useSocialProof } from "@/hooks/useSocialProof";
 import { ttTrack } from "@/lib/tiktokPixel";
+import { useMyCountry } from "@/hooks/useCountryConfig";
+import { getTierVisibility } from "@/lib/currency";
+import { Lock } from "lucide-react";
+
 
 interface Tier {
   tier: string;
