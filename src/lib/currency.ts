@@ -36,6 +36,36 @@ export function currencySymbol(currencyCode: string): string {
   return currencySymbols[currencyCode] ?? "";
 }
 
+/** Alias for currencySymbol — accepts a currency code (ZAR, NGN, …). */
+export function getCurrencySymbol(currencyCode: string): string {
+  return currencySymbol(currencyCode);
+}
+
+/** Map ISO country code → currency code. Defaults to ZAR. */
+const COUNTRY_TO_CURRENCY: Record<string, string> = {
+  ZA: "ZAR",
+  NG: "NGN",
+  KE: "KES",
+  ZM: "ZMW",
+  MZ: "MZN",
+};
+
+export function getCurrencyCode(countryCode: string): string {
+  return COUNTRY_TO_CURRENCY[(countryCode || "").toUpperCase()] ?? "ZAR";
+}
+
+/** Per-country tier visibility. Fulfilled is South Africa only for now. */
+export function getTierVisibility(countryCode: string) {
+  const cc = (countryCode || "").toUpperCase();
+  return {
+    seedVisible: true,
+    growthVisible: true,
+    harvestVisible: true,
+    fulfilledVisible: cc === "ZA",
+  };
+}
+
+
 export function formatCurrency(amount: number, currencyCode: string): string {
   const symbol = currencySymbol(currencyCode);
   return `${symbol}${Math.round(amount).toLocaleString("en-US")}`;
