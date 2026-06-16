@@ -88,7 +88,10 @@ const KNOWN_TIERS = new Set(["seed", "growth", "harvest"]);
 
 const Circle = () => {
   const { user } = useAuth();
+  const { config: countryCfg } = useMyCountry();
+  const tierVisibility = getTierVisibility(countryCfg.country_code);
   const proof = useSocialProof();
+
   const [tiers, setTiers] = useState<Tier[]>([]);
   const [bids, setBids] = useState<Bid[]>([]);
   const [stats, setStats] = useState<Record<string, TierStats>>({});
