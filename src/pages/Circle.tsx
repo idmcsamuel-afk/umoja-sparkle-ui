@@ -28,6 +28,10 @@ import { ReferralPromo } from "@/components/umoja/ReferralPromo";
 import { LiveActivityTicker } from "@/components/umoja/LiveActivityTicker";
 import { useSocialProof } from "@/hooks/useSocialProof";
 import { ttTrack } from "@/lib/tiktokPixel";
+import { useMyCountry } from "@/hooks/useCountryConfig";
+import { getTierVisibility } from "@/lib/currency";
+import { Lock } from "lucide-react";
+
 
 interface Tier {
   tier: string;
@@ -84,7 +88,10 @@ const KNOWN_TIERS = new Set(["seed", "growth", "harvest"]);
 
 const Circle = () => {
   const { user } = useAuth();
+  const { config: countryCfg } = useMyCountry();
+  const tierVisibility = getTierVisibility(countryCfg.country_code);
   const proof = useSocialProof();
+
   const [tiers, setTiers] = useState<Tier[]>([]);
   const [bids, setBids] = useState<Bid[]>([]);
   const [stats, setStats] = useState<Record<string, TierStats>>({});
@@ -828,10 +835,37 @@ const Circle = () => {
                   />
                 );
               })}
+              {!tierVisibility.fulfilledVisible && (
+                <article className="relative overflow-hidden rounded-3xl glass p-5 opacity-70 border border-dashed border-border">
+                  <div className="flex items-start justify-between gap-3">
+                    <div className="min-w-0">
+                      <p className="font-display text-xl">
+                        <span className="mr-1.5">📦</span>Fulfilled Circle
+                      </p>
+                      <p className="mt-1 text-[11px] uppercase tracking-[0.18em] text-muted-foreground">
+                        Premium tier · Order fulfilment perks
+                      </p>
+                    </div>
+                    <span className="inline-flex items-center gap-1 text-[10px] uppercase tracking-wider rounded-full px-2 py-1 bg-muted text-muted-foreground">
+                      <Lock className="h-3 w-3" /> Coming soon
+                    </span>
+                  </div>
+                  <p className="mt-4 text-sm text-muted-foreground">
+                    Coming to {countryCfg.country_name} soon. Fulfilled orders are available starting in South Africa.
+                  </p>
+                  <button
+                    disabled
+                    className="mt-4 w-full min-h-12 rounded-2xl bg-secondary text-muted-foreground border border-border text-sm font-semibold inline-flex items-center justify-center gap-1.5 cursor-not-allowed"
+                  >
+                    <Lock className="h-4 w-4" /> Not available in your country yet
+                  </button>
+                </article>
+              )}
             </div>
           )}
         </div>
       </section>
+
 
       {/* Bid + EFT modal */}
       <Dialog open={!!open} onOpenChange={(v) => { if (!v) closeModal(); }}>
