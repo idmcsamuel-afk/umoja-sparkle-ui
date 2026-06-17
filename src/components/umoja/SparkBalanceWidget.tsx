@@ -5,6 +5,9 @@ import { useAuth } from "@/hooks/useAuth";
 import { Sparkles, Wallet, ShoppingCart, ArrowDownToLine, AlertCircle, Info } from "lucide-react";
 import { SparksExplainer, BUCKET_TOOLTIPS } from "./SparksExplainer";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
+import { useMyCountry } from "@/hooks/useCountryConfig";
+import { formatCurrency, getCurrencyCode } from "@/lib/currency";
+import { exchangeRates } from "@/lib/currency";
 
 interface Breakdown {
   promotional: number;
@@ -31,6 +34,7 @@ const daysUntil = (iso: string | null) => {
 
 export function SparkBalanceWidget() {
   const { user } = useAuth();
+  const { config: country } = useMyCountry();
   const [data, setData] = useState<Breakdown | null>(null);
 
   const load = async () => {
@@ -70,7 +74,10 @@ export function SparkBalanceWidget() {
             <h3 className="text-sm font-semibold uppercase tracking-wider">Your Spark Balance</h3>
           </div>
           <span className="text-xs text-muted-foreground">
-            ≈ R{data.zar_value.toLocaleString("en-ZA")}
+            ≈ {formatCurrency(
+              data.zar_value * (exchangeRates[getCurrencyCode(country.country_code)] ?? 1),
+              getCurrencyCode(country.country_code),
+            )}
           </span>
         </div>
 
