@@ -230,7 +230,7 @@ export default function AdminKycReview() {
                     busy={busyId === r.id}
                     onApprove={() => approve(r)}
                     onApproveAnyway={() => setOverride({ row: r, step: 1, reason: "" })}
-                    onReject={() => { setReject(r); setReason(""); }}
+                    onReject={() => { setReject(r); setReason(buildRejectionReason(r)); }}
                     onReminder={() => sendReminder(r)}
                   />
                 ))}
