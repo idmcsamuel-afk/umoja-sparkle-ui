@@ -9,6 +9,7 @@
 // the row update fails — we just log and flag it for manual reconciliation.
 
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.45.0";
+import { formatCurrencyForMember, fetchMemberCountry } from "../_shared/format-currency.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
