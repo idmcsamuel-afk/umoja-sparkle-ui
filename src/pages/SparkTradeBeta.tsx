@@ -396,7 +396,7 @@ export default function SparkTradeBeta() {
       <section className="py-16 px-4 max-w-3xl mx-auto">
         <h2 className="text-3xl font-bold text-center mb-8">Frequently asked</h2>
         <Accordion type="single" collapsible className="w-full">
-          {FAQS.map((f, i) => (
+          {faqs.map((f, i) => (
             <AccordionItem key={i} value={`q-${i}`}>
               <AccordionTrigger className="text-left">{f.q}</AccordionTrigger>
               <AccordionContent className="text-muted-foreground">{f.a}</AccordionContent>
