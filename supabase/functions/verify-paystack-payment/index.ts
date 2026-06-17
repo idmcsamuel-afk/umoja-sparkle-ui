@@ -174,10 +174,12 @@ async function applyToDrive(
 
   await sb.rpc("calculate_drive_score", { p_enrollment_id: enrId });
 
+  const memberCountry = await fetchMemberCountry(sb, userId);
+  const localAmount = formatCurrencyForMember(amountZar, memberCountry);
   await sb.from("notifications").insert({
     member_id: userId,
     title: "Drive payment confirmed ✓",
-    body: `Week ${nextWeek} payment of R${amountZar} received. Score updated.`,
+    body: `Week ${nextWeek} payment of ${localAmount} received. Score updated.`,
     kind: "drive",
     link: "/drive/dashboard",
   });
