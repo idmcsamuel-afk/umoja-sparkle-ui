@@ -107,28 +107,36 @@ const COMPARISON: { label: string; basic: boolean; pro: boolean; full: boolean }
   { label: "Priority support", basic: false, pro: true, full: true },
 ];
 
-const FAQS: { q: string; a: string }[] = [
-  {
-    q: "Do I really get 2 months free?",
-    a: "Yes! You pay R499–R1,999 this month, then get next month completely free. After that, your subscription continues monthly (or annually if you chose annual).",
-  },
-  {
-    q: "Can I change tiers later?",
-    a: "Yes! Upgrade or downgrade anytime. Changes take effect next billing cycle.",
-  },
-  {
-    q: "What if I want to cancel?",
-    a: "You can cancel anytime. No lock-in period. But you'll lose access after your current billing period ends.",
-  },
-  {
-    q: "Is the course really free?",
-    a: "Yes! Included with every tier. Worth R1,499 if purchased separately. Covers Takealot, Amazon SA, Makro setup (90 minutes).",
-  },
-  {
-    q: "When does the price increase?",
-    a: "After 100 founding members, pricing increases 20%. Early birds lock in current pricing for life if they stay subscribed.",
-  },
-];
+const buildFaqs = (cc: string): { q: string; a: string }[] => {
+  const code = getCurrencyCode(cc);
+  const rate = exchangeRates[code] ?? 1;
+  const isZA = (cc || "ZA").toUpperCase() === "ZA";
+  const range = isZA
+    ? ""
+    : ` (Equivalent: ${formatCurrency(499 * rate, code)}–${formatCurrency(1999 * rate, code)})`;
+  return [
+    {
+      q: "Do I really get 2 months free?",
+      a: `Yes! You pay R499–R1,999${range} this month, then get next month completely free. After that, your subscription continues monthly (or annually if you chose annual).`,
+    },
+    {
+      q: "Can I change tiers later?",
+      a: "Yes! Upgrade or downgrade anytime. Changes take effect next billing cycle.",
+    },
+    {
+      q: "What if I want to cancel?",
+      a: "You can cancel anytime. No lock-in period. But you'll lose access after your current billing period ends.",
+    },
+    {
+      q: "Is the course really free?",
+      a: `Yes! Included with every tier. Worth R1,499${equiv(1499, cc)} if purchased separately. Covers Takealot, Amazon SA, Makro setup (90 minutes).`,
+    },
+    {
+      q: "When does the price increase?",
+      a: "After 100 founding members, pricing increases 20%. Early birds lock in current pricing for life if they stay subscribed.",
+    },
+  ];
+};
 
 function addMonths(d: Date, n: number) {
   const x = new Date(d);
@@ -138,6 +146,9 @@ function addMonths(d: Date, n: number) {
 
 export default function SparkTradeBeta() {
   const { user } = useAuth();
+  const { config: country } = useMyCountry();
+  const cc = country.country_code;
+  const faqs = useMemo(() => buildFaqs(cc), [cc]);
   const { pay, ready } = usePaystack();
   const pricingRef = useRef<HTMLDivElement>(null);
 
