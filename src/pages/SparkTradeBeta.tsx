@@ -328,7 +328,7 @@ export default function SparkTradeBeta() {
                 <h3 className="text-xl font-semibold">Pay Once, Get 2 Months Free</h3>
                 <p className="text-sm text-muted-foreground">Pay this month, access next 2 months free</p>
               </div>
-              <PricingGrid tiers={TIERS} period="monthly" onBuy={openCheckout} />
+              <PricingGrid tiers={TIERS} period="monthly" onBuy={openCheckout} countryCode={cc} />
             </TabsContent>
 
             <TabsContent value="annual">
@@ -336,7 +336,7 @@ export default function SparkTradeBeta() {
                 <h3 className="text-xl font-semibold">Save 3 Months Worth</h3>
                 <p className="text-sm text-muted-foreground">Pay for 9 months, get 3 months completely free</p>
               </div>
-              <PricingGrid tiers={TIERS} period="annual" onBuy={openCheckout} />
+              <PricingGrid tiers={TIERS} period="annual" onBuy={openCheckout} countryCode={cc} />
             </TabsContent>
           </Tabs>
         </div>
@@ -462,7 +462,7 @@ export default function SparkTradeBeta() {
                         <span className="text-sm flex-1">
                           {t.name.replace("Spark Trade ", "")} {b === "annual" ? "Annual" : "Monthly"}
                         </span>
-                        <span className="text-sm font-semibold">R{amt.toLocaleString()}</span>
+                        <span className="text-sm font-semibold text-right">R{amt.toLocaleString()}{equiv(amt, cc) && <span className="block text-[10px] font-normal text-muted-foreground">{equiv(amt, cc).replace(" (", "≈ ").replace(")", "")}</span>}</span>
                       </label>
                     );
                   })
@@ -497,10 +497,12 @@ function PricingGrid({
   tiers,
   period,
   onBuy,
+  countryCode,
 }: {
   tiers: TierDef[];
   period: Period;
   onBuy: (tier: TierKey, period: Period) => void;
+  countryCode: string;
 }) {
   return (
     <div className="grid md:grid-cols-3 gap-6">
@@ -508,6 +510,7 @@ function PricingGrid({
         const price = period === "annual" ? t.annual : t.monthly;
         const isAnnual = period === "annual";
         const monthlyEq = Math.round(t.annual / 12);
+        const eq = equiv(price, countryCode);
         return (
           <Card
             key={t.key}
@@ -525,6 +528,11 @@ function PricingGrid({
             <h3 className="text-lg font-semibold">{t.name}</h3>
             <div className="mt-4">
               <div className="text-4xl font-bold">R{price.toLocaleString()}</div>
+              {eq && (
+                <div className="text-xs text-muted-foreground mt-0.5">
+                  Equivalent:{eq.replace(" (Equivalent:", "").replace(")", "")}
+                </div>
+              )}
               <div className="text-sm text-muted-foreground mt-1">
                 {isAnnual ? "Pay for 9 months · Get 3 free" : "Pay this month · Next month free"}
               </div>
