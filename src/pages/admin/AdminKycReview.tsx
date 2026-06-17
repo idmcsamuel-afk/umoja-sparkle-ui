@@ -36,6 +36,26 @@ const SUGGESTED_REASONS = [
   "Manual phone verification completed",
 ];
 
+function buildRejectionReason(r: Row): string {
+  const issues: string[] = [];
+  if (!r.kyc_photo_url) issues.push("• A clear selfie photo (face fully visible, good lighting)");
+  if (!r.kyc_document_url) issues.push("• A proof of address document (utility bill, bank statement, or ID)");
+  if (!r.phone_verified) issues.push("• Phone number verification (complete the OTP step)");
+  const name = r.full_name?.split(" ")[0] || "there";
+  if (issues.length === 0) {
+    return `Hi ${name},\n\nWe couldn't approve your KYC at this time. Please review your submission and resubmit for approval.\n\nThank you,\nUMOJA Team`;
+  }
+  return `Hi ${name},\n\nWe couldn't approve your KYC because the following is missing or unclear:\n\n${issues.join("\n")}\n\nPlease resubmit so we can approve your account.\n\nThank you,\nUMOJA Team`;
+}
+
+const REJECT_QUICK_REASONS = [
+  "Selfie is blurry or face not clearly visible — please retake in good lighting.",
+  "Address document is unreadable — please upload a clearer copy.",
+  "Document does not match the name on your account.",
+  "Address document is older than 3 months — please upload a recent one.",
+  "Phone number could not be verified — please complete the OTP step.",
+];
+
 const useSignedUrl = () => {
   const [cache, setCache] = useState<Record<string, string>>({});
   const get = async (bucket: string, path: string | null) => {
