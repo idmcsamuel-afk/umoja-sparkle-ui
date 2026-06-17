@@ -36,6 +36,26 @@ const SUGGESTED_REASONS = [
   "Manual phone verification completed",
 ];
 
+function buildRejectionReason(r: Row): string {
+  const issues: string[] = [];
+  if (!r.kyc_photo_url) issues.push("• A clear selfie photo (face fully visible, good lighting)");
+  if (!r.kyc_document_url) issues.push("• A proof of address document (utility bill, bank statement, or ID)");
+  if (!r.phone_verified) issues.push("• Phone number verification (complete the OTP step)");
+  const name = r.full_name?.split(" ")[0] || "there";
+  if (issues.length === 0) {
+    return `Hi ${name},\n\nWe couldn't approve your KYC at this time. Please review your submission and resubmit for approval.\n\nThank you,\nUMOJA Team`;
+  }
+  return `Hi ${name},\n\nWe couldn't approve your KYC because the following is missing or unclear:\n\n${issues.join("\n")}\n\nPlease resubmit so we can approve your account.\n\nThank you,\nUMOJA Team`;
+}
+
+const REJECT_QUICK_REASONS = [
+  "Selfie is blurry or face not clearly visible — please retake in good lighting.",
+  "Address document is unreadable — please upload a clearer copy.",
+  "Document does not match the name on your account.",
+  "Address document is older than 3 months — please upload a recent one.",
+  "Phone number could not be verified — please complete the OTP step.",
+];
+
 const useSignedUrl = () => {
   const [cache, setCache] = useState<Record<string, string>>({});
   const get = async (bucket: string, path: string | null) => {
@@ -210,7 +230,7 @@ export default function AdminKycReview() {
                     busy={busyId === r.id}
                     onApprove={() => approve(r)}
                     onApproveAnyway={() => setOverride({ row: r, step: 1, reason: "" })}
-                    onReject={() => { setReject(r); setReason(""); }}
+                    onReject={() => { setReject(r); setReason(buildRejectionReason(r)); }}
                     onReminder={() => sendReminder(r)}
                   />
                 ))}
@@ -276,12 +296,37 @@ export default function AdminKycReview() {
               <Textarea
                 value={reason} onChange={(e) => setReason(e.target.value)}
                 placeholder="Reason (will be shown to the member)"
-                rows={4} className="mt-3 rounded-2xl"
+                rows={8} className="mt-3 rounded-2xl text-sm"
               />
+              <div className="mt-2 flex items-center justify-between">
+                <p className="text-[11px] text-muted-foreground">Auto-filled from missing items — edit as needed.</p>
+                <button
+                  type="button"
+                  onClick={() => setReason(buildRejectionReason(reject))}
+                  className="text-[11px] text-accent hover:underline"
+                >
+                  Reset auto-fill
+                </button>
+              </div>
+              <div className="mt-3">
+                <p className="text-[11px] uppercase tracking-wider text-muted-foreground mb-2">Quick add</p>
+                <div className="flex flex-wrap gap-2">
+                  {REJECT_QUICK_REASONS.map((q) => (
+                    <button
+                      key={q}
+                      type="button"
+                      onClick={() => setReason((prev) => (prev.trim() ? prev.trimEnd() + "\n\n• " + q : "• " + q))}
+                      className="text-xs rounded-full border border-border px-3 py-1 hover:bg-secondary text-left"
+                    >
+                      + {q.length > 50 ? q.slice(0, 50) + "…" : q}
+                    </button>
+                  ))}
+                </div>
+              </div>
               <div className="mt-4 flex gap-2">
                 <Button variant="ghost" onClick={() => setReject(null)} className="rounded-2xl">Cancel</Button>
-                <Button onClick={submitReject} className="flex-1 rounded-2xl bg-destructive text-destructive-foreground">
-                  Send rejection
+                <Button onClick={submitReject} disabled={busyId === reject.id} className="flex-1 rounded-2xl bg-destructive text-destructive-foreground">
+                  {busyId === reject.id ? <Loader2 className="h-4 w-4 animate-spin" /> : "Send rejection"}
                 </Button>
               </div>
             </div>
