@@ -14,6 +14,17 @@ import { toast } from "sonner";
 import { usePaystack, buildReference } from "@/hooks/usePaystack";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
+import { useMyCountry } from "@/hooks/useCountryConfig";
+import { formatCurrency, getCurrencyCode, exchangeRates } from "@/lib/currency";
+
+/** Show "(Equivalent: ₦42,415)" next to a SA anchor price for non-ZA members. */
+function equiv(zar: number, countryCode: string): string {
+  const cc = (countryCode || "ZA").toUpperCase();
+  if (cc === "ZA") return "";
+  const code = getCurrencyCode(cc);
+  const rate = exchangeRates[code] ?? 1;
+  return ` (Equivalent: ${formatCurrency(zar * rate, code)})`;
+}
 
 type Period = "monthly" | "annual";
 type TierKey = "basic" | "pro" | "fulfilled";
