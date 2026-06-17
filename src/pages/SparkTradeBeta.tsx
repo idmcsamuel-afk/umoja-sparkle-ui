@@ -14,6 +14,17 @@ import { toast } from "sonner";
 import { usePaystack, buildReference } from "@/hooks/usePaystack";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
+import { useMyCountry } from "@/hooks/useCountryConfig";
+import { formatCurrency, getCurrencyCode, exchangeRates } from "@/lib/currency";
+
+/** Show "(Equivalent: ₦42,415)" next to a SA anchor price for non-ZA members. */
+function equiv(zar: number, countryCode: string): string {
+  const cc = (countryCode || "ZA").toUpperCase();
+  if (cc === "ZA") return "";
+  const code = getCurrencyCode(cc);
+  const rate = exchangeRates[code] ?? 1;
+  return ` (Equivalent: ${formatCurrency(zar * rate, code)})`;
+}
 
 type Period = "monthly" | "annual";
 type TierKey = "basic" | "pro" | "fulfilled";
@@ -96,28 +107,36 @@ const COMPARISON: { label: string; basic: boolean; pro: boolean; full: boolean }
   { label: "Priority support", basic: false, pro: true, full: true },
 ];
 
-const FAQS: { q: string; a: string }[] = [
-  {
-    q: "Do I really get 2 months free?",
-    a: "Yes! You pay R499–R1,999 this month, then get next month completely free. After that, your subscription continues monthly (or annually if you chose annual).",
-  },
-  {
-    q: "Can I change tiers later?",
-    a: "Yes! Upgrade or downgrade anytime. Changes take effect next billing cycle.",
-  },
-  {
-    q: "What if I want to cancel?",
-    a: "You can cancel anytime. No lock-in period. But you'll lose access after your current billing period ends.",
-  },
-  {
-    q: "Is the course really free?",
-    a: "Yes! Included with every tier. Worth R1,499 if purchased separately. Covers Takealot, Amazon SA, Makro setup (90 minutes).",
-  },
-  {
-    q: "When does the price increase?",
-    a: "After 100 founding members, pricing increases 20%. Early birds lock in current pricing for life if they stay subscribed.",
-  },
-];
+const buildFaqs = (cc: string): { q: string; a: string }[] => {
+  const code = getCurrencyCode(cc);
+  const rate = exchangeRates[code] ?? 1;
+  const isZA = (cc || "ZA").toUpperCase() === "ZA";
+  const range = isZA
+    ? ""
+    : ` (Equivalent: ${formatCurrency(499 * rate, code)}–${formatCurrency(1999 * rate, code)})`;
+  return [
+    {
+      q: "Do I really get 2 months free?",
+      a: `Yes! You pay R499–R1,999${range} this month, then get next month completely free. After that, your subscription continues monthly (or annually if you chose annual).`,
+    },
+    {
+      q: "Can I change tiers later?",
+      a: "Yes! Upgrade or downgrade anytime. Changes take effect next billing cycle.",
+    },
+    {
+      q: "What if I want to cancel?",
+      a: "You can cancel anytime. No lock-in period. But you'll lose access after your current billing period ends.",
+    },
+    {
+      q: "Is the course really free?",
+      a: `Yes! Included with every tier. Worth R1,499${equiv(1499, cc)} if purchased separately. Covers Takealot, Amazon SA, Makro setup (90 minutes).`,
+    },
+    {
+      q: "When does the price increase?",
+      a: "After 100 founding members, pricing increases 20%. Early birds lock in current pricing for life if they stay subscribed.",
+    },
+  ];
+};
 
 function addMonths(d: Date, n: number) {
   const x = new Date(d);
@@ -127,6 +146,9 @@ function addMonths(d: Date, n: number) {
 
 export default function SparkTradeBeta() {
   const { user } = useAuth();
+  const { config: country } = useMyCountry();
+  const cc = country.country_code;
+  const faqs = useMemo(() => buildFaqs(cc), [cc]);
   const { pay, ready } = usePaystack();
   const pricingRef = useRef<HTMLDivElement>(null);
 
@@ -272,7 +294,7 @@ export default function SparkTradeBeta() {
       <section className="py-16 px-4 max-w-6xl mx-auto">
         <div className="grid md:grid-cols-3 gap-6">
           {[
-            { icon: BookOpen, title: "Free Course Included", text: "Learn Takealot, Amazon SA, Makro setup (90 minutes)", value: "Worth R1,499" },
+            { icon: BookOpen, title: "Free Course Included", text: "Learn Takealot, Amazon SA, Makro setup (90 minutes)", value: `Worth R1,499${equiv(1499, cc)}` },
             { icon: Lightbulb, title: "Real Intelligence", text: "Know what's selling, at what price, with what margins", value: "Worth R5,000+ in research" },
             { icon: Rocket, title: "First-Mover Advantage", text: "Only 100 beta spots. Join before public launch.", value: "Lifetime early-access pricing" },
           ].map(({ icon: Icon, title, text, value }) => (
@@ -306,7 +328,7 @@ export default function SparkTradeBeta() {
                 <h3 className="text-xl font-semibold">Pay Once, Get 2 Months Free</h3>
                 <p className="text-sm text-muted-foreground">Pay this month, access next 2 months free</p>
               </div>
-              <PricingGrid tiers={TIERS} period="monthly" onBuy={openCheckout} />
+              <PricingGrid tiers={TIERS} period="monthly" onBuy={openCheckout} countryCode={cc} />
             </TabsContent>
 
             <TabsContent value="annual">
@@ -314,7 +336,7 @@ export default function SparkTradeBeta() {
                 <h3 className="text-xl font-semibold">Save 3 Months Worth</h3>
                 <p className="text-sm text-muted-foreground">Pay for 9 months, get 3 months completely free</p>
               </div>
-              <PricingGrid tiers={TIERS} period="annual" onBuy={openCheckout} />
+              <PricingGrid tiers={TIERS} period="annual" onBuy={openCheckout} countryCode={cc} />
             </TabsContent>
           </Tabs>
         </div>
@@ -331,7 +353,7 @@ export default function SparkTradeBeta() {
           {[
             "100 beta spots only — then prices increase 20%",
             "This pricing locked in for life if you stay subscribed",
-            "Free course (worth R1,499) included with every tier",
+            `Free course (worth R1,499${equiv(1499, cc)}) included with every tier`,
           ].map((t) => (
             <Card key={t} className="p-5 text-left">
               <Check className="h-5 w-5 mb-2" style={{ color: "#0EA5E9" }} />
@@ -374,7 +396,7 @@ export default function SparkTradeBeta() {
       <section className="py-16 px-4 max-w-3xl mx-auto">
         <h2 className="text-3xl font-bold text-center mb-8">Frequently asked</h2>
         <Accordion type="single" collapsible className="w-full">
-          {FAQS.map((f, i) => (
+          {faqs.map((f, i) => (
             <AccordionItem key={i} value={`q-${i}`}>
               <AccordionTrigger className="text-left">{f.q}</AccordionTrigger>
               <AccordionContent className="text-muted-foreground">{f.a}</AccordionContent>
@@ -440,7 +462,7 @@ export default function SparkTradeBeta() {
                         <span className="text-sm flex-1">
                           {t.name.replace("Spark Trade ", "")} {b === "annual" ? "Annual" : "Monthly"}
                         </span>
-                        <span className="text-sm font-semibold">R{amt.toLocaleString()}</span>
+                        <span className="text-sm font-semibold text-right">R{amt.toLocaleString()}{equiv(amt, cc) && <span className="block text-[10px] font-normal text-muted-foreground">{equiv(amt, cc).replace(" (", "≈ ").replace(")", "")}</span>}</span>
                       </label>
                     );
                   })
@@ -475,10 +497,12 @@ function PricingGrid({
   tiers,
   period,
   onBuy,
+  countryCode,
 }: {
   tiers: TierDef[];
   period: Period;
   onBuy: (tier: TierKey, period: Period) => void;
+  countryCode: string;
 }) {
   return (
     <div className="grid md:grid-cols-3 gap-6">
@@ -486,6 +510,7 @@ function PricingGrid({
         const price = period === "annual" ? t.annual : t.monthly;
         const isAnnual = period === "annual";
         const monthlyEq = Math.round(t.annual / 12);
+        const eq = equiv(price, countryCode);
         return (
           <Card
             key={t.key}
@@ -503,6 +528,11 @@ function PricingGrid({
             <h3 className="text-lg font-semibold">{t.name}</h3>
             <div className="mt-4">
               <div className="text-4xl font-bold">R{price.toLocaleString()}</div>
+              {eq && (
+                <div className="text-xs text-muted-foreground mt-0.5">
+                  Equivalent:{eq.replace(" (Equivalent:", "").replace(")", "")}
+                </div>
+              )}
               <div className="text-sm text-muted-foreground mt-1">
                 {isAnnual ? "Pay for 9 months · Get 3 free" : "Pay this month · Next month free"}
               </div>
