@@ -289,15 +289,20 @@ export default function SparkFlip() {
               {history.map((h) => {
                 const won = (h.payout ?? 0) > 0;
                 return (
-                  <li key={h.id} className="flex items-center justify-between text-sm">
-                    <span className="text-muted-foreground">
-                      Picked <b className="capitalize text-foreground">{h.choice}</b> · landed{" "}
-                      <b className="capitalize text-foreground">{h.result}</b>
-                    </span>
-                    <span className={won ? "text-emerald-400 font-bold" : "text-destructive font-bold"}>
-                      {won ? `+${h.payout}` : `-${h.bet_sparks}`} ⚡
-                    </span>
-                  </li>
+              <li key={h.id} className="flex items-center justify-between text-sm">
+                <div className="min-w-0">
+                  <span className="text-muted-foreground">
+                    Picked <b className="capitalize text-foreground">{h.choice}</b> · landed{" "}
+                    <b className="capitalize text-foreground">{h.result}</b>
+                  </span>
+                  <div className="text-[10px] text-muted-foreground/60 mt-0.5">
+                    {new Date(h.created_at).toLocaleDateString(undefined, { month: 'short', day: 'numeric' })} · {new Date(h.created_at).toLocaleTimeString(undefined, { hour: '2-digit', minute: '2-digit' })}
+                  </div>
+                </div>
+                <span className={won ? "text-emerald-400 font-bold shrink-0 ml-2" : "text-destructive font-bold shrink-0 ml-2"}>
+                  {won ? `+${h.payout}` : `-${h.bet_sparks}`} ⚡
+                </span>
+              </li>
                 );
               })}
             </ul>
