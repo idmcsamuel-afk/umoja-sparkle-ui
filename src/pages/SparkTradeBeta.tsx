@@ -294,7 +294,7 @@ export default function SparkTradeBeta() {
       <section className="py-16 px-4 max-w-6xl mx-auto">
         <div className="grid md:grid-cols-3 gap-6">
           {[
-            { icon: BookOpen, title: "Free Course Included", text: "Learn Takealot, Amazon SA, Makro setup (90 minutes)", value: "Worth R1,499" },
+            { icon: BookOpen, title: "Free Course Included", text: "Learn Takealot, Amazon SA, Makro setup (90 minutes)", value: `Worth R1,499${equiv(1499, cc)}` },
             { icon: Lightbulb, title: "Real Intelligence", text: "Know what's selling, at what price, with what margins", value: "Worth R5,000+ in research" },
             { icon: Rocket, title: "First-Mover Advantage", text: "Only 100 beta spots. Join before public launch.", value: "Lifetime early-access pricing" },
           ].map(({ icon: Icon, title, text, value }) => (
@@ -353,7 +353,7 @@ export default function SparkTradeBeta() {
           {[
             "100 beta spots only — then prices increase 20%",
             "This pricing locked in for life if you stay subscribed",
-            "Free course (worth R1,499) included with every tier",
+            `Free course (worth R1,499${equiv(1499, cc)}) included with every tier`,
           ].map((t) => (
             <Card key={t} className="p-5 text-left">
               <Check className="h-5 w-5 mb-2" style={{ color: "#0EA5E9" }} />
