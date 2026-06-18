@@ -3749,6 +3749,14 @@ export type Database = {
           referred_by: string | null
           referred_by_code: string | null
           spark_link_code: string | null
+          spark_trade_business_type: string | null
+          spark_trade_capital: number | null
+          spark_trade_group_buy_interest: boolean | null
+          spark_trade_income_goal: number | null
+          spark_trade_onboarding_complete: boolean | null
+          spark_trade_onboarding_completed_at: string | null
+          spark_trade_service_area: string | null
+          spark_trade_stock_preference: string | null
           status: string
           streak_count: number | null
           time_waiting_score: number
@@ -3828,6 +3836,14 @@ export type Database = {
           referred_by?: string | null
           referred_by_code?: string | null
           spark_link_code?: string | null
+          spark_trade_business_type?: string | null
+          spark_trade_capital?: number | null
+          spark_trade_group_buy_interest?: boolean | null
+          spark_trade_income_goal?: number | null
+          spark_trade_onboarding_complete?: boolean | null
+          spark_trade_onboarding_completed_at?: string | null
+          spark_trade_service_area?: string | null
+          spark_trade_stock_preference?: string | null
           status?: string
           streak_count?: number | null
           time_waiting_score?: number
@@ -3907,6 +3923,14 @@ export type Database = {
           referred_by?: string | null
           referred_by_code?: string | null
           spark_link_code?: string | null
+          spark_trade_business_type?: string | null
+          spark_trade_capital?: number | null
+          spark_trade_group_buy_interest?: boolean | null
+          spark_trade_income_goal?: number | null
+          spark_trade_onboarding_complete?: boolean | null
+          spark_trade_onboarding_completed_at?: string | null
+          spark_trade_service_area?: string | null
+          spark_trade_stock_preference?: string | null
           status?: string
           streak_count?: number | null
           time_waiting_score?: number
@@ -4976,6 +5000,132 @@ export type Database = {
           },
         ]
       }
+      spark_trade_blueprints: {
+        Row: {
+          blueprint_json: Json | null
+          confidence_score: number | null
+          created_at: string | null
+          estimated_gross_margin: number | null
+          estimated_launch_timeline_days: number | null
+          estimated_monthly_revenue: number | null
+          estimated_startup_capital: number | null
+          id: number
+          income_goal: number | null
+          member_id: string
+          overall_moq_fill_percentage: number | null
+          recommended_business_name: string | null
+          recommended_products: Json | null
+          updated_at: string | null
+        }
+        Insert: {
+          blueprint_json?: Json | null
+          confidence_score?: number | null
+          created_at?: string | null
+          estimated_gross_margin?: number | null
+          estimated_launch_timeline_days?: number | null
+          estimated_monthly_revenue?: number | null
+          estimated_startup_capital?: number | null
+          id?: number
+          income_goal?: number | null
+          member_id: string
+          overall_moq_fill_percentage?: number | null
+          recommended_business_name?: string | null
+          recommended_products?: Json | null
+          updated_at?: string | null
+        }
+        Update: {
+          blueprint_json?: Json | null
+          confidence_score?: number | null
+          created_at?: string | null
+          estimated_gross_margin?: number | null
+          estimated_launch_timeline_days?: number | null
+          estimated_monthly_revenue?: number | null
+          estimated_startup_capital?: number | null
+          id?: number
+          income_goal?: number | null
+          member_id?: string
+          overall_moq_fill_percentage?: number | null
+          recommended_business_name?: string | null
+          recommended_products?: Json | null
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "spark_trade_blueprints_member_id_fkey"
+            columns: ["member_id"]
+            isOneToOne: true
+            referencedRelation: "members"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      spark_trade_inventory_reservations: {
+        Row: {
+          created_at: string | null
+          id: number
+          member_id: string
+          opportunity_id: number
+          paid_at: string | null
+          received_at: string | null
+          reservation_status: string | null
+          reserved_at: string | null
+          shipped_at: string | null
+          total_capital_allocated: number | null
+          units_reserved: number | null
+          updated_at: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          id?: number
+          member_id: string
+          opportunity_id: number
+          paid_at?: string | null
+          received_at?: string | null
+          reservation_status?: string | null
+          reserved_at?: string | null
+          shipped_at?: string | null
+          total_capital_allocated?: number | null
+          units_reserved?: number | null
+          updated_at?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          id?: number
+          member_id?: string
+          opportunity_id?: number
+          paid_at?: string | null
+          received_at?: string | null
+          reservation_status?: string | null
+          reserved_at?: string | null
+          shipped_at?: string | null
+          total_capital_allocated?: number | null
+          units_reserved?: number | null
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "spark_trade_inventory_reservations_member_id_fkey"
+            columns: ["member_id"]
+            isOneToOne: false
+            referencedRelation: "members"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "spark_trade_inventory_reservations_opportunity_id_fkey"
+            columns: ["opportunity_id"]
+            isOneToOne: false
+            referencedRelation: "community_demand_meter"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "spark_trade_inventory_reservations_opportunity_id_fkey"
+            columns: ["opportunity_id"]
+            isOneToOne: false
+            referencedRelation: "spark_trade_opportunities"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       spark_trade_joins: {
         Row: {
           created_at: string
@@ -4994,6 +5144,104 @@ export type Database = {
           id?: string
           member_id?: string
           shortlist_id?: string
+        }
+        Relationships: []
+      }
+      spark_trade_marketplace_listings: {
+        Row: {
+          created_at: string | null
+          id: number
+          listing_status: string | null
+          listing_url: string | null
+          marketplace_country: string | null
+          marketplace_name: string | null
+          store_id: number
+          updated_at: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          id?: number
+          listing_status?: string | null
+          listing_url?: string | null
+          marketplace_country?: string | null
+          marketplace_name?: string | null
+          store_id: number
+          updated_at?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          id?: number
+          listing_status?: string | null
+          listing_url?: string | null
+          marketplace_country?: string | null
+          marketplace_name?: string | null
+          store_id?: number
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "spark_trade_marketplace_listings_store_id_fkey"
+            columns: ["store_id"]
+            isOneToOne: false
+            referencedRelation: "spark_trade_stores"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      spark_trade_opportunities: {
+        Row: {
+          created_at: string | null
+          current_reserved: number | null
+          expected_arrival_date: string | null
+          expected_margin_percentage: number | null
+          expected_order_date: string | null
+          group_buy_status: string | null
+          id: number
+          is_approved_for_ai_recommendation: boolean | null
+          moq_required: number | null
+          product_image_url: string | null
+          product_name: string | null
+          suggested_selling_price_zar: number | null
+          supplier_country: string | null
+          supplier_name: string | null
+          unit_cost_zar: number | null
+          updated_at: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          current_reserved?: number | null
+          expected_arrival_date?: string | null
+          expected_margin_percentage?: number | null
+          expected_order_date?: string | null
+          group_buy_status?: string | null
+          id?: number
+          is_approved_for_ai_recommendation?: boolean | null
+          moq_required?: number | null
+          product_image_url?: string | null
+          product_name?: string | null
+          suggested_selling_price_zar?: number | null
+          supplier_country?: string | null
+          supplier_name?: string | null
+          unit_cost_zar?: number | null
+          updated_at?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          current_reserved?: number | null
+          expected_arrival_date?: string | null
+          expected_margin_percentage?: number | null
+          expected_order_date?: string | null
+          group_buy_status?: string | null
+          id?: number
+          is_approved_for_ai_recommendation?: boolean | null
+          moq_required?: number | null
+          product_image_url?: string | null
+          product_name?: string | null
+          suggested_selling_price_zar?: number | null
+          supplier_country?: string | null
+          supplier_name?: string | null
+          unit_cost_zar?: number | null
+          updated_at?: string | null
         }
         Relationships: []
       }
@@ -5068,6 +5316,72 @@ export type Database = {
           target_slots?: number | null
         }
         Relationships: []
+      }
+      spark_trade_stores: {
+        Row: {
+          accent_color: string | null
+          banner_color: string | null
+          blueprint_id: number
+          created_at: string | null
+          featured_products: Json | null
+          id: number
+          leads_generated_count: number | null
+          member_id: string
+          store_category: string | null
+          store_description: string | null
+          store_name: string | null
+          store_template: string | null
+          store_visit_count: number | null
+          updated_at: string | null
+        }
+        Insert: {
+          accent_color?: string | null
+          banner_color?: string | null
+          blueprint_id: number
+          created_at?: string | null
+          featured_products?: Json | null
+          id?: number
+          leads_generated_count?: number | null
+          member_id: string
+          store_category?: string | null
+          store_description?: string | null
+          store_name?: string | null
+          store_template?: string | null
+          store_visit_count?: number | null
+          updated_at?: string | null
+        }
+        Update: {
+          accent_color?: string | null
+          banner_color?: string | null
+          blueprint_id?: number
+          created_at?: string | null
+          featured_products?: Json | null
+          id?: number
+          leads_generated_count?: number | null
+          member_id?: string
+          store_category?: string | null
+          store_description?: string | null
+          store_name?: string | null
+          store_template?: string | null
+          store_visit_count?: number | null
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "spark_trade_stores_blueprint_id_fkey"
+            columns: ["blueprint_id"]
+            isOneToOne: false
+            referencedRelation: "spark_trade_blueprints"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "spark_trade_stores_member_id_fkey"
+            columns: ["member_id"]
+            isOneToOne: true
+            referencedRelation: "members"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       spark_trade_subscriptions: {
         Row: {
@@ -6163,6 +6477,20 @@ export type Database = {
       }
     }
     Views: {
+      community_demand_meter: {
+        Row: {
+          expected_order_date: string | null
+          fill_percentage: number | null
+          id: number | null
+          members_interested: number | null
+          moq_required: number | null
+          product_image_url: string | null
+          product_name: string | null
+          total_reserved: number | null
+          units_remaining: number | null
+        }
+        Relationships: []
+      }
       drive_tier_pool_v: {
         Row: {
           active_members: number | null
