@@ -94,6 +94,7 @@ import CreatorSubscription from "./pages/CreatorSubscription.tsx";
 import Learn from "./pages/Learn.tsx";
 import SparkTradeMembership from "./pages/SparkTradeMembership.tsx";
 import SparkTradeOnboarding from "./pages/SparkTradeOnboarding.tsx";
+import SparkTradeIncomeGoal from "./pages/SparkTradeIncomeGoal.tsx";
 
 const queryClient = new QueryClient();
 
@@ -135,6 +136,7 @@ const App = () => (
                 <Route path="/spark" element={<ProtectedRoute><SparkTrade /></ProtectedRoute>} />
                 <Route path="/spark-trade/membership" element={<ProtectedRoute><SparkTradeMembership /></ProtectedRoute>} />
                 <Route path="/spark-trade/onboarding" element={<ProtectedRoute><SparkTradeOnboarding /></ProtectedRoute>} />
+                <Route path="/spark-trade/onboarding/income-goal" element={<ProtectedRoute><SparkTradeIncomeGoal /></ProtectedRoute>} />
                 <Route path="/drive" element={<ProtectedRoute><Drive /></ProtectedRoute>} />
                 <Route path="/drive/dashboard" element={<ProtectedRoute><DriveDashboard /></ProtectedRoute>} />
                 <Route path="/predictor" element={<ProtectedRoute><Predictor /></ProtectedRoute>} />
