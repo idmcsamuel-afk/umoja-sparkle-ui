@@ -95,6 +95,10 @@ import Learn from "./pages/Learn.tsx";
 import SparkTradeMembership from "./pages/SparkTradeMembership.tsx";
 import SparkTradeOnboarding from "./pages/SparkTradeOnboarding.tsx";
 import SparkTradeIncomeGoal from "./pages/SparkTradeIncomeGoal.tsx";
+import SparkTradeBusinessPreference from "./pages/SparkTradeBusinessPreference.tsx";
+import SparkTradeAIBlueprint from "./pages/SparkTradeAIBlueprint.tsx";
+import SparkTradeStoreCreation from "./pages/SparkTradeStoreCreation.tsx";
+import SparkTradeSubscriptionRecommendation from "./pages/SparkTradeSubscriptionRecommendation.tsx";
 
 const queryClient = new QueryClient();
 
@@ -137,6 +141,10 @@ const App = () => (
                 <Route path="/spark-trade/membership" element={<ProtectedRoute><SparkTradeMembership /></ProtectedRoute>} />
                 <Route path="/spark-trade/onboarding" element={<ProtectedRoute><SparkTradeOnboarding /></ProtectedRoute>} />
                 <Route path="/spark-trade/onboarding/income-goal" element={<ProtectedRoute><SparkTradeIncomeGoal /></ProtectedRoute>} />
+                <Route path="/spark-trade/onboarding/business-preference" element={<ProtectedRoute><SparkTradeBusinessPreference /></ProtectedRoute>} />
+                <Route path="/spark-trade/onboarding/ai-blueprint" element={<ProtectedRoute><SparkTradeAIBlueprint /></ProtectedRoute>} />
+                <Route path="/spark-trade/onboarding/ai-store-creation" element={<ProtectedRoute><SparkTradeStoreCreation /></ProtectedRoute>} />
+                <Route path="/spark-trade/onboarding/subscription-recommendation" element={<ProtectedRoute><SparkTradeSubscriptionRecommendation /></ProtectedRoute>} />
                 <Route path="/drive" element={<ProtectedRoute><Drive /></ProtectedRoute>} />
                 <Route path="/drive/dashboard" element={<ProtectedRoute><DriveDashboard /></ProtectedRoute>} />
                 <Route path="/predictor" element={<ProtectedRoute><Predictor /></ProtectedRoute>} />
