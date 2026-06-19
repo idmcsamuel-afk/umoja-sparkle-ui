@@ -112,23 +112,22 @@ export default function SparkTradeSubscriptionRecommendation() {
     [checks]
   );
 
-  const handleComplete = async () => {
+  const handleContinue = async () => {
     if (!user) return;
+    const tier = selectedTier ?? recommended;
     setSubmitting(true);
     try {
-      const { error } = await supabase
-        .from("members")
-        .update({
-          spark_trade_onboarding_complete: true,
-          spark_trade_onboarding_completed_at: new Date().toISOString(),
-        } as any)
-        .eq("id", user.id);
-      if (error) throw error;
-      toast.success("Onboarding complete!");
-      nav("/dashboard");
+      // Persist tier choice but do NOT mark onboarding complete yet
+      await supabase
+        .from("spark_trade_subscriptions" as any)
+        .upsert(
+          { member_id: user.id, tier, status: "pending" },
+          { onConflict: "member_id" }
+        );
+      nav("/spark-trade/onboarding/summary", { state: { tier } });
     } catch (err: any) {
-      console.error("[Subscription] complete failed", err);
-      toast.error(err?.message ?? "Failed to complete onboarding");
+      console.error("[Subscription] save tier failed", err);
+      toast.error(err?.message ?? "Failed to save selection");
       setSubmitting(false);
     }
   };
