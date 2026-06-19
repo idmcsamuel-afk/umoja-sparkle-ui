@@ -11,6 +11,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { toast } from "sonner";
 import { Loader2, Package, ArrowRight } from "lucide-react";
+import { usePaystack, buildReference } from "@/hooks/usePaystack";
 
 interface Opportunity {
   id: number;
