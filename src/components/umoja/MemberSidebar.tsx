@@ -58,16 +58,21 @@ export function MemberSidebar() {
           {!collapsed && <SidebarGroupLabel>Main</SidebarGroupLabel>}
           <SidebarGroupContent>
             <SidebarMenu>
-              {main.map((item) => (
-                <SidebarMenuItem key={item.to} data-tour={item.tour}>
-                  <SidebarMenuButton asChild isActive={isActive(item.to)} tooltip={item.label}>
-                    <NavLink to={item.to} className="flex items-center gap-2">
-                      <item.icon className="h-4 w-4" />
-                      {!collapsed && <span>{item.label}</span>}
-                    </NavLink>
-                  </SidebarMenuButton>
-                </SidebarMenuItem>
-              ))}
+              {main.map((item) => {
+                if (item.to === "__spark_trade_menu__") {
+                  return <SparkTradeSidebarMenu key="spark-trade-menu" />;
+                }
+                return (
+                  <SidebarMenuItem key={item.to} data-tour={item.tour}>
+                    <SidebarMenuButton asChild isActive={isActive(item.to)} tooltip={item.label}>
+                      <NavLink to={item.to} className="flex items-center gap-2">
+                        <item.icon className="h-4 w-4" />
+                        {!collapsed && <span>{item.label}</span>}
+                      </NavLink>
+                    </SidebarMenuButton>
+                  </SidebarMenuItem>
+                );
+              })}
             </SidebarMenu>
           </SidebarGroupContent>
         </SidebarGroup>
