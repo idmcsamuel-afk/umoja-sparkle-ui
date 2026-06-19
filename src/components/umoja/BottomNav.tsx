@@ -36,6 +36,12 @@ export const BottomNav = () => {
   const [canLeft, setCanLeft] = useState(false);
   const [canRight, setCanRight] = useState(false);
   const [showHint, setShowHint] = useState(false);
+  const [sparkOpen, setSparkOpen] = useState(false);
+
+  // Close Spark Trade menu when navigating away
+  useEffect(() => {
+    setSparkOpen(false);
+  }, [pathname]);
 
   const updateEdges = () => {
     const el = scrollerRef.current;
