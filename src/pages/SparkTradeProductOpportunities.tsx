@@ -11,6 +11,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { toast } from "sonner";
 import { Loader2, Package, ArrowRight } from "lucide-react";
+import { usePaystack, buildReference } from "@/hooks/usePaystack";
 
 interface Opportunity {
   id: number;
@@ -31,9 +32,11 @@ export default function SparkTradeProductOpportunities() {
   const { user } = useAuth();
   const { config } = useMyCountry();
   const navigate = useNavigate();
+  const { pay, ready: paystackReady } = usePaystack();
   const [opportunities, setOpportunities] = useState<Opportunity[]>([]);
   const [loading, setLoading] = useState(true);
   const [capital, setCapital] = useState(0);
+  const [email, setEmail] = useState<string | null>(null);
   const [sortBy, setSortBy] = useState("margin");
   const [search, setSearch] = useState("");
   const [selected, setSelected] = useState<Opportunity | null>(null);
@@ -52,8 +55,11 @@ export default function SparkTradeProductOpportunities() {
   useEffect(() => {
     load();
     if (user) {
-      supabase.from("members").select("spark_trade_capital").eq("id", user.id).maybeSingle()
-        .then(({ data }) => setCapital(Number((data as any)?.spark_trade_capital ?? 0)));
+      supabase.from("members").select("spark_trade_capital, email").eq("id", user.id).maybeSingle()
+        .then(({ data }) => {
+          setCapital(Number((data as any)?.spark_trade_capital ?? 0));
+          setEmail((data as any)?.email ?? user.email ?? null);
+        });
     }
   }, [user]);
 
@@ -73,24 +79,41 @@ export default function SparkTradeProductOpportunities() {
 
   const handleReserve = async () => {
     if (!selected || !user || units < 1) return;
-    setSubmitting(true);
-    const { error } = await supabase.from("spark_trade_inventory_reservations" as any).insert({
-      member_id: user.id,
-      opportunity_id: selected.id,
-      units_reserved: units,
-      total_capital_allocated: totalCost,
-      reservation_status: "pending",
-    });
-    setSubmitting(false);
-    if (error) {
-      toast.error("Could not reserve", { description: error.message });
+    const payerEmail = email || user.email;
+    if (!payerEmail) {
+      toast.error("Add an email to your account before paying");
       return;
     }
-    toast.success(`Reserved ${units} units of ${selected.product_name}`);
+    if (!paystackReady) {
+      toast.error("Payment gateway loading… try again in a moment");
+      return;
+    }
+    setSubmitting(true);
+    const memberCode = (user.id || "U").replace(/-/g, "").slice(0, 10).toUpperCase();
+    const reference = buildReference("ST", `RES${selected.id}`, memberCode);
+
+    const result = await pay({
+      email: payerEmail,
+      amountZar: totalCost,
+      currency: "ZAR",
+      reference,
+      metadata: {
+        payment_type: "spark_trade_reservation",
+        member_id: user.id,
+        opportunity_id: selected.id,
+        units_reserved: units,
+      },
+    });
+    setSubmitting(false);
+
+    if (!result.ok) return;
+
+    toast.success(`✅ Reservation confirmed — ${units} units of ${selected.product_name}`);
     setSelected(null);
     setUnits(0);
     load();
   };
+
 
   if (loading) return <div className="grid min-h-screen place-items-center"><Loader2 className="h-8 w-8 animate-spin text-primary" /></div>;
 
@@ -178,7 +201,8 @@ export default function SparkTradeProductOpportunities() {
           <DialogFooter>
             <Button variant="outline" onClick={() => setSelected(null)}>Cancel</Button>
             <Button onClick={handleReserve} disabled={submitting || units < 1 || insufficient}>
-              {submitting ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null} Reserve
+              {submitting ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
+              {submitting ? "Processing…" : totalCost > 0 ? `Pay ${fmtMoney(totalCost, config)} & Reserve` : "Reserve"}
             </Button>
           </DialogFooter>
         </DialogContent>

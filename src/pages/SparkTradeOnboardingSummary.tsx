@@ -6,6 +6,13 @@ import { useAuth } from "@/hooks/useAuth";
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
 import { toast } from "sonner";
+import { usePaystack, buildReference } from "@/hooks/usePaystack";
+
+const TIER_PRICE_ZAR: Record<string, number> = {
+  "buyers-club": 499,
+  "spark-trade-pro": 999,
+  "fulfilled-by-umoja": 1999,
+};
 
 type TierKey = "buyers-club" | "spark-trade-pro" | "fulfilled-by-umoja";
 
@@ -42,6 +49,7 @@ export default function SparkTradeOnboardingSummary() {
   const nav = useNavigate();
   const location = useLocation();
   const { user, loading } = useAuth();
+  const { pay, ready: paystackReady } = usePaystack();
   const tierFromState = (location.state as any)?.tier as TierKey | undefined;
 
   const [tier, setTier] = useState<TierKey | null>(tierFromState ?? null);
@@ -49,6 +57,8 @@ export default function SparkTradeOnboardingSummary() {
   const [store, setStore] = useState<Store | null>(null);
   const [fetching, setFetching] = useState(true);
   const [submitting, setSubmitting] = useState(false);
+  const [email, setEmail] = useState<string | null>(null);
+
 
   useEffect(() => {
     if (!user) return;
@@ -96,37 +106,62 @@ export default function SparkTradeOnboardingSummary() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [user]);
 
-  const goToDashboard = async () => {
+  // Pull email from members table (fallback to auth email)
+  useEffect(() => {
     if (!user) return;
-    setSubmitting(true);
-    try {
-      const { error } = await supabase
+    (async () => {
+      const { data } = await supabase
         .from("members")
-        .update({
-          spark_trade_onboarding_complete: true,
-          spark_trade_onboarding_completed_at: new Date().toISOString(),
-        } as any)
-        .eq("id", user.id);
-      if (error) throw error;
+        .select("email")
+        .eq("id", user.id)
+        .maybeSingle();
+      setEmail((data as any)?.email ?? user.email ?? null);
+    })();
+  }, [user]);
 
-      // Activate subscription
-      if (tier) {
-        await supabase
-          .from("spark_trade_subscriptions" as any)
-          .upsert(
-            { member_id: user.id, tier, status: "active" },
-            { onConflict: "member_id" }
-          );
-      }
-
-      toast.success("Onboarding complete!");
-      nav("/spark-trade/dashboard");
-    } catch (err: any) {
-      console.error("[Summary] complete failed", err);
-      toast.error(err?.message ?? "Failed to complete onboarding");
-      setSubmitting(false);
+  const payAndComplete = async () => {
+    if (!user || !tier) {
+      toast.error("Select a subscription tier first");
+      return;
     }
+    if (!paystackReady) {
+      toast.error("Payment gateway loading… try again in a moment");
+      return;
+    }
+    const payerEmail = email || user.email;
+    if (!payerEmail) {
+      toast.error("Add an email to your account before paying");
+      return;
+    }
+    const amountZar = TIER_PRICE_ZAR[tier];
+    if (!amountZar) {
+      toast.error("Could not determine price for this tier");
+      return;
+    }
+    setSubmitting(true);
+    const memberCode = (user.id || "U").replace(/-/g, "").slice(0, 10).toUpperCase();
+    const reference = buildReference("ST", tier.toUpperCase().replace(/-/g, ""), memberCode);
+
+    const result = await pay({
+      email: payerEmail,
+      amountZar,
+      currency: "ZAR",
+      reference,
+      metadata: {
+        payment_type: "spark_trade_subscription",
+        member_id: user.id,
+        tier,
+      },
+    });
+
+    if (!result.ok) {
+      setSubmitting(false);
+      return;
+    }
+    toast.success("Subscription activated 🎉");
+    nav("/spark-trade/dashboard");
   };
+
 
   if (loading || fetching) {
     return (
@@ -236,18 +271,23 @@ export default function SparkTradeOnboardingSummary() {
         )}
 
         <Button
-          onClick={goToDashboard}
-          disabled={submitting}
+          onClick={payAndComplete}
+          disabled={submitting || !tier}
           className="w-full h-12 rounded-2xl bg-gradient-primary text-primary-foreground font-bold shadow-glow disabled:opacity-50"
         >
           {submitting ? (
             <>
-              <Loader2 className="h-4 w-4 mr-2 animate-spin" /> Finishing...
+              <Loader2 className="h-4 w-4 mr-2 animate-spin" /> Processing payment…
             </>
+          ) : tier ? (
+            `Pay R${TIER_PRICE_ZAR[tier]?.toLocaleString()} & Go to Dashboard →`
           ) : (
             "Go to Dashboard →"
           )}
         </Button>
+        <p className="mt-3 text-center text-xs text-muted-foreground">
+          Secure payment via Paystack. Onboarding completes after payment is confirmed.
+        </p>
       </div>
     </div>
   );
