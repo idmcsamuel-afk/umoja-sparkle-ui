@@ -93,6 +93,9 @@ export default function AdminKycReview() {
   const [reason, setReason] = useState("");
   const [busyId, setBusyId] = useState<string | null>(null);
   const [override, setOverride] = useState<{ row: Row; step: 1 | 2; reason: string } | null>(null);
+  const [search, setSearch] = useState("");
+  const [searchResults, setSearchResults] = useState<Row[]>([]);
+  const [searching, setSearching] = useState(false);
 
   const cols =
     "id, full_name, email, phone, kyc_level, kyc_status, phone_verified, kyc_photo_url, kyc_document_url, kyc_submitted_at, kyc_rejection_reason, kyc_override_reason, kyc_override_by, kyc_last_reminder_at, kyc_reminder_count, kyc_verified_at";
