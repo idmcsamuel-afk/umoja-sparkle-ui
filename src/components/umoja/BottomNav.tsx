@@ -1,8 +1,12 @@
-import { Link, useLocation } from "react-router-dom";
+import { Link, NavLink, useLocation } from "react-router-dom";
 import { useEffect, useRef, useState } from "react";
-import { Home, Users, Sparkles, Car, Store, ArrowLeftRight, Gamepad2, Gift, Palette, ChevronRight, ChevronLeft, Trophy, Building2, MessageCircle, Flame, Video, Upload, BarChart3, Wand2, Headphones } from "lucide-react";
+import { Home, Users, Sparkles, Car, Store, ArrowLeftRight, Gamepad2, Gift, Palette, ChevronRight, ChevronLeft, ChevronDown, Trophy, Building2, MessageCircle, Flame, Video, Upload, BarChart3, Wand2, Headphones } from "lucide-react";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { SPARK_TRADE_SUB_ITEMS } from "@/components/umoja/SparkTradeNavMenu";
 
-const items: { to: string; label: string; icon: typeof Home; tour?: string }[] = [
+type NavItem = { to: string; label: string; icon: typeof Home; tour?: string; expandable?: boolean };
+
+const items: NavItem[] = [
   { to: "/dashboard", label: "Home", icon: Home, tour: "dashboard" },
   { to: "/circle", label: "Circles", icon: Users, tour: "circle" },
   { to: "/creator-studio", label: "Creator", icon: Wand2 },
@@ -12,7 +16,7 @@ const items: { to: string; label: string; icon: typeof Home; tour?: string }[] =
   { to: "/upload-video", label: "Upload", icon: Upload },
   { to: "/my-videos", label: "My Vids", icon: BarChart3 },
   { to: "/trending", label: "Trending", icon: Flame },
-  { to: "/spark", label: "Spark", icon: Sparkles, tour: "spark-trade" },
+  { to: "__spark_trade_menu__", label: "Group Buy", icon: Sparkles, tour: "spark-trade", expandable: true },
   { to: "/spark-trade/membership", label: "🌍 Plans", icon: Sparkles },
   { to: "/priority", label: "Queue", icon: Trophy },
   { to: "/market", label: "Market", icon: Store },
