@@ -81,6 +81,7 @@ export default function SparkTradeSubscriptionRecommendation() {
   });
   const [showAllTiers, setShowAllTiers] = useState(false);
   const [submitting, setSubmitting] = useState(false);
+  const [selectedTier, setSelectedTier] = useState<TierKey | null>(null);
 
   useEffect(() => {
     if (!user) return;
