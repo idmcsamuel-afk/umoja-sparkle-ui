@@ -15,17 +15,17 @@ import { restartProductTour } from "@/components/umoja/ProductTour";
 const main = [
   { to: "/dashboard", label: "Home", icon: Home, tour: "dashboard" },
   { to: "/circle", label: "Circle", icon: Users, tour: "circle" },
+  { to: "__spark_trade_menu__", label: "Spark Trade", icon: Sparkles, tour: "spark-trade" },
+  { to: "/spark-pit", label: "Spark Pit", icon: Gamepad2 },
+  { to: "/drive", label: "Drive", icon: Car, tour: "drive" },
+  { to: "/property", label: "Property Fund", icon: Building2, tour: "property" },
   { to: "/creator-studio", label: "Creator Studio", icon: Wand2 },
   { to: "/community", label: "Community", icon: MessageCircle },
   { to: "/priority", label: "Priority Queue", icon: Trophy },
-  { to: "__spark_trade_menu__", label: "Spark Trade", icon: Sparkles, tour: "spark-trade" },
   { to: "/spark-trade/membership", label: "🌍 Plans", icon: Sparkles },
   { to: "/trending", label: "Trending 🔥", icon: Flame },
   { to: "/market", label: "Market", icon: Store },
   { to: "/exchange", label: "Exchange", icon: ArrowLeftRight },
-  { to: "/drive", label: "Drive", icon: Car, tour: "drive" },
-  { to: "/property", label: "Property Fund", icon: Building2, tour: "property" },
-  { to: "/spark-pit", label: "Spark Pit", icon: Gamepad2 },
 ];
 
 const tools = [

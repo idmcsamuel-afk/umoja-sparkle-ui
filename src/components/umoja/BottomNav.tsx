@@ -9,6 +9,7 @@ type NavItem = { to: string; label: string; icon: typeof Home; tour?: string; ex
 const items: NavItem[] = [
   { to: "/dashboard", label: "Home", icon: Home, tour: "dashboard" },
   { to: "/circle", label: "Circles", icon: Users, tour: "circle" },
+  { to: "__spark_trade_menu__", label: "Group Buy", icon: Sparkles, tour: "spark-trade", expandable: true },
   { to: "/creator-studio", label: "Creator", icon: Wand2 },
   { to: "/community", label: "Chat", icon: MessageCircle, tour: "community" },
   { to: "/learn", label: "Learn", icon: Headphones },
@@ -16,7 +17,6 @@ const items: NavItem[] = [
   { to: "/upload-video", label: "Upload", icon: Upload },
   { to: "/my-videos", label: "My Vids", icon: BarChart3 },
   { to: "/trending", label: "Trending", icon: Flame },
-  { to: "__spark_trade_menu__", label: "Group Buy", icon: Sparkles, tour: "spark-trade", expandable: true },
   { to: "/spark-trade/membership", label: "🌍 Plans", icon: Sparkles },
   { to: "/priority", label: "Queue", icon: Trophy },
   { to: "/market", label: "Market", icon: Store },
