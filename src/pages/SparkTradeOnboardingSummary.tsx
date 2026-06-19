@@ -106,37 +106,62 @@ export default function SparkTradeOnboardingSummary() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [user]);
 
-  const goToDashboard = async () => {
+  // Pull email from members table (fallback to auth email)
+  useEffect(() => {
     if (!user) return;
-    setSubmitting(true);
-    try {
-      const { error } = await supabase
+    (async () => {
+      const { data } = await supabase
         .from("members")
-        .update({
-          spark_trade_onboarding_complete: true,
-          spark_trade_onboarding_completed_at: new Date().toISOString(),
-        } as any)
-        .eq("id", user.id);
-      if (error) throw error;
+        .select("email")
+        .eq("id", user.id)
+        .maybeSingle();
+      setEmail((data as any)?.email ?? user.email ?? null);
+    })();
+  }, [user]);
 
-      // Activate subscription
-      if (tier) {
-        await supabase
-          .from("spark_trade_subscriptions" as any)
-          .upsert(
-            { member_id: user.id, tier, status: "active" },
-            { onConflict: "member_id" }
-          );
-      }
-
-      toast.success("Onboarding complete!");
-      nav("/spark-trade/dashboard");
-    } catch (err: any) {
-      console.error("[Summary] complete failed", err);
-      toast.error(err?.message ?? "Failed to complete onboarding");
-      setSubmitting(false);
+  const payAndComplete = async () => {
+    if (!user || !tier) {
+      toast.error("Select a subscription tier first");
+      return;
     }
+    if (!paystackReady) {
+      toast.error("Payment gateway loading… try again in a moment");
+      return;
+    }
+    const payerEmail = email || user.email;
+    if (!payerEmail) {
+      toast.error("Add an email to your account before paying");
+      return;
+    }
+    const amountZar = TIER_PRICE_ZAR[tier];
+    if (!amountZar) {
+      toast.error("Could not determine price for this tier");
+      return;
+    }
+    setSubmitting(true);
+    const memberCode = (user.id || "U").replace(/-/g, "").slice(0, 10).toUpperCase();
+    const reference = buildReference("ST", tier.toUpperCase().replace(/-/g, ""), memberCode);
+
+    const result = await pay({
+      email: payerEmail,
+      amountZar,
+      currency: "ZAR",
+      reference,
+      metadata: {
+        payment_type: "spark_trade_subscription",
+        member_id: user.id,
+        tier,
+      },
+    });
+
+    if (!result.ok) {
+      setSubmitting(false);
+      return;
+    }
+    toast.success("Subscription activated 🎉");
+    nav("/spark-trade/dashboard");
   };
+
 
   if (loading || fetching) {
     return (
