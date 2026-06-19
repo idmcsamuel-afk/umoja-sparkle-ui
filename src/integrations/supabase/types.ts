@@ -3755,8 +3755,12 @@ export type Database = {
           spark_trade_income_goal: number | null
           spark_trade_onboarding_complete: boolean | null
           spark_trade_onboarding_completed_at: string | null
+          spark_trade_paystack_reference: string | null
           spark_trade_service_area: string | null
           spark_trade_stock_preference: string | null
+          spark_trade_subscription_paid_at: string | null
+          spark_trade_subscription_payment_status: string | null
+          spark_trade_subscription_tier: string | null
           status: string
           streak_count: number | null
           time_waiting_score: number
@@ -3842,8 +3846,12 @@ export type Database = {
           spark_trade_income_goal?: number | null
           spark_trade_onboarding_complete?: boolean | null
           spark_trade_onboarding_completed_at?: string | null
+          spark_trade_paystack_reference?: string | null
           spark_trade_service_area?: string | null
           spark_trade_stock_preference?: string | null
+          spark_trade_subscription_paid_at?: string | null
+          spark_trade_subscription_payment_status?: string | null
+          spark_trade_subscription_tier?: string | null
           status?: string
           streak_count?: number | null
           time_waiting_score?: number
@@ -3929,8 +3937,12 @@ export type Database = {
           spark_trade_income_goal?: number | null
           spark_trade_onboarding_complete?: boolean | null
           spark_trade_onboarding_completed_at?: string | null
+          spark_trade_paystack_reference?: string | null
           spark_trade_service_area?: string | null
           spark_trade_stock_preference?: string | null
+          spark_trade_subscription_paid_at?: string | null
+          spark_trade_subscription_payment_status?: string | null
+          spark_trade_subscription_tier?: string | null
           status?: string
           streak_count?: number | null
           time_waiting_score?: number
@@ -5066,6 +5078,7 @@ export type Database = {
           member_id: string
           opportunity_id: number
           paid_at: string | null
+          payment_reference: string | null
           received_at: string | null
           reservation_status: string | null
           reserved_at: string | null
@@ -5080,6 +5093,7 @@ export type Database = {
           member_id: string
           opportunity_id: number
           paid_at?: string | null
+          payment_reference?: string | null
           received_at?: string | null
           reservation_status?: string | null
           reserved_at?: string | null
@@ -5094,6 +5108,7 @@ export type Database = {
           member_id?: string
           opportunity_id?: number
           paid_at?: string | null
+          payment_reference?: string | null
           received_at?: string | null
           reservation_status?: string | null
           reserved_at?: string | null
