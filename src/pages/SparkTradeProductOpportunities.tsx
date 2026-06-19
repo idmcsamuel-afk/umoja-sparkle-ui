@@ -201,7 +201,8 @@ export default function SparkTradeProductOpportunities() {
           <DialogFooter>
             <Button variant="outline" onClick={() => setSelected(null)}>Cancel</Button>
             <Button onClick={handleReserve} disabled={submitting || units < 1 || insufficient}>
-              {submitting ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null} Reserve
+              {submitting ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
+              {submitting ? "Processing…" : totalCost > 0 ? `Pay ${fmtMoney(totalCost, config)} & Reserve` : "Reserve"}
             </Button>
           </DialogFooter>
         </DialogContent>
