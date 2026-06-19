@@ -187,6 +187,96 @@ async function applyToDrive(
   return { kind: "drive", applied: true, row_id: ins.data?.id, week: nextWeek };
 }
 
+async function applyToSparkTradeSubscription(
+  userId: string,
+  tier: string,
+  ref: string,
+  amountZar: number,
+  localAmount?: number,
+  localCcy?: string,
+) {
+  const nextPayment = new Date();
+  nextPayment.setMonth(nextPayment.getMonth() + 1);
+  const upd = await sb.from("members").update({
+    spark_trade_subscription_tier: tier,
+    spark_trade_subscription_payment_status: "paid",
+    spark_trade_subscription_paid_at: new Date().toISOString(),
+    spark_trade_paystack_reference: ref,
+    spark_trade_onboarding_complete: true,
+    spark_trade_onboarding_completed_at: new Date().toISOString(),
+  } as any).eq("id", userId);
+  if (upd.error) return { kind: "spark_trade_subscription", applied: false, error: upd.error.message };
+
+  const pmTier = tier.replace(/-/g, "_");
+  await sb.from("product_memberships").upsert({
+    user_id: userId,
+    product: "spark_trade",
+    tier: pmTier,
+    status: "active",
+    membership_start_date: new Date().toISOString(),
+    next_payment_date: nextPayment.toISOString(),
+    paystack_reference: ref,
+    payment_status: "success",
+    amount_paid_zar: amountZar,
+    amount_local_currency: localAmount ?? amountZar,
+    local_currency_code: localCcy ?? "ZAR",
+  } as any, { onConflict: "user_id,product" });
+
+  await sb.from("spark_trade_subscriptions").upsert(
+    { member_id: userId, tier, status: "active" } as any,
+    { onConflict: "member_id" },
+  );
+
+  await sb.from("notifications").insert({
+    member_id: userId,
+    title: "Spark Trade activated 🎉",
+    body: `Welcome — your ${tier} subscription is live.`,
+    kind: "spark_trade",
+    link: "/spark-trade/dashboard",
+  });
+
+  return { kind: "spark_trade_subscription", applied: true, tier };
+}
+
+async function applyToSparkTradeReservation(
+  userId: string,
+  ref: string,
+  amountZar: number,
+  opportunityId: number,
+  units: number,
+) {
+  const { data: existing } = await sb
+    .from("spark_trade_inventory_reservations")
+    .select("id")
+    .eq("payment_reference", ref)
+    .maybeSingle();
+  if (existing) {
+    return { kind: "spark_trade_reservation", applied: true, row_id: (existing as any).id, reason: "already_recorded" };
+  }
+
+  const ins = await sb.from("spark_trade_inventory_reservations").insert({
+    member_id: userId,
+    opportunity_id: opportunityId,
+    units_reserved: units,
+    total_capital_allocated: amountZar,
+    reservation_status: "paid",
+    paid_at: new Date().toISOString(),
+    payment_reference: ref,
+  } as any).select("id").maybeSingle();
+
+  if (ins.error) return { kind: "spark_trade_reservation", applied: false, error: ins.error.message };
+
+  await sb.from("notifications").insert({
+    member_id: userId,
+    title: "Reservation confirmed ✓",
+    body: `Your reservation of ${units} units is confirmed.`,
+    kind: "spark_trade",
+    link: "/spark-trade/dashboard",
+  });
+
+  return { kind: "spark_trade_reservation", applied: true, row_id: (ins.data as any)?.id };
+}
+
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
   try {
