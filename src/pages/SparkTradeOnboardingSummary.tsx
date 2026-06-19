@@ -6,6 +6,13 @@ import { useAuth } from "@/hooks/useAuth";
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
 import { toast } from "sonner";
+import { usePaystack, buildReference } from "@/hooks/usePaystack";
+
+const TIER_PRICE_ZAR: Record<string, number> = {
+  "buyers-club": 499,
+  "spark-trade-pro": 999,
+  "fulfilled-by-umoja": 1999,
+};
 
 type TierKey = "buyers-club" | "spark-trade-pro" | "fulfilled-by-umoja";
 
