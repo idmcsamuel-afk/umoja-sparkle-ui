@@ -99,6 +99,7 @@ import SparkTradeBusinessPreference from "./pages/SparkTradeBusinessPreference.t
 import SparkTradeAIBlueprint from "./pages/SparkTradeAIBlueprint.tsx";
 import SparkTradeStoreCreation from "./pages/SparkTradeStoreCreation.tsx";
 import SparkTradeSubscriptionRecommendation from "./pages/SparkTradeSubscriptionRecommendation.tsx";
+import SparkTradeOnboardingSummary from "./pages/SparkTradeOnboardingSummary.tsx";
 import SparkTradeMarketplaceRecommendations from "./pages/SparkTradeMarketplaceRecommendations.tsx";
 import SparkTradeProductOpportunities from "./pages/SparkTradeProductOpportunities.tsx";
 import SparkTradeDemandMeter from "./pages/SparkTradeDemandMeter.tsx";
