@@ -81,6 +81,7 @@ export default function SparkTradeSubscriptionRecommendation() {
   });
   const [showAllTiers, setShowAllTiers] = useState(false);
   const [submitting, setSubmitting] = useState(false);
+  const [selectedTier, setSelectedTier] = useState<TierKey | null>(null);
 
   useEffect(() => {
     if (!user) return;
@@ -111,23 +112,22 @@ export default function SparkTradeSubscriptionRecommendation() {
     [checks]
   );
 
-  const handleComplete = async () => {
+  const handleContinue = async () => {
     if (!user) return;
+    const tier = selectedTier ?? recommended;
     setSubmitting(true);
     try {
-      const { error } = await supabase
-        .from("members")
-        .update({
-          spark_trade_onboarding_complete: true,
-          spark_trade_onboarding_completed_at: new Date().toISOString(),
-        } as any)
-        .eq("id", user.id);
-      if (error) throw error;
-      toast.success("Onboarding complete!");
-      nav("/dashboard");
+      // Persist tier choice but do NOT mark onboarding complete yet
+      await supabase
+        .from("spark_trade_subscriptions" as any)
+        .upsert(
+          { member_id: user.id, tier, status: "pending" },
+          { onConflict: "member_id" }
+        );
+      nav("/spark-trade/onboarding/summary", { state: { tier } });
     } catch (err: any) {
-      console.error("[Subscription] complete failed", err);
-      toast.error(err?.message ?? "Failed to complete onboarding");
+      console.error("[Subscription] save tier failed", err);
+      toast.error(err?.message ?? "Failed to save selection");
       setSubmitting(false);
     }
   };
@@ -202,27 +202,32 @@ export default function SparkTradeSubscriptionRecommendation() {
 
           {showAllTiers && (
             <div className="mt-4 space-y-3">
-              {visibleTiers.map((t) => (
-                <div
-                  key={t}
-                  className={`rounded-xl border p-4 ${
-                    t === recommended ? "border-primary/40 bg-primary/5" : "border-border"
-                  }`}
-                >
-                  <div className="flex items-baseline justify-between gap-2 flex-wrap">
-                    <h4 className="font-semibold text-foreground">{TIER_INFO[t].label}</h4>
-                    <p className="text-sm font-semibold text-accent">{pricing[t]}</p>
-                  </div>
-                  <p className="text-xs text-muted-foreground mt-1">{TIER_INFO[t].tagline}</p>
-                  <ul className="mt-2 space-y-1">
-                    {TIER_INFO[t].features.map((f) => (
-                      <li key={f} className="text-xs text-foreground flex items-start gap-1.5">
-                        <Check className="h-3 w-3 text-primary mt-0.5 shrink-0" /> {f}
-                      </li>
-                    ))}
-                  </ul>
-                </div>
-              ))}
+              {visibleTiers.map((t) => {
+                const isSelected = (selectedTier ?? recommended) === t;
+                return (
+                  <button
+                    type="button"
+                    key={t}
+                    onClick={() => setSelectedTier(t)}
+                    className={`w-full text-left rounded-xl border p-4 transition ${
+                      isSelected ? "border-primary bg-primary/5 ring-1 ring-primary" : "border-border hover:bg-muted/30"
+                    }`}
+                  >
+                    <div className="flex items-baseline justify-between gap-2 flex-wrap">
+                      <h4 className="font-semibold text-foreground">{TIER_INFO[t].label}</h4>
+                      <p className="text-sm font-semibold text-accent">{pricing[t]}</p>
+                    </div>
+                    <p className="text-xs text-muted-foreground mt-1">{TIER_INFO[t].tagline}</p>
+                    <ul className="mt-2 space-y-1">
+                      {TIER_INFO[t].features.map((f) => (
+                        <li key={f} className="text-xs text-foreground flex items-start gap-1.5">
+                          <Check className="h-3 w-3 text-primary mt-0.5 shrink-0" /> {f}
+                        </li>
+                      ))}
+                    </ul>
+                  </button>
+                );
+              })}
               {country !== "ZA" && (
                 <p className="text-xs text-muted-foreground italic">
                   Fulfilled by Umoja currently available in South Africa only.
@@ -276,16 +281,16 @@ export default function SparkTradeSubscriptionRecommendation() {
         </div>
 
         <Button
-          onClick={handleComplete}
+          onClick={handleContinue}
           disabled={submitting}
           className="w-full h-12 rounded-2xl bg-gradient-primary text-primary-foreground font-bold shadow-glow disabled:opacity-50"
         >
           {submitting ? (
             <>
-              <Loader2 className="h-4 w-4 mr-2 animate-spin" /> Finishing...
+              <Loader2 className="h-4 w-4 mr-2 animate-spin" /> Saving...
             </>
           ) : (
-            "Go to Dashboard →"
+            `Continue with ${TIER_INFO[selectedTier ?? recommended].label} →`
           )}
         </Button>
       </div>
