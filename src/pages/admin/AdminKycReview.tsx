@@ -231,6 +231,55 @@ export default function AdminKycReview() {
         <h1 className="font-display text-3xl">KYC review</h1>
         <p className="text-sm text-muted-foreground mt-1">Pending verification submissions.</p>
 
+        {/* Manual approve by name/email — for members who sent details over email */}
+        <div className="mt-6 rounded-3xl border border-border bg-gradient-card p-5">
+          <div className="flex items-center gap-2">
+            <UserCheck className="h-4 w-4 text-accent" />
+            <p className="text-[11px] uppercase tracking-[0.22em] text-accent">Manual approve</p>
+          </div>
+          <p className="text-sm text-muted-foreground mt-1">
+            For members who sent documents via email. Search by name, email, or phone — then approve with a reason.
+          </p>
+          <div className="mt-3 flex gap-2">
+            <div className="relative flex-1">
+              <Search className="h-4 w-4 absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
+              <Input
+                value={search}
+                onChange={(e) => { setSearch(e.target.value); runSearch(e.target.value); }}
+                placeholder="Type a name, email, or phone…"
+                className="pl-9 rounded-2xl h-11"
+              />
+            </div>
+          </div>
+          {searching && <div className="mt-3 text-xs text-muted-foreground flex items-center gap-2"><Loader2 className="h-3 w-3 animate-spin" /> Searching…</div>}
+          {!searching && search.trim().length >= 2 && searchResults.length === 0 && (
+            <p className="mt-3 text-xs text-muted-foreground">No unverified members match "{search}".</p>
+          )}
+          {searchResults.length > 0 && (
+            <ul className="mt-3 divide-y divide-border rounded-2xl border border-border overflow-hidden">
+              {searchResults.map((r) => (
+                <li key={r.id} className="flex items-center justify-between gap-3 p-3 bg-background/40">
+                  <div className="min-w-0">
+                    <p className="text-sm font-medium truncate">{r.full_name}</p>
+                    <p className="text-xs text-muted-foreground truncate">
+                      {r.email ?? "no email"} · {r.phone ?? "no phone"} · Level {r.kyc_level}/3
+                    </p>
+                  </div>
+                  <Button
+                    size="sm"
+                    disabled={busyId === r.id}
+                    onClick={() => setOverride({ row: r, step: 2, reason: "Documents verified offline" })}
+                    className="rounded-2xl bg-emerald-600 hover:bg-emerald-700 text-white shrink-0"
+                  >
+                    {busyId === r.id ? <Loader2 className="h-3 w-3 animate-spin" /> : (<><CheckCircle2 className="h-3 w-3 mr-1" /> Approve</>)}
+                  </Button>
+                </li>
+              ))}
+            </ul>
+          )}
+        </div>
+
+
         {loading ? (
           <div className="mt-10 grid place-items-center"><Loader2 className="h-6 w-6 animate-spin text-primary" /></div>
         ) : (
