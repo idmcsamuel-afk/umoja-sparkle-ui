@@ -125,6 +125,20 @@ export default function AdminKycReview() {
   };
   useEffect(() => { load(); }, []);
 
+  const runSearch = async (q: string) => {
+    const term = q.trim();
+    if (term.length < 2) { setSearchResults([]); return; }
+    setSearching(true);
+    const { data } = await supabase
+      .from("members")
+      .select(cols)
+      .or(`full_name.ilike.%${term}%,email.ilike.%${term}%,phone.ilike.%${term}%`)
+      .lt("kyc_level", 3)
+      .limit(15);
+    setSearchResults((data ?? []) as Row[]);
+    setSearching(false);
+  };
+
   const approve = async (r: Row, overrideReason?: string) => {
     setBusyId(r.id);
     const { error } = await supabase.rpc("admin_approve_kyc", {
