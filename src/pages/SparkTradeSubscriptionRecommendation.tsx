@@ -281,16 +281,16 @@ export default function SparkTradeSubscriptionRecommendation() {
         </div>
 
         <Button
-          onClick={handleComplete}
+          onClick={handleContinue}
           disabled={submitting}
           className="w-full h-12 rounded-2xl bg-gradient-primary text-primary-foreground font-bold shadow-glow disabled:opacity-50"
         >
           {submitting ? (
             <>
-              <Loader2 className="h-4 w-4 mr-2 animate-spin" /> Finishing...
+              <Loader2 className="h-4 w-4 mr-2 animate-spin" /> Saving...
             </>
           ) : (
-            "Go to Dashboard →"
+            `Continue with ${TIER_INFO[selectedTier ?? recommended].label} →`
           )}
         </Button>
       </div>
