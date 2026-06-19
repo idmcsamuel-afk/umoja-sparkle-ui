@@ -1,8 +1,12 @@
-import { Link, useLocation } from "react-router-dom";
+import { Link, NavLink, useLocation } from "react-router-dom";
 import { useEffect, useRef, useState } from "react";
-import { Home, Users, Sparkles, Car, Store, ArrowLeftRight, Gamepad2, Gift, Palette, ChevronRight, ChevronLeft, Trophy, Building2, MessageCircle, Flame, Video, Upload, BarChart3, Wand2, Headphones } from "lucide-react";
+import { Home, Users, Sparkles, Car, Store, ArrowLeftRight, Gamepad2, Gift, Palette, ChevronRight, ChevronLeft, ChevronDown, Trophy, Building2, MessageCircle, Flame, Video, Upload, BarChart3, Wand2, Headphones } from "lucide-react";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { SPARK_TRADE_SUB_ITEMS } from "@/components/umoja/SparkTradeNavMenu";
 
-const items: { to: string; label: string; icon: typeof Home; tour?: string }[] = [
+type NavItem = { to: string; label: string; icon: typeof Home; tour?: string; expandable?: boolean };
+
+const items: NavItem[] = [
   { to: "/dashboard", label: "Home", icon: Home, tour: "dashboard" },
   { to: "/circle", label: "Circles", icon: Users, tour: "circle" },
   { to: "/creator-studio", label: "Creator", icon: Wand2 },
@@ -12,7 +16,7 @@ const items: { to: string; label: string; icon: typeof Home; tour?: string }[] =
   { to: "/upload-video", label: "Upload", icon: Upload },
   { to: "/my-videos", label: "My Vids", icon: BarChart3 },
   { to: "/trending", label: "Trending", icon: Flame },
-  { to: "/spark", label: "Spark", icon: Sparkles, tour: "spark-trade" },
+  { to: "__spark_trade_menu__", label: "Group Buy", icon: Sparkles, tour: "spark-trade", expandable: true },
   { to: "/spark-trade/membership", label: "🌍 Plans", icon: Sparkles },
   { to: "/priority", label: "Queue", icon: Trophy },
   { to: "/market", label: "Market", icon: Store },
@@ -32,6 +36,12 @@ export const BottomNav = () => {
   const [canLeft, setCanLeft] = useState(false);
   const [canRight, setCanRight] = useState(false);
   const [showHint, setShowHint] = useState(false);
+  const [sparkOpen, setSparkOpen] = useState(false);
+
+  // Close Spark Trade menu when navigating away
+  useEffect(() => {
+    setSparkOpen(false);
+  }, [pathname]);
 
   const updateEdges = () => {
     const el = scrollerRef.current;
@@ -104,7 +114,77 @@ export const BottomNav = () => {
             style={{ scrollSnapType: "x mandatory" }}
           >
             <ul className="flex gap-0.5 min-w-max">
-              {items.map(({ to, label, icon: Icon, tour }) => {
+              {items.map((item) => {
+                const { to, label, icon: Icon, tour, expandable } = item;
+
+                if (expandable) {
+                  const active = pathname.startsWith("/spark-trade") || pathname === "/spark";
+                  return (
+                    <li
+                      key="spark-trade-menu"
+                      data-tour={tour}
+                      className="flex-1 min-w-[64px]"
+                      style={{ scrollSnapAlign: "start" }}
+                    >
+                      <Popover open={sparkOpen} onOpenChange={setSparkOpen}>
+                        <PopoverTrigger asChild>
+                          <button
+                            type="button"
+                            data-nav-item
+                            aria-label={label}
+                            aria-expanded={sparkOpen}
+                            aria-current={active ? "page" : undefined}
+                            className="group w-full flex flex-col items-center gap-1 py-2 min-h-[44px] transition-smooth rounded-2xl focus:outline-none focus-visible:ring-2 focus-visible:ring-accent"
+                          >
+                            <span
+                              className={`grid h-9 w-9 place-items-center rounded-2xl transition-smooth ${
+                                active
+                                  ? "bg-gradient-primary text-primary-foreground shadow-glow"
+                                  : "text-muted-foreground group-hover:text-foreground"
+                              }`}
+                            >
+                              <Icon className="h-[16px] w-[16px]" strokeWidth={2.2} />
+                            </span>
+                            <span className={`flex items-center gap-0.5 text-[10px] font-medium tracking-wide whitespace-nowrap ${active ? "text-foreground" : "text-muted-foreground"}`}>
+                              {label}
+                              <ChevronDown
+                                className={`h-3 w-3 transition-transform duration-300 ${sparkOpen ? "rotate-180" : ""}`}
+                                aria-hidden
+                              />
+                            </span>
+                          </button>
+                        </PopoverTrigger>
+                        <PopoverContent
+                          side="top"
+                          align="center"
+                          className="w-60 p-1 rounded-2xl animate-fade-in"
+                        >
+                          <ul className="flex flex-col gap-0.5">
+                            {SPARK_TRADE_SUB_ITEMS.map((sub) => (
+                              <li key={sub.key ?? sub.label}>
+                                <NavLink
+                                  to={sub.to}
+                                  onClick={() => setSparkOpen(false)}
+                                  className={({ isActive }) =>
+                                    `flex items-center gap-3 px-3 rounded-xl min-h-[44px] text-sm transition-smooth ${
+                                      isActive || pathname === sub.to
+                                        ? "bg-accent/15 text-accent font-medium"
+                                        : "text-foreground hover:bg-muted"
+                                    }`
+                                  }
+                                >
+                                  <span className="text-base" aria-hidden>{sub.emoji}</span>
+                                  <span>{sub.label}</span>
+                                </NavLink>
+                              </li>
+                            ))}
+                          </ul>
+                        </PopoverContent>
+                      </Popover>
+                    </li>
+                  );
+                }
+
                 const active = pathname === to || (to !== "/dashboard" && pathname.startsWith(to));
                 return (
                   <li

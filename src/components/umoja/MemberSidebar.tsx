@@ -9,6 +9,7 @@ import {
   useSidebar,
 } from "@/components/ui/sidebar";
 import { Logo } from "@/components/umoja/Logo";
+import { SparkTradeSidebarMenu } from "@/components/umoja/SparkTradeNavMenu";
 import { restartProductTour } from "@/components/umoja/ProductTour";
 
 const main = [
@@ -17,7 +18,7 @@ const main = [
   { to: "/creator-studio", label: "Creator Studio", icon: Wand2 },
   { to: "/community", label: "Community", icon: MessageCircle },
   { to: "/priority", label: "Priority Queue", icon: Trophy },
-  { to: "/spark", label: "Spark Trade", icon: Sparkles, tour: "spark-trade" },
+  { to: "__spark_trade_menu__", label: "Spark Trade", icon: Sparkles, tour: "spark-trade" },
   { to: "/spark-trade/membership", label: "🌍 Plans", icon: Sparkles },
   { to: "/trending", label: "Trending 🔥", icon: Flame },
   { to: "/market", label: "Market", icon: Store },
@@ -57,16 +58,21 @@ export function MemberSidebar() {
           {!collapsed && <SidebarGroupLabel>Main</SidebarGroupLabel>}
           <SidebarGroupContent>
             <SidebarMenu>
-              {main.map((item) => (
-                <SidebarMenuItem key={item.to} data-tour={item.tour}>
-                  <SidebarMenuButton asChild isActive={isActive(item.to)} tooltip={item.label}>
-                    <NavLink to={item.to} className="flex items-center gap-2">
-                      <item.icon className="h-4 w-4" />
-                      {!collapsed && <span>{item.label}</span>}
-                    </NavLink>
-                  </SidebarMenuButton>
-                </SidebarMenuItem>
-              ))}
+              {main.map((item) => {
+                if (item.to === "__spark_trade_menu__") {
+                  return <SparkTradeSidebarMenu key="spark-trade-menu" />;
+                }
+                return (
+                  <SidebarMenuItem key={item.to} data-tour={item.tour}>
+                    <SidebarMenuButton asChild isActive={isActive(item.to)} tooltip={item.label}>
+                      <NavLink to={item.to} className="flex items-center gap-2">
+                        <item.icon className="h-4 w-4" />
+                        {!collapsed && <span>{item.label}</span>}
+                      </NavLink>
+                    </SidebarMenuButton>
+                  </SidebarMenuItem>
+                );
+              })}
             </SidebarMenu>
           </SidebarGroupContent>
         </SidebarGroup>
