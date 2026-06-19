@@ -9,6 +9,7 @@ import {
   useSidebar,
 } from "@/components/ui/sidebar";
 import { Logo } from "@/components/umoja/Logo";
+import { SparkTradeSidebarMenu } from "@/components/umoja/SparkTradeNavMenu";
 import { restartProductTour } from "@/components/umoja/ProductTour";
 
 const main = [
