@@ -160,6 +160,8 @@ export default function AdminKycReview() {
     if (error) return toast.error(error.message);
     toast.success(overrideReason ? "Approved with override" : "Approved & member notified");
     setOverride(null);
+    setSearch("");
+    setSearchResults([]);
     load();
   };
 
