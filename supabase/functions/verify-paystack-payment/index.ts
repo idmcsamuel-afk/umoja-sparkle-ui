@@ -329,7 +329,9 @@ Deno.serve(async (req) => {
     }
 
     const kind = metaPaymentType
-      ? (metaPaymentType.includes("circle") ? "CIRCLE"
+      ? (metaPaymentType.includes("spark_trade_subscription") || metaPaymentType === "spark_trade_membership" ? "STSUB"
+        : metaPaymentType.includes("spark_trade_reservation") || metaPaymentType.includes("inventory_reservation") ? "STRES"
+        : metaPaymentType.includes("circle") ? "CIRCLE"
         : metaPaymentType.includes("propert") || metaPaymentType.includes("reit") ? "PROP"
         : metaPaymentType.includes("buyers") || metaPaymentType.includes("club") ? "BC"
         : metaPaymentType.includes("drive") ? "DRIVE"
@@ -342,6 +344,20 @@ Deno.serve(async (req) => {
       else if (kind === "PROP") result = await applyToProperty(u.user.id, metaPropertyId || parts[1], reference);
       else if (kind === "BC" || kind === "CLUB") result = await applyToBuyersClub(u.user.id, (metaTier || parts[1] || "bronze").toLowerCase(), reference);
       else if (kind === "DRIVE") result = await applyToDrive(u.user.id, reference, amountZar, clientMeta.enrollment_id);
+      else if (kind === "STSUB") result = await applyToSparkTradeSubscription(
+        u.user.id,
+        (metaTier || "buyers-club").toString(),
+        reference,
+        amountZar,
+        clientMeta.amount_local_currency ? Number(clientMeta.amount_local_currency) : undefined,
+        clientMeta.local_currency_code,
+      );
+      else if (kind === "STRES") {
+        const oppId = Number(clientMeta.opportunity_id);
+        const units = Number(clientMeta.units_reserved ?? clientMeta.units);
+        if (!oppId || !units) result = { kind: "spark_trade_reservation", applied: false, reason: "missing_opportunity_or_units" };
+        else result = await applyToSparkTradeReservation(u.user.id, reference, amountZar, oppId, units);
+      }
       else result = { kind: "unknown", applied: false, reason: `unknown_prefix:${prefix}` };
     } catch (e) {
       const msg = e instanceof Error ? e.message : String(e);
