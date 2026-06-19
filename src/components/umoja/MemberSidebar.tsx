@@ -18,7 +18,7 @@ const main = [
   { to: "/creator-studio", label: "Creator Studio", icon: Wand2 },
   { to: "/community", label: "Community", icon: MessageCircle },
   { to: "/priority", label: "Priority Queue", icon: Trophy },
-  { to: "/spark", label: "Spark Trade", icon: Sparkles, tour: "spark-trade" },
+  { to: "__spark_trade_menu__", label: "Spark Trade", icon: Sparkles, tour: "spark-trade" },
   { to: "/spark-trade/membership", label: "🌍 Plans", icon: Sparkles },
   { to: "/trending", label: "Trending 🔥", icon: Flame },
   { to: "/market", label: "Market", icon: Store },
