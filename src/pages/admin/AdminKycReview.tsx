@@ -3,12 +3,13 @@ import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import {
-  Loader2, CheckCircle2, XCircle, Phone, FileText, Camera, Mail, AlertTriangle, ShieldCheck, RotateCcw,
+  Loader2, CheckCircle2, XCircle, Phone, FileText, Camera, Mail, AlertTriangle, ShieldCheck, RotateCcw, Search, UserCheck,
 } from "lucide-react";
 import { toast } from "sonner";
 import {
   Tooltip, TooltipContent, TooltipProvider, TooltipTrigger,
 } from "@/components/ui/tooltip";
+import { Input } from "@/components/ui/input";
 
 interface Row {
   id: string;
