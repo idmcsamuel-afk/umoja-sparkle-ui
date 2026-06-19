@@ -49,6 +49,7 @@ export default function SparkTradeOnboardingSummary() {
   const nav = useNavigate();
   const location = useLocation();
   const { user, loading } = useAuth();
+  const { pay, ready: paystackReady } = usePaystack();
   const tierFromState = (location.state as any)?.tier as TierKey | undefined;
 
   const [tier, setTier] = useState<TierKey | null>(tierFromState ?? null);
@@ -56,6 +57,8 @@ export default function SparkTradeOnboardingSummary() {
   const [store, setStore] = useState<Store | null>(null);
   const [fetching, setFetching] = useState(true);
   const [submitting, setSubmitting] = useState(false);
+  const [email, setEmail] = useState<string | null>(null);
+
 
   useEffect(() => {
     if (!user) return;
