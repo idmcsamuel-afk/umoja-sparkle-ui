@@ -3,12 +3,13 @@ import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import {
-  Loader2, CheckCircle2, XCircle, Phone, FileText, Camera, Mail, AlertTriangle, ShieldCheck, RotateCcw,
+  Loader2, CheckCircle2, XCircle, Phone, FileText, Camera, Mail, AlertTriangle, ShieldCheck, RotateCcw, Search, UserCheck,
 } from "lucide-react";
 import { toast } from "sonner";
 import {
   Tooltip, TooltipContent, TooltipProvider, TooltipTrigger,
 } from "@/components/ui/tooltip";
+import { Input } from "@/components/ui/input";
 
 interface Row {
   id: string;
@@ -92,6 +93,9 @@ export default function AdminKycReview() {
   const [reason, setReason] = useState("");
   const [busyId, setBusyId] = useState<string | null>(null);
   const [override, setOverride] = useState<{ row: Row; step: 1 | 2; reason: string } | null>(null);
+  const [search, setSearch] = useState("");
+  const [searchResults, setSearchResults] = useState<Row[]>([]);
+  const [searching, setSearching] = useState(false);
 
   const cols =
     "id, full_name, email, phone, kyc_level, kyc_status, phone_verified, kyc_photo_url, kyc_document_url, kyc_submitted_at, kyc_rejection_reason, kyc_override_reason, kyc_override_by, kyc_last_reminder_at, kyc_reminder_count, kyc_verified_at";
@@ -121,6 +125,20 @@ export default function AdminKycReview() {
   };
   useEffect(() => { load(); }, []);
 
+  const runSearch = async (q: string) => {
+    const term = q.trim();
+    if (term.length < 2) { setSearchResults([]); return; }
+    setSearching(true);
+    const { data } = await supabase
+      .from("members")
+      .select(cols)
+      .or(`full_name.ilike.%${term}%,email.ilike.%${term}%,phone.ilike.%${term}%`)
+      .lt("kyc_level", 3)
+      .limit(15);
+    setSearchResults((data ?? []) as Row[]);
+    setSearching(false);
+  };
+
   const approve = async (r: Row, overrideReason?: string) => {
     setBusyId(r.id);
     const { error } = await supabase.rpc("admin_approve_kyc", {
@@ -142,6 +160,8 @@ export default function AdminKycReview() {
     if (error) return toast.error(error.message);
     toast.success(overrideReason ? "Approved with override" : "Approved & member notified");
     setOverride(null);
+    setSearch("");
+    setSearchResults([]);
     load();
   };
 
@@ -212,6 +232,55 @@ export default function AdminKycReview() {
       <div>
         <h1 className="font-display text-3xl">KYC review</h1>
         <p className="text-sm text-muted-foreground mt-1">Pending verification submissions.</p>
+
+        {/* Manual approve by name/email — for members who sent details over email */}
+        <div className="mt-6 rounded-3xl border border-border bg-gradient-card p-5">
+          <div className="flex items-center gap-2">
+            <UserCheck className="h-4 w-4 text-accent" />
+            <p className="text-[11px] uppercase tracking-[0.22em] text-accent">Manual approve</p>
+          </div>
+          <p className="text-sm text-muted-foreground mt-1">
+            For members who sent documents via email. Search by name, email, or phone — then approve with a reason.
+          </p>
+          <div className="mt-3 flex gap-2">
+            <div className="relative flex-1">
+              <Search className="h-4 w-4 absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
+              <Input
+                value={search}
+                onChange={(e) => { setSearch(e.target.value); runSearch(e.target.value); }}
+                placeholder="Type a name, email, or phone…"
+                className="pl-9 rounded-2xl h-11"
+              />
+            </div>
+          </div>
+          {searching && <div className="mt-3 text-xs text-muted-foreground flex items-center gap-2"><Loader2 className="h-3 w-3 animate-spin" /> Searching…</div>}
+          {!searching && search.trim().length >= 2 && searchResults.length === 0 && (
+            <p className="mt-3 text-xs text-muted-foreground">No unverified members match "{search}".</p>
+          )}
+          {searchResults.length > 0 && (
+            <ul className="mt-3 divide-y divide-border rounded-2xl border border-border overflow-hidden">
+              {searchResults.map((r) => (
+                <li key={r.id} className="flex items-center justify-between gap-3 p-3 bg-background/40">
+                  <div className="min-w-0">
+                    <p className="text-sm font-medium truncate">{r.full_name}</p>
+                    <p className="text-xs text-muted-foreground truncate">
+                      {r.email ?? "no email"} · {r.phone ?? "no phone"} · Level {r.kyc_level}/3
+                    </p>
+                  </div>
+                  <Button
+                    size="sm"
+                    disabled={busyId === r.id}
+                    onClick={() => setOverride({ row: r, step: 2, reason: "Documents verified offline" })}
+                    className="rounded-2xl bg-emerald-600 hover:bg-emerald-700 text-white shrink-0"
+                  >
+                    {busyId === r.id ? <Loader2 className="h-3 w-3 animate-spin" /> : (<><CheckCircle2 className="h-3 w-3 mr-1" /> Approve</>)}
+                  </Button>
+                </li>
+              ))}
+            </ul>
+          )}
+        </div>
+
 
         {loading ? (
           <div className="mt-10 grid place-items-center"><Loader2 className="h-6 w-6 animate-spin text-primary" /></div>
