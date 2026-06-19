@@ -10,7 +10,7 @@ import {
   useSidebar,
 } from "@/components/ui/sidebar";
 
-export const SPARK_TRADE_SUB_ITEMS = [
+export const SPARK_TRADE_SUB_ITEMS: { to: string; label: string; emoji: string; key?: string }[] = [
   { to: "/spark-trade/groups", label: "Group Buy", emoji: "👥" },
   { to: "/spark-trade/onboarding/income-goal", label: "AI Income Builder", emoji: "💡" },
   { to: "/spark-trade/onboarding/income-goal", label: "Spark Trade Intelligence", emoji: "📊", key: "intel" },
