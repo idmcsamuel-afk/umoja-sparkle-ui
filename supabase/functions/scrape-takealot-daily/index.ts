@@ -17,57 +17,9 @@ const categories = [
   'sports-outdoors'
 ]
 
-async function pollDataset(collectionId: string, maxWaitMs = 180000): Promise<any[]> {
-  const startTime = Date.now()
-  const pollIntervalMs = 5000
-
-  while (Date.now() - startTime < maxWaitMs) {
-    try {
-      const response = await fetch(
-        `https://api.brightdata.com/dca/dataset?id=${collectionId}`,
-        {
-          method: 'GET',
-          headers: {
-            'Authorization': `Bearer ${brightDataApiKey}`,
-            'Content-Type': 'application/json'
-          }
-        }
-      )
-
-      if (!response.ok) {
-        console.error(`Poll error for ${collectionId}: ${response.status}`)
-        await new Promise(r => setTimeout(r, pollIntervalMs))
-        continue
-      }
-
-      const data = await response.json()
-
-      if (Array.isArray(data)) {
-        console.log(`Collection ${collectionId} ready: ${data.length} products`)
-        return data
-      }
-
-      if (data.status === 'processing' || data.status === 'pending' || data.status === 'building' || data.status === 'collecting') {
-        console.log(`Collection ${collectionId} status: ${data.status}`)
-        await new Promise(r => setTimeout(r, pollIntervalMs))
-        continue
-      }
-
-      console.log(`Collection ${collectionId}: unexpected response ${JSON.stringify(data).slice(0, 200)}`)
-      await new Promise(r => setTimeout(r, pollIntervalMs))
-    } catch (error) {
-      console.error(`Poll error for ${collectionId}:`, error)
-      await new Promise(r => setTimeout(r, pollIntervalMs))
-    }
-  }
-
-  console.error(`Timeout waiting for collection ${collectionId}`)
-  return []
-}
-
 serve(async (_req) => {
   try {
-    console.log('Starting parallel Takealot scrape via Bright Data DCA API...')
+    console.log('Triggering Bright Data scrapes for all categories...')
 
     const triggerPromises = categories.map(category =>
       fetch(
@@ -84,84 +36,62 @@ serve(async (_req) => {
         .then(res => res.json())
         .then(data => ({
           category,
-          collectionId: data.collection_id as string | undefined,
+          collection_id: data.collection_id as string | undefined,
           success: !!data.collection_id
         }))
         .catch(error => ({
           category,
-          collectionId: undefined,
+          collection_id: undefined,
           success: false,
           error: (error as Error).message
         }))
     )
 
     const triggerResults = await Promise.all(triggerPromises)
-    const successfulTriggers = triggerResults.filter(r => r.success && r.collectionId)
+    const successfulTriggers = triggerResults.filter(r => r.success && r.collection_id)
+
     console.log(`Triggered ${successfulTriggers.length}/${categories.length} categories`)
 
-    if (successfulTriggers.length === 0) {
-      return new Response(
-        JSON.stringify({ status: 'error', message: 'Failed to trigger any categories', scraped_count: 0 }),
-        { status: 500, headers: { 'Content-Type': 'application/json' } }
-      )
-    }
+    const jobsToInsert = successfulTriggers.map(trigger => ({
+      collection_id: trigger.collection_id!,
+      category: trigger.category,
+      status: 'pending'
+    }))
 
-    const pollResults = await Promise.all(
-      successfulTriggers.map(trigger =>
-        pollDataset(trigger.collectionId!)
-          .then(products => ({ category: trigger.category, products, success: true as const }))
-          .catch(error => ({ category: trigger.category, products: [] as any[], success: false as const, error: (error as Error).message }))
-      )
-    )
+    if (jobsToInsert.length > 0) {
+      const { error } = await supabase
+        .from('takealot_scrape_jobs')
+        .insert(jobsToInsert)
 
-    const allProducts: any[] = []
-    for (const pr of pollResults) {
-      if (pr.success && Array.isArray(pr.products)) {
-        for (const product of pr.products.slice(0, 100)) {
-          let priceValue = 0
-          if (product.price) {
-            priceValue = typeof product.price === 'object' ? (product.price.value || 0) : product.price
-          }
-          allProducts.push({
-            takealot_name: product.product_title || product.title || 'Unknown',
-            takealot_price: priceValue,
-            takealot_url: product.product_url || product.url || '',
-            category: pr.category.replace('-', ' '),
-            seller_count: product.seller_count || 1,
-            rating: product.rating || null,
-            image_url: product.image_url || product.image || '',
-            scraped_at: new Date().toISOString()
-          })
-        }
-      }
-    }
-
-    console.log(`Total products collected: ${allProducts.length}`)
-
-    if (allProducts.length > 0) {
-      const { error } = await supabase.from('takealot_products').insert(allProducts)
       if (error) {
-        console.error('Insert error:', error)
+        console.error('Error storing jobs:', error)
         return new Response(
-          JSON.stringify({ error: error.message, scraped_count: 0, collected: allProducts.length }),
+          JSON.stringify({
+            status: 'error',
+            message: 'Failed to store collection_ids',
+            triggers: triggerResults.length,
+            successful: successfulTriggers.length
+          }),
           { status: 500, headers: { 'Content-Type': 'application/json' } }
         )
       }
     }
 
+    console.log(`Stored ${jobsToInsert.length} pending jobs. Collection will happen in 6 min.`)
+
     return new Response(
       JSON.stringify({
-        status: 'success',
-        scraped_count: allProducts.length,
-        timestamp: new Date().toISOString(),
-        triggers: triggerResults.length,
+        status: 'triggered',
+        triggers_sent: triggerResults.length,
         successful_triggers: successfulTriggers.length,
-        successful_polls: pollResults.filter(r => r.success).length
+        jobs_stored: jobsToInsert.length,
+        message: 'Scrapes triggered. Results will be collected in 6 minutes.',
+        timestamp: new Date().toISOString()
       }),
-      { status: 200, headers: { 'Content-Type': 'application/json' } }
+      { status: 202, headers: { 'Content-Type': 'application/json' } }
     )
   } catch (error) {
-    console.error('Scrape error:', error)
+    console.error('Trigger error:', error)
     return new Response(
       JSON.stringify({ error: (error as Error).message, status: 'error' }),
       { status: 500, headers: { 'Content-Type': 'application/json' } }
