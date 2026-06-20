@@ -30,6 +30,32 @@ export default function SparkTradeDashboard() {
   useEffect(() => {
     if (!user) return;
     (async () => {
+      setLoading(true);
+
+      const { data: member } = await supabase
+        .from("members")
+        .select("onboarding_complete, spark_trade_income_path")
+        .eq("id", user.id)
+        .maybeSingle();
+
+      if (!member || !(member as any).onboarding_complete) {
+        navigate("/spark-trade/onboarding/income-goal");
+        setLoading(false);
+        return;
+      }
+
+      setMemberProfile(member);
+
+      const currentTab = params.get("tab");
+      if (!currentTab) {
+        const incomePath = (member as any).spark_trade_income_path;
+        if (incomePath === "GROUP_BRAND") {
+          setParams({ tab: "group-brands" });
+        } else if (incomePath === "INDIVIDUAL") {
+          setParams({ tab: "reservations" });
+        }
+      }
+
       const [bp, st, res] = await Promise.all([
         supabase.from("spark_trade_blueprints" as any).select("*").eq("member_id", user.id).maybeSingle(),
         supabase.from("spark_trade_stores" as any).select("*").eq("member_id", user.id).maybeSingle(),
