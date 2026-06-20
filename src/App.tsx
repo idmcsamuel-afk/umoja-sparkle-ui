@@ -105,6 +105,7 @@ import SparkTradeProductOpportunities from "./pages/SparkTradeProductOpportuniti
 import SparkTradeDemandMeter from "./pages/SparkTradeDemandMeter.tsx";
 import SparkTradeDashboard from "./pages/SparkTradeDashboard.tsx";
 import SparkTradeAdminDashboard from "./pages/SparkTradeAdminDashboard.tsx";
+import SparkTradeGroupBrands from "./pages/SparkTradeGroupBrands.tsx";
 
 const queryClient = new QueryClient();
 
