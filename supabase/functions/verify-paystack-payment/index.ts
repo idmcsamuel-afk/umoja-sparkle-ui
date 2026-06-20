@@ -507,7 +507,16 @@ async function applyToGroupBrandInvestment(
     }
   }
 
-  return { kind: "group_brand_investment", applied: true, row_id: rowId };
+  const shipment = await createTcgShipment({
+    memberId: userId,
+    sourceType: "group_brand_investment",
+    sourceId: String(rowId ?? ref),
+    paymentRef: ref,
+    amountZar,
+    description: `Group brand investment ${groupBrandId}`,
+  });
+
+  return { kind: "group_brand_investment", applied: true, row_id: rowId, shipment };
 }
 
 Deno.serve(async (req) => {
