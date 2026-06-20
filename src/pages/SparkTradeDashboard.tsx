@@ -12,6 +12,7 @@ import { Loader2, Store, Sparkles, Package, Users, ShoppingBag, Copy, ExternalLi
 import { toast } from "sonner";
 import SparkTradeProductOpportunities from "./SparkTradeProductOpportunities";
 import SparkTradeDemandMeter from "./SparkTradeDemandMeter";
+import SparkTradeGroupBrands from "./SparkTradeGroupBrands";
 
 export default function SparkTradeDashboard() {
   const { user } = useAuth();
