@@ -8,10 +8,11 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { Loader2, Store, Sparkles, Package, Users, ShoppingBag, Copy, ExternalLink } from "lucide-react";
+import { Loader2, Store, Sparkles, Package, Users, ShoppingBag, Copy, ExternalLink, Building2 } from "lucide-react";
 import { toast } from "sonner";
 import SparkTradeProductOpportunities from "./SparkTradeProductOpportunities";
 import SparkTradeDemandMeter from "./SparkTradeDemandMeter";
+import SparkTradeGroupBrands from "./SparkTradeGroupBrands";
 
 export default function SparkTradeDashboard() {
   const { user } = useAuth();
@@ -24,10 +25,37 @@ export default function SparkTradeDashboard() {
   const [blueprint, setBlueprint] = useState<any>(null);
   const [store, setStore] = useState<any>(null);
   const [reservations, setReservations] = useState<any[]>([]);
+  const [memberProfile, setMemberProfile] = useState<any>(null);
 
   useEffect(() => {
     if (!user) return;
     (async () => {
+      setLoading(true);
+
+      const { data: member } = await supabase
+        .from("members")
+        .select("onboarding_complete, spark_trade_income_path")
+        .eq("id", user.id)
+        .maybeSingle();
+
+      if (!member || !(member as any).onboarding_complete) {
+        navigate("/spark-trade/onboarding/income-goal");
+        setLoading(false);
+        return;
+      }
+
+      setMemberProfile(member);
+
+      const currentTab = params.get("tab");
+      if (!currentTab) {
+        const incomePath = (member as any).spark_trade_income_path;
+        if (incomePath === "GROUP_BRAND") {
+          setParams({ tab: "group-brands" });
+        } else if (incomePath === "INDIVIDUAL") {
+          setParams({ tab: "reservations" });
+        }
+      }
+
       const [bp, st, res] = await Promise.all([
         supabase.from("spark_trade_blueprints" as any).select("*").eq("member_id", user.id).maybeSingle(),
         supabase.from("spark_trade_stores" as any).select("*").eq("member_id", user.id).maybeSingle(),
@@ -69,6 +97,7 @@ export default function SparkTradeDashboard() {
             <TabsTrigger value="store"><Store className="h-4 w-4 mr-1" /> Store</TabsTrigger>
             <TabsTrigger value="reservations"><Package className="h-4 w-4 mr-1" /> Reservations</TabsTrigger>
             <TabsTrigger value="opportunities"><ShoppingBag className="h-4 w-4 mr-1" /> Browse</TabsTrigger>
+            <TabsTrigger value="group-brands"><Building2 className="h-4 w-4 mr-1" /> Group Brands</TabsTrigger>
             <TabsTrigger value="demand"><Users className="h-4 w-4 mr-1" /> Demand</TabsTrigger>
           </TabsList>
 
@@ -164,6 +193,10 @@ export default function SparkTradeDashboard() {
 
           <TabsContent value="opportunities" className="mt-6">
             <SparkTradeProductOpportunities />
+          </TabsContent>
+
+          <TabsContent value="group-brands" className="mt-6">
+            <SparkTradeGroupBrands />
           </TabsContent>
 
           <TabsContent value="demand" className="mt-6">
