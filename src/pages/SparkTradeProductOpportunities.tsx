@@ -2,168 +2,224 @@ import { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
-import { useMyCountry, fmtMoney } from "@/hooks/useCountryConfig";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { toast } from "sonner";
-import { Loader2, Package, ArrowRight } from "lucide-react";
-import { usePaystack, buildReference } from "@/hooks/usePaystack";
+import { Loader2, Package, ArrowRight, Search, ExternalLink } from "lucide-react";
 
-interface Opportunity {
-  id: number;
+interface Product {
   product_name: string;
-  supplier_name: string;
-  supplier_country: string;
-  moq_required: number;
-  current_reserved: number;
-  unit_cost_zar: number;
-  suggested_selling_price_zar: number;
-  expected_margin_percentage: number;
-  expected_order_date: string;
-  expected_arrival_date: string;
-  product_image_url: string;
+  price: number;
+  currency?: string;
+  image_url?: string;
+  category?: string;
+  seller_count?: number;
+  stock_available?: boolean;
+  product_url?: string;
+  source: "takealot" | "amazon" | "makro";
+  rating?: number;
 }
 
+const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL as string;
+const SUPABASE_ANON = import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY as string;
+
+const sourceLabel: Record<Product["source"], string> = {
+  takealot: "Takealot",
+  amazon: "Amazon",
+  makro: "Makro",
+};
+
+const fmtZar = (n: number) =>
+  `R${Math.round(Number(n) || 0).toLocaleString("en-ZA")}`;
+
 export default function SparkTradeProductOpportunities() {
-  const { user } = useAuth();
-  const { config } = useMyCountry();
+  const { user, loading: authLoading } = useAuth();
   const navigate = useNavigate();
-  const { pay, ready: paystackReady } = usePaystack();
-  const [opportunities, setOpportunities] = useState<Opportunity[]>([]);
+
+  const [availableCapital, setAvailableCapital] = useState<number | null>(null);
+  const [trending, setTrending] = useState<Product[]>([]);
   const [loading, setLoading] = useState(true);
-  const [capital, setCapital] = useState(0);
-  const [email, setEmail] = useState<string | null>(null);
-  const [sortBy, setSortBy] = useState("margin");
+  const [error, setError] = useState<string | null>(null);
+
   const [search, setSearch] = useState("");
-  const [selected, setSelected] = useState<Opportunity | null>(null);
-  const [units, setUnits] = useState(0);
-  const [submitting, setSubmitting] = useState(false);
+  const [searchTerm, setSearchTerm] = useState("");
+  const [searchResults, setSearchResults] = useState<Product[]>([]);
+  const [searching, setSearching] = useState(false);
 
-  const load = async () => {
-    const { data } = await supabase
-      .from("spark_trade_opportunities" as any)
-      .select("*")
-      .eq("is_approved_for_ai_recommendation", true);
-    setOpportunities(((data as any[]) ?? []) as Opportunity[]);
-    setLoading(false);
-  };
-
+  // Redirect if not logged in
   useEffect(() => {
-    load();
-    if (user) {
-      supabase.from("members").select("spark_trade_capital, email").eq("id", user.id).maybeSingle()
-        .then(({ data }) => {
-          setCapital(Number((data as any)?.spark_trade_capital ?? 0));
-          setEmail((data as any)?.email ?? user.email ?? null);
-        });
-    }
+    if (!authLoading && !user) navigate("/login");
+  }, [authLoading, user, navigate]);
+
+  // Fetch member capital
+  useEffect(() => {
+    if (!user) return;
+    (async () => {
+      try {
+        const res = await fetch(
+          `${SUPABASE_URL}/functions/v1/member-capital/${user.id}`,
+          { headers: { Authorization: `Bearer ${SUPABASE_ANON}`, apikey: SUPABASE_ANON } },
+        );
+        if (!res.ok) throw new Error("capital fetch failed");
+        const data = await res.json();
+        setAvailableCapital(Number(data?.available_capital ?? 0));
+      } catch {
+        setAvailableCapital(0);
+      }
+    })();
   }, [user]);
 
-  const sorted = useMemo(() => {
-    const s = search.toLowerCase();
-    const filtered = opportunities.filter(o => !s || o.product_name.toLowerCase().includes(s));
-    return [...filtered].sort((a, b) => {
-      if (sortBy === "margin") return b.expected_margin_percentage - a.expected_margin_percentage;
-      if (sortBy === "moq") return a.moq_required - b.moq_required;
-      if (sortBy === "date") return new Date(a.expected_arrival_date).getTime() - new Date(b.expected_arrival_date).getTime();
-      return 0;
-    });
-  }, [opportunities, sortBy, search]);
+  // Fetch trending products (from scraped takealot_products)
+  useEffect(() => {
+    (async () => {
+      setLoading(true);
+      setError(null);
+      try {
+        const { data, error: qErr } = await supabase
+          .from("takealot_products" as any)
+          .select("takealot_name, takealot_price, takealot_url, image_url, category, seller_count, rating, scraped_at")
+          .order("scraped_at", { ascending: false })
+          .limit(60);
+        if (qErr) throw qErr;
+        const mapped: Product[] = ((data as any[]) ?? []).map((r) => ({
+          product_name: r.takealot_name,
+          price: Number(r.takealot_price ?? 0),
+          currency: "ZAR",
+          image_url: r.image_url ?? undefined,
+          category: r.category ?? undefined,
+          seller_count: r.seller_count ?? 0,
+          stock_available: (r.seller_count ?? 0) > 0,
+          product_url: r.takealot_url ?? undefined,
+          rating: r.rating ?? undefined,
+          source: "takealot",
+        }));
+        setTrending(mapped);
+      } catch (e) {
+        console.error(e);
+        setError("Unable to load products. Try again.");
+      } finally {
+        setLoading(false);
+      }
+    })();
+  }, []);
 
-  const totalCost = selected ? units * Number(selected.unit_cost_zar) : 0;
-  const insufficient = capital > 0 && totalCost > capital;
+  // Debounced marketplace search
+  useEffect(() => {
+    const t = setTimeout(() => setSearchTerm(search.trim()), 400);
+    return () => clearTimeout(t);
+  }, [search]);
 
-  const handleReserve = async () => {
-    if (!selected || !user || units < 1) return;
-    const payerEmail = email || user.email;
-    if (!payerEmail) {
-      toast.error("Add an email to your account before paying");
+  useEffect(() => {
+    if (!searchTerm) {
+      setSearchResults([]);
       return;
     }
-    if (!paystackReady) {
-      toast.error("Payment gateway loading… try again in a moment");
-      return;
-    }
-    setSubmitting(true);
-    const memberCode = (user.id || "U").replace(/-/g, "").slice(0, 10).toUpperCase();
-    const reference = buildReference("ST", `RES${selected.id}`, memberCode);
+    (async () => {
+      setSearching(true);
+      try {
+        const url = `${SUPABASE_URL}/functions/v1/marketplace-search?q=${encodeURIComponent(searchTerm)}&marketplaces=makro,amazon,takealot`;
+        const res = await fetch(url, {
+          headers: { Authorization: `Bearer ${SUPABASE_ANON}`, apikey: SUPABASE_ANON },
+        });
+        if (!res.ok) throw new Error("search failed");
+        const data = await res.json();
+        const results: Product[] = ((data?.results as any[]) ?? []).map((r) => ({
+          product_name: r.name,
+          price: Number(r.price ?? 0),
+          currency: r.currency ?? "ZAR",
+          image_url: r.image_url ?? undefined,
+          category: r.category ?? undefined,
+          seller_count: r.seller_count ?? undefined,
+          stock_available: r.stock !== undefined ? Number(r.stock) > 0 : true,
+          product_url: r.url ?? undefined,
+          rating: r.rating ?? undefined,
+          source: (r.marketplace ?? "takealot") as Product["source"],
+        }));
+        setSearchResults(results);
+      } catch (e) {
+        console.error(e);
+        toast.error("Search failed. Try again.");
+        setSearchResults([]);
+      } finally {
+        setSearching(false);
+      }
+    })();
+  }, [searchTerm]);
 
-    const result = await pay({
-      email: payerEmail,
-      amountZar: totalCost,
-      currency: "ZAR",
-      reference,
-      metadata: {
-        payment_type: "spark_trade_reservation",
-        member_id: user.id,
-        opportunity_id: selected.id,
-        units_reserved: units,
-      },
-    });
-    setSubmitting(false);
-
-    if (!result.ok) return;
-
-    toast.success(`✅ Reservation confirmed — ${units} units of ${selected.product_name}`);
-    setSelected(null);
-    setUnits(0);
-    load();
+  const onReserve = (p: Product) => {
+    toast.info(`Reservation flow for "${p.product_name}" — payment coming next.`);
   };
 
+  const grid = useMemo(() => (searchTerm ? searchResults : trending), [searchTerm, searchResults, trending]);
 
-  if (loading) return <div className="grid min-h-screen place-items-center"><Loader2 className="h-8 w-8 animate-spin text-primary" /></div>;
+  if (authLoading || !user) {
+    return (
+      <div className="grid min-h-screen place-items-center">
+        <Loader2 className="h-8 w-8 animate-spin text-primary" />
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-background px-4 py-8 md:py-12">
       <div className="mx-auto max-w-6xl">
         <p className="text-xs uppercase tracking-[0.22em] text-muted-foreground">Step 7 of 10</p>
-        <h1 className="mt-2 font-display text-3xl md:text-4xl">Product Opportunities</h1>
-        <p className="mt-2 text-muted-foreground">Browse and reserve inventory for your business.</p>
+        <div className="mt-2 flex flex-wrap items-end justify-between gap-3">
+          <div>
+            <h1 className="font-display text-3xl md:text-4xl">Product Opportunities</h1>
+            <p className="mt-2 text-muted-foreground">Live products from Takealot, Amazon & Makro.</p>
+          </div>
+          <Badge variant="secondary" className="text-sm py-2 px-3">
+            Available Capital:{" "}
+            <span className="ml-1 font-semibold">
+              {availableCapital === null ? "…" : fmtZar(availableCapital)}
+            </span>
+          </Badge>
+        </div>
 
-        <div className="mt-6 flex flex-col sm:flex-row gap-3">
-          <Input placeholder="Search products…" value={search} onChange={(e) => setSearch(e.target.value)} className="sm:max-w-xs" />
-          <Select value={sortBy} onValueChange={setSortBy}>
-            <SelectTrigger className="sm:w-56"><SelectValue /></SelectTrigger>
-            <SelectContent>
-              <SelectItem value="margin">Highest Margin</SelectItem>
-              <SelectItem value="moq">Lowest MOQ</SelectItem>
-              <SelectItem value="date">Soonest Arrival</SelectItem>
-            </SelectContent>
-          </Select>
-          {capital > 0 && (
-            <Badge variant="secondary" className="self-start sm:self-center">Capital: {fmtMoney(capital, config)}</Badge>
+        <div className="mt-6 relative">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+          <Input
+            placeholder="Search Makro, Amazon, Takealot…"
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            className="pl-9"
+          />
+          {searching && (
+            <Loader2 className="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 animate-spin text-muted-foreground" />
           )}
         </div>
 
-        {sorted.length === 0 ? (
+        {searchTerm && (
+          <p className="mt-3 text-sm text-muted-foreground">
+            Search results for "{searchTerm}" — {searchResults.length} found
+          </p>
+        )}
+
+        {error && (
+          <Card className="mt-10 p-10 text-center">
+            <p className="text-destructive">{error}</p>
+            <Button className="mt-4" onClick={() => window.location.reload()}>Retry</Button>
+          </Card>
+        )}
+
+        {loading && !error ? (
+          <div className="mt-10 grid place-items-center">
+            <Loader2 className="h-8 w-8 animate-spin text-primary" />
+          </div>
+        ) : grid.length === 0 && !error ? (
           <Card className="mt-10 p-10 text-center">
             <Package className="mx-auto h-10 w-10 text-muted-foreground" />
-            <p className="mt-3 text-muted-foreground">No opportunities available yet. Check back soon.</p>
+            <p className="mt-3 text-muted-foreground">
+              {searchTerm ? "No products match your search." : "No products available yet. Check back soon."}
+            </p>
           </Card>
         ) : (
-          <div className="mt-6 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
-            {sorted.map((o) => (
-              <Card key={o.id} className="overflow-hidden flex flex-col sm:flex-row md:flex-col">
-                <ProductImage url={o.product_image_url} name={o.product_name} />
-                <div className="p-4 flex-1 flex flex-col gap-2">
-                  <h3 className="font-semibold">{o.product_name}</h3>
-                  <p className="text-xs text-muted-foreground">{o.supplier_name} • {o.supplier_country}</p>
-                  <div className="text-sm space-y-1 mt-2">
-                    <div className="flex justify-between"><span className="text-muted-foreground">MOQ</span><span className="font-medium">{o.moq_required.toLocaleString()}</span></div>
-                    <div className="flex justify-between"><span className="text-muted-foreground">Unit cost</span><span className="font-medium">{fmtMoney(Number(o.unit_cost_zar), config)}</span></div>
-                    <div className="flex justify-between"><span className="text-muted-foreground">Sell price</span><span className="font-semibold">{fmtMoney(Number(o.suggested_selling_price_zar), config)}</span></div>
-                    <div className="flex justify-between"><span className="text-muted-foreground">Margin</span><span className="font-semibold text-green-600">{o.expected_margin_percentage}%</span></div>
-                  </div>
-                  <p className="text-xs text-muted-foreground mt-2">
-                    Order {new Date(o.expected_order_date).toLocaleDateString()} • Arrive {new Date(o.expected_arrival_date).toLocaleDateString()}
-                  </p>
-                  <Button className="mt-3" onClick={() => { setSelected(o); setUnits(0); }}>Reserve Units</Button>
-                </div>
-              </Card>
+          <div className="mt-6 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
+            {grid.map((p, i) => (
+              <ProductCard key={`${p.source}-${i}-${p.product_name}`} p={p} onReserve={onReserve} />
             ))}
           </div>
         )}
@@ -174,61 +230,65 @@ export default function SparkTradeProductOpportunities() {
           </Button>
         </div>
       </div>
-
-      <Dialog open={!!selected} onOpenChange={(o) => !o && setSelected(null)}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>Reserve {selected?.product_name}</DialogTitle>
-          </DialogHeader>
-          {selected && (
-            <div className="space-y-4">
-              <div>
-                <label className="text-sm font-medium">How many units? (max {selected.moq_required.toLocaleString()})</label>
-                <Input type="number" min={1} max={selected.moq_required} value={units || ""} onChange={(e) => setUnits(Math.max(0, parseInt(e.target.value) || 0))} />
-              </div>
-              <div className="rounded-lg bg-muted p-3 text-sm space-y-1">
-                <div className="flex justify-between"><span>Unit cost</span><span>{fmtMoney(Number(selected.unit_cost_zar), config)}</span></div>
-                <div className="flex justify-between font-semibold"><span>Total cost</span><span>{fmtMoney(totalCost, config)}</span></div>
-                {capital > 0 && <div className="flex justify-between text-xs text-muted-foreground"><span>Your capital</span><span>{fmtMoney(capital, config)}</span></div>}
-                {insufficient && <p className="text-xs text-destructive">Insufficient capital for this reservation</p>}
-              </div>
-            </div>
-          )}
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setSelected(null)}>Cancel</Button>
-            <Button onClick={handleReserve} disabled={submitting || units < 1 || insufficient}>
-              {submitting ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
-              {submitting ? "Processing…" : totalCost > 0 ? `Pay ${fmtMoney(totalCost, config)} & Reserve` : "Reserve"}
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
     </div>
   );
 }
 
-function ProductImage({ url, name }: { url?: string; name: string }) {
+function ProductCard({ p, onReserve }: { p: Product; onReserve: (p: Product) => void }) {
   const [loaded, setLoaded] = useState(false);
   const [errored, setErrored] = useState(false);
-  const wrapper = "w-full sm:w-2/5 md:w-full sm:h-auto md:h-[200px] h-[200px] shrink-0 relative bg-muted";
-  if (!url || errored) {
-    return (
-      <div className={`${wrapper} grid place-items-center`}>
-        <Package className="h-10 w-10 text-muted-foreground" />
-      </div>
-    );
-  }
+  const inStock = p.stock_available !== false;
   return (
-    <div className={wrapper}>
-      {!loaded && <div className="absolute inset-0 animate-pulse bg-muted" />}
-      <img
-        src={url}
-        alt={name}
-        loading="lazy"
-        onLoad={() => setLoaded(true)}
-        onError={() => setErrored(true)}
-        className={`w-full h-full object-cover transition-opacity duration-300 ${loaded ? "opacity-100" : "opacity-0"}`}
-      />
-    </div>
+    <Card className="overflow-hidden flex flex-col transition-all hover:shadow-lg hover:-translate-y-0.5">
+      <div className="relative h-[200px] w-full bg-muted">
+        {!p.image_url || errored ? (
+          <div className="grid h-full w-full place-items-center">
+            <Package className="h-10 w-10 text-muted-foreground" />
+          </div>
+        ) : (
+          <>
+            {!loaded && <div className="absolute inset-0 animate-pulse bg-muted" />}
+            <img
+              src={p.image_url}
+              alt={p.product_name}
+              loading="lazy"
+              onLoad={() => setLoaded(true)}
+              onError={() => setErrored(true)}
+              className={`h-full w-full object-cover transition-opacity duration-300 ${loaded ? "opacity-100" : "opacity-0"}`}
+            />
+          </>
+        )}
+        <Badge className="absolute top-2 left-2 capitalize" variant="secondary">
+          {sourceLabel[p.source]}
+        </Badge>
+      </div>
+      <div className="p-4 flex-1 flex flex-col gap-2">
+        <h3 className="font-semibold line-clamp-2 min-h-[3rem]">{p.product_name}</h3>
+        <div className="flex items-center justify-between">
+          <span className="text-lg font-bold">
+            {p.currency && p.currency !== "ZAR" ? `${p.currency} ${p.price.toLocaleString()}` : fmtZar(p.price)}
+          </span>
+          {p.category && <span className="text-xs text-muted-foreground line-clamp-1 max-w-[60%] text-right">{p.category}</span>}
+        </div>
+        <div className="flex items-center justify-between text-xs text-muted-foreground">
+          <span>Sellers: {p.seller_count ?? "—"}</span>
+          <span className={inStock ? "text-green-600 font-medium" : "text-destructive font-medium"}>
+            {inStock ? "In stock" : "Out of stock"}
+          </span>
+        </div>
+        <div className="mt-2 flex gap-2">
+          <Button size="sm" className="flex-1" disabled={!inStock} onClick={() => onReserve(p)}>
+            Reserve
+          </Button>
+          {p.product_url && (
+            <Button size="sm" variant="outline" asChild>
+              <a href={p.product_url} target="_blank" rel="noreferrer" aria-label="View on retailer">
+                <ExternalLink className="h-4 w-4" />
+              </a>
+            </Button>
+          )}
+        </div>
+      </div>
+    </Card>
   );
 }
