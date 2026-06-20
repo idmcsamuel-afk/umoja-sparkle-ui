@@ -240,6 +240,12 @@ export default function SparkTradeAdminDashboard() {
               <Field label="Supplier" value={editing.supplier_name} onChange={(v) => setEditing({ ...editing, supplier_name: v })} />
               <Field label="Supplier country" value={editing.supplier_country} onChange={(v) => setEditing({ ...editing, supplier_country: v })} />
               <Field label="Image URL" value={editing.product_image_url ?? ""} onChange={(v) => setEditing({ ...editing, product_image_url: v })} />
+              <div className="md:col-span-2">
+                <ImageUploader
+                  value={editing.product_image_url ?? ""}
+                  onChange={(url) => setEditing({ ...editing, product_image_url: url })}
+                />
+              </div>
               <Field label="MOQ" type="number" value={editing.moq_required} onChange={(v) => setEditing({ ...editing, moq_required: Number(v) })} />
               <Field label="Unit cost (ZAR)" type="number" value={editing.unit_cost_zar} onChange={(v) => setEditing({ ...editing, unit_cost_zar: Number(v) })} />
               <Field label="Selling price (ZAR)" type="number" value={editing.suggested_selling_price_zar} onChange={(v) => setEditing({ ...editing, suggested_selling_price_zar: Number(v) })} />
