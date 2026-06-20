@@ -195,6 +195,10 @@ export default function SparkTradeDashboard() {
             <SparkTradeProductOpportunities />
           </TabsContent>
 
+          <TabsContent value="group-brands" className="mt-6">
+            <SparkTradeGroupBrands />
+          </TabsContent>
+
           <TabsContent value="demand" className="mt-6">
             <SparkTradeDemandMeter />
           </TabsContent>
