@@ -2,12 +2,14 @@ import { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
+import { usePaystack, buildReference } from "@/hooks/usePaystack";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription } from "@/components/ui/dialog";
 import { toast } from "sonner";
-import { Loader2, Package, ArrowRight, Search, ExternalLink } from "lucide-react";
+import { Loader2, Package, ArrowRight, Search, ExternalLink, Truck, CheckCircle2, Copy } from "lucide-react";
 
 interface Product {
   product_name: string;
@@ -37,6 +39,7 @@ const fmtZar = (n: number) =>
 export default function SparkTradeProductOpportunities() {
   const { user, loading: authLoading } = useAuth();
   const navigate = useNavigate();
+  const { pay, ready: paystackReady } = usePaystack();
 
   const [availableCapital, setAvailableCapital] = useState<number | null>(null);
   const [trending, setTrending] = useState<Product[]>([]);
@@ -48,12 +51,22 @@ export default function SparkTradeProductOpportunities() {
   const [searchResults, setSearchResults] = useState<Product[]>([]);
   const [searching, setSearching] = useState(false);
 
+  const [paying, setPaying] = useState<string | null>(null); // unique key of product being paid
+  const [tracking, setTracking] = useState<{
+    product: Product;
+    reference: string;
+    waybill?: string | null;
+    trackingUrl?: string | null;
+    status?: string;
+  } | null>(null);
+  const [email, setEmail] = useState<string | null>(null);
+
   // Redirect if not logged in
   useEffect(() => {
     if (!authLoading && !user) navigate("/login");
   }, [authLoading, user, navigate]);
 
-  // Fetch member capital
+  // Fetch member capital + email
   useEffect(() => {
     if (!user) return;
     (async () => {
@@ -68,6 +81,8 @@ export default function SparkTradeProductOpportunities() {
       } catch {
         setAvailableCapital(0);
       }
+      const { data: m } = await supabase.from("members").select("email").eq("id", user.id).maybeSingle();
+      setEmail(((m as any)?.email as string) ?? user.email ?? null);
     })();
   }, [user]);
 
@@ -148,8 +163,96 @@ export default function SparkTradeProductOpportunities() {
     })();
   }, [searchTerm]);
 
-  const onReserve = (p: Product) => {
-    toast.info(`Reservation flow for "${p.product_name}" — payment coming next.`);
+  const productKey = (p: Product) => `${p.source}-${p.product_url ?? p.product_name}`;
+
+  const onReserve = async (p: Product) => {
+    if (!user) {
+      navigate("/login");
+      return;
+    }
+    const payerEmail = email || user.email;
+    if (!payerEmail) {
+      toast.error("Add an email to your account before paying");
+      return;
+    }
+    if (p.currency && p.currency !== "ZAR") {
+      toast.error("Only ZAR-priced products can be purchased right now");
+      return;
+    }
+    if (!paystackReady) {
+      toast.error("Payment gateway loading… try again in a moment");
+      return;
+    }
+    if (!p.price || p.price < 1) {
+      toast.error("Invalid product price");
+      return;
+    }
+
+    const key = productKey(p);
+    setPaying(key);
+
+    const memberCode = (user.id || "U").replace(/-/g, "").slice(0, 10).toUpperCase();
+    const productIdSafe = (p.product_url ?? p.product_name).replace(/[^A-Za-z0-9]/g, "").slice(0, 12) || "PROD";
+    const reference = buildReference("ST", `MKT${productIdSafe}`, memberCode);
+
+    const result = await pay({
+      email: payerEmail,
+      amountZar: p.price,
+      currency: "ZAR",
+      reference,
+      metadata: {
+        payment_type: "marketplace_purchase",
+        member_id: user.id,
+        product_name: p.product_name,
+        category: p.category ?? null,
+        seller: sourceLabel[p.source],
+        product_url: p.product_url ?? null,
+      },
+    });
+
+    setPaying(null);
+
+    if (!result.ok) {
+      if (result.error && result.error !== "cancelled") {
+        toast.error("Payment did not complete", { description: result.error });
+      }
+      return;
+    }
+
+    // Poll fulfillment_shipments for the waybill (created server-side by verify-paystack-payment)
+    let shipment: any = null;
+    for (let i = 0; i < 6; i++) {
+      const { data } = await supabase
+        .from("fulfillment_shipments" as any)
+        .select("waybill_number, tracking_url, status")
+        .eq("payment_reference", reference)
+        .maybeSingle();
+      if (data) {
+        shipment = data;
+        if ((data as any).waybill_number) break;
+      }
+      await new Promise((r) => setTimeout(r, 1500));
+    }
+
+    setTracking({
+      product: p,
+      reference,
+      waybill: shipment?.waybill_number ?? null,
+      trackingUrl: shipment?.tracking_url ?? null,
+      status: shipment?.status ?? "pending",
+    });
+
+    // refresh capital
+    try {
+      const res = await fetch(
+        `${SUPABASE_URL}/functions/v1/member-capital/${user.id}`,
+        { headers: { Authorization: `Bearer ${SUPABASE_ANON}`, apikey: SUPABASE_ANON } },
+      );
+      if (res.ok) {
+        const d = await res.json();
+        setAvailableCapital(Number(d?.available_capital ?? 0));
+      }
+    } catch {}
   };
 
   const grid = useMemo(() => (searchTerm ? searchResults : trending), [searchTerm, searchResults, trending]);
@@ -219,7 +322,13 @@ export default function SparkTradeProductOpportunities() {
         ) : (
           <div className="mt-6 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
             {grid.map((p, i) => (
-              <ProductCard key={`${p.source}-${i}-${p.product_name}`} p={p} onReserve={onReserve} />
+              <ProductCard
+                key={`${p.source}-${i}-${p.product_name}`}
+                p={p}
+                onReserve={onReserve}
+                isPaying={paying === productKey(p)}
+                anyPaying={!!paying}
+              />
             ))}
           </div>
         )}
@@ -230,11 +339,93 @@ export default function SparkTradeProductOpportunities() {
           </Button>
         </div>
       </div>
+
+      <TrackingDialog tracking={tracking} onClose={() => setTracking(null)} />
     </div>
   );
 }
 
-function ProductCard({ p, onReserve }: { p: Product; onReserve: (p: Product) => void }) {
+function TrackingDialog({
+  tracking,
+  onClose,
+}: {
+  tracking: {
+    product: Product;
+    reference: string;
+    waybill?: string | null;
+    trackingUrl?: string | null;
+    status?: string;
+  } | null;
+  onClose: () => void;
+}) {
+  if (!tracking) return null;
+  const hasWaybill = !!tracking.waybill;
+  const copy = (txt: string) => {
+    navigator.clipboard?.writeText(txt).then(
+      () => toast.success("Copied"),
+      () => toast.error("Copy failed"),
+    );
+  };
+  return (
+    <Dialog open={!!tracking} onOpenChange={(o) => !o && onClose()}>
+      <DialogContent>
+        <DialogHeader>
+          <DialogTitle className="flex items-center gap-2">
+            <CheckCircle2 className="h-5 w-5 text-green-600" />
+            Payment successful — order placed
+          </DialogTitle>
+          <DialogDescription>
+            {tracking.product.product_name} • {fmtZar(tracking.product.price)}
+          </DialogDescription>
+        </DialogHeader>
+
+        <div className="space-y-3 text-sm">
+          <div className="rounded-lg bg-muted p-3 space-y-2">
+            <div className="flex items-center justify-between gap-2">
+              <span className="text-muted-foreground">Payment reference</span>
+              <button onClick={() => copy(tracking.reference)} className="font-mono text-xs flex items-center gap-1 hover:underline">
+                {tracking.reference} <Copy className="h-3 w-3" />
+              </button>
+            </div>
+            <div className="flex items-center justify-between gap-2">
+              <span className="text-muted-foreground flex items-center gap-1"><Truck className="h-4 w-4" />Waybill</span>
+              {hasWaybill ? (
+                <button onClick={() => copy(tracking.waybill!)} className="font-mono text-xs flex items-center gap-1 hover:underline">
+                  {tracking.waybill} <Copy className="h-3 w-3" />
+                </button>
+              ) : (
+                <span className="text-xs text-muted-foreground">Generating… you'll get an SMS</span>
+              )}
+            </div>
+            <div className="flex items-center justify-between">
+              <span className="text-muted-foreground">Estimated delivery</span>
+              <span>2–4 business days (TheCourierGuy)</span>
+            </div>
+          </div>
+
+          {!hasWaybill && (
+            <p className="text-xs text-muted-foreground">
+              Payment succeeded. Your shipment is being created — we'll SMS the tracking link as soon as it's ready.
+            </p>
+          )}
+        </div>
+
+        <DialogFooter className="gap-2 sm:gap-2">
+          {tracking.trackingUrl && (
+            <Button variant="outline" asChild>
+              <a href={tracking.trackingUrl} target="_blank" rel="noreferrer">
+                Track shipment <ExternalLink className="ml-2 h-4 w-4" />
+              </a>
+            </Button>
+          )}
+          <Button onClick={onClose}>Done</Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
+function ProductCard({ p, onReserve, isPaying, anyPaying }: { p: Product; onReserve: (p: Product) => void; isPaying: boolean; anyPaying: boolean }) {
   const [loaded, setLoaded] = useState(false);
   const [errored, setErrored] = useState(false);
   const inStock = p.stock_available !== false;
@@ -277,8 +468,14 @@ function ProductCard({ p, onReserve }: { p: Product; onReserve: (p: Product) => 
           </span>
         </div>
         <div className="mt-2 flex gap-2">
-          <Button size="sm" className="flex-1" disabled={!inStock} onClick={() => onReserve(p)}>
-            Reserve
+          <Button
+            size="sm"
+            className="flex-1"
+            disabled={!inStock || anyPaying}
+            onClick={() => onReserve(p)}
+          >
+            {isPaying ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
+            {isPaying ? "Processing…" : "Reserve & Pay"}
           </Button>
           {p.product_url && (
             <Button size="sm" variant="outline" asChild>

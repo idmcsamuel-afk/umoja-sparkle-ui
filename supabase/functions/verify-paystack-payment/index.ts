@@ -519,6 +519,32 @@ async function applyToGroupBrandInvestment(
   return { kind: "group_brand_investment", applied: true, row_id: rowId, shipment };
 }
 
+async function applyToMarketplacePurchase(
+  userId: string,
+  ref: string,
+  amountZar: number,
+  meta: Record<string, any>,
+) {
+  const productName = String(meta.product_name ?? "Marketplace product");
+  const seller = String(meta.seller ?? "marketplace");
+  const shipment = await createTcgShipment({
+    memberId: userId,
+    sourceType: "spark_trade_reservation",
+    sourceId: `mkt-${ref}`,
+    paymentRef: ref,
+    amountZar,
+    description: `${productName} (${seller})`,
+  });
+  await sb.from("notifications").insert({
+    member_id: userId,
+    title: "Order placed 📦",
+    body: `${productName} from ${seller} — R${Math.round(amountZar).toLocaleString()}.`,
+    kind: "spark_trade",
+    link: "/spark-trade/dashboard",
+  });
+  return { kind: "marketplace_purchase", applied: true, shipment };
+}
+
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
   try {
@@ -573,6 +599,7 @@ Deno.serve(async (req) => {
     const kind = metaPaymentType
       ? (metaPaymentType.includes("group_brand") ? "GBI"
         : metaPaymentType.includes("spark_trade_subscription") || metaPaymentType === "spark_trade_membership" ? "STSUB"
+        : metaPaymentType.includes("marketplace") ? "MKT"
         : metaPaymentType.includes("spark_trade_reservation") || metaPaymentType.includes("inventory_reservation") ? "STRES"
         : metaPaymentType.includes("circle") ? "CIRCLE"
         : metaPaymentType.includes("propert") || metaPaymentType.includes("reit") ? "PROP"
@@ -607,6 +634,7 @@ Deno.serve(async (req) => {
         if (!gbId) result = { kind: "group_brand_investment", applied: false, reason: "missing_group_brand_id" };
         else result = await applyToGroupBrandInvestment(u.user.id, reference, amountZar, gbId, stake);
       }
+      else if (kind === "MKT") result = await applyToMarketplacePurchase(u.user.id, reference, amountZar, clientMeta);
       else result = { kind: "unknown", applied: false, reason: `unknown_prefix:${prefix}` };
     } catch (e) {
       const msg = e instanceof Error ? e.message : String(e);
