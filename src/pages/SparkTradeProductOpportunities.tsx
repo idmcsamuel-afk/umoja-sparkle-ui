@@ -39,6 +39,7 @@ const fmtZar = (n: number) =>
 export default function SparkTradeProductOpportunities() {
   const { user, loading: authLoading } = useAuth();
   const navigate = useNavigate();
+  const { pay, ready: paystackReady } = usePaystack();
 
   const [availableCapital, setAvailableCapital] = useState<number | null>(null);
   const [trending, setTrending] = useState<Product[]>([]);
@@ -49,6 +50,16 @@ export default function SparkTradeProductOpportunities() {
   const [searchTerm, setSearchTerm] = useState("");
   const [searchResults, setSearchResults] = useState<Product[]>([]);
   const [searching, setSearching] = useState(false);
+
+  const [paying, setPaying] = useState<string | null>(null); // unique key of product being paid
+  const [tracking, setTracking] = useState<{
+    product: Product;
+    reference: string;
+    waybill?: string | null;
+    trackingUrl?: string | null;
+    status?: string;
+  } | null>(null);
+  const [email, setEmail] = useState<string | null>(null);
 
   // Redirect if not logged in
   useEffect(() => {
