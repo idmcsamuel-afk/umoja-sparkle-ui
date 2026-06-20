@@ -425,7 +425,7 @@ function TrackingDialog({
   );
 }
 
-function ProductCard({ p, onReserve }: { p: Product; onReserve: (p: Product) => void }) {
+function ProductCard({ p, onReserve, isPaying, anyPaying }: { p: Product; onReserve: (p: Product) => void; isPaying: boolean; anyPaying: boolean }) {
   const [loaded, setLoaded] = useState(false);
   const [errored, setErrored] = useState(false);
   const inStock = p.stock_available !== false;
