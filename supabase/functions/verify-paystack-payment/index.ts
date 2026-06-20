@@ -634,6 +634,7 @@ Deno.serve(async (req) => {
         if (!gbId) result = { kind: "group_brand_investment", applied: false, reason: "missing_group_brand_id" };
         else result = await applyToGroupBrandInvestment(u.user.id, reference, amountZar, gbId, stake);
       }
+      else if (kind === "MKT") result = await applyToMarketplacePurchase(u.user.id, reference, amountZar, clientMeta);
       else result = { kind: "unknown", applied: false, reason: `unknown_prefix:${prefix}` };
     } catch (e) {
       const msg = e instanceof Error ? e.message : String(e);
