@@ -97,6 +97,7 @@ export default function SparkTradeDashboard() {
             <TabsTrigger value="store"><Store className="h-4 w-4 mr-1" /> Store</TabsTrigger>
             <TabsTrigger value="reservations"><Package className="h-4 w-4 mr-1" /> Reservations</TabsTrigger>
             <TabsTrigger value="opportunities"><ShoppingBag className="h-4 w-4 mr-1" /> Browse</TabsTrigger>
+            <TabsTrigger value="group-brands"><Building2 className="h-4 w-4 mr-1" /> Group Brands</TabsTrigger>
             <TabsTrigger value="demand"><Users className="h-4 w-4 mr-1" /> Demand</TabsTrigger>
           </TabsList>
 
