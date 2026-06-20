@@ -206,3 +206,29 @@ export default function SparkTradeProductOpportunities() {
     </div>
   );
 }
+
+function ProductImage({ url, name }: { url?: string; name: string }) {
+  const [loaded, setLoaded] = useState(false);
+  const [errored, setErrored] = useState(false);
+  const wrapper = "w-full sm:w-2/5 md:w-full sm:h-auto md:h-[200px] h-[200px] shrink-0 relative bg-muted";
+  if (!url || errored) {
+    return (
+      <div className={`${wrapper} grid place-items-center`}>
+        <Package className="h-10 w-10 text-muted-foreground" />
+      </div>
+    );
+  }
+  return (
+    <div className={wrapper}>
+      {!loaded && <div className="absolute inset-0 animate-pulse bg-muted" />}
+      <img
+        src={url}
+        alt={name}
+        loading="lazy"
+        onLoad={() => setLoaded(true)}
+        onError={() => setErrored(true)}
+        className={`w-full h-full object-cover transition-opacity duration-300 ${loaded ? "opacity-100" : "opacity-0"}`}
+      />
+    </div>
+  );
+}
