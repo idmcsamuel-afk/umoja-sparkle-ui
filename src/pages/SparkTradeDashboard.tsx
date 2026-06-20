@@ -8,7 +8,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { Loader2, Store, Sparkles, Package, Users, ShoppingBag, Copy, ExternalLink } from "lucide-react";
+import { Loader2, Store, Sparkles, Package, Users, ShoppingBag, Copy, ExternalLink, Building2 } from "lucide-react";
 import { toast } from "sonner";
 import SparkTradeProductOpportunities from "./SparkTradeProductOpportunities";
 import SparkTradeDemandMeter from "./SparkTradeDemandMeter";
