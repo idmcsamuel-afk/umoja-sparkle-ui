@@ -25,6 +25,7 @@ export default function SparkTradeDashboard() {
   const [blueprint, setBlueprint] = useState<any>(null);
   const [store, setStore] = useState<any>(null);
   const [reservations, setReservations] = useState<any[]>([]);
+  const [memberProfile, setMemberProfile] = useState<any>(null);
 
   useEffect(() => {
     if (!user) return;
