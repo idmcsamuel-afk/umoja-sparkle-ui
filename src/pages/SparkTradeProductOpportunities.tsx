@@ -163,8 +163,96 @@ export default function SparkTradeProductOpportunities() {
     })();
   }, [searchTerm]);
 
-  const onReserve = (p: Product) => {
-    toast.info(`Reservation flow for "${p.product_name}" — payment coming next.`);
+  const productKey = (p: Product) => `${p.source}-${p.product_url ?? p.product_name}`;
+
+  const onReserve = async (p: Product) => {
+    if (!user) {
+      navigate("/login");
+      return;
+    }
+    const payerEmail = email || user.email;
+    if (!payerEmail) {
+      toast.error("Add an email to your account before paying");
+      return;
+    }
+    if (p.currency && p.currency !== "ZAR") {
+      toast.error("Only ZAR-priced products can be purchased right now");
+      return;
+    }
+    if (!paystackReady) {
+      toast.error("Payment gateway loading… try again in a moment");
+      return;
+    }
+    if (!p.price || p.price < 1) {
+      toast.error("Invalid product price");
+      return;
+    }
+
+    const key = productKey(p);
+    setPaying(key);
+
+    const memberCode = (user.id || "U").replace(/-/g, "").slice(0, 10).toUpperCase();
+    const productIdSafe = (p.product_url ?? p.product_name).replace(/[^A-Za-z0-9]/g, "").slice(0, 12) || "PROD";
+    const reference = buildReference("ST", `MKT${productIdSafe}`, memberCode);
+
+    const result = await pay({
+      email: payerEmail,
+      amountZar: p.price,
+      currency: "ZAR",
+      reference,
+      metadata: {
+        payment_type: "marketplace_purchase",
+        member_id: user.id,
+        product_name: p.product_name,
+        category: p.category ?? null,
+        seller: sourceLabel[p.source],
+        product_url: p.product_url ?? null,
+      },
+    });
+
+    setPaying(null);
+
+    if (!result.ok) {
+      if (result.error && result.error !== "cancelled") {
+        toast.error("Payment did not complete", { description: result.error });
+      }
+      return;
+    }
+
+    // Poll fulfillment_shipments for the waybill (created server-side by verify-paystack-payment)
+    let shipment: any = null;
+    for (let i = 0; i < 6; i++) {
+      const { data } = await supabase
+        .from("fulfillment_shipments" as any)
+        .select("waybill_number, tracking_url, status")
+        .eq("payment_reference", reference)
+        .maybeSingle();
+      if (data) {
+        shipment = data;
+        if ((data as any).waybill_number) break;
+      }
+      await new Promise((r) => setTimeout(r, 1500));
+    }
+
+    setTracking({
+      product: p,
+      reference,
+      waybill: shipment?.waybill_number ?? null,
+      trackingUrl: shipment?.tracking_url ?? null,
+      status: shipment?.status ?? "pending",
+    });
+
+    // refresh capital
+    try {
+      const res = await fetch(
+        `${SUPABASE_URL}/functions/v1/member-capital/${user.id}`,
+        { headers: { Authorization: `Bearer ${SUPABASE_ANON}`, apikey: SUPABASE_ANON } },
+      );
+      if (res.ok) {
+        const d = await res.json();
+        setAvailableCapital(Number(d?.available_capital ?? 0));
+      }
+    } catch {}
   };
 
   const grid = useMemo(() => (searchTerm ? searchResults : trending), [searchTerm, searchResults, trending]);
