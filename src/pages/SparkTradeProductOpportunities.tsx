@@ -147,12 +147,8 @@ export default function SparkTradeProductOpportunities() {
         ) : (
           <div className="mt-6 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
             {sorted.map((o) => (
-              <Card key={o.id} className="overflow-hidden flex flex-col">
-                {o.product_image_url ? (
-                  <img src={o.product_image_url} alt={o.product_name} className="w-full h-44 object-cover" />
-                ) : (
-                  <div className="w-full h-44 bg-muted grid place-items-center"><Package className="h-10 w-10 text-muted-foreground" /></div>
-                )}
+              <Card key={o.id} className="overflow-hidden flex flex-col sm:flex-row md:flex-col">
+                <ProductImage url={o.product_image_url} name={o.product_name} />
                 <div className="p-4 flex-1 flex flex-col gap-2">
                   <h3 className="font-semibold">{o.product_name}</h3>
                   <p className="text-xs text-muted-foreground">{o.supplier_name} • {o.supplier_country}</p>
