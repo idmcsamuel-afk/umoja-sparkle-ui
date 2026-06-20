@@ -6043,6 +6043,42 @@ export type Database = {
         }
         Relationships: []
       }
+      takealot_products: {
+        Row: {
+          category: string | null
+          id: string
+          image_url: string | null
+          rating: number | null
+          scraped_at: string
+          seller_count: number | null
+          takealot_name: string
+          takealot_price: number | null
+          takealot_url: string | null
+        }
+        Insert: {
+          category?: string | null
+          id?: string
+          image_url?: string | null
+          rating?: number | null
+          scraped_at?: string
+          seller_count?: number | null
+          takealot_name: string
+          takealot_price?: number | null
+          takealot_url?: string | null
+        }
+        Update: {
+          category?: string | null
+          id?: string
+          image_url?: string | null
+          rating?: number | null
+          scraped_at?: string
+          seller_count?: number | null
+          takealot_name?: string
+          takealot_price?: number | null
+          takealot_url?: string | null
+        }
+        Relationships: []
+      }
       trending_products: {
         Row: {
           admin_notes: string | null
