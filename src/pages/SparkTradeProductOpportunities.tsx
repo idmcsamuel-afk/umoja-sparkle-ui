@@ -468,8 +468,14 @@ function ProductCard({ p, onReserve, isPaying, anyPaying }: { p: Product; onRese
           </span>
         </div>
         <div className="mt-2 flex gap-2">
-          <Button size="sm" className="flex-1" disabled={!inStock} onClick={() => onReserve(p)}>
-            Reserve
+          <Button
+            size="sm"
+            className="flex-1"
+            disabled={!inStock || anyPaying}
+            onClick={() => onReserve(p)}
+          >
+            {isPaying ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
+            {isPaying ? "Processing…" : "Reserve & Pay"}
           </Button>
           {p.product_url && (
             <Button size="sm" variant="outline" asChild>
