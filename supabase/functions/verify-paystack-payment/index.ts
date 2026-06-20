@@ -599,6 +599,7 @@ Deno.serve(async (req) => {
     const kind = metaPaymentType
       ? (metaPaymentType.includes("group_brand") ? "GBI"
         : metaPaymentType.includes("spark_trade_subscription") || metaPaymentType === "spark_trade_membership" ? "STSUB"
+        : metaPaymentType.includes("marketplace") ? "MKT"
         : metaPaymentType.includes("spark_trade_reservation") || metaPaymentType.includes("inventory_reservation") ? "STRES"
         : metaPaymentType.includes("circle") ? "CIRCLE"
         : metaPaymentType.includes("propert") || metaPaymentType.includes("reit") ? "PROP"
