@@ -125,7 +125,7 @@ export default function SparkTradeGroupBrands() {
         amountZar: investAmount,
         reference,
         metadata: {
-          purpose: "group_brand_investment",
+          payment_type: "group_brand_investment",
           group_brand_id: investBrand.id,
           investor_user_id: user.id,
           investment_amount: investAmount,
