@@ -160,7 +160,20 @@ export default function SparkTradeOnboardingSummary() {
       return;
     }
     toast.success("Subscription activated 🎉");
-    nav("/spark-trade/dashboard");
+    setRedirecting(true);
+
+    const { data: member } = await supabase
+      .from("members")
+      .select("spark_trade_income_path")
+      .eq("id", user.id)
+      .maybeSingle();
+
+    const incomePath = (member as any)?.spark_trade_income_path;
+    const targetTab = incomePath === "GROUP_BRAND" ? "group-brands" : "reservations";
+
+    setTimeout(() => {
+      nav(`/spark-trade/dashboard?tab=${targetTab}`);
+    }, 2000);
   };
 
 
