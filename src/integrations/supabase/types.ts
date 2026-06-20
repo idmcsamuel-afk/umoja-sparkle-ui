@@ -6079,6 +6079,48 @@ export type Database = {
         }
         Relationships: []
       }
+      takealot_scrape_jobs: {
+        Row: {
+          category: string
+          collection_id: string
+          created_at: string
+          error_message: string | null
+          id: number
+          polling_completed_at: string | null
+          polling_started_at: string | null
+          product_count: number | null
+          status: string
+          triggered_at: string
+          updated_at: string
+        }
+        Insert: {
+          category: string
+          collection_id: string
+          created_at?: string
+          error_message?: string | null
+          id?: never
+          polling_completed_at?: string | null
+          polling_started_at?: string | null
+          product_count?: number | null
+          status?: string
+          triggered_at?: string
+          updated_at?: string
+        }
+        Update: {
+          category?: string
+          collection_id?: string
+          created_at?: string
+          error_message?: string | null
+          id?: never
+          polling_completed_at?: string | null
+          polling_started_at?: string | null
+          product_count?: number | null
+          status?: string
+          triggered_at?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       trending_products: {
         Row: {
           admin_notes: string | null
