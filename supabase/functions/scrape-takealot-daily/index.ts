@@ -6,8 +6,7 @@ const supabase = createClient(
   Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!
 )
 
-const brightDataKey = Deno.env.get('BRIGHT_DATA_API_KEY')
-const datasetId = 'j_mqmpsczd257dozluc0'
+const brightDataApiKey = Deno.env.get('BRIGHT_DATA_API_KEY')
 
 const categories = [
   'electronics',
@@ -19,55 +18,57 @@ const categories = [
 
 serve(async (req) => {
   try {
-    console.log('Starting Takealot scrape via Bright Data Dataset...')
+    console.log('Starting Takealot scrape via Bright Data Discover API...')
 
     const allProducts: any[] = []
 
     for (const category of categories) {
-      console.log(`Scraping ${category}...`)
+      const categoryUrl = `https://www.takealot.com/${category}`
+
+      console.log(`Scraping ${category} from ${categoryUrl}...`)
 
       try {
-        const categoryUrl = `https://www.takealot.com/${category}`
-
-        const response = await fetch(`https://api.brightdata.com/datasets/${datasetId}/query`, {
+        const response = await fetch('https://api.brightdata.com/discover', {
           method: 'POST',
           headers: {
-            'Authorization': `Bearer ${brightDataKey}`,
-            'Content-Type': 'application/json'
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${brightDataApiKey}`
           },
-          body: JSON.stringify({ url: categoryUrl })
+          body: JSON.stringify({
+            query: categoryUrl,
+            mode: 'standard',
+            language: 'en',
+            country: 'ZA',
+            format: 'json',
+            remove_duplicates: true,
+            include_content: false,
+            include_images: false
+          })
         })
 
         if (!response.ok) {
           console.error(`Bright Data error for ${category}: ${response.status}`)
-          const errorText = await response.text()
-          console.error(`Error details: ${errorText}`)
+          const errText = await response.text()
+          console.error(`Body: ${errText}`)
           continue
         }
 
         const data = await response.json()
 
-        let products: any[] = []
-        if (Array.isArray(data)) {
-          products = data
-        } else if (data.results && Array.isArray(data.results)) {
-          products = data.results
-        }
-
-        if (products.length > 0) {
-          for (const product of products.slice(0, 100)) {
+        if (Array.isArray(data) && data.length > 0) {
+          for (const product of data.slice(0, 100)) {
             allProducts.push({
-              takealot_name: product.product_title || 'Unknown',
-              takealot_price: product.price?.value || 0,
-              takealot_url: product.product_url,
+              takealot_name: product.product_title || product.name || 'Unknown',
+              takealot_price: product.price?.value || product.price || 0,
+              takealot_url: product.product_url || product.url || '',
               category: category.replace('-', ' '),
               seller_count: product.seller_count || 1,
               rating: product.rating || null,
-              image_url: product.image_url,
+              image_url: product.image_url || product.image || '',
               scraped_at: new Date().toISOString()
             })
           }
-          console.log(`Found ${products.length} products in ${category}`)
+          console.log(`Found ${data.length} products in ${category}`)
         } else {
           console.log(`No products found in ${category}`)
         }
@@ -75,6 +76,8 @@ serve(async (req) => {
         console.error(`Error scraping ${category}:`, categoryError)
         continue
       }
+
+      await new Promise(resolve => setTimeout(resolve, 1000))
     }
 
     if (allProducts.length > 0) {
