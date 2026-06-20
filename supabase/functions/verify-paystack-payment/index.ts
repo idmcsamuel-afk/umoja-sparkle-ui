@@ -434,6 +434,12 @@ Deno.serve(async (req) => {
         if (!oppId || !units) result = { kind: "spark_trade_reservation", applied: false, reason: "missing_opportunity_or_units" };
         else result = await applyToSparkTradeReservation(u.user.id, reference, amountZar, oppId, units);
       }
+      else if (kind === "GBI") {
+        const gbId = String(clientMeta.group_brand_id ?? "");
+        const stake = Number(clientMeta.ownership_stake ?? 0);
+        if (!gbId) result = { kind: "group_brand_investment", applied: false, reason: "missing_group_brand_id" };
+        else result = await applyToGroupBrandInvestment(u.user.id, reference, amountZar, gbId, stake);
+      }
       else result = { kind: "unknown", applied: false, reason: `unknown_prefix:${prefix}` };
     } catch (e) {
       const msg = e instanceof Error ? e.message : String(e);
