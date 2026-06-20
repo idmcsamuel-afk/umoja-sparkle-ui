@@ -277,6 +277,81 @@ async function applyToSparkTradeReservation(
   return { kind: "spark_trade_reservation", applied: true, row_id: (ins.data as any)?.id };
 }
 
+async function applyToGroupBrandInvestment(
+  userId: string,
+  ref: string,
+  amountZar: number,
+  groupBrandId: string,
+  ownershipStake: number,
+) {
+  // Find the pending investor row created at payment start (preferred), else create one
+  const { data: existing } = await sb
+    .from("spark_trade_group_brand_investors")
+    .select("id, payment_status")
+    .eq("payment_reference", ref)
+    .maybeSingle();
+
+  let rowId = (existing as any)?.id as string | undefined;
+  if (rowId) {
+    if ((existing as any).payment_status === "verified") {
+      return { kind: "group_brand_investment", applied: true, row_id: rowId, reason: "already_verified" };
+    }
+    const upd = await sb.from("spark_trade_group_brand_investors").update({
+      payment_status: "verified",
+      investment_amount: amountZar,
+      ownership_stake: ownershipStake,
+    } as any).eq("id", rowId);
+    if (upd.error) return { kind: "group_brand_investment", applied: false, error: upd.error.message };
+  } else {
+    const ins = await sb.from("spark_trade_group_brand_investors").insert({
+      group_brand_id: groupBrandId,
+      investor_user_id: userId,
+      investment_amount: amountZar,
+      ownership_stake: ownershipStake,
+      payment_reference: ref,
+      payment_status: "verified",
+      status: "active",
+    } as any).select("id").maybeSingle();
+    if (ins.error) return { kind: "group_brand_investment", applied: false, error: ins.error.message };
+    rowId = (ins.data as any)?.id;
+  }
+
+  // Increment brand capital
+  const { data: brand } = await sb
+    .from("spark_trade_group_brands")
+    .select("current_total_capital, target_total_capital, status, name, founder_user_id")
+    .eq("id", groupBrandId)
+    .maybeSingle();
+  if (brand) {
+    const newTotal = Number((brand as any).current_total_capital || 0) + amountZar;
+    const target = Number((brand as any).target_total_capital || 0);
+    const nextStatus = target > 0 && newTotal >= target ? "at_capacity" : (brand as any).status;
+    await sb.from("spark_trade_group_brands").update({
+      current_total_capital: newTotal,
+      status: nextStatus,
+    } as any).eq("id", groupBrandId);
+
+    await sb.from("notifications").insert({
+      member_id: userId,
+      title: "Investment confirmed ✓",
+      body: `You now hold ${ownershipStake.toFixed(2)}% of ${(brand as any).name}.`,
+      kind: "spark_trade",
+      link: "/spark-trade/onboarding/group-brands",
+    });
+    if ((brand as any).founder_user_id && (brand as any).founder_user_id !== userId) {
+      await sb.from("notifications").insert({
+        member_id: (brand as any).founder_user_id,
+        title: "New investor joined 🎉",
+        body: `R${amountZar.toLocaleString()} invested in ${(brand as any).name}.`,
+        kind: "spark_trade",
+        link: "/spark-trade/onboarding/group-brands",
+      });
+    }
+  }
+
+  return { kind: "group_brand_investment", applied: true, row_id: rowId };
+}
+
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
   try {
@@ -329,7 +404,8 @@ Deno.serve(async (req) => {
     }
 
     const kind = metaPaymentType
-      ? (metaPaymentType.includes("spark_trade_subscription") || metaPaymentType === "spark_trade_membership" ? "STSUB"
+      ? (metaPaymentType.includes("group_brand") ? "GBI"
+        : metaPaymentType.includes("spark_trade_subscription") || metaPaymentType === "spark_trade_membership" ? "STSUB"
         : metaPaymentType.includes("spark_trade_reservation") || metaPaymentType.includes("inventory_reservation") ? "STRES"
         : metaPaymentType.includes("circle") ? "CIRCLE"
         : metaPaymentType.includes("propert") || metaPaymentType.includes("reit") ? "PROP"
@@ -357,6 +433,12 @@ Deno.serve(async (req) => {
         const units = Number(clientMeta.units_reserved ?? clientMeta.units);
         if (!oppId || !units) result = { kind: "spark_trade_reservation", applied: false, reason: "missing_opportunity_or_units" };
         else result = await applyToSparkTradeReservation(u.user.id, reference, amountZar, oppId, units);
+      }
+      else if (kind === "GBI") {
+        const gbId = String(clientMeta.group_brand_id ?? "");
+        const stake = Number(clientMeta.ownership_stake ?? 0);
+        if (!gbId) result = { kind: "group_brand_investment", applied: false, reason: "missing_group_brand_id" };
+        else result = await applyToGroupBrandInvestment(u.user.id, reference, amountZar, gbId, stake);
       }
       else result = { kind: "unknown", applied: false, reason: `unknown_prefix:${prefix}` };
     } catch (e) {
