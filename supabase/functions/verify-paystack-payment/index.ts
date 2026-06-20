@@ -519,6 +519,32 @@ async function applyToGroupBrandInvestment(
   return { kind: "group_brand_investment", applied: true, row_id: rowId, shipment };
 }
 
+async function applyToMarketplacePurchase(
+  userId: string,
+  ref: string,
+  amountZar: number,
+  meta: Record<string, any>,
+) {
+  const productName = String(meta.product_name ?? "Marketplace product");
+  const seller = String(meta.seller ?? "marketplace");
+  const shipment = await createTcgShipment({
+    memberId: userId,
+    sourceType: "spark_trade_reservation",
+    sourceId: `mkt-${ref}`,
+    paymentRef: ref,
+    amountZar,
+    description: `${productName} (${seller})`,
+  });
+  await sb.from("notifications").insert({
+    member_id: userId,
+    title: "Order placed 📦",
+    body: `${productName} from ${seller} — R${Math.round(amountZar).toLocaleString()}.`,
+    kind: "spark_trade",
+    link: "/spark-trade/dashboard",
+  });
+  return { kind: "marketplace_purchase", applied: true, shipment };
+}
+
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
   try {
