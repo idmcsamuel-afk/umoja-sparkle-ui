@@ -54,8 +54,8 @@ export default function SparkTradeIncomeGoal() {
     try {
       const update: Record<string, any> = { spark_trade_income_path: path };
       if (path === "individual") update.spark_trade_income_goal = incomeGoal;
-      const { error: updateError } = await supabase
-        .from("members")
+      const { error: updateError } = await (supabase
+        .from("members") as any)
         .update(update)
         .eq("id", user.id);
       if (updateError) throw updateError;
