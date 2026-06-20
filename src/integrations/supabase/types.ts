@@ -3753,6 +3753,7 @@ export type Database = {
           spark_trade_capital: number | null
           spark_trade_group_buy_interest: boolean | null
           spark_trade_income_goal: number | null
+          spark_trade_income_path: string | null
           spark_trade_onboarding_complete: boolean | null
           spark_trade_onboarding_completed_at: string | null
           spark_trade_paystack_reference: string | null
@@ -3844,6 +3845,7 @@ export type Database = {
           spark_trade_capital?: number | null
           spark_trade_group_buy_interest?: boolean | null
           spark_trade_income_goal?: number | null
+          spark_trade_income_path?: string | null
           spark_trade_onboarding_complete?: boolean | null
           spark_trade_onboarding_completed_at?: string | null
           spark_trade_paystack_reference?: string | null
@@ -3935,6 +3937,7 @@ export type Database = {
           spark_trade_capital?: number | null
           spark_trade_group_buy_interest?: boolean | null
           spark_trade_income_goal?: number | null
+          spark_trade_income_path?: string | null
           spark_trade_onboarding_complete?: boolean | null
           spark_trade_onboarding_completed_at?: string | null
           spark_trade_paystack_reference?: string | null
@@ -5070,6 +5073,119 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      spark_trade_group_brand_investors: {
+        Row: {
+          created_at: string
+          group_brand_id: string
+          id: string
+          investment_amount: number
+          investor_user_id: string
+          joined_at: string
+          ownership_stake: number
+          payment_reference: string | null
+          payment_status: string
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          group_brand_id: string
+          id?: string
+          investment_amount: number
+          investor_user_id: string
+          joined_at?: string
+          ownership_stake?: number
+          payment_reference?: string | null
+          payment_status?: string
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          group_brand_id?: string
+          id?: string
+          investment_amount?: number
+          investor_user_id?: string
+          joined_at?: string
+          ownership_stake?: number
+          payment_reference?: string | null
+          payment_status?: string
+          status?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "spark_trade_group_brand_investors_group_brand_id_fkey"
+            columns: ["group_brand_id"]
+            isOneToOne: false
+            referencedRelation: "spark_trade_group_brands"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      spark_trade_group_brands: {
+        Row: {
+          category: string
+          created_at: string
+          current_total_capital: number
+          description: string | null
+          founder_user_id: string
+          id: string
+          minimum_investment: number
+          name: string
+          oem_supplier_id: string | null
+          oem_supplier_name: string | null
+          product_image_url: string | null
+          product_name: string
+          retail_price_zar: number | null
+          status: string
+          target_investor_count: number | null
+          target_total_capital: number
+          unit_cost_usd: number | null
+          updated_at: string
+        }
+        Insert: {
+          category: string
+          created_at?: string
+          current_total_capital?: number
+          description?: string | null
+          founder_user_id: string
+          id?: string
+          minimum_investment?: number
+          name: string
+          oem_supplier_id?: string | null
+          oem_supplier_name?: string | null
+          product_image_url?: string | null
+          product_name: string
+          retail_price_zar?: number | null
+          status?: string
+          target_investor_count?: number | null
+          target_total_capital?: number
+          unit_cost_usd?: number | null
+          updated_at?: string
+        }
+        Update: {
+          category?: string
+          created_at?: string
+          current_total_capital?: number
+          description?: string | null
+          founder_user_id?: string
+          id?: string
+          minimum_investment?: number
+          name?: string
+          oem_supplier_id?: string | null
+          oem_supplier_name?: string | null
+          product_image_url?: string | null
+          product_name?: string
+          retail_price_zar?: number | null
+          status?: string
+          target_investor_count?: number | null
+          target_total_capital?: number
+          unit_cost_usd?: number | null
+          updated_at?: string
+        }
+        Relationships: []
       }
       spark_trade_inventory_reservations: {
         Row: {
