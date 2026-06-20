@@ -66,7 +66,7 @@ export default function SparkTradeProductOpportunities() {
     if (!authLoading && !user) navigate("/login");
   }, [authLoading, user, navigate]);
 
-  // Fetch member capital
+  // Fetch member capital + email
   useEffect(() => {
     if (!user) return;
     (async () => {
@@ -81,6 +81,8 @@ export default function SparkTradeProductOpportunities() {
       } catch {
         setAvailableCapital(0);
       }
+      const { data: m } = await supabase.from("members").select("email").eq("id", user.id).maybeSingle();
+      setEmail(((m as any)?.email as string) ?? user.email ?? null);
     })();
   }, [user]);
 
