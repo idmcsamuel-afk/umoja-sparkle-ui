@@ -58,6 +58,7 @@ export default function SparkTradeOnboardingSummary() {
   const [fetching, setFetching] = useState(true);
   const [submitting, setSubmitting] = useState(false);
   const [email, setEmail] = useState<string | null>(null);
+  const [redirecting, setRedirecting] = useState(false);
 
 
   useEffect(() => {
