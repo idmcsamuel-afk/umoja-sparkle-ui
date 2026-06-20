@@ -2,12 +2,14 @@ import { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
+import { usePaystack, buildReference } from "@/hooks/usePaystack";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription } from "@/components/ui/dialog";
 import { toast } from "sonner";
-import { Loader2, Package, ArrowRight, Search, ExternalLink } from "lucide-react";
+import { Loader2, Package, ArrowRight, Search, ExternalLink, Truck, CheckCircle2, Copy } from "lucide-react";
 
 interface Product {
   product_name: string;
