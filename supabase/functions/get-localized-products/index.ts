@@ -115,7 +115,7 @@ Deno.serve(async (req) => {
     let query = supabase
       .from("product_feeds")
       .select(
-        "id, product_name, category, supplier_cost, local_retail_price, local_marketplace, local_search_volume, local_competition_count, trend_direction, trend_percentage, ai_score, ai_confidence, tier, recommendation",
+        "id, product_name, category, supplier_cost, local_retail_price, local_marketplace, local_search_volume, local_competition_count, trend_direction, trend_percentage, ai_score, ai_confidence, tier, recommendation, moq, stock_available, image_url, monthly_search_volume",
       )
       .eq("country", profile.country)
       .in("local_marketplace", userMarketplaces)
@@ -138,6 +138,7 @@ Deno.serve(async (req) => {
       const profit = retail - cost;
       const margin = cost > 0 ? (profit / cost) * 100 : 0;
       return {
+        product_id: r.id,
         id: r.id,
         name: r.product_name,
         category: r.category,
@@ -147,13 +148,20 @@ Deno.serve(async (req) => {
         search_volume: r.local_search_volume,
         competitors: r.local_competition_count,
         trend: r.trend_direction,
+        trend_direction: r.trend_direction,
         trend_percent: Number(r.trend_percentage ?? 0),
         ai_score: r.ai_score,
         confidence: Number(r.ai_confidence ?? 0),
         tier: r.tier,
         profit_per_unit: Math.round(profit * 100) / 100,
         margin_percent: Math.round(margin * 100) / 100,
+        margin_percentage: Math.round(margin * 100) / 100,
         recommendation: r.recommendation,
+        moq: r.moq ?? 0,
+        stock_available: r.stock_available ?? 0,
+        image_url: r.image_url ?? null,
+        monthly_search_volume: r.monthly_search_volume ?? r.local_search_volume ?? 0,
+        competitor_count: r.local_competition_count ?? 0,
       };
     });
 

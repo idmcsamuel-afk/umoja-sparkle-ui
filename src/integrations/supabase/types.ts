@@ -4387,13 +4387,17 @@ export type Database = {
           country: string
           created_at: string
           id: string
+          image_url: string | null
           local_competition_count: number | null
           local_marketplace: string | null
           local_retail_price: number | null
           local_search_volume: number | null
+          monthly_search_volume: number | null
+          moq: number | null
           product_id: string
           product_name: string
           recommendation: string | null
+          stock_available: number | null
           supplier_cost: number | null
           tier: string | null
           trend_direction: string | null
@@ -4407,13 +4411,17 @@ export type Database = {
           country: string
           created_at?: string
           id?: string
+          image_url?: string | null
           local_competition_count?: number | null
           local_marketplace?: string | null
           local_retail_price?: number | null
           local_search_volume?: number | null
+          monthly_search_volume?: number | null
+          moq?: number | null
           product_id?: string
           product_name: string
           recommendation?: string | null
+          stock_available?: number | null
           supplier_cost?: number | null
           tier?: string | null
           trend_direction?: string | null
@@ -4427,13 +4435,17 @@ export type Database = {
           country?: string
           created_at?: string
           id?: string
+          image_url?: string | null
           local_competition_count?: number | null
           local_marketplace?: string | null
           local_retail_price?: number | null
           local_search_volume?: number | null
+          monthly_search_volume?: number | null
+          moq?: number | null
           product_id?: string
           product_name?: string
           recommendation?: string | null
+          stock_available?: number | null
           supplier_cost?: number | null
           tier?: string | null
           trend_direction?: string | null
