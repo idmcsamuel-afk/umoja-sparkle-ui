@@ -7,80 +7,72 @@ const supabase = createClient(
 )
 
 const brightDataKey = Deno.env.get('BRIGHT_DATA_API_KEY')
-const brightDataZone = 'umoja_web_unlocker1'
+const datasetId = 'j_mqmpsczd257dozluc0'
 
 const categories = [
-  { name: 'Electronics', slug: 'electronics' },
-  { name: 'Fashion', slug: 'fashion' },
-  { name: 'Home & Garden', slug: 'home-garden' },
-  { name: 'Books', slug: 'books' },
-  { name: 'Sports & Outdoors', slug: 'sports-outdoors' }
+  'electronics',
+  'fashion',
+  'home-garden',
+  'books',
+  'sports-outdoors'
 ]
 
 serve(async (req) => {
   try {
-    console.log('Starting Takealot scrape with Web Unlocker API...')
+    console.log('Starting Takealot scrape via Bright Data Dataset...')
 
     const allProducts: any[] = []
 
     for (const category of categories) {
-      console.log(`Scraping ${category.name}...`)
+      console.log(`Scraping ${category}...`)
 
       try {
-        const takealotUrl = `https://www.takealot.com/${category.slug}`
+        const categoryUrl = `https://www.takealot.com/${category}`
 
-        const response = await fetch('https://api.brightdata.com/request', {
+        const response = await fetch(`https://api.brightdata.com/datasets/${datasetId}/query`, {
           method: 'POST',
           headers: {
             'Authorization': `Bearer ${brightDataKey}`,
             'Content-Type': 'application/json'
           },
-          body: JSON.stringify({
-            zone: brightDataZone,
-            url: takealotUrl,
-            format: 'json'
-          })
+          body: JSON.stringify({ url: categoryUrl })
         })
 
         if (!response.ok) {
-          console.error(`Bright Data error for ${category.name}: ${response.status}`)
+          console.error(`Bright Data error for ${category}: ${response.status}`)
           const errorText = await response.text()
           console.error(`Error details: ${errorText}`)
           continue
         }
 
         const data = await response.json()
-        console.log(`Bright Data response for ${category.name}:`, { status: response.status, dataType: typeof data })
 
         let products: any[] = []
-
         if (Array.isArray(data)) {
           products = data
-        } else if (data.products && Array.isArray(data.products)) {
-          products = data.products
-        } else if (data.result && Array.isArray(data.result)) {
-          products = data.result
+        } else if (data.results && Array.isArray(data.results)) {
+          products = data.results
         }
 
         if (products.length > 0) {
           for (const product of products.slice(0, 100)) {
             allProducts.push({
-              takealot_name: product.title || product.name || product.product_name || 'Unknown',
-              takealot_price: parseFloat(product.price) || parseFloat(product.current_price) || 0,
-              takealot_url: product.url || product.link || takealotUrl,
-              category: category.name,
-              seller_count: product.seller_count || product.sellers || 1,
-              rating: parseFloat(product.rating) || parseFloat(product.score) || null,
-              image_url: product.image_url || product.image || product.thumbnail || null,
+              takealot_name: product.product_title || 'Unknown',
+              takealot_price: product.price?.value || 0,
+              takealot_url: product.product_url,
+              category: category.replace('-', ' '),
+              seller_count: product.seller_count || 1,
+              rating: product.rating || null,
+              image_url: product.image_url,
               scraped_at: new Date().toISOString()
             })
           }
-          console.log(`Found ${products.length} products in ${category.name}`)
+          console.log(`Found ${products.length} products in ${category}`)
         } else {
-          console.log(`No products found in ${category.name}`)
+          console.log(`No products found in ${category}`)
         }
       } catch (categoryError) {
-        console.error(`Error scraping ${category.name}:`, categoryError)
+        console.error(`Error scraping ${category}:`, categoryError)
         continue
       }
     }
