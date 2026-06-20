@@ -322,7 +322,13 @@ export default function SparkTradeProductOpportunities() {
         ) : (
           <div className="mt-6 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
             {grid.map((p, i) => (
-              <ProductCard key={`${p.source}-${i}-${p.product_name}`} p={p} onReserve={onReserve} />
+              <ProductCard
+                key={`${p.source}-${i}-${p.product_name}`}
+                p={p}
+                onReserve={onReserve}
+                isPaying={paying === productKey(p)}
+                anyPaying={!!paying}
+              />
             ))}
           </div>
         )}
@@ -333,7 +339,89 @@ export default function SparkTradeProductOpportunities() {
           </Button>
         </div>
       </div>
+
+      <TrackingDialog tracking={tracking} onClose={() => setTracking(null)} />
     </div>
+  );
+}
+
+function TrackingDialog({
+  tracking,
+  onClose,
+}: {
+  tracking: {
+    product: Product;
+    reference: string;
+    waybill?: string | null;
+    trackingUrl?: string | null;
+    status?: string;
+  } | null;
+  onClose: () => void;
+}) {
+  if (!tracking) return null;
+  const hasWaybill = !!tracking.waybill;
+  const copy = (txt: string) => {
+    navigator.clipboard?.writeText(txt).then(
+      () => toast.success("Copied"),
+      () => toast.error("Copy failed"),
+    );
+  };
+  return (
+    <Dialog open={!!tracking} onOpenChange={(o) => !o && onClose()}>
+      <DialogContent>
+        <DialogHeader>
+          <DialogTitle className="flex items-center gap-2">
+            <CheckCircle2 className="h-5 w-5 text-green-600" />
+            Payment successful — order placed
+          </DialogTitle>
+          <DialogDescription>
+            {tracking.product.product_name} • {fmtZar(tracking.product.price)}
+          </DialogDescription>
+        </DialogHeader>
+
+        <div className="space-y-3 text-sm">
+          <div className="rounded-lg bg-muted p-3 space-y-2">
+            <div className="flex items-center justify-between gap-2">
+              <span className="text-muted-foreground">Payment reference</span>
+              <button onClick={() => copy(tracking.reference)} className="font-mono text-xs flex items-center gap-1 hover:underline">
+                {tracking.reference} <Copy className="h-3 w-3" />
+              </button>
+            </div>
+            <div className="flex items-center justify-between gap-2">
+              <span className="text-muted-foreground flex items-center gap-1"><Truck className="h-4 w-4" />Waybill</span>
+              {hasWaybill ? (
+                <button onClick={() => copy(tracking.waybill!)} className="font-mono text-xs flex items-center gap-1 hover:underline">
+                  {tracking.waybill} <Copy className="h-3 w-3" />
+                </button>
+              ) : (
+                <span className="text-xs text-muted-foreground">Generating… you'll get an SMS</span>
+              )}
+            </div>
+            <div className="flex items-center justify-between">
+              <span className="text-muted-foreground">Estimated delivery</span>
+              <span>2–4 business days (TheCourierGuy)</span>
+            </div>
+          </div>
+
+          {!hasWaybill && (
+            <p className="text-xs text-muted-foreground">
+              Payment succeeded. Your shipment is being created — we'll SMS the tracking link as soon as it's ready.
+            </p>
+          )}
+        </div>
+
+        <DialogFooter className="gap-2 sm:gap-2">
+          {tracking.trackingUrl && (
+            <Button variant="outline" asChild>
+              <a href={tracking.trackingUrl} target="_blank" rel="noreferrer">
+                Track shipment <ExternalLink className="ml-2 h-4 w-4" />
+              </a>
+            </Button>
+          )}
+          <Button onClick={onClose}>Done</Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
   );
 }
 
