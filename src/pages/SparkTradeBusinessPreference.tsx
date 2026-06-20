@@ -7,7 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Progress } from "@/components/ui/progress";
-import { Switch } from "@/components/ui/switch";
+import { Checkbox } from "@/components/ui/checkbox";
 import {
   Select,
   SelectContent,
@@ -21,7 +21,8 @@ type Prefs = {
   businessType: string;
   serviceArea: string;
   stockPreference: string;
-  groupBuyInterest: boolean;
+  marketplaceExperience: string;
+  purchasedFrom: string[];
   capital: number | null;
 };
 
@@ -47,6 +48,23 @@ const STOCK_PREFS = [
   { value: "Budget", desc: "Affordable, high turnover" },
 ];
 
+const MARKETPLACE_EXPERIENCES = [
+  "None (new seller)",
+  "Takealot",
+  "Jumia",
+  "Makro",
+  "Amazon",
+  "Other",
+];
+
+const PURCHASED_FROM_OPTIONS = [
+  "Takealot",
+  "Jumia",
+  "Makro",
+  "Amazon",
+  "None",
+];
+
 export default function SparkTradeBusinessPreference() {
   const nav = useNavigate();
   const { user, loading } = useAuth();
@@ -54,7 +72,8 @@ export default function SparkTradeBusinessPreference() {
     businessType: "",
     serviceArea: "",
     stockPreference: "",
-    groupBuyInterest: false,
+    marketplaceExperience: "",
+    purchasedFrom: [],
     capital: null,
   });
   const [errors, setErrors] = useState<Record<string, string>>({});
@@ -66,7 +85,7 @@ export default function SparkTradeBusinessPreference() {
       const { data } = await supabase
         .from("members")
         .select(
-          "spark_trade_business_type, spark_trade_service_area, spark_trade_stock_preference, spark_trade_group_buy_interest, spark_trade_capital"
+          "spark_trade_business_type, spark_trade_service_area, spark_trade_stock_preference, spark_trade_marketplace_experience, spark_trade_purchased_from, spark_trade_capital"
         )
         .eq("id", user.id)
         .maybeSingle();
@@ -75,7 +94,8 @@ export default function SparkTradeBusinessPreference() {
           businessType: (data as any).spark_trade_business_type ?? "",
           serviceArea: (data as any).spark_trade_service_area ?? "",
           stockPreference: (data as any).spark_trade_stock_preference ?? "",
-          groupBuyInterest: !!(data as any).spark_trade_group_buy_interest,
+          marketplaceExperience: (data as any).spark_trade_marketplace_experience ?? "",
+          purchasedFrom: (data as any).spark_trade_purchased_from ?? [],
           capital: (data as any).spark_trade_capital ?? null,
         });
       }
@@ -86,15 +106,29 @@ export default function SparkTradeBusinessPreference() {
     !!prefs.businessType &&
     !!prefs.serviceArea &&
     !!prefs.stockPreference &&
+    !!prefs.marketplaceExperience &&
+    prefs.purchasedFrom.length > 0 &&
     prefs.capital !== null &&
-    prefs.capital >= 500;
+    prefs.capital >= 1000;
+
+  const togglePurchasedFrom = (value: string) => {
+    setPrefs((prev) => {
+      const current = prev.purchasedFrom;
+      if (current.includes(value)) {
+        return { ...prev, purchasedFrom: current.filter((v) => v !== value) };
+      }
+      return { ...prev, purchasedFrom: [...current, value] };
+    });
+  };
 
   const handleSubmit = async () => {
     const e: Record<string, string> = {};
     if (!prefs.businessType) e.businessType = "Required";
     if (!prefs.serviceArea) e.serviceArea = "Required";
     if (!prefs.stockPreference) e.stockPreference = "Required";
-    if (prefs.capital === null || prefs.capital < 500) e.capital = "Minimum R500";
+    if (!prefs.marketplaceExperience) e.marketplaceExperience = "Required";
+    if (prefs.purchasedFrom.length === 0) e.purchasedFrom = "Select at least one";
+    if (prefs.capital === null || prefs.capital < 1000) e.capital = "Minimum capital required is R1,000";
     setErrors(e);
     if (Object.keys(e).length > 0 || !user) return;
 
@@ -106,7 +140,8 @@ export default function SparkTradeBusinessPreference() {
           spark_trade_business_type: prefs.businessType,
           spark_trade_service_area: prefs.serviceArea,
           spark_trade_stock_preference: prefs.stockPreference,
-          spark_trade_group_buy_interest: prefs.groupBuyInterest,
+          spark_trade_marketplace_experience: prefs.marketplaceExperience,
+          spark_trade_purchased_from: prefs.purchasedFrom,
           spark_trade_capital: prefs.capital,
         } as any)
         .eq("id", user.id);
@@ -223,26 +258,59 @@ export default function SparkTradeBusinessPreference() {
               )}
             </div>
 
-            {/* Q4 */}
-            <div className="flex items-start justify-between gap-4 rounded-2xl border border-border p-4">
-              <div className="flex-1">
-                <Label className="text-sm font-semibold">Group Buy Interest</Label>
-                <p className="text-xs text-muted-foreground mt-1">
-                  Combine orders with neighbours to meet MOQ faster
-                </p>
-              </div>
-              <Switch
-                checked={prefs.groupBuyInterest}
-                onCheckedChange={(v) => setPrefs({ ...prefs, groupBuyInterest: v })}
-              />
+            {/* Q4 - Marketplace Experience */}
+            <div>
+              <Label className="text-sm font-semibold">What marketplace experience do you have?</Label>
+              <Select
+                value={prefs.marketplaceExperience}
+                onValueChange={(v) => setPrefs({ ...prefs, marketplaceExperience: v })}
+              >
+                <SelectTrigger className="mt-2 h-11 rounded-xl">
+                  <SelectValue placeholder="Select your experience level" />
+                </SelectTrigger>
+                <SelectContent>
+                  {MARKETPLACE_EXPERIENCES.map((m) => (
+                    <SelectItem key={m} value={m}>
+                      {m}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              {errors.marketplaceExperience && (
+                <p className="text-destructive text-xs mt-1">{errors.marketplaceExperience}</p>
+              )}
             </div>
 
-            {/* Q5 */}
+            {/* Q5 - Purchased From (Multi-select) */}
+            <div>
+              <Label className="text-sm font-semibold">
+                Which of these have you purchased from? (For product familiarity)
+              </Label>
+              <div className="mt-3 grid grid-cols-2 sm:grid-cols-3 gap-3">
+                {PURCHASED_FROM_OPTIONS.map((option) => (
+                  <label
+                    key={option}
+                    className="flex items-center gap-2 rounded-xl border border-border p-3 cursor-pointer hover:bg-accent/5 transition-colors"
+                  >
+                    <Checkbox
+                      checked={prefs.purchasedFrom.includes(option)}
+                      onCheckedChange={() => togglePurchasedFrom(option)}
+                    />
+                    <span className="text-sm">{option}</span>
+                  </label>
+                ))}
+              </div>
+              {errors.purchasedFrom && (
+                <p className="text-destructive text-xs mt-2">{errors.purchasedFrom}</p>
+              )}
+            </div>
+
+            {/* Q6 - Capital */}
             <div>
               <Label className="text-sm font-semibold">Capital Available (ZAR)</Label>
               <Input
                 type="number"
-                min={500}
+                min={1000}
                 placeholder="e.g., 2500"
                 value={prefs.capital ?? ""}
                 onChange={(e) =>
@@ -254,7 +322,7 @@ export default function SparkTradeBusinessPreference() {
                 className="mt-2 h-11 rounded-xl"
               />
               <p className="text-xs text-muted-foreground mt-1">
-                Initial capital available for first inventory (min R500)
+                Initial capital available for first inventory (min R1,000)
               </p>
               {errors.capital && (
                 <p className="text-destructive text-xs mt-1">{errors.capital}</p>
