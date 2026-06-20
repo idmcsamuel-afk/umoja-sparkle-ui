@@ -275,3 +275,69 @@ function Field({ label, value, onChange, type = "text" }: { label: string; value
     </div>
   );
 }
+
+function ImageUploader({ value, onChange }: { value: string; onChange: (url: string) => void }) {
+  const [uploading, setUploading] = useState(false);
+  const inputId = "spark-trade-image-upload";
+
+  const handleFile = async (file: File) => {
+    if (!file) return;
+    if (!["image/jpeg", "image/png", "image/webp"].includes(file.type)) {
+      toast.error("Only JPG, PNG or WebP allowed");
+      return;
+    }
+    if (file.size > 5 * 1024 * 1024) {
+      toast.error("Max file size is 5MB");
+      return;
+    }
+    setUploading(true);
+    const ext = file.name.split(".").pop() || "jpg";
+    const path = `${Date.now()}-${Math.random().toString(36).slice(2, 8)}.${ext}`;
+    const { error } = await supabase.storage.from(PRODUCT_IMAGE_BUCKET).upload(path, file, {
+      cacheControl: "3600",
+      upsert: false,
+      contentType: file.type,
+    });
+    if (error) {
+      setUploading(false);
+      toast.error(`Upload failed: ${error.message}`);
+      return;
+    }
+    const { data } = supabase.storage.from(PRODUCT_IMAGE_BUCKET).getPublicUrl(path);
+    onChange(data.publicUrl);
+    setUploading(false);
+    toast.success("Image uploaded");
+  };
+
+  return (
+    <div>
+      <label className="text-xs text-muted-foreground">Product image</label>
+      <div className="mt-1 flex items-start gap-3">
+        {value ? (
+          <img src={value} alt="Preview" className="h-24 w-24 object-cover rounded border" />
+        ) : (
+          <div className="h-24 w-24 rounded border bg-muted grid place-items-center">
+            <ImageIcon className="h-6 w-6 text-muted-foreground" />
+          </div>
+        )}
+        <div className="flex flex-col gap-2">
+          <input
+            id={inputId}
+            type="file"
+            accept="image/jpeg,image/png,image/webp"
+            className="hidden"
+            onChange={(e) => { const f = e.target.files?.[0]; if (f) handleFile(f); e.target.value = ""; }}
+          />
+          <Button type="button" variant="outline" size="sm" disabled={uploading} onClick={() => document.getElementById(inputId)?.click()}>
+            {uploading ? <Loader2 className="h-4 w-4 mr-1 animate-spin" /> : <Upload className="h-4 w-4 mr-1" />}
+            {value ? "Replace image" : "Add product image"}
+          </Button>
+          {value && (
+            <Button type="button" variant="ghost" size="sm" onClick={() => onChange("")}>Remove</Button>
+          )}
+          <p className="text-xs text-muted-foreground">JPG/PNG/WebP, max 5MB</p>
+        </div>
+      </div>
+    </div>
+  );
+}
