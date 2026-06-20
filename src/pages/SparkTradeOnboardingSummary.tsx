@@ -284,24 +284,33 @@ export default function SparkTradeOnboardingSummary() {
           </section>
         )}
 
-        <Button
-          onClick={payAndComplete}
-          disabled={submitting || !tier}
-          className="w-full h-12 rounded-2xl bg-gradient-primary text-primary-foreground font-bold shadow-glow disabled:opacity-50"
-        >
-          {submitting ? (
-            <>
-              <Loader2 className="h-4 w-4 mr-2 animate-spin" /> Processing payment…
-            </>
-          ) : tier ? (
-            `Pay R${TIER_PRICE_ZAR[tier]?.toLocaleString()} & Go to Dashboard →`
-          ) : (
-            "Go to Dashboard →"
-          )}
-        </Button>
-        <p className="mt-3 text-center text-xs text-muted-foreground">
-          Secure payment via Paystack. Onboarding completes after payment is confirmed.
-        </p>
+        {redirecting ? (
+          <div className="text-center py-6">
+            <Loader2 className="h-8 w-8 animate-spin text-primary mx-auto mb-3" />
+            <p className="text-muted-foreground">Redirecting to your dashboard…</p>
+          </div>
+        ) : (
+          <>
+            <Button
+              onClick={payAndComplete}
+              disabled={submitting || !tier}
+              className="w-full h-12 rounded-2xl bg-gradient-primary text-primary-foreground font-bold shadow-glow disabled:opacity-50"
+            >
+              {submitting ? (
+                <>
+                  <Loader2 className="h-4 w-4 mr-2 animate-spin" /> Processing payment…
+                </>
+              ) : tier ? (
+                `Pay R${TIER_PRICE_ZAR[tier]?.toLocaleString()} & Go to Dashboard →`
+              ) : (
+                "Go to Dashboard →"
+              )}
+            </Button>
+            <p className="mt-3 text-center text-xs text-muted-foreground">
+              Secure payment via Paystack. Onboarding completes after payment is confirmed.
+            </p>
+          </>
+        )}
       </div>
     </div>
   );
