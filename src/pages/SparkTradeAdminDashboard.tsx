@@ -9,8 +9,10 @@ import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
-import { Loader2, Plus, Check, X, Pencil, Trash2 } from "lucide-react";
+import { Loader2, Plus, Check, X, Pencil, Trash2, Upload, ImageIcon } from "lucide-react";
 import { toast } from "sonner";
+
+const PRODUCT_IMAGE_BUCKET = "spark_trade_product_images";
 
 type Opp = any;
 
@@ -238,6 +240,12 @@ export default function SparkTradeAdminDashboard() {
               <Field label="Supplier" value={editing.supplier_name} onChange={(v) => setEditing({ ...editing, supplier_name: v })} />
               <Field label="Supplier country" value={editing.supplier_country} onChange={(v) => setEditing({ ...editing, supplier_country: v })} />
               <Field label="Image URL" value={editing.product_image_url ?? ""} onChange={(v) => setEditing({ ...editing, product_image_url: v })} />
+              <div className="md:col-span-2">
+                <ImageUploader
+                  value={editing.product_image_url ?? ""}
+                  onChange={(url) => setEditing({ ...editing, product_image_url: url })}
+                />
+              </div>
               <Field label="MOQ" type="number" value={editing.moq_required} onChange={(v) => setEditing({ ...editing, moq_required: Number(v) })} />
               <Field label="Unit cost (ZAR)" type="number" value={editing.unit_cost_zar} onChange={(v) => setEditing({ ...editing, unit_cost_zar: Number(v) })} />
               <Field label="Selling price (ZAR)" type="number" value={editing.suggested_selling_price_zar} onChange={(v) => setEditing({ ...editing, suggested_selling_price_zar: Number(v) })} />
@@ -264,6 +272,72 @@ function Field({ label, value, onChange, type = "text" }: { label: string; value
     <div>
       <label className="text-xs text-muted-foreground">{label}</label>
       <Input type={type} value={value} onChange={(e) => onChange(e.target.value)} className="mt-1" />
+    </div>
+  );
+}
+
+function ImageUploader({ value, onChange }: { value: string; onChange: (url: string) => void }) {
+  const [uploading, setUploading] = useState(false);
+  const inputId = "spark-trade-image-upload";
+
+  const handleFile = async (file: File) => {
+    if (!file) return;
+    if (!["image/jpeg", "image/png", "image/webp"].includes(file.type)) {
+      toast.error("Only JPG, PNG or WebP allowed");
+      return;
+    }
+    if (file.size > 5 * 1024 * 1024) {
+      toast.error("Max file size is 5MB");
+      return;
+    }
+    setUploading(true);
+    const ext = file.name.split(".").pop() || "jpg";
+    const path = `${Date.now()}-${Math.random().toString(36).slice(2, 8)}.${ext}`;
+    const { error } = await supabase.storage.from(PRODUCT_IMAGE_BUCKET).upload(path, file, {
+      cacheControl: "3600",
+      upsert: false,
+      contentType: file.type,
+    });
+    if (error) {
+      setUploading(false);
+      toast.error(`Upload failed: ${error.message}`);
+      return;
+    }
+    const { data } = supabase.storage.from(PRODUCT_IMAGE_BUCKET).getPublicUrl(path);
+    onChange(data.publicUrl);
+    setUploading(false);
+    toast.success("Image uploaded");
+  };
+
+  return (
+    <div>
+      <label className="text-xs text-muted-foreground">Product image</label>
+      <div className="mt-1 flex items-start gap-3">
+        {value ? (
+          <img src={value} alt="Preview" className="h-24 w-24 object-cover rounded border" />
+        ) : (
+          <div className="h-24 w-24 rounded border bg-muted grid place-items-center">
+            <ImageIcon className="h-6 w-6 text-muted-foreground" />
+          </div>
+        )}
+        <div className="flex flex-col gap-2">
+          <input
+            id={inputId}
+            type="file"
+            accept="image/jpeg,image/png,image/webp"
+            className="hidden"
+            onChange={(e) => { const f = e.target.files?.[0]; if (f) handleFile(f); e.target.value = ""; }}
+          />
+          <Button type="button" variant="outline" size="sm" disabled={uploading} onClick={() => document.getElementById(inputId)?.click()}>
+            {uploading ? <Loader2 className="h-4 w-4 mr-1 animate-spin" /> : <Upload className="h-4 w-4 mr-1" />}
+            {value ? "Replace image" : "Add product image"}
+          </Button>
+          {value && (
+            <Button type="button" variant="ghost" size="sm" onClick={() => onChange("")}>Remove</Button>
+          )}
+          <p className="text-xs text-muted-foreground">JPG/PNG/WebP, max 5MB</p>
+        </div>
+      </div>
     </div>
   );
 }

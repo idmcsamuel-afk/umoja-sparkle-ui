@@ -147,12 +147,8 @@ export default function SparkTradeProductOpportunities() {
         ) : (
           <div className="mt-6 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
             {sorted.map((o) => (
-              <Card key={o.id} className="overflow-hidden flex flex-col">
-                {o.product_image_url ? (
-                  <img src={o.product_image_url} alt={o.product_name} className="w-full h-44 object-cover" />
-                ) : (
-                  <div className="w-full h-44 bg-muted grid place-items-center"><Package className="h-10 w-10 text-muted-foreground" /></div>
-                )}
+              <Card key={o.id} className="overflow-hidden flex flex-col sm:flex-row md:flex-col">
+                <ProductImage url={o.product_image_url} name={o.product_name} />
                 <div className="p-4 flex-1 flex flex-col gap-2">
                   <h3 className="font-semibold">{o.product_name}</h3>
                   <p className="text-xs text-muted-foreground">{o.supplier_name} • {o.supplier_country}</p>
@@ -207,6 +203,32 @@ export default function SparkTradeProductOpportunities() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+    </div>
+  );
+}
+
+function ProductImage({ url, name }: { url?: string; name: string }) {
+  const [loaded, setLoaded] = useState(false);
+  const [errored, setErrored] = useState(false);
+  const wrapper = "w-full sm:w-2/5 md:w-full sm:h-auto md:h-[200px] h-[200px] shrink-0 relative bg-muted";
+  if (!url || errored) {
+    return (
+      <div className={`${wrapper} grid place-items-center`}>
+        <Package className="h-10 w-10 text-muted-foreground" />
+      </div>
+    );
+  }
+  return (
+    <div className={wrapper}>
+      {!loaded && <div className="absolute inset-0 animate-pulse bg-muted" />}
+      <img
+        src={url}
+        alt={name}
+        loading="lazy"
+        onLoad={() => setLoaded(true)}
+        onError={() => setErrored(true)}
+        className={`w-full h-full object-cover transition-opacity duration-300 ${loaded ? "opacity-100" : "opacity-0"}`}
+      />
     </div>
   );
 }
