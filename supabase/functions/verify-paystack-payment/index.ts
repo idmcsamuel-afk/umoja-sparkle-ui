@@ -422,7 +422,17 @@ async function applyToSparkTradeReservation(
     link: "/spark-trade/dashboard",
   });
 
-  return { kind: "spark_trade_reservation", applied: true, row_id: (ins.data as any)?.id };
+  const rowId = (ins.data as any)?.id;
+  const shipment = await createTcgShipment({
+    memberId: userId,
+    sourceType: "spark_trade_reservation",
+    sourceId: String(rowId ?? ref),
+    paymentRef: ref,
+    amountZar,
+    description: `Spark Trade reservation ${units} units (opp ${opportunityId})`,
+  });
+
+  return { kind: "spark_trade_reservation", applied: true, row_id: rowId, shipment };
 }
 
 async function applyToGroupBrandInvestment(
