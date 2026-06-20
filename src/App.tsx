@@ -148,6 +148,7 @@ const App = () => (
                 <Route path="/spark-trade/membership" element={<ProtectedRoute><SparkTradeMembership /></ProtectedRoute>} />
                 <Route path="/spark-trade/onboarding" element={<ProtectedRoute><SparkTradeOnboarding /></ProtectedRoute>} />
                 <Route path="/spark-trade/onboarding/income-goal" element={<ProtectedRoute><SparkTradeIncomeGoal /></ProtectedRoute>} />
+                <Route path="/spark-trade/onboarding/group-brands" element={<ProtectedRoute><SparkTradeGroupBrands /></ProtectedRoute>} />
                 <Route path="/spark-trade/onboarding/business-preference" element={<ProtectedRoute><SparkTradeBusinessPreference /></ProtectedRoute>} />
                 <Route path="/spark-trade/onboarding/ai-blueprint" element={<ProtectedRoute><SparkTradeAIBlueprint /></ProtectedRoute>} />
                 <Route path="/spark-trade/onboarding/ai-store-creation" element={<ProtectedRoute><SparkTradeStoreCreation /></ProtectedRoute>} />
