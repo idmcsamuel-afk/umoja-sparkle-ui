@@ -2782,6 +2782,54 @@ export type Database = {
         }
         Relationships: []
       }
+      fulfillment_shipments: {
+        Row: {
+          courier: string
+          created_at: string
+          error: string | null
+          id: string
+          member_id: string
+          payment_reference: string | null
+          raw_response: Json | null
+          source_id: string
+          source_type: string
+          status: string
+          tracking_url: string | null
+          updated_at: string
+          waybill_number: string | null
+        }
+        Insert: {
+          courier?: string
+          created_at?: string
+          error?: string | null
+          id?: string
+          member_id: string
+          payment_reference?: string | null
+          raw_response?: Json | null
+          source_id: string
+          source_type: string
+          status?: string
+          tracking_url?: string | null
+          updated_at?: string
+          waybill_number?: string | null
+        }
+        Update: {
+          courier?: string
+          created_at?: string
+          error?: string | null
+          id?: string
+          member_id?: string
+          payment_reference?: string | null
+          raw_response?: Json | null
+          source_id?: string
+          source_type?: string
+          status?: string
+          tracking_url?: string | null
+          updated_at?: string
+          waybill_number?: string | null
+        }
+        Relationships: []
+      }
       fulfillment_subscriptions: {
         Row: {
           activated_at: string

@@ -21,6 +21,154 @@ const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
 const SERVICE = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
 const ANON = Deno.env.get("SUPABASE_ANON_KEY")!;
 const PAYSTACK_SECRET = Deno.env.get("PAYSTACK_SECRET_KEY")!;
+const TCG_API_KEY = Deno.env.get("TCG_API_KEY");
+const TCG_ACCOUNT_CODE = Deno.env.get("TCG_ACCOUNT_CODE");
+const TCG_USERNAME = Deno.env.get("TCG_USERNAME");
+const TCG_API_BASE = Deno.env.get("TCG_API_BASE") ?? "https://api.thecourierguy.co.za/v1";
+
+/**
+ * Create a shipment with TheCourierGuy. Idempotent on (source_type, source_id):
+ * if a row already exists with a waybill, returns it without re-calling TCG.
+ * Failures are stored on the row but never throw — payment flow continues.
+ */
+async function createTcgShipment(opts: {
+  memberId: string;
+  sourceType: "spark_trade_reservation" | "group_brand_investment";
+  sourceId: string;
+  paymentRef: string;
+  amountZar: number;
+  description: string;
+}) {
+  try {
+    // Idempotency check
+    const { data: existing } = await sb
+      .from("fulfillment_shipments")
+      .select("id, waybill_number, tracking_url, status")
+      .eq("source_type", opts.sourceType)
+      .eq("source_id", opts.sourceId)
+      .maybeSingle();
+    if (existing && (existing as any).waybill_number) {
+      console.log("[tcg] shipment already exists", existing);
+      return { ok: true, ...(existing as any), reused: true };
+    }
+
+    if (!TCG_API_KEY || !TCG_ACCOUNT_CODE || !TCG_USERNAME) {
+      console.warn("[tcg] credentials missing — skipping shipment creation");
+      await sb.from("fulfillment_shipments").upsert({
+        member_id: opts.memberId,
+        source_type: opts.sourceType,
+        source_id: opts.sourceId,
+        payment_reference: opts.paymentRef,
+        status: "skipped",
+        error: "tcg_credentials_missing",
+      } as any, { onConflict: "source_type,source_id" });
+      return { ok: false, reason: "tcg_credentials_missing" };
+    }
+
+    // Fetch member address (best-effort)
+    const { data: member } = await sb
+      .from("members")
+      .select("full_name, email, phone, address_line1, address_line2, city, province, postal_code, country")
+      .eq("id", opts.memberId)
+      .maybeSingle();
+
+    const payload = {
+      account_code: TCG_ACCOUNT_CODE,
+      username: TCG_USERNAME,
+      reference: opts.paymentRef,
+      description: opts.description,
+      declared_value: opts.amountZar,
+      collection: {
+        company: "Umoja Fulfillment",
+        contact: "Warehouse",
+        address1: "1 Distribution Way",
+        suburb: "Johannesburg CBD",
+        city: "Johannesburg",
+        province: "Gauteng",
+        postal_code: "2000",
+        country: "ZA",
+      },
+      delivery: {
+        company: (member as any)?.full_name ?? "Member",
+        contact: (member as any)?.full_name ?? "Member",
+        phone: (member as any)?.phone ?? "",
+        email: (member as any)?.email ?? "",
+        address1: (member as any)?.address_line1 ?? "",
+        address2: (member as any)?.address_line2 ?? "",
+        suburb: (member as any)?.city ?? "",
+        city: (member as any)?.city ?? "",
+        province: (member as any)?.province ?? "",
+        postal_code: (member as any)?.postal_code ?? "",
+        country: (member as any)?.country ?? "ZA",
+      },
+      parcels: [{ length: 30, width: 20, height: 15, weight: 2 }],
+    };
+
+    const r = await fetch(`${TCG_API_BASE}/shipments`, {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${TCG_API_KEY}`,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify(payload),
+    });
+    const raw = await r.json().catch(() => ({}));
+    console.log("[tcg] response", { status: r.status, raw });
+
+    if (!r.ok) {
+      await sb.from("fulfillment_shipments").upsert({
+        member_id: opts.memberId,
+        source_type: opts.sourceType,
+        source_id: opts.sourceId,
+        payment_reference: opts.paymentRef,
+        status: "failed",
+        error: `tcg_http_${r.status}`,
+        raw_response: raw,
+      } as any, { onConflict: "source_type,source_id" });
+      return { ok: false, reason: `tcg_http_${r.status}`, raw };
+    }
+
+    const waybill = raw?.waybill_number ?? raw?.data?.waybill_number ?? raw?.tracking_number ?? null;
+    const trackingUrl = raw?.tracking_url ?? raw?.data?.tracking_url ?? (waybill ? `https://www.thecourierguy.co.za/track?waybill=${waybill}` : null);
+
+    await sb.from("fulfillment_shipments").upsert({
+      member_id: opts.memberId,
+      source_type: opts.sourceType,
+      source_id: opts.sourceId,
+      payment_reference: opts.paymentRef,
+      waybill_number: waybill,
+      tracking_url: trackingUrl,
+      status: waybill ? "created" : "pending",
+      raw_response: raw,
+    } as any, { onConflict: "source_type,source_id" });
+
+    if (waybill) {
+      await sb.from("notifications").insert({
+        member_id: opts.memberId,
+        title: "Shipment created 📦",
+        body: `Your order is being prepared. Track it: ${trackingUrl ?? waybill}`,
+        kind: "fulfillment",
+        link: trackingUrl ?? "/spark-trade/dashboard",
+      });
+    }
+
+    return { ok: true, waybill_number: waybill, tracking_url: trackingUrl };
+  } catch (e) {
+    const msg = e instanceof Error ? e.message : String(e);
+    console.error("[tcg] error", msg);
+    try {
+      await sb.from("fulfillment_shipments").upsert({
+        member_id: opts.memberId,
+        source_type: opts.sourceType,
+        source_id: opts.sourceId,
+        payment_reference: opts.paymentRef,
+        status: "error",
+        error: msg,
+      } as any, { onConflict: "source_type,source_id" });
+    } catch (_) { /* ignore */ }
+    return { ok: false, reason: msg };
+  }
+}
 const sb = createClient(SUPABASE_URL, SERVICE);
 
 function json(status: number, body: unknown) {
