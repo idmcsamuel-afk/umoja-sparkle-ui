@@ -3797,19 +3797,26 @@ export type Database = {
           referred_by: string | null
           referred_by_code: string | null
           spark_link_code: string | null
+          spark_trade_avg_order_value: number | null
           spark_trade_business_type: string | null
           spark_trade_capital: number | null
           spark_trade_group_buy_interest: boolean | null
           spark_trade_income_goal: number | null
           spark_trade_income_path: string | null
+          spark_trade_last_purchase_date: string | null
+          spark_trade_lifetime_value: number | null
+          spark_trade_marketplace_experience: string | null
           spark_trade_onboarding_complete: boolean | null
           spark_trade_onboarding_completed_at: string | null
           spark_trade_paystack_reference: string | null
+          spark_trade_purchased_from: string | null
+          spark_trade_referral_count: number | null
           spark_trade_service_area: string | null
           spark_trade_stock_preference: string | null
           spark_trade_subscription_paid_at: string | null
           spark_trade_subscription_payment_status: string | null
           spark_trade_subscription_tier: string | null
+          spark_trade_total_purchases: number | null
           status: string
           streak_count: number | null
           time_waiting_score: number
@@ -3889,19 +3896,26 @@ export type Database = {
           referred_by?: string | null
           referred_by_code?: string | null
           spark_link_code?: string | null
+          spark_trade_avg_order_value?: number | null
           spark_trade_business_type?: string | null
           spark_trade_capital?: number | null
           spark_trade_group_buy_interest?: boolean | null
           spark_trade_income_goal?: number | null
           spark_trade_income_path?: string | null
+          spark_trade_last_purchase_date?: string | null
+          spark_trade_lifetime_value?: number | null
+          spark_trade_marketplace_experience?: string | null
           spark_trade_onboarding_complete?: boolean | null
           spark_trade_onboarding_completed_at?: string | null
           spark_trade_paystack_reference?: string | null
+          spark_trade_purchased_from?: string | null
+          spark_trade_referral_count?: number | null
           spark_trade_service_area?: string | null
           spark_trade_stock_preference?: string | null
           spark_trade_subscription_paid_at?: string | null
           spark_trade_subscription_payment_status?: string | null
           spark_trade_subscription_tier?: string | null
+          spark_trade_total_purchases?: number | null
           status?: string
           streak_count?: number | null
           time_waiting_score?: number
@@ -3981,19 +3995,26 @@ export type Database = {
           referred_by?: string | null
           referred_by_code?: string | null
           spark_link_code?: string | null
+          spark_trade_avg_order_value?: number | null
           spark_trade_business_type?: string | null
           spark_trade_capital?: number | null
           spark_trade_group_buy_interest?: boolean | null
           spark_trade_income_goal?: number | null
           spark_trade_income_path?: string | null
+          spark_trade_last_purchase_date?: string | null
+          spark_trade_lifetime_value?: number | null
+          spark_trade_marketplace_experience?: string | null
           spark_trade_onboarding_complete?: boolean | null
           spark_trade_onboarding_completed_at?: string | null
           spark_trade_paystack_reference?: string | null
+          spark_trade_purchased_from?: string | null
+          spark_trade_referral_count?: number | null
           spark_trade_service_area?: string | null
           spark_trade_stock_preference?: string | null
           spark_trade_subscription_paid_at?: string | null
           spark_trade_subscription_payment_status?: string | null
           spark_trade_subscription_tier?: string | null
+          spark_trade_total_purchases?: number | null
           status?: string
           streak_count?: number | null
           time_waiting_score?: number
