@@ -133,8 +133,12 @@ export function usePaystack() {
             });
             try { sessionStorage.removeItem(`paystack:meta:${cleanRef}`); } catch {}
             const d = data as any;
+            console.log(`[VERIFY RESPONSE] invoke error:`, error);
+            console.log(`[VERIFY RESPONSE] Response body: ${JSON.stringify(d, null, 2)}`);
+            console.log(`[VERIFY RESPONSE] Data keys: ${d ? Object.keys(d).join(", ") : "(no data)"}`);
             if (error || !d?.ok) {
               const msg = (error as any)?.message || d?.error || "Verification pending";
+              console.log(`[VERIFY RESPONSE] NOT OK. msg="${msg}" data=${JSON.stringify(d)}`);
               dwarn("[Paystack] verify hard-fail:", msg);
               toast.warning("Payment received — verification pending", {
                 description: `${msg}. Ref: ${tx.reference}`,
@@ -142,6 +146,7 @@ export function usePaystack() {
               settle({ ok: false, reference: tx.reference, error: msg });
               return;
             }
+            console.log(`[VERIFY RESPONSE] SUCCESS! applied=${d.applied} kind=${d.kind}`);
             if (d.applied === false) {
               toast.success("Payment received ✓", {
                 description: `Activation pending review. Ref: ${tx.reference}`,
