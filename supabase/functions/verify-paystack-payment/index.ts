@@ -717,8 +717,17 @@ Deno.serve(async (req) => {
       error: result.applied ? null : (result.error || result.reason || "not_applied"),
     });
 
+    console.log(`[FINAL RESPONSE] Payment type: ${metaPaymentType ?? "(none)"}`);
+    console.log(`[FINAL RESPONSE] Kind resolved: ${kind}`);
+    console.log(`[FINAL RESPONSE] Status: ${tx?.status}`);
+    console.log(`[FINAL RESPONSE] Amount (kobo): ${tx?.amount} -> ZAR: ${amountZar}`);
+    console.log(`[FINAL RESPONSE] Reference: ${tx?.reference}`);
+    console.log(`[FINAL RESPONSE] Apply result:`, JSON.stringify(result, null, 2));
+    const finalBody = { ok: true, amount: amountZar, reference, ...result };
+    console.log(`[FINAL RESPONSE] Returning body:`, JSON.stringify(finalBody, null, 2));
+
     // Always 200 if Paystack confirmed success — frontend treats !ok as soft warning
-    return json(200, { ok: true, amount: amountZar, reference, ...result });
+    return json(200, finalBody);
   } catch (e) {
     const msg = e instanceof Error ? e.message : String(e);
     console.error("[verify] fatal", msg);
