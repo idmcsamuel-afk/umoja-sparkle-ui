@@ -9,7 +9,7 @@ import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription } from "@/components/ui/dialog";
 import { toast } from "sonner";
-import { Loader2, Package, ArrowRight, Search, ExternalLink, Truck, CheckCircle2, Copy } from "lucide-react";
+import { Loader2, Package, ArrowRight, Search, ExternalLink, Truck, CheckCircle2, Copy, Lock, Sparkles } from "lucide-react";
 
 interface Product {
   product_name: string;
@@ -26,6 +26,8 @@ interface Product {
 
 const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL as string;
 const SUPABASE_ANON = import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY as string;
+
+const PAID_STORAGE_KEY = "spark_trade_paid_products";
 
 const sourceLabel: Record<Product["source"], string> = {
   takealot: "Takealot",
@@ -51,7 +53,7 @@ export default function SparkTradeProductOpportunities() {
   const [searchResults, setSearchResults] = useState<Product[]>([]);
   const [searching, setSearching] = useState(false);
 
-  const [paying, setPaying] = useState<string | null>(null); // unique key of product being paid
+  const [paying, setPaying] = useState<string | null>(null);
   const [tracking, setTracking] = useState<{
     product: Product;
     reference: string;
@@ -61,12 +63,25 @@ export default function SparkTradeProductOpportunities() {
   } | null>(null);
   const [email, setEmail] = useState<string | null>(null);
 
-  // Redirect if not logged in
+  // Masking: track which product keys have been paid for
+  const [paidProductIds, setPaidProductIds] = useState<Set<string>>(() => {
+    try {
+      const raw = typeof window !== "undefined" ? window.localStorage.getItem(PAID_STORAGE_KEY) : null;
+      if (raw) return new Set(JSON.parse(raw) as string[]);
+    } catch {}
+    return new Set();
+  });
+
+  useEffect(() => {
+    try {
+      window.localStorage.setItem(PAID_STORAGE_KEY, JSON.stringify(Array.from(paidProductIds)));
+    } catch {}
+  }, [paidProductIds]);
+
   useEffect(() => {
     if (!authLoading && !user) navigate("/login");
   }, [authLoading, user, navigate]);
 
-  // Fetch member capital + email
   useEffect(() => {
     if (!user) return;
     (async () => {
@@ -86,7 +101,6 @@ export default function SparkTradeProductOpportunities() {
     })();
   }, [user]);
 
-  // Fetch trending products (from scraped takealot_products)
   useEffect(() => {
     (async () => {
       setLoading(true);
@@ -120,7 +134,6 @@ export default function SparkTradeProductOpportunities() {
     })();
   }, []);
 
-  // Debounced marketplace search
   useEffect(() => {
     const t = setTimeout(() => setSearchTerm(search.trim()), 400);
     return () => clearTimeout(t);
@@ -219,7 +232,13 @@ export default function SparkTradeProductOpportunities() {
       return;
     }
 
-    // Poll fulfillment_shipments for the waybill (created server-side by verify-paystack-payment)
+    // Unmask this product
+    setPaidProductIds((prev) => {
+      const next = new Set(prev);
+      next.add(key);
+      return next;
+    });
+
     let shipment: any = null;
     for (let i = 0; i < 6; i++) {
       const { data } = await supabase
@@ -242,7 +261,6 @@ export default function SparkTradeProductOpportunities() {
       status: shipment?.status ?? "pending",
     });
 
-    // refresh capital
     try {
       const res = await fetch(
         `${SUPABASE_URL}/functions/v1/member-capital/${user.id}`,
@@ -272,7 +290,7 @@ export default function SparkTradeProductOpportunities() {
         <div className="mt-2 flex flex-wrap items-end justify-between gap-3">
           <div>
             <h1 className="font-display text-3xl md:text-4xl">Product Opportunities</h1>
-            <p className="mt-2 text-muted-foreground">Live products from Takealot, Amazon & Makro.</p>
+            <p className="mt-2 text-muted-foreground">Curated premium inventory. Full product details revealed after payment.</p>
           </div>
           <Badge variant="secondary" className="text-sm py-2 px-3">
             Available Capital:{" "}
@@ -285,7 +303,7 @@ export default function SparkTradeProductOpportunities() {
         <div className="mt-6 relative">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
           <Input
-            placeholder="Search Makro, Amazon, Takealot…"
+            placeholder="Search by category or keyword…"
             value={search}
             onChange={(e) => setSearch(e.target.value)}
             className="pl-9"
@@ -321,15 +339,20 @@ export default function SparkTradeProductOpportunities() {
           </Card>
         ) : (
           <div className="mt-6 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
-            {grid.map((p, i) => (
-              <ProductCard
-                key={`${p.source}-${i}-${p.product_name}`}
-                p={p}
-                onReserve={onReserve}
-                isPaying={paying === productKey(p)}
-                anyPaying={!!paying}
-              />
-            ))}
+            {grid.map((p, i) => {
+              const key = productKey(p);
+              const unlocked = paidProductIds.has(key);
+              return (
+                <ProductCard
+                  key={`${p.source}-${i}-${p.product_name}`}
+                  p={p}
+                  unlocked={unlocked}
+                  onReserve={onReserve}
+                  isPaying={paying === key}
+                  anyPaying={!!paying}
+                />
+              );
+            })}
           </div>
         )}
 
@@ -375,12 +398,23 @@ function TrackingDialog({
             Payment successful — order placed
           </DialogTitle>
           <DialogDescription>
-            {tracking.product.product_name} • {fmtZar(tracking.product.price)}
+            Your order: <span className="font-medium text-foreground">{tracking.product.product_name}</span>
+            {tracking.product.category ? <> • {tracking.product.category}</> : null}
           </DialogDescription>
         </DialogHeader>
 
+        {tracking.product.image_url && (
+          <div className="rounded-lg overflow-hidden bg-muted h-40">
+            <img src={tracking.product.image_url} alt={tracking.product.product_name} className="h-full w-full object-cover" />
+          </div>
+        )}
+
         <div className="space-y-3 text-sm">
           <div className="rounded-lg bg-muted p-3 space-y-2">
+            <div className="flex items-center justify-between gap-2">
+              <span className="text-muted-foreground">Amount</span>
+              <span className="font-semibold">{fmtZar(tracking.product.price)}</span>
+            </div>
             <div className="flex items-center justify-between gap-2">
               <span className="text-muted-foreground">Payment reference</span>
               <button onClick={() => copy(tracking.reference)} className="font-mono text-xs flex items-center gap-1 hover:underline">
@@ -425,44 +459,72 @@ function TrackingDialog({
   );
 }
 
-function ProductCard({ p, onReserve, isPaying, anyPaying }: { p: Product; onReserve: (p: Product) => void; isPaying: boolean; anyPaying: boolean }) {
+function ProductCard({
+  p,
+  unlocked,
+  onReserve,
+  isPaying,
+  anyPaying,
+}: {
+  p: Product;
+  unlocked: boolean;
+  onReserve: (p: Product) => void;
+  isPaying: boolean;
+  anyPaying: boolean;
+}) {
   const [loaded, setLoaded] = useState(false);
   const [errored, setErrored] = useState(false);
   const inStock = p.stock_available !== false;
+  const categoryLabel = p.category || "Item";
+
   return (
     <Card className="overflow-hidden flex flex-col transition-all hover:shadow-lg hover:-translate-y-0.5">
       <div className="relative h-[200px] w-full bg-muted">
-        {!p.image_url || errored ? (
-          <div className="grid h-full w-full place-items-center">
-            <Package className="h-10 w-10 text-muted-foreground" />
-          </div>
+        {unlocked ? (
+          !p.image_url || errored ? (
+            <div className="grid h-full w-full place-items-center">
+              <Package className="h-10 w-10 text-muted-foreground" />
+            </div>
+          ) : (
+            <>
+              {!loaded && <div className="absolute inset-0 animate-pulse bg-muted" />}
+              <img
+                src={p.image_url}
+                alt={p.product_name}
+                loading="lazy"
+                onLoad={() => setLoaded(true)}
+                onError={() => setErrored(true)}
+                className={`h-full w-full object-cover transition-opacity duration-300 ${loaded ? "opacity-100" : "opacity-0"}`}
+              />
+            </>
+          )
         ) : (
-          <>
-            {!loaded && <div className="absolute inset-0 animate-pulse bg-muted" />}
-            <img
-              src={p.image_url}
-              alt={p.product_name}
-              loading="lazy"
-              onLoad={() => setLoaded(true)}
-              onError={() => setErrored(true)}
-              className={`h-full w-full object-cover transition-opacity duration-300 ${loaded ? "opacity-100" : "opacity-0"}`}
-            />
-          </>
+          <div className="grid h-full w-full place-items-center bg-gradient-to-br from-primary/10 via-muted to-primary/5">
+            <div className="flex flex-col items-center gap-2 text-muted-foreground">
+              <div className="rounded-full bg-background/80 p-4 shadow-sm">
+                <Sparkles className="h-8 w-8 text-primary" />
+              </div>
+              <span className="text-xs font-medium uppercase tracking-wider">Premium Item</span>
+            </div>
+          </div>
         )}
-        <Badge className="absolute top-2 left-2 capitalize" variant="secondary">
-          {sourceLabel[p.source]}
+        <Badge className="absolute top-2 left-2" variant="secondary">
+          {unlocked ? "Unlocked" : (
+            <span className="flex items-center gap-1"><Lock className="h-3 w-3" />Locked</span>
+          )}
         </Badge>
       </div>
       <div className="p-4 flex-1 flex flex-col gap-2">
-        <h3 className="font-semibold line-clamp-2 min-h-[3rem]">{p.product_name}</h3>
+        <h3 className="font-semibold line-clamp-2 min-h-[3rem]">
+          {unlocked ? p.product_name : `Premium ${categoryLabel} Item`}
+        </h3>
         <div className="flex items-center justify-between">
           <span className="text-lg font-bold">
             {p.currency && p.currency !== "ZAR" ? `${p.currency} ${p.price.toLocaleString()}` : fmtZar(p.price)}
           </span>
           {p.category && <span className="text-xs text-muted-foreground line-clamp-1 max-w-[60%] text-right">{p.category}</span>}
         </div>
-        <div className="flex items-center justify-between text-xs text-muted-foreground">
-          <span>Sellers: {p.seller_count ?? "—"}</span>
+        <div className="flex items-center justify-end text-xs text-muted-foreground">
           <span className={inStock ? "text-green-600 font-medium" : "text-destructive font-medium"}>
             {inStock ? "In stock" : "Out of stock"}
           </span>
@@ -475,11 +537,11 @@ function ProductCard({ p, onReserve, isPaying, anyPaying }: { p: Product; onRese
             onClick={() => onReserve(p)}
           >
             {isPaying ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
-            {isPaying ? "Processing…" : "Reserve & Pay"}
+            {isPaying ? "Processing…" : unlocked ? "Buy Again" : "Reserve & Pay"}
           </Button>
-          {p.product_url && (
+          {unlocked && p.product_url && (
             <Button size="sm" variant="outline" asChild>
-              <a href={p.product_url} target="_blank" rel="noreferrer" aria-label="View on retailer">
+              <a href={p.product_url} target="_blank" rel="noreferrer" aria-label="View details">
                 <ExternalLink className="h-4 w-4" />
               </a>
             </Button>
