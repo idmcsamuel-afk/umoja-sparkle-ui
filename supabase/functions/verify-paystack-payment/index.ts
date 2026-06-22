@@ -546,6 +546,41 @@ async function applyToMarketplacePurchase(
 }
 
 Deno.serve(async (req) => {
+  async function verifyPaystackWithRetry(
+    reference: string,
+    secretKey: string,
+    maxRetries: number = 3
+  ): Promise<any> {
+    for (let attempt = 1; attempt <= maxRetries; attempt++) {
+      try {
+        const response = await fetch(
+          `https://api.paystack.co/transaction/verify/${reference}`,
+          {
+            headers: {
+              Authorization: `Bearer ${secretKey}`
+            }
+          }
+        )
+        if (!response.ok) {
+          if (attempt < maxRetries) {
+            console.log(`Verification attempt ${attempt} failed. Retrying in ${attempt * 1000}ms...`)
+            await new Promise(resolve => setTimeout(resolve, attempt * 1000))
+            continue
+          }
+          throw new Error(`Paystack verification failed: ${response.status}`)
+        }
+        const data = await response.json()
+        return data
+      } catch (error) {
+        if (attempt === maxRetries) {
+          throw error
+        }
+        console.log(`Verification attempt ${attempt} error: ${error.message}. Retrying...`)
+        await new Promise(resolve => setTimeout(resolve, attempt * 1000))
+      }
+    }
+  }
+
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
   try {
     if (!PAYSTACK_SECRET) {
@@ -571,7 +606,7 @@ Deno.serve(async (req) => {
 
     let tx: any;
     try {
-      tx = await paystackVerify(reference);
+      tx = await verifyPaystackWithRetry(reference, PAYSTACK_SECRET, 3);
     } catch (e) {
       const msg = e instanceof Error ? e.message : String(e);
       console.error("[verify] paystack verify error", msg);
