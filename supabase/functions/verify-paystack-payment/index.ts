@@ -633,14 +633,18 @@ Deno.serve(async (req) => {
       throw new Error(`Failed after ${maxRetries} verification attempts`)
     }
 
-    let tx: any;
+    let paystackResp: any;
     try {
-      tx = await verifyPaystackWithRetry(reference, PAYSTACK_SECRET, 3, 2000);
+      paystackResp = await verifyPaystackWithRetry(reference, PAYSTACK_SECRET, 3, 2000);
     } catch (e) {
       const msg = e instanceof Error ? e.message : String(e);
       console.error("[verify] paystack verify error", msg);
       return json(200, { ok: false, error: `Paystack verify failed: ${msg}`, reference });
     }
+
+    // Paystack response shape: { status: true, message, data: { status: "success", amount, reference, ... } }
+    const tx: any = paystackResp?.data ?? {};
+    console.log(`[verify] paystack response ok=${paystackResp?.status} tx.status=${tx?.status} tx.amount=${tx?.amount} tx.reference=${tx?.reference}`);
 
     if (tx.status !== "success") {
       console.warn("[verify] paystack tx not success", tx.status);
