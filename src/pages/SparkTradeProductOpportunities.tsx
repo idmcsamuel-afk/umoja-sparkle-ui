@@ -208,6 +208,11 @@ export default function SparkTradeProductOpportunities() {
     const productIdSafe = (p.product_url ?? p.product_name).replace(/[^A-Za-z0-9]/g, "").slice(0, 12) || "PROD";
     const reference = buildReference("ST", `MKT${productIdSafe}`, memberCode);
 
+    console.log(`[PAYSTACK DEBUG] Reference created: ${reference}`);
+    console.log(`[PAYSTACK DEBUG] About to call Paystack with reference: ${reference}`);
+    console.log(`[PAYSTACK DEBUG] Reference length: ${reference.length}`);
+    console.log(`[PAYSTACK DEBUG] Reference bytes: ${reference.split('').map(c => c.charCodeAt(0)).join(',')}`);
+
     const result = await pay({
       email: payerEmail,
       amountZar: p.price,
@@ -222,6 +227,14 @@ export default function SparkTradeProductOpportunities() {
         product_url: p.product_url ?? null,
       },
     });
+
+    console.log(`[PAYSTACK DEBUG] pay() returned. ok=${result.ok} callbackReference="${result.reference ?? ""}"`);
+    if (result.reference) {
+      console.log(`[PAYSTACK DEBUG] Callback reference length: ${result.reference.length}`);
+      console.log(`[PAYSTACK DEBUG] Callback reference bytes: ${result.reference.split('').map(c => c.charCodeAt(0)).join(',')}`);
+      console.log(`[PAYSTACK DEBUG] References match: ${reference === result.reference}`);
+    }
+
 
     setPaying(null);
 
