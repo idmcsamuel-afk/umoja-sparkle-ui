@@ -4526,6 +4526,60 @@ export type Database = {
         }
         Relationships: []
       }
+      products: {
+        Row: {
+          asin: string
+          category: string
+          competition_level: string | null
+          created_at: string
+          id: string
+          monthly_rank: number | null
+          price_usd: number | null
+          profit_potential: string | null
+          rating: number | null
+          region: string | null
+          related_keywords: Json | null
+          review_count: number | null
+          search_volume: number | null
+          seller_count: number | null
+          title: string
+        }
+        Insert: {
+          asin: string
+          category: string
+          competition_level?: string | null
+          created_at?: string
+          id?: string
+          monthly_rank?: number | null
+          price_usd?: number | null
+          profit_potential?: string | null
+          rating?: number | null
+          region?: string | null
+          related_keywords?: Json | null
+          review_count?: number | null
+          search_volume?: number | null
+          seller_count?: number | null
+          title: string
+        }
+        Update: {
+          asin?: string
+          category?: string
+          competition_level?: string | null
+          created_at?: string
+          id?: string
+          monthly_rank?: number | null
+          price_usd?: number | null
+          profit_potential?: string | null
+          rating?: number | null
+          region?: string | null
+          related_keywords?: Json | null
+          review_count?: number | null
+          search_volume?: number | null
+          seller_count?: number | null
+          title?: string
+        }
+        Relationships: []
+      }
       properties: {
         Row: {
           assembly_complete_date: string | null
