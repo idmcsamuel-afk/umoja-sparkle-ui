@@ -567,7 +567,14 @@ Deno.serve(async (req) => {
     if (!reference || typeof reference !== "string") {
       return json(400, { ok: false, error: "reference required" });
     }
+    console.log(`\n========== VERIFY PAYSTACK PAYMENT START ==========`);
+    console.log(`Payment type: ${clientMeta?.payment_type ?? "(none)"}`);
+    console.log(`Reference (from request): "${reference}"`);
+    console.log(`Reference length: ${reference.length}`);
+    console.log(`Reference first 10 chars: "${reference.substring(0, 10)}"`);
+    console.log(`Reference last 20 chars: "${reference.substring(Math.max(0, reference.length - 20))}"`);
     console.log("[verify] start", { user: u.user.id, reference, clientMeta });
+
 
     // DEBUGGING: Log the secret key to verify it's TEST mode
     const keyPrefix = PAYSTACK_SECRET.substring(0, 8); // Should be "sk_test_"
