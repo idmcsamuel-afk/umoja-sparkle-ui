@@ -34,11 +34,11 @@ export default function SparkTradeDashboard() {
 
       const { data: member } = await supabase
         .from("members")
-        .select("onboarding_complete, spark_trade_income_path")
+        .select("spark_trade_onboarding_complete, spark_trade_income_path")
         .eq("id", user.id)
         .maybeSingle();
 
-      if (!member || !(member as any).onboarding_complete) {
+      if (!member || !(member as any).spark_trade_onboarding_complete) {
         navigate("/spark-trade/onboarding/income-goal");
         setLoading(false);
         return;
