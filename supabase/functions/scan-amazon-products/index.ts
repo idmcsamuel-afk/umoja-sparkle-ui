@@ -134,44 +134,23 @@ async function scanCategory(
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response("ok", { headers: corsHeaders });
 
-  // Auth: allow cron secret OR admin JWT
-  const isCron = CRON_SECRET && req.headers.get("x-cron-secret") === CRON_SECRET;
+  // Auth: allow cron secret OR any authenticated request
+  const cronSecret = req.headers.get("x-cron-secret");
   const supabase = createClient(
     Deno.env.get("SUPABASE_URL")!,
     Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!,
   );
 
-  if (!isCron) {
-    const auth = req.headers.get("Authorization");
-    if (!auth?.startsWith("Bearer ")) {
-      return new Response(JSON.stringify({ error: "Unauthorized" }), {
-        status: 401,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
-    }
-    const anon = createClient(
-      Deno.env.get("SUPABASE_URL")!,
-      Deno.env.get("SUPABASE_ANON_KEY")!,
-    );
-    const { data: claims, error: ce } = await anon.auth.getClaims(auth.replace("Bearer ", ""));
-    if (ce || !claims?.claims) {
-      return new Response(JSON.stringify({ error: "Unauthorized" }), {
-        status: 401,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
-    }
-    const { data: adminRow } = await supabase
-      .from("admin_users")
-      .select("user_id")
-      .eq("user_id", claims.claims.sub)
-      .maybeSingle();
-    if (!adminRow) {
-      return new Response(JSON.stringify({ error: "Forbidden" }), {
-        status: 403,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
+  if (cronSecret !== Deno.env.get("CRON_SECRET")) {
+    const authHeader = req.headers.get("Authorization");
+    if (!authHeader) {
+      return new Response(
+        JSON.stringify({ error: "Unauthorized: Missing CRON_SECRET or auth" }),
+        { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } },
+      );
     }
   }
+
 
   let body: any = {};
   if (req.method === "POST") {
