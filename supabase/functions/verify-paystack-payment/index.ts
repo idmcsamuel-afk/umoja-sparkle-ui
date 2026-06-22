@@ -546,41 +546,6 @@ async function applyToMarketplacePurchase(
 }
 
 Deno.serve(async (req) => {
-  async function verifyPaystackWithRetry(
-    reference: string,
-    secretKey: string,
-    maxRetries: number = 3
-  ): Promise<any> {
-    for (let attempt = 1; attempt <= maxRetries; attempt++) {
-      try {
-        const response = await fetch(
-          `https://api.paystack.co/transaction/verify/${reference}`,
-          {
-            headers: {
-              Authorization: `Bearer ${secretKey}`
-            }
-          }
-        )
-        if (!response.ok) {
-          if (attempt < maxRetries) {
-            console.log(`Verification attempt ${attempt} failed. Retrying in ${attempt * 1000}ms...`)
-            await new Promise(resolve => setTimeout(resolve, attempt * 1000))
-            continue
-          }
-          throw new Error(`Paystack verification failed: ${response.status}`)
-        }
-        const data = await response.json()
-        return data
-      } catch (error) {
-        if (attempt === maxRetries) {
-          throw error
-        }
-        console.log(`Verification attempt ${attempt} error: ${error.message}. Retrying...`)
-        await new Promise(resolve => setTimeout(resolve, attempt * 1000))
-      }
-    }
-  }
-
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
   try {
     if (!PAYSTACK_SECRET) {
@@ -604,9 +569,66 @@ Deno.serve(async (req) => {
     }
     console.log("[verify] start", { user: u.user.id, reference, clientMeta });
 
+    // DEBUGGING: Log the secret key to verify it's TEST mode
+    const keyPrefix = PAYSTACK_SECRET.substring(0, 8); // Should be "sk_test_"
+    console.log(`Paystack key mode: ${keyPrefix}... (must start with sk_test_)`);
+
+    console.log(`[ST] Verifying payment: Reference=${reference}`)
+
+    async function verifyPaystackWithRetry(
+      reference: string,
+      secretKey: string,
+      maxRetries: number = 3,
+      initialDelayMs: number = 2000 // Start with 2 second delay
+    ): Promise<any> {
+      console.log(`[ST] Starting verification with ${maxRetries} attempts, initial delay ${initialDelayMs}ms`)
+
+      // Initial delay before first attempt (payment needs time to settle)
+      await new Promise(resolve => setTimeout(resolve, initialDelayMs))
+      for (let attempt = 1; attempt <= maxRetries; attempt++) {
+        try {
+          const verifyUrl = `https://api.paystack.co/transaction/verify/${reference}`
+          console.log(`[ST] Attempt ${attempt}: Calling ${verifyUrl}`)
+          const response = await fetch(verifyUrl, {
+            method: 'GET',
+            headers: {
+              'Authorization': `Bearer ${secretKey}`,
+              'Content-Type': 'application/json'
+            }
+          })
+          console.log(`[ST] Attempt ${attempt}: Status ${response.status}`)
+          if (!response.ok) {
+            const errorText = await response.text()
+            console.log(`[ST] Attempt ${attempt} error: ${response.status} - ${errorText}`)
+            if (response.status === 404) {
+              console.log(`[ST] Transaction NOT FOUND in Paystack. Retrying...`)
+            } else if (response.status === 400) {
+              console.log(`[ST] BAD REQUEST (400). Possible reference format issue. Reference: ${reference}`)
+            }
+            if (attempt < maxRetries) {
+              const nextDelayMs = attempt * 2000; // 2s, 4s, 6s
+              console.log(`[ST] Waiting ${nextDelayMs}ms before retry...`)
+              await new Promise(resolve => setTimeout(resolve, nextDelayMs))
+              continue
+            }
+            throw new Error(`Paystack verification failed: ${response.status} - ${errorText}`)
+          }
+          const data = await response.json()
+          console.log(`[ST] Verification success on attempt ${attempt}`)
+          return data
+        } catch (error) {
+          console.error(`[ST] Attempt ${attempt} error: ${error.message}`)
+          if (attempt === maxRetries) {
+            throw error
+          }
+        }
+      }
+      throw new Error(`Failed after ${maxRetries} verification attempts`)
+    }
+
     let tx: any;
     try {
-      tx = await verifyPaystackWithRetry(reference, PAYSTACK_SECRET, 3);
+      tx = await verifyPaystackWithRetry(reference, PAYSTACK_SECRET, 3, 2000);
     } catch (e) {
       const msg = e instanceof Error ? e.message : String(e);
       console.error("[verify] paystack verify error", msg);
@@ -617,6 +639,7 @@ Deno.serve(async (req) => {
       console.warn("[verify] paystack tx not success", tx.status);
       return json(200, { ok: false, error: `Paystack status=${tx.status}`, reference });
     }
+
 
     const amountZar = Number(tx.amount) / 100;
     const parts = String(reference).split("-");
