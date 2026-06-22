@@ -343,6 +343,8 @@ async function applyToSparkTradeSubscription(
   localAmount?: number,
   localCcy?: string,
 ) {
+  console.log(`[TIER] applyToSparkTradeSubscription called`);
+  console.log(`[TIER] userId=${userId} tier=${tier} ref=${ref} amountZar=${amountZar}`);
   const nextPayment = new Date();
   nextPayment.setMonth(nextPayment.getMonth() + 1);
   const upd = await sb.from("members").update({
@@ -353,6 +355,7 @@ async function applyToSparkTradeSubscription(
     spark_trade_onboarding_complete: true,
     spark_trade_onboarding_completed_at: new Date().toISOString(),
   } as any).eq("id", userId);
+  console.log(`[TIER] members UPDATE error: ${upd.error?.message ?? "none"}`);
   if (upd.error) return { kind: "spark_trade_subscription", applied: false, error: upd.error.message };
 
   const pmTier = tier.replace(/-/g, "_");
