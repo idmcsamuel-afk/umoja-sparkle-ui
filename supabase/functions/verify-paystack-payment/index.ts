@@ -546,11 +546,33 @@ async function applyToMarketplacePurchase(
 }
 
 Deno.serve(async (req) => {
+  if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
+  try {
+    if (!PAYSTACK_SECRET) {
+      console.error("[verify] missing PAYSTACK_SECRET_KEY");
+      return json(500, { ok: false, error: "PAYSTACK_SECRET_KEY not configured" });
+    }
+
+    const auth = req.headers.get("Authorization") ?? "";
+    const userClient = createClient(SUPABASE_URL, ANON, { global: { headers: { Authorization: auth } } });
+    const { data: u, error: authErr } = await userClient.auth.getUser();
+    if (authErr || !u?.user) {
+      console.error("[verify] auth failed", authErr?.message);
+      return json(401, { ok: false, error: "auth required" });
+    }
+
+    const body = await req.json().catch(() => ({}));
+    const reference = body?.reference;
+    const clientMeta: Record<string, any> = (body?.metadata && typeof body.metadata === "object") ? body.metadata : {};
+    if (!reference || typeof reference !== "string") {
+      return json(400, { ok: false, error: "reference required" });
+    }
+    console.log("[verify] start", { user: u.user.id, reference, clientMeta });
+
     // DEBUGGING: Log the secret key to verify it's TEST mode
-    const keyPrefix = paystackSecretKey.substring(0, 8); // Should be "sk_test_"
+    const keyPrefix = PAYSTACK_SECRET.substring(0, 8); // Should be "sk_test_"
     console.log(`Paystack key mode: ${keyPrefix}... (must start with sk_test_)`);
 
-    // SPARK_TRADE payment verification
     console.log(`[ST] Verifying payment: Reference=${reference}`)
 
     async function verifyPaystackWithRetry(
@@ -604,33 +626,6 @@ Deno.serve(async (req) => {
       throw new Error(`Failed after ${maxRetries} verification attempts`)
     }
 
-    // Call with longer initial delay
-    const paystackResponse = await verifyPaystackWithRetry(reference, paystackSecretKey, 3, 2000)
-
-
-  if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
-  try {
-    if (!PAYSTACK_SECRET) {
-      console.error("[verify] missing PAYSTACK_SECRET_KEY");
-      return json(500, { ok: false, error: "PAYSTACK_SECRET_KEY not configured" });
-    }
-
-    const auth = req.headers.get("Authorization") ?? "";
-    const userClient = createClient(SUPABASE_URL, ANON, { global: { headers: { Authorization: auth } } });
-    const { data: u, error: authErr } = await userClient.auth.getUser();
-    if (authErr || !u?.user) {
-      console.error("[verify] auth failed", authErr?.message);
-      return json(401, { ok: false, error: "auth required" });
-    }
-
-    const body = await req.json().catch(() => ({}));
-    const reference = body?.reference;
-    const clientMeta: Record<string, any> = (body?.metadata && typeof body.metadata === "object") ? body.metadata : {};
-    if (!reference || typeof reference !== "string") {
-      return json(400, { ok: false, error: "reference required" });
-    }
-    console.log("[verify] start", { user: u.user.id, reference, clientMeta });
-
     let tx: any;
     try {
       tx = await verifyPaystackWithRetry(reference, PAYSTACK_SECRET, 3, 2000);
@@ -644,6 +639,7 @@ Deno.serve(async (req) => {
       console.warn("[verify] paystack tx not success", tx.status);
       return json(200, { ok: false, error: `Paystack status=${tx.status}`, reference });
     }
+
 
     const amountZar = Number(tx.amount) / 100;
     const parts = String(reference).split("-");
