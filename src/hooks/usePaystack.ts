@@ -144,7 +144,10 @@ export function usePaystack() {
               })
               .catch((e) => dwarn("[Paystack] background verify threw:", e))
               .finally(() => {
-                try { sessionStorage.removeItem(`paystack:meta:${cleanRef}`); } catch {}
+                // Wait 2 seconds before clearing to give backend time to read the metadata
+                setTimeout(() => {
+                  try { sessionStorage.removeItem(`paystack:meta:${cleanRef}`); } catch {}
+                }, 2000);
               });
 
             toast.success("Payment successful ✓", { description: `Ref: ${tx.reference}` });
