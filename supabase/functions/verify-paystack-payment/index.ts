@@ -343,6 +343,8 @@ async function applyToSparkTradeSubscription(
   localAmount?: number,
   localCcy?: string,
 ) {
+  console.log(`[TIER] applyToSparkTradeSubscription called`);
+  console.log(`[TIER] userId=${userId} tier=${tier} ref=${ref} amountZar=${amountZar}`);
   const nextPayment = new Date();
   nextPayment.setMonth(nextPayment.getMonth() + 1);
   const upd = await sb.from("members").update({
@@ -353,6 +355,7 @@ async function applyToSparkTradeSubscription(
     spark_trade_onboarding_complete: true,
     spark_trade_onboarding_completed_at: new Date().toISOString(),
   } as any).eq("id", userId);
+  console.log(`[TIER] members UPDATE error: ${upd.error?.message ?? "none"}`);
   if (upd.error) return { kind: "spark_trade_subscription", applied: false, error: upd.error.message };
 
   const pmTier = tier.replace(/-/g, "_");
@@ -633,14 +636,18 @@ Deno.serve(async (req) => {
       throw new Error(`Failed after ${maxRetries} verification attempts`)
     }
 
-    let tx: any;
+    let paystackResp: any;
     try {
-      tx = await verifyPaystackWithRetry(reference, PAYSTACK_SECRET, 3, 2000);
+      paystackResp = await verifyPaystackWithRetry(reference, PAYSTACK_SECRET, 3, 2000);
     } catch (e) {
       const msg = e instanceof Error ? e.message : String(e);
       console.error("[verify] paystack verify error", msg);
       return json(200, { ok: false, error: `Paystack verify failed: ${msg}`, reference });
     }
+
+    // Paystack response shape: { status: true, message, data: { status: "success", amount, reference, ... } }
+    const tx: any = paystackResp?.data ?? {};
+    console.log(`[verify] paystack response ok=${paystackResp?.status} tx.status=${tx?.status} tx.amount=${tx?.amount} tx.reference=${tx?.reference}`);
 
     if (tx.status !== "success") {
       console.warn("[verify] paystack tx not success", tx.status);
