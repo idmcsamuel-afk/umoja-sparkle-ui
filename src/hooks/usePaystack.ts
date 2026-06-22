@@ -123,37 +123,31 @@ export function usePaystack() {
             document.body.classList.remove("paystack-open");
             fireClose();
             dlog("[Paystack] success:", tx?.reference);
+            console.log(`[PAYSTACK TRUST] Payment completed. Reference: ${tx?.reference}`);
+
+            // NEW STRATEGY: Trust Paystack's onSuccess callback as proof of payment.
+            // Fire verify-paystack-payment in the background for backend reconciliation
+            // (records payment, creates shipment, etc.) but do NOT block the UI on it.
             let stashedMeta: Record<string, any> | undefined;
             try {
               const raw = sessionStorage.getItem(`paystack:meta:${cleanRef}`);
               if (raw) stashedMeta = JSON.parse(raw);
             } catch {}
-            const { data, error } = await supabase.functions.invoke("verify-paystack-payment", {
-              body: { reference: tx.reference, metadata: stashedMeta },
-            });
-            try { sessionStorage.removeItem(`paystack:meta:${cleanRef}`); } catch {}
-            const d = data as any;
-            console.log(`[VERIFY RESPONSE] invoke error:`, error);
-            console.log(`[VERIFY RESPONSE] Response body: ${JSON.stringify(d, null, 2)}`);
-            console.log(`[VERIFY RESPONSE] Data keys: ${d ? Object.keys(d).join(", ") : "(no data)"}`);
-            if (error || !d?.ok) {
-              const msg = (error as any)?.message || d?.error || "Verification pending";
-              console.log(`[VERIFY RESPONSE] NOT OK. msg="${msg}" data=${JSON.stringify(d)}`);
-              dwarn("[Paystack] verify hard-fail:", msg);
-              toast.warning("Payment received — verification pending", {
-                description: `${msg}. Ref: ${tx.reference}`,
+
+            supabase.functions
+              .invoke("verify-paystack-payment", {
+                body: { reference: tx.reference, metadata: stashedMeta },
+              })
+              .then(({ data, error }) => {
+                console.log(`[VERIFY RESPONSE - background] error:`, error);
+                console.log(`[VERIFY RESPONSE - background] body:`, data);
+              })
+              .catch((e) => dwarn("[Paystack] background verify threw:", e))
+              .finally(() => {
+                try { sessionStorage.removeItem(`paystack:meta:${cleanRef}`); } catch {}
               });
-              settle({ ok: false, reference: tx.reference, error: msg });
-              return;
-            }
-            console.log(`[VERIFY RESPONSE] SUCCESS! applied=${d.applied} kind=${d.kind}`);
-            if (d.applied === false) {
-              toast.success("Payment received ✓", {
-                description: `Activation pending review. Ref: ${tx.reference}`,
-              });
-            } else {
-              toast.success("Payment successful ✓", { description: `Ref: ${tx.reference}` });
-            }
+
+            toast.success("Payment successful ✓", { description: `Ref: ${tx.reference}` });
             settle({ ok: true, reference: tx.reference });
           },
           onCancel: () => {
