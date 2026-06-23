@@ -375,6 +375,99 @@ export default function SparkTradeProductOpportunities() {
                     <span className="font-bold">{fmtZar(totalProfit)}</span>
                   </div>
                 </div>
+
+                {/* Delivery Address */}
+                <div className="space-y-3">
+                  <div className="flex items-center justify-between">
+                    <h4 className="text-sm font-semibold">Delivery Address</h4>
+                    {savedAddr && (
+                      <label className="flex items-center gap-2 text-xs text-muted-foreground cursor-pointer">
+                        <input
+                          type="checkbox"
+                          checked={useSaved}
+                          onChange={(e) => {
+                            setUseSaved(e.target.checked);
+                            if (e.target.checked && savedAddr) setAddr(savedAddr);
+                          }}
+                        />
+                        Use saved address
+                      </label>
+                    )}
+                  </div>
+
+                  {(["address_line1", "address_line2"] as const).map((f) => {
+                    const required = f === "address_line1";
+                    const label = f === "address_line1" ? "Address Line 1" : "Address Line 2";
+                    const err = touched[f] && addrErrors[f];
+                    return (
+                      <div key={f}>
+                        <label className="text-xs font-medium">
+                          {label}{required && <span className="text-destructive"> *</span>}
+                        </label>
+                        <Input
+                          value={(addr as any)[f]}
+                          onChange={(e) => setAddr((a) => ({ ...a, [f]: e.target.value }))}
+                          onBlur={() => setTouched((t) => ({ ...t, [f]: true }))}
+                          className={`mt-1 ${err ? "border-destructive" : ""}`}
+                          placeholder={f === "address_line2" ? "Apt, suite, etc. (optional)" : ""}
+                        />
+                        {err && <p className="mt-1 text-xs text-destructive">{err}</p>}
+                      </div>
+                    );
+                  })}
+
+                  <div className="grid grid-cols-2 gap-3">
+                    <div>
+                      <label className="text-xs font-medium">
+                        City<span className="text-destructive"> *</span>
+                      </label>
+                      <Input
+                        value={addr.city}
+                        onChange={(e) => setAddr((a) => ({ ...a, city: e.target.value }))}
+                        onBlur={() => setTouched((t) => ({ ...t, city: true }))}
+                        className={`mt-1 ${touched.city && addrErrors.city ? "border-destructive" : ""}`}
+                      />
+                    </div>
+                    <div>
+                      <label className="text-xs font-medium">
+                        Postal Code<span className="text-destructive"> *</span>
+                      </label>
+                      <Input
+                        value={addr.postal_code}
+                        onChange={(e) => setAddr((a) => ({ ...a, postal_code: e.target.value }))}
+                        onBlur={() => setTouched((t) => ({ ...t, postal_code: true }))}
+                        className={`mt-1 ${touched.postal_code && addrErrors.postal_code ? "border-destructive" : ""}`}
+                      />
+                    </div>
+                  </div>
+
+                  <div>
+                    <label className="text-xs font-medium">
+                      Province<span className="text-destructive"> *</span>
+                    </label>
+                    <select
+                      value={addr.province}
+                      onChange={(e) => setAddr((a) => ({ ...a, province: e.target.value }))}
+                      onBlur={() => setTouched((t) => ({ ...t, province: true }))}
+                      className={`mt-1 flex h-10 w-full rounded-md border bg-background px-3 py-2 text-sm ${touched.province && addrErrors.province ? "border-destructive" : "border-input"}`}
+                    >
+                      <option value="">Select a province</option>
+                      {[
+                        "Eastern Cape",
+                        "Free State",
+                        "Gauteng",
+                        "KwaZulu-Natal",
+                        "Limpopo",
+                        "Mpumalanga",
+                        "Northern Cape",
+                        "North West",
+                        "Western Cape",
+                      ].map((p) => (
+                        <option key={p} value={p}>{p}</option>
+                      ))}
+                    </select>
+                  </div>
+                </div>
               </div>
 
               <DialogFooter>
@@ -385,6 +478,7 @@ export default function SparkTradeProductOpportunities() {
                   onClick={onPay}
                   disabled={
                     paying ||
+                    !addrValid ||
                     qty < (active.moq_required ?? 1) ||
                     (active.stock_available != null && qty > active.stock_available)
                   }
@@ -394,9 +488,10 @@ export default function SparkTradeProductOpportunities() {
                       <Loader2 className="mr-2 h-4 w-4 animate-spin" /> Processing…
                     </>
                   ) : (
-                    <>Pay {fmtZar(totalCost)}</>
+                    <>Complete &amp; Pay {fmtZar(totalCost)}</>
                   )}
                 </Button>
+
               </DialogFooter>
             </>
           )}
