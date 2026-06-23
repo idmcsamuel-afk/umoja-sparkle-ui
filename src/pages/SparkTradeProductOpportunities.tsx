@@ -61,6 +61,18 @@ export default function SparkTradeProductOpportunities() {
   const [qty, setQty] = useState<number>(0);
   const [paying, setPaying] = useState(false);
 
+  // Address state
+  const [addr, setAddr] = useState({
+    address_line1: "",
+    address_line2: "",
+    city: "",
+    province: "",
+    postal_code: "",
+  });
+  const [touched, setTouched] = useState<Record<string, boolean>>({});
+  const [savedAddr, setSavedAddr] = useState<typeof addr | null>(null);
+  const [useSaved, setUseSaved] = useState(true);
+
   useEffect(() => {
     if (!authLoading && !user) navigate("/login");
   }, [authLoading, user, navigate]);
