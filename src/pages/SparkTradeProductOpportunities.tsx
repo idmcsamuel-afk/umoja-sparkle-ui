@@ -24,6 +24,10 @@ import {
   Sparkles,
   Boxes,
   ShoppingCart,
+  CheckCircle2,
+  Truck,
+  Calendar,
+  Share2,
 } from "lucide-react";
 
 interface Opportunity {
