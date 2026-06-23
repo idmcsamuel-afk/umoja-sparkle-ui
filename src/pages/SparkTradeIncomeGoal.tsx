@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { Loader2, Target, Users, TrendingUp } from "lucide-react";
+import { Loader2, Target, Users, TrendingUp, RotateCcw, ArrowRight } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { Button } from "@/components/ui/button";
@@ -24,6 +24,21 @@ const GOAL_OPTIONS: GoalOption[] = [
   { label: "CEO", value: 100000, display: "R100,000/month", description: "Full-time, multi-product" },
 ];
 
+type ResumeInfo = {
+  nextRoute: string;
+  nextStep: number;
+  progressPct: number;
+  label: string;
+};
+
+const STEP_ROUTES: { route: string; label: string }[] = [
+  { route: "/spark-trade/onboarding/income-goal", label: "Income goal" },
+  { route: "/spark-trade/onboarding/business-preference", label: "Business preference" },
+  { route: "/spark-trade/onboarding/ai-blueprint", label: "AI blueprint" },
+  { route: "/spark-trade/onboarding/ai-store-creation", label: "Store creation" },
+  { route: "/spark-trade/onboarding/subscription-recommendation", label: "Subscription" },
+];
+
 export default function SparkTradeIncomeGoal() {
   const nav = useNavigate();
   const { user, loading } = useAuth();
@@ -31,20 +46,65 @@ export default function SparkTradeIncomeGoal() {
   const [incomeGoal, setIncomeGoal] = useState<number | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [checkingResume, setCheckingResume] = useState(true);
+  const [resume, setResume] = useState<ResumeInfo | null>(null);
 
   useEffect(() => {
-    if (!user) return;
+    if (!user) {
+      if (!loading) setCheckingResume(false);
+      return;
+    }
     (async () => {
-      const { data } = await supabase
+      const { data: member } = await supabase
         .from("members")
         .select("spark_trade_income_goal, spark_trade_income_path")
         .eq("id", user.id)
         .maybeSingle();
-      if (data?.spark_trade_income_goal) setIncomeGoal(data.spark_trade_income_goal);
-      const storedPath = (data as any)?.spark_trade_income_path as Path | undefined;
+
+      const m = member as any;
+      // Check onboarding_complete + business_type via separate any-cast query
+      const { data: extra } = await (supabase.from("members") as any)
+        .select("spark_trade_business_type, spark_trade_onboarding_complete")
+        .eq("id", user.id)
+        .maybeSingle();
+
+      if (extra?.spark_trade_onboarding_complete) {
+        nav("/spark-trade/dashboard", { replace: true });
+        return;
+      }
+
+      if (m?.spark_trade_income_goal) setIncomeGoal(m.spark_trade_income_goal);
+      const storedPath = m?.spark_trade_income_path as Path | undefined;
       if (storedPath === "individual" || storedPath === "group_brands") setPath(storedPath);
+
+      const [{ data: bp }, { data: store }] = await Promise.all([
+        (supabase.from("spark_trade_blueprints") as any).select("id").eq("member_id", user.id).maybeSingle(),
+        (supabase.from("spark_trade_stores") as any).select("id").eq("member_id", user.id).maybeSingle(),
+      ]);
+
+      let nextStep = 1;
+      if (m?.spark_trade_income_goal) nextStep = 2;
+      if (extra?.spark_trade_business_type) nextStep = 3;
+      if (bp?.id) nextStep = 4;
+      if (store?.id) nextStep = 5;
+
+      if (nextStep > 1) {
+        const idx = nextStep - 1;
+        setResume({
+          nextRoute: STEP_ROUTES[idx].route,
+          nextStep,
+          progressPct: Math.round(((nextStep - 1) / STEP_ROUTES.length) * 100),
+          label: STEP_ROUTES[idx].label,
+        });
+      }
+      setCheckingResume(false);
     })();
-  }, [user]);
+  }, [user, loading, nav]);
+
+  const restart = () => {
+    setResume(null);
+    toast.message("Starting from the beginning");
+  };
 
   const handleNext = async () => {
     if (!path || !user) return;
@@ -72,13 +132,58 @@ export default function SparkTradeIncomeGoal() {
     }
   };
 
-  if (loading) {
+  if (loading || checkingResume) {
     return (
       <div className="min-h-screen grid place-items-center bg-background">
         <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
       </div>
     );
   }
+
+  if (resume) {
+    return (
+      <div className="min-h-screen bg-gradient-to-b from-background to-muted/20 px-4 py-8 md:py-12">
+        <div className="mx-auto max-w-2xl">
+          <div className="rounded-3xl border border-border bg-card shadow-sm p-6 md:p-10">
+            <div className="flex justify-center mb-6">
+              <div className="grid h-14 w-14 place-items-center rounded-2xl bg-gradient-primary text-primary-foreground shadow-glow">
+                <Target className="h-7 w-7" />
+              </div>
+            </div>
+            <h1 className="font-display text-2xl md:text-[28px] font-bold text-center text-foreground">
+              Welcome back 👋
+            </h1>
+            <p className="mt-2 text-center text-base text-muted-foreground">
+              You're {resume.progressPct}% done with your AI Income Builder.
+            </p>
+            <div className="mt-6">
+              <div className="flex items-center justify-between text-xs text-muted-foreground mb-2">
+                <span className="font-medium">Next: {resume.label}</span>
+                <span>Step {resume.nextStep} of {STEP_ROUTES.length}</span>
+              </div>
+              <Progress value={resume.progressPct} className="h-1.5" />
+            </div>
+            <div className="mt-8 flex flex-col gap-3">
+              <Button
+                onClick={() => nav(resume.nextRoute)}
+                className="w-full h-12 rounded-2xl bg-gradient-primary text-primary-foreground font-bold shadow-glow"
+              >
+                Continue where I left off <ArrowRight className="ml-2 h-4 w-4" />
+              </Button>
+              <Button
+                onClick={restart}
+                variant="outline"
+                className="w-full h-12 rounded-2xl"
+              >
+                <RotateCcw className="mr-2 h-4 w-4" /> Start over
+              </Button>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
 
   return (
     <div className="min-h-screen bg-gradient-to-b from-background to-muted/20 px-4 py-8 md:py-12">
