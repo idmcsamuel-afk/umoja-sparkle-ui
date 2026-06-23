@@ -398,10 +398,10 @@ export default function SparkTradeProductOpportunities() {
       </div>
 
       <Dialog open={reserveOpen} onOpenChange={(o) => !paying && setReserveOpen(o)}>
-        <DialogContent>
+        <DialogContent className="max-h-[90vh] p-0 gap-0 flex flex-col overflow-hidden">
           {active && (
             <>
-              <DialogHeader>
+              <DialogHeader className="px-6 pt-6 pb-3 border-b shrink-0">
                 <DialogTitle className="flex items-center gap-2">
                   <ShoppingCart className="h-5 w-5 text-primary" />
                   Reserve {active.product_name}
@@ -410,6 +410,8 @@ export default function SparkTradeProductOpportunities() {
                   {active.category} · MOQ {active.moq_required} units · {active.expected_margin_percentage}% margin
                 </DialogDescription>
               </DialogHeader>
+              <div className="flex-1 overflow-y-auto px-6 py-4 space-y-4">
+
 
               {active.product_image_url && (
                 <div className="rounded-lg overflow-hidden bg-muted h-40">
