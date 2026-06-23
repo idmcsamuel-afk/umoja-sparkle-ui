@@ -180,11 +180,47 @@ export default function SparkTradeProductOpportunities() {
       return;
     }
 
+    if (!addrValid) {
+      setTouched({ address_line1: true, city: true, province: true, postal_code: true });
+      toast.error("Please complete the delivery address");
+      return;
+    }
+
+    // Persist address to members table (best-effort)
+    try {
+      await supabase
+        .from("members")
+        .update({
+          address_line1: addr.address_line1,
+          address_line2: addr.address_line2 || null,
+          city: addr.city,
+          province: addr.province,
+          postal_code: addr.postal_code,
+        } as any)
+        .eq("id", user.id);
+    } catch (e) {
+      console.warn("[address save] failed", e);
+    }
+
     setPaying(true);
     const memberCode = (user.id || "U").replace(/-/g, "").slice(0, 10).toUpperCase();
     const reference = buildReference("ST", `OPP${active.id}`, memberCode);
 
     const result = await pay({
+      email: payerEmail,
+      amountZar: totalCost,
+      currency: "ZAR",
+      reference,
+      metadata: {
+        payment_type: "spark_trade_reservation",
+        member_id: user.id,
+        opportunity_id: active.id,
+        product_name: active.product_name,
+        category: active.category,
+        units: qty,
+        unit_price: active.suggested_selling_price_zar,
+        delivery_address: { ...addr },
+
       email: payerEmail,
       amountZar: totalCost,
       currency: "ZAR",
