@@ -104,6 +104,19 @@ async function createTcgShipment(opts: {
       parcels: [{ length: 30, width: 20, height: 15, weight: 2 }],
     };
 
+    // Audit: dump the exact request we're about to send
+    console.log("[tcg] REQUEST URL:", `${TCG_API_BASE}/shipments`);
+    console.log("[tcg] REQUEST BODY:", JSON.stringify(payload, null, 2));
+    const missing: string[] = [];
+    if (!payload.delivery.contact) missing.push("delivery.contact (recipient_name)");
+    if (!payload.delivery.phone) missing.push("delivery.phone (recipient_phone)");
+    if (!payload.delivery.address1) missing.push("delivery.address1 (recipient_address)");
+    if (!payload.delivery.city) missing.push("delivery.city");
+    if (!payload.delivery.postal_code) missing.push("delivery.postal_code (recipient_zip)");
+    if (!payload.declared_value) missing.push("declared_value (parcel_value)");
+    if (!payload.parcels?.[0]?.weight) missing.push("parcels[0].weight (parcel_weight)");
+    if (missing.length) console.warn("[tcg] MISSING REQUIRED FIELDS:", missing);
+
     const r = await fetch(`${TCG_API_BASE}/shipments`, {
       method: "POST",
       headers: {
