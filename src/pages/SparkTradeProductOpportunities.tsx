@@ -24,6 +24,10 @@ import {
   Sparkles,
   Boxes,
   ShoppingCart,
+  CheckCircle2,
+  Truck,
+  Calendar,
+  Share2,
 } from "lucide-react";
 
 interface Opportunity {
@@ -72,6 +76,17 @@ export default function SparkTradeProductOpportunities() {
   const [touched, setTouched] = useState<Record<string, boolean>>({});
   const [savedAddr, setSavedAddr] = useState<typeof addr | null>(null);
   const [useSaved, setUseSaved] = useState(true);
+
+  // Order confirmation state
+  const [confirmOpen, setConfirmOpen] = useState(false);
+  const [confirmation, setConfirmation] = useState<{
+    productName: string;
+    qty: number;
+    waybillNumber: string | null;
+    trackingUrl: string | null;
+    orderDate: Date;
+    expectedDelivery: { from: Date; to: Date };
+  } | null>(null);
 
   useEffect(() => {
     if (!authLoading && !user) navigate("/login");
@@ -233,9 +248,87 @@ export default function SparkTradeProductOpportunities() {
     }
 
     toast.success(`Reserved ${qty} units of ${active.product_name}`);
+
+    // Fetch shipment + reservation rows to populate confirmation
+    const productName = active.product_name;
+    const orderedQty = qty;
+    let waybillNumber: string | null = null;
+    let trackingUrl: string | null = null;
+    let orderDate: Date = new Date();
+    try {
+      // Poll up to ~6s for the webhook to create rows
+      for (let i = 0; i < 6; i++) {
+        const { data: resv } = await supabase
+          .from("spark_trade_inventory_reservations" as any)
+          .select("id, paid_at, created_at")
+          .eq("paystack_reference", reference)
+          .maybeSingle();
+        const r = resv as any;
+        if (r?.id) {
+          orderDate = new Date(r.paid_at ?? r.created_at ?? Date.now());
+          const { data: ship } = await supabase
+            .from("fulfillment_shipments" as any)
+            .select("waybill_number, tracking_url")
+            .eq("reservation_id", r.id)
+            .maybeSingle();
+          const s = ship as any;
+          if (s) {
+            waybillNumber = s.waybill_number ?? null;
+            trackingUrl = s.tracking_url ?? null;
+          }
+          break;
+        }
+        await new Promise((res) => setTimeout(res, 1000));
+      }
+    } catch (e) {
+      console.warn("[confirmation fetch] failed", e);
+    }
+
+    const addBusinessDays = (d: Date, days: number) => {
+      const out = new Date(d);
+      let added = 0;
+      while (added < days) {
+        out.setDate(out.getDate() + 1);
+        const day = out.getDay();
+        if (day !== 0 && day !== 6) added++;
+      }
+      return out;
+    };
+
+    setConfirmation({
+      productName,
+      qty: orderedQty,
+      waybillNumber,
+      trackingUrl,
+      orderDate,
+      expectedDelivery: {
+        from: addBusinessDays(orderDate, 3),
+        to: addBusinessDays(orderDate, 5),
+      },
+    });
     setReserveOpen(false);
     setActive(null);
+    setConfirmOpen(true);
   };
+
+  const closeConfirmation = () => {
+    setConfirmOpen(false);
+    setConfirmation(null);
+  };
+
+  const shareOnWhatsApp = () => {
+    if (!confirmation) return;
+    const lines = [
+      `🎉 Order Confirmed on Umoja Spark Trade!`,
+      `Product: ${confirmation.productName}`,
+      `Quantity: ${confirmation.qty}`,
+      confirmation.waybillNumber ? `Waybill: ${confirmation.waybillNumber}` : null,
+      confirmation.trackingUrl ? `Track: ${confirmation.trackingUrl}` : null,
+    ].filter(Boolean) as string[];
+    const url = `https://wa.me/?text=${encodeURIComponent(lines.join("\n"))}`;
+    window.open(url, "_blank", "noopener,noreferrer");
+  };
+
 
   if (authLoading || !user) {
     return (
@@ -305,10 +398,10 @@ export default function SparkTradeProductOpportunities() {
       </div>
 
       <Dialog open={reserveOpen} onOpenChange={(o) => !paying && setReserveOpen(o)}>
-        <DialogContent>
+        <DialogContent className="max-h-[90vh] p-0 gap-0 flex flex-col overflow-hidden">
           {active && (
             <>
-              <DialogHeader>
+              <DialogHeader className="px-6 pt-6 pb-3 border-b shrink-0">
                 <DialogTitle className="flex items-center gap-2">
                   <ShoppingCart className="h-5 w-5 text-primary" />
                   Reserve {active.product_name}
@@ -317,6 +410,8 @@ export default function SparkTradeProductOpportunities() {
                   {active.category} · MOQ {active.moq_required} units · {active.expected_margin_percentage}% margin
                 </DialogDescription>
               </DialogHeader>
+              <div className="flex-1 overflow-y-auto px-6 py-4 space-y-4">
+
 
               {active.product_image_url && (
                 <div className="rounded-lg overflow-hidden bg-muted h-40">
@@ -470,7 +565,9 @@ export default function SparkTradeProductOpportunities() {
                 </div>
               </div>
 
-              <DialogFooter>
+              </div>
+
+              <DialogFooter className="shrink-0 border-t bg-background px-6 py-4 gap-2 sm:gap-2">
                 <Button variant="outline" disabled={paying} onClick={() => setReserveOpen(false)}>
                   Cancel
                 </Button>
@@ -491,12 +588,98 @@ export default function SparkTradeProductOpportunities() {
                     <>Complete &amp; Pay {fmtZar(totalCost)}</>
                   )}
                 </Button>
-
               </DialogFooter>
             </>
           )}
         </DialogContent>
       </Dialog>
+
+      <Dialog open={confirmOpen} onOpenChange={(o) => !o && closeConfirmation()}>
+        <DialogContent className="max-h-[90vh] p-0 gap-0 flex flex-col overflow-hidden">
+          {confirmation && (
+            <>
+              <div className="flex-1 overflow-y-auto px-6 pt-8 pb-4">
+                <div className="flex flex-col items-center text-center">
+                  <div className="h-16 w-16 rounded-full bg-green-100 dark:bg-green-900/30 grid place-items-center">
+                    <CheckCircle2 className="h-9 w-9 text-green-600" />
+                  </div>
+                  <h2 className="mt-4 text-2xl font-display">Order Confirmed!</h2>
+                  <p className="mt-1 text-sm text-muted-foreground">
+                    {confirmation.qty} × {confirmation.productName}
+                  </p>
+                </div>
+
+                <div className="mt-6 space-y-3 text-sm">
+                  <div className="rounded-lg border p-4 space-y-3">
+                    <div className="flex items-start gap-3">
+                      <Truck className="h-4 w-4 mt-0.5 text-primary shrink-0" />
+                      <div className="flex-1">
+                        <div className="text-xs text-muted-foreground">Waybill</div>
+                        <div className="font-mono font-medium break-all">
+                          {confirmation.waybillNumber ?? "Generating…"}
+                        </div>
+                        {confirmation.trackingUrl && (
+                          <a
+                            href={confirmation.trackingUrl}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="mt-1 inline-block text-primary text-xs underline underline-offset-2 break-all"
+                          >
+                            Track shipment →
+                          </a>
+                        )}
+                      </div>
+                    </div>
+
+                    <div className="flex items-start gap-3 border-t pt-3">
+                      <Calendar className="h-4 w-4 mt-0.5 text-primary shrink-0" />
+                      <div className="flex-1">
+                        <div className="text-xs text-muted-foreground">Order date</div>
+                        <div className="font-medium">
+                          {confirmation.orderDate.toLocaleDateString("en-ZA", {
+                            day: "numeric",
+                            month: "short",
+                            year: "numeric",
+                          })}
+                        </div>
+                      </div>
+                    </div>
+
+                    <div className="flex items-start gap-3 border-t pt-3">
+                      <Package className="h-4 w-4 mt-0.5 text-primary shrink-0" />
+                      <div className="flex-1">
+                        <div className="text-xs text-muted-foreground">Expected delivery</div>
+                        <div className="font-medium">
+                          {confirmation.expectedDelivery.from.toLocaleDateString("en-ZA", {
+                            day: "numeric",
+                            month: "short",
+                          })}{" "}
+                          –{" "}
+                          {confirmation.expectedDelivery.to.toLocaleDateString("en-ZA", {
+                            day: "numeric",
+                            month: "short",
+                          })}
+                        </div>
+                        <div className="text-xs text-muted-foreground mt-0.5">
+                          3–5 business days
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <DialogFooter className="shrink-0 border-t bg-background px-6 py-4 gap-2 sm:gap-2">
+                <Button variant="outline" onClick={shareOnWhatsApp}>
+                  <Share2 className="mr-2 h-4 w-4" /> Share on WhatsApp
+                </Button>
+                <Button onClick={closeConfirmation}>Continue Shopping</Button>
+              </DialogFooter>
+            </>
+          )}
+        </DialogContent>
+      </Dialog>
+
     </div>
   );
 }
