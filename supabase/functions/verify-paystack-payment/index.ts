@@ -73,49 +73,49 @@ async function createTcgShipment(opts: {
       .maybeSingle();
 
     const payload = {
-      account_code: TCG_ACCOUNT_CODE,
-      username: TCG_USERNAME,
-      reference: opts.paymentRef,
-      description: opts.description,
-      declared_value: opts.amountZar,
+      account_number: TCG_ACCOUNT_CODE,
       collection_address: {
-        company: "Umoja Fulfillment",
-        contact: "Warehouse",
-        address1: "1 Distribution Way",
+        street_address: "1 Distribution Way",
         suburb: "Johannesburg CBD",
         city: "Johannesburg",
-        province: "Gauteng",
         postal_code: "2000",
-        country: "ZA",
+        country: "South Africa",
+        lat: -26.0048046,
+        lng: 27.9412084,
       },
       delivery_address: {
-        company: (member as any)?.full_name ?? "Member",
-        contact: (member as any)?.full_name ?? "Member",
-        phone: (member as any)?.phone ?? "",
-        email: (member as any)?.email ?? "",
-        address1: (member as any)?.address_line1 ?? "",
-        address2: (member as any)?.address_line2 ?? "",
+        street_address: (member as any)?.address_line1 ?? "",
         suburb: (member as any)?.city ?? "",
         city: (member as any)?.city ?? "",
-        province: (member as any)?.province ?? "",
         postal_code: (member as any)?.postal_code ?? "",
-        country: "ZA",
+        country: "South Africa",
       },
-      parcels: [{ length: 30, width: 20, height: 15, weight: 2 }],
+      parcel: {
+        weight: 2,
+        length: 30,
+        width: 20,
+        height: 15,
+        description: "Spark Trade shipment",
+      },
+      service: "standard",
+      recipient: {
+        name: (member as any)?.full_name ?? "Member",
+        email: (member as any)?.email ?? "",
+        phone: (member as any)?.phone ?? "",
+      },
     };
 
     // Audit: dump the exact request we're about to send
     console.log("[tcg] REQUEST URL:", `${TCG_API_BASE}/shipments`);
     console.log("[tcg] REQUEST BODY:", JSON.stringify(payload, null, 2));
     const missing: string[] = [];
-    if (!payload.delivery_address.contact) missing.push("delivery_address.contact (recipient_name)");
-    if (!payload.delivery_address.phone) missing.push("delivery_address.phone (recipient_phone)");
-    if (!payload.delivery_address.address1) missing.push("delivery_address.address1 (recipient_address)");
+    if (!payload.recipient.name) missing.push("recipient.name");
+    if (!payload.recipient.phone) missing.push("recipient.phone");
+    if (!payload.delivery_address.street_address) missing.push("delivery_address.street_address");
     if (!payload.delivery_address.city) missing.push("delivery_address.city");
-    if (!payload.delivery_address.postal_code) missing.push("delivery_address.postal_code (recipient_zip)");
-    if (!payload.declared_value) missing.push("declared_value (parcel_value)");
-    if (!payload.parcels?.[0]?.weight) missing.push("parcels[0].weight (parcel_weight)");
+    if (!payload.delivery_address.postal_code) missing.push("delivery_address.postal_code");
     if (missing.length) console.warn("[tcg] MISSING REQUIRED FIELDS:", missing);
+
 
     const r = await fetch(`${TCG_API_BASE}/shipments`, {
       method: "POST",
