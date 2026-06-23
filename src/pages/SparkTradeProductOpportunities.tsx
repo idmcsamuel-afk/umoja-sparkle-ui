@@ -61,6 +61,18 @@ export default function SparkTradeProductOpportunities() {
   const [qty, setQty] = useState<number>(0);
   const [paying, setPaying] = useState(false);
 
+  // Address state
+  const [addr, setAddr] = useState({
+    address_line1: "",
+    address_line2: "",
+    city: "",
+    province: "",
+    postal_code: "",
+  });
+  const [touched, setTouched] = useState<Record<string, boolean>>({});
+  const [savedAddr, setSavedAddr] = useState<typeof addr | null>(null);
+  const [useSaved, setUseSaved] = useState(true);
+
   useEffect(() => {
     if (!authLoading && !user) navigate("/login");
   }, [authLoading, user, navigate]);
@@ -70,12 +82,25 @@ export default function SparkTradeProductOpportunities() {
     (async () => {
       const { data: m } = await supabase
         .from("members")
-        .select("email")
+        .select("email, address_line1, address_line2, city, province, postal_code")
         .eq("id", user.id)
         .maybeSingle();
-      setEmail(((m as any)?.email as string) ?? user.email ?? null);
+      const mm = m as any;
+      setEmail((mm?.email as string) ?? user.email ?? null);
+      if (mm && (mm.address_line1 || mm.city || mm.postal_code)) {
+        const s = {
+          address_line1: mm.address_line1 ?? "",
+          address_line2: mm.address_line2 ?? "",
+          city: mm.city ?? "",
+          province: mm.province ?? "",
+          postal_code: mm.postal_code ?? "",
+        };
+        setSavedAddr(s);
+        setAddr(s);
+      }
     })();
   }, [user]);
+
 
   useEffect(() => {
     (async () => {
@@ -124,6 +149,17 @@ export default function SparkTradeProductOpportunities() {
 
   const totalProfit = useMemo(() => profitPerUnit * (qty || 0), [profitPerUnit, qty]);
 
+  const requiredAddrFields = ["address_line1", "city", "province", "postal_code"] as const;
+  const addrErrors = useMemo(() => {
+    const e: Record<string, string> = {};
+    for (const f of requiredAddrFields) {
+      if (!String((addr as any)[f] ?? "").trim()) e[f] = "Required";
+    }
+    return e;
+  }, [addr]);
+  const addrValid = Object.keys(addrErrors).length === 0;
+
+
   const onPay = async () => {
     if (!active || !user) return;
     const payerEmail = email || user.email;
@@ -144,6 +180,28 @@ export default function SparkTradeProductOpportunities() {
       return;
     }
 
+    if (!addrValid) {
+      setTouched({ address_line1: true, city: true, province: true, postal_code: true });
+      toast.error("Please complete the delivery address");
+      return;
+    }
+
+    // Persist address to members table (best-effort)
+    try {
+      await supabase
+        .from("members")
+        .update({
+          address_line1: addr.address_line1,
+          address_line2: addr.address_line2 || null,
+          city: addr.city,
+          province: addr.province,
+          postal_code: addr.postal_code,
+        } as any)
+        .eq("id", user.id);
+    } catch (e) {
+      console.warn("[address save] failed", e);
+    }
+
     setPaying(true);
     const memberCode = (user.id || "U").replace(/-/g, "").slice(0, 10).toUpperCase();
     const reference = buildReference("ST", `OPP${active.id}`, memberCode);
@@ -161,9 +219,11 @@ export default function SparkTradeProductOpportunities() {
         category: active.category,
         units: qty,
         unit_price: active.suggested_selling_price_zar,
+        delivery_address: { ...addr },
       },
     });
     setPaying(false);
+
 
     if (!result.ok) {
       if (result.error && result.error !== "cancelled") {
@@ -315,6 +375,99 @@ export default function SparkTradeProductOpportunities() {
                     <span className="font-bold">{fmtZar(totalProfit)}</span>
                   </div>
                 </div>
+
+                {/* Delivery Address */}
+                <div className="space-y-3">
+                  <div className="flex items-center justify-between">
+                    <h4 className="text-sm font-semibold">Delivery Address</h4>
+                    {savedAddr && (
+                      <label className="flex items-center gap-2 text-xs text-muted-foreground cursor-pointer">
+                        <input
+                          type="checkbox"
+                          checked={useSaved}
+                          onChange={(e) => {
+                            setUseSaved(e.target.checked);
+                            if (e.target.checked && savedAddr) setAddr(savedAddr);
+                          }}
+                        />
+                        Use saved address
+                      </label>
+                    )}
+                  </div>
+
+                  {(["address_line1", "address_line2"] as const).map((f) => {
+                    const required = f === "address_line1";
+                    const label = f === "address_line1" ? "Address Line 1" : "Address Line 2";
+                    const err = touched[f] && addrErrors[f];
+                    return (
+                      <div key={f}>
+                        <label className="text-xs font-medium">
+                          {label}{required && <span className="text-destructive"> *</span>}
+                        </label>
+                        <Input
+                          value={(addr as any)[f]}
+                          onChange={(e) => setAddr((a) => ({ ...a, [f]: e.target.value }))}
+                          onBlur={() => setTouched((t) => ({ ...t, [f]: true }))}
+                          className={`mt-1 ${err ? "border-destructive" : ""}`}
+                          placeholder={f === "address_line2" ? "Apt, suite, etc. (optional)" : ""}
+                        />
+                        {err && <p className="mt-1 text-xs text-destructive">{err}</p>}
+                      </div>
+                    );
+                  })}
+
+                  <div className="grid grid-cols-2 gap-3">
+                    <div>
+                      <label className="text-xs font-medium">
+                        City<span className="text-destructive"> *</span>
+                      </label>
+                      <Input
+                        value={addr.city}
+                        onChange={(e) => setAddr((a) => ({ ...a, city: e.target.value }))}
+                        onBlur={() => setTouched((t) => ({ ...t, city: true }))}
+                        className={`mt-1 ${touched.city && addrErrors.city ? "border-destructive" : ""}`}
+                      />
+                    </div>
+                    <div>
+                      <label className="text-xs font-medium">
+                        Postal Code<span className="text-destructive"> *</span>
+                      </label>
+                      <Input
+                        value={addr.postal_code}
+                        onChange={(e) => setAddr((a) => ({ ...a, postal_code: e.target.value }))}
+                        onBlur={() => setTouched((t) => ({ ...t, postal_code: true }))}
+                        className={`mt-1 ${touched.postal_code && addrErrors.postal_code ? "border-destructive" : ""}`}
+                      />
+                    </div>
+                  </div>
+
+                  <div>
+                    <label className="text-xs font-medium">
+                      Province<span className="text-destructive"> *</span>
+                    </label>
+                    <select
+                      value={addr.province}
+                      onChange={(e) => setAddr((a) => ({ ...a, province: e.target.value }))}
+                      onBlur={() => setTouched((t) => ({ ...t, province: true }))}
+                      className={`mt-1 flex h-10 w-full rounded-md border bg-background px-3 py-2 text-sm ${touched.province && addrErrors.province ? "border-destructive" : "border-input"}`}
+                    >
+                      <option value="">Select a province</option>
+                      {[
+                        "Eastern Cape",
+                        "Free State",
+                        "Gauteng",
+                        "KwaZulu-Natal",
+                        "Limpopo",
+                        "Mpumalanga",
+                        "Northern Cape",
+                        "North West",
+                        "Western Cape",
+                      ].map((p) => (
+                        <option key={p} value={p}>{p}</option>
+                      ))}
+                    </select>
+                  </div>
+                </div>
               </div>
 
               <DialogFooter>
@@ -325,6 +478,7 @@ export default function SparkTradeProductOpportunities() {
                   onClick={onPay}
                   disabled={
                     paying ||
+                    !addrValid ||
                     qty < (active.moq_required ?? 1) ||
                     (active.stock_available != null && qty > active.stock_available)
                   }
@@ -334,9 +488,10 @@ export default function SparkTradeProductOpportunities() {
                       <Loader2 className="mr-2 h-4 w-4 animate-spin" /> Processing…
                     </>
                   ) : (
-                    <>Pay {fmtZar(totalCost)}</>
+                    <>Complete &amp; Pay {fmtZar(totalCost)}</>
                   )}
                 </Button>
+
               </DialogFooter>
             </>
           )}

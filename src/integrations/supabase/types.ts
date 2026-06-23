@@ -3726,6 +3726,8 @@ export type Database = {
       }
       members: {
         Row: {
+          address_line1: string | null
+          address_line2: string | null
           age_verified: boolean
           age_verified_at: string | null
           bank_account: string | null
@@ -3742,6 +3744,7 @@ export type Database = {
           buyers_club_status: string | null
           buyers_club_submitted_at: string | null
           buyers_club_tier: string | null
+          city: string | null
           community_score: number
           consistency_score: number
           contribution_volume_score: number
@@ -3787,11 +3790,13 @@ export type Database = {
           paystack_subscription_code: string | null
           phone: string
           phone_verified: boolean
+          postal_code: string | null
           priority_score: number
           promo_unlock_at: string | null
           promo_unlock_bonus_sparks: number
           promo_unlock_circle_id: string | null
           promotional_sparks_unlocked: boolean
+          province: string | null
           rank: string | null
           referral_code: string | null
           referred_by: string | null
@@ -3825,6 +3830,8 @@ export type Database = {
           usdt_wallet_trc20: string | null
         }
         Insert: {
+          address_line1?: string | null
+          address_line2?: string | null
           age_verified?: boolean
           age_verified_at?: string | null
           bank_account?: string | null
@@ -3841,6 +3848,7 @@ export type Database = {
           buyers_club_status?: string | null
           buyers_club_submitted_at?: string | null
           buyers_club_tier?: string | null
+          city?: string | null
           community_score?: number
           consistency_score?: number
           contribution_volume_score?: number
@@ -3886,11 +3894,13 @@ export type Database = {
           paystack_subscription_code?: string | null
           phone: string
           phone_verified?: boolean
+          postal_code?: string | null
           priority_score?: number
           promo_unlock_at?: string | null
           promo_unlock_bonus_sparks?: number
           promo_unlock_circle_id?: string | null
           promotional_sparks_unlocked?: boolean
+          province?: string | null
           rank?: string | null
           referral_code?: string | null
           referred_by?: string | null
@@ -3924,6 +3934,8 @@ export type Database = {
           usdt_wallet_trc20?: string | null
         }
         Update: {
+          address_line1?: string | null
+          address_line2?: string | null
           age_verified?: boolean
           age_verified_at?: string | null
           bank_account?: string | null
@@ -3940,6 +3952,7 @@ export type Database = {
           buyers_club_status?: string | null
           buyers_club_submitted_at?: string | null
           buyers_club_tier?: string | null
+          city?: string | null
           community_score?: number
           consistency_score?: number
           contribution_volume_score?: number
@@ -3985,11 +3998,13 @@ export type Database = {
           paystack_subscription_code?: string | null
           phone?: string
           phone_verified?: boolean
+          postal_code?: string | null
           priority_score?: number
           promo_unlock_at?: string | null
           promo_unlock_bonus_sparks?: number
           promo_unlock_circle_id?: string | null
           promotional_sparks_unlocked?: boolean
+          province?: string | null
           rank?: string | null
           referral_code?: string | null
           referred_by?: string | null
