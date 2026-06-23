@@ -565,7 +565,9 @@ export default function SparkTradeProductOpportunities() {
                 </div>
               </div>
 
-              <DialogFooter>
+              </div>
+
+              <DialogFooter className="shrink-0 border-t bg-background px-6 py-4 gap-2 sm:gap-2">
                 <Button variant="outline" disabled={paying} onClick={() => setReserveOpen(false)}>
                   Cancel
                 </Button>
@@ -586,12 +588,98 @@ export default function SparkTradeProductOpportunities() {
                     <>Complete &amp; Pay {fmtZar(totalCost)}</>
                   )}
                 </Button>
-
               </DialogFooter>
             </>
           )}
         </DialogContent>
       </Dialog>
+
+      <Dialog open={confirmOpen} onOpenChange={(o) => !o && closeConfirmation()}>
+        <DialogContent className="max-h-[90vh] p-0 gap-0 flex flex-col overflow-hidden">
+          {confirmation && (
+            <>
+              <div className="flex-1 overflow-y-auto px-6 pt-8 pb-4">
+                <div className="flex flex-col items-center text-center">
+                  <div className="h-16 w-16 rounded-full bg-green-100 dark:bg-green-900/30 grid place-items-center">
+                    <CheckCircle2 className="h-9 w-9 text-green-600" />
+                  </div>
+                  <h2 className="mt-4 text-2xl font-display">Order Confirmed!</h2>
+                  <p className="mt-1 text-sm text-muted-foreground">
+                    {confirmation.qty} × {confirmation.productName}
+                  </p>
+                </div>
+
+                <div className="mt-6 space-y-3 text-sm">
+                  <div className="rounded-lg border p-4 space-y-3">
+                    <div className="flex items-start gap-3">
+                      <Truck className="h-4 w-4 mt-0.5 text-primary shrink-0" />
+                      <div className="flex-1">
+                        <div className="text-xs text-muted-foreground">Waybill</div>
+                        <div className="font-mono font-medium break-all">
+                          {confirmation.waybillNumber ?? "Generating…"}
+                        </div>
+                        {confirmation.trackingUrl && (
+                          <a
+                            href={confirmation.trackingUrl}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="mt-1 inline-block text-primary text-xs underline underline-offset-2 break-all"
+                          >
+                            Track shipment →
+                          </a>
+                        )}
+                      </div>
+                    </div>
+
+                    <div className="flex items-start gap-3 border-t pt-3">
+                      <Calendar className="h-4 w-4 mt-0.5 text-primary shrink-0" />
+                      <div className="flex-1">
+                        <div className="text-xs text-muted-foreground">Order date</div>
+                        <div className="font-medium">
+                          {confirmation.orderDate.toLocaleDateString("en-ZA", {
+                            day: "numeric",
+                            month: "short",
+                            year: "numeric",
+                          })}
+                        </div>
+                      </div>
+                    </div>
+
+                    <div className="flex items-start gap-3 border-t pt-3">
+                      <Package className="h-4 w-4 mt-0.5 text-primary shrink-0" />
+                      <div className="flex-1">
+                        <div className="text-xs text-muted-foreground">Expected delivery</div>
+                        <div className="font-medium">
+                          {confirmation.expectedDelivery.from.toLocaleDateString("en-ZA", {
+                            day: "numeric",
+                            month: "short",
+                          })}{" "}
+                          –{" "}
+                          {confirmation.expectedDelivery.to.toLocaleDateString("en-ZA", {
+                            day: "numeric",
+                            month: "short",
+                          })}
+                        </div>
+                        <div className="text-xs text-muted-foreground mt-0.5">
+                          3–5 business days
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <DialogFooter className="shrink-0 border-t bg-background px-6 py-4 gap-2 sm:gap-2">
+                <Button variant="outline" onClick={shareOnWhatsApp}>
+                  <Share2 className="mr-2 h-4 w-4" /> Share on WhatsApp
+                </Button>
+                <Button onClick={closeConfirmation}>Continue Shopping</Button>
+              </DialogFooter>
+            </>
+          )}
+        </DialogContent>
+      </Dialog>
+
     </div>
   );
 }
