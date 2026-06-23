@@ -90,6 +90,16 @@ async function createTcgShipment(opts: {
         postal_code: (member as any)?.postal_code ?? "",
         country: "South Africa",
       },
+      collection_contact: {
+        name: "Umoja Fulfillment",
+        email: "support@umojarise.com",
+        phone: "+27696436597",
+      },
+      delivery_contact: {
+        name: (member as any)?.full_name ?? "Member",
+        email: (member as any)?.email ?? "",
+        phone: (member as any)?.phone ?? "",
+      },
       parcel: {
         weight: 2,
         length: 30,
