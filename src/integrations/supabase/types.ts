@@ -5456,6 +5456,7 @@ export type Database = {
       }
       spark_trade_opportunities: {
         Row: {
+          category: string | null
           created_at: string | null
           current_reserved: number | null
           expected_arrival_date: string | null
@@ -5467,13 +5468,16 @@ export type Database = {
           moq_required: number | null
           product_image_url: string | null
           product_name: string | null
+          stock_available: number | null
           suggested_selling_price_zar: number | null
           supplier_country: string | null
           supplier_name: string | null
+          trending_direction: string | null
           unit_cost_zar: number | null
           updated_at: string | null
         }
         Insert: {
+          category?: string | null
           created_at?: string | null
           current_reserved?: number | null
           expected_arrival_date?: string | null
@@ -5485,13 +5489,16 @@ export type Database = {
           moq_required?: number | null
           product_image_url?: string | null
           product_name?: string | null
+          stock_available?: number | null
           suggested_selling_price_zar?: number | null
           supplier_country?: string | null
           supplier_name?: string | null
+          trending_direction?: string | null
           unit_cost_zar?: number | null
           updated_at?: string | null
         }
         Update: {
+          category?: string | null
           created_at?: string | null
           current_reserved?: number | null
           expected_arrival_date?: string | null
@@ -5503,9 +5510,11 @@ export type Database = {
           moq_required?: number | null
           product_image_url?: string | null
           product_name?: string | null
+          stock_available?: number | null
           suggested_selling_price_zar?: number | null
           supplier_country?: string | null
           supplier_name?: string | null
+          trending_direction?: string | null
           unit_cost_zar?: number | null
           updated_at?: string | null
         }
