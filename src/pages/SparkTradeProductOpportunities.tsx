@@ -149,6 +149,17 @@ export default function SparkTradeProductOpportunities() {
 
   const totalProfit = useMemo(() => profitPerUnit * (qty || 0), [profitPerUnit, qty]);
 
+  const requiredAddrFields = ["address_line1", "city", "province", "postal_code"] as const;
+  const addrErrors = useMemo(() => {
+    const e: Record<string, string> = {};
+    for (const f of requiredAddrFields) {
+      if (!String((addr as any)[f] ?? "").trim()) e[f] = "Required";
+    }
+    return e;
+  }, [addr]);
+  const addrValid = Object.keys(addrErrors).length === 0;
+
+
   const onPay = async () => {
     if (!active || !user) return;
     const payerEmail = email || user.email;
