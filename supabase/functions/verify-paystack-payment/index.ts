@@ -24,7 +24,7 @@ const PAYSTACK_SECRET = Deno.env.get("PAYSTACK_SECRET_KEY")!;
 const TCG_API_KEY = Deno.env.get("TCG_API_KEY");
 const TCG_ACCOUNT_CODE = Deno.env.get("TCG_ACCOUNT_CODE");
 const TCG_USERNAME = Deno.env.get("TCG_USERNAME");
-const TCG_API_BASE = Deno.env.get("TCG_API_BASE") ?? "https://portal.thecourierguy.co.za/v1";
+const TCG_API_BASE = Deno.env.get("TCG_API_BASE") ?? "https://api.portal.thecourierguy.co.za";
 
 /**
  * Create a shipment with TheCourierGuy. Idempotent on (source_type, source_id):
