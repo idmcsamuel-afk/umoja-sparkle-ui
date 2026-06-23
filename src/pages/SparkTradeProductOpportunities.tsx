@@ -77,6 +77,17 @@ export default function SparkTradeProductOpportunities() {
   const [savedAddr, setSavedAddr] = useState<typeof addr | null>(null);
   const [useSaved, setUseSaved] = useState(true);
 
+  // Order confirmation state
+  const [confirmOpen, setConfirmOpen] = useState(false);
+  const [confirmation, setConfirmation] = useState<{
+    productName: string;
+    qty: number;
+    waybillNumber: string | null;
+    trackingUrl: string | null;
+    orderDate: Date;
+    expectedDelivery: { from: Date; to: Date };
+  } | null>(null);
+
   useEffect(() => {
     if (!authLoading && !user) navigate("/login");
   }, [authLoading, user, navigate]);
