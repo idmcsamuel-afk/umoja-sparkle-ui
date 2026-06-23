@@ -82,12 +82,25 @@ export default function SparkTradeProductOpportunities() {
     (async () => {
       const { data: m } = await supabase
         .from("members")
-        .select("email")
+        .select("email, address_line1, address_line2, city, province, postal_code")
         .eq("id", user.id)
         .maybeSingle();
-      setEmail(((m as any)?.email as string) ?? user.email ?? null);
+      const mm = m as any;
+      setEmail((mm?.email as string) ?? user.email ?? null);
+      if (mm && (mm.address_line1 || mm.city || mm.postal_code)) {
+        const s = {
+          address_line1: mm.address_line1 ?? "",
+          address_line2: mm.address_line2 ?? "",
+          city: mm.city ?? "",
+          province: mm.province ?? "",
+          postal_code: mm.postal_code ?? "",
+        };
+        setSavedAddr(s);
+        setAddr(s);
+      }
     })();
   }, [user]);
+
 
   useEffect(() => {
     (async () => {
