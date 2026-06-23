@@ -220,20 +220,9 @@ export default function SparkTradeProductOpportunities() {
         units: qty,
         unit_price: active.suggested_selling_price_zar,
         delivery_address: { ...addr },
-
-      email: payerEmail,
-      amountZar: totalCost,
-      currency: "ZAR",
-      reference,
-      metadata: {
-        payment_type: "spark_trade_reservation",
-        member_id: user.id,
-        opportunity_id: active.id,
-        product_name: active.product_name,
-        category: active.category,
-        units: qty,
-        unit_price: active.suggested_selling_price_zar,
       },
+    });
+
     });
     setPaying(false);
 
