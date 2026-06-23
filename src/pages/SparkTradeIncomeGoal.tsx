@@ -132,13 +132,58 @@ export default function SparkTradeIncomeGoal() {
     }
   };
 
-  if (loading) {
+  if (loading || checkingResume) {
     return (
       <div className="min-h-screen grid place-items-center bg-background">
         <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
       </div>
     );
   }
+
+  if (resume) {
+    return (
+      <div className="min-h-screen bg-gradient-to-b from-background to-muted/20 px-4 py-8 md:py-12">
+        <div className="mx-auto max-w-2xl">
+          <div className="rounded-3xl border border-border bg-card shadow-sm p-6 md:p-10">
+            <div className="flex justify-center mb-6">
+              <div className="grid h-14 w-14 place-items-center rounded-2xl bg-gradient-primary text-primary-foreground shadow-glow">
+                <Target className="h-7 w-7" />
+              </div>
+            </div>
+            <h1 className="font-display text-2xl md:text-[28px] font-bold text-center text-foreground">
+              Welcome back 👋
+            </h1>
+            <p className="mt-2 text-center text-base text-muted-foreground">
+              You're {resume.progressPct}% done with your AI Income Builder.
+            </p>
+            <div className="mt-6">
+              <div className="flex items-center justify-between text-xs text-muted-foreground mb-2">
+                <span className="font-medium">Next: {resume.label}</span>
+                <span>Step {resume.nextStep} of {STEP_ROUTES.length}</span>
+              </div>
+              <Progress value={resume.progressPct} className="h-1.5" />
+            </div>
+            <div className="mt-8 flex flex-col gap-3">
+              <Button
+                onClick={() => nav(resume.nextRoute)}
+                className="w-full h-12 rounded-2xl bg-gradient-primary text-primary-foreground font-bold shadow-glow"
+              >
+                Continue where I left off <ArrowRight className="ml-2 h-4 w-4" />
+              </Button>
+              <Button
+                onClick={restart}
+                variant="outline"
+                className="w-full h-12 rounded-2xl"
+              >
+                <RotateCcw className="mr-2 h-4 w-4" /> Start over
+              </Button>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
 
   return (
     <div className="min-h-screen bg-gradient-to-b from-background to-muted/20 px-4 py-8 md:py-12">
