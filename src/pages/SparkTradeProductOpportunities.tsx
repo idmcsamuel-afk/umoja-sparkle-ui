@@ -222,9 +222,8 @@ export default function SparkTradeProductOpportunities() {
         delivery_address: { ...addr },
       },
     });
-
-    });
     setPaying(false);
+
 
     if (!result.ok) {
       if (result.error && result.error !== "cancelled") {
