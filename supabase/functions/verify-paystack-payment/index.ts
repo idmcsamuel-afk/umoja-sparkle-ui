@@ -78,7 +78,7 @@ async function createTcgShipment(opts: {
       reference: opts.paymentRef,
       description: opts.description,
       declared_value: opts.amountZar,
-      collection: {
+      collection_address: {
         company: "Umoja Fulfillment",
         contact: "Warehouse",
         address1: "1 Distribution Way",
@@ -88,7 +88,7 @@ async function createTcgShipment(opts: {
         postal_code: "2000",
         country: "ZA",
       },
-      delivery: {
+      delivery_address: {
         company: (member as any)?.full_name ?? "Member",
         contact: (member as any)?.full_name ?? "Member",
         phone: (member as any)?.phone ?? "",
