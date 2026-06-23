@@ -99,7 +99,7 @@ async function createTcgShipment(opts: {
         city: (member as any)?.city ?? "",
         province: (member as any)?.province ?? "",
         postal_code: (member as any)?.postal_code ?? "",
-        country: (member as any)?.country ?? "ZA",
+        country: "ZA",
       },
       parcels: [{ length: 30, width: 20, height: 15, weight: 2 }],
     };
@@ -122,11 +122,17 @@ async function createTcgShipment(opts: {
       headers: {
         Authorization: `Bearer ${TCG_API_KEY}`,
         "Content-Type": "application/json",
+        Accept: "application/json",
       },
       body: JSON.stringify(payload),
     });
-    const raw = await r.json().catch(() => ({}));
-    console.log("[tcg] response", { status: r.status, raw });
+    const rawText = await r.text();
+    let raw: any = {};
+    try { raw = rawText ? JSON.parse(rawText) : {}; } catch { raw = { _text: rawText }; }
+    console.log("[tcg] response status:", r.status);
+    console.log("[tcg] response headers:", JSON.stringify(Object.fromEntries(r.headers.entries())));
+    console.log("[tcg] response body (raw text):", rawText || "<empty>");
+    console.log("[tcg] response body (parsed):", JSON.stringify(raw));
 
     if (!r.ok) {
       await sb.from("fulfillment_shipments").upsert({
