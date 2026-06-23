@@ -100,13 +100,13 @@ async function createTcgShipment(opts: {
         email: (member as any)?.email ?? "",
         phone: (member as any)?.phone ?? "",
       },
-      parcel: {
+      parcels: [{
         weight: 2,
         length: 30,
         width: 20,
         height: 15,
         description: "Spark Trade shipment",
-      },
+      }],
       service: "standard",
       recipient: {
         name: (member as any)?.full_name ?? "Member",
