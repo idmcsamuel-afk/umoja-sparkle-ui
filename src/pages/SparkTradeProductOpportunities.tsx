@@ -248,9 +248,87 @@ export default function SparkTradeProductOpportunities() {
     }
 
     toast.success(`Reserved ${qty} units of ${active.product_name}`);
+
+    // Fetch shipment + reservation rows to populate confirmation
+    const productName = active.product_name;
+    const orderedQty = qty;
+    let waybillNumber: string | null = null;
+    let trackingUrl: string | null = null;
+    let orderDate: Date = new Date();
+    try {
+      // Poll up to ~6s for the webhook to create rows
+      for (let i = 0; i < 6; i++) {
+        const { data: resv } = await supabase
+          .from("spark_trade_inventory_reservations" as any)
+          .select("id, paid_at, created_at")
+          .eq("paystack_reference", reference)
+          .maybeSingle();
+        const r = resv as any;
+        if (r?.id) {
+          orderDate = new Date(r.paid_at ?? r.created_at ?? Date.now());
+          const { data: ship } = await supabase
+            .from("fulfillment_shipments" as any)
+            .select("waybill_number, tracking_url")
+            .eq("reservation_id", r.id)
+            .maybeSingle();
+          const s = ship as any;
+          if (s) {
+            waybillNumber = s.waybill_number ?? null;
+            trackingUrl = s.tracking_url ?? null;
+          }
+          break;
+        }
+        await new Promise((res) => setTimeout(res, 1000));
+      }
+    } catch (e) {
+      console.warn("[confirmation fetch] failed", e);
+    }
+
+    const addBusinessDays = (d: Date, days: number) => {
+      const out = new Date(d);
+      let added = 0;
+      while (added < days) {
+        out.setDate(out.getDate() + 1);
+        const day = out.getDay();
+        if (day !== 0 && day !== 6) added++;
+      }
+      return out;
+    };
+
+    setConfirmation({
+      productName,
+      qty: orderedQty,
+      waybillNumber,
+      trackingUrl,
+      orderDate,
+      expectedDelivery: {
+        from: addBusinessDays(orderDate, 3),
+        to: addBusinessDays(orderDate, 5),
+      },
+    });
     setReserveOpen(false);
     setActive(null);
+    setConfirmOpen(true);
   };
+
+  const closeConfirmation = () => {
+    setConfirmOpen(false);
+    setConfirmation(null);
+  };
+
+  const shareOnWhatsApp = () => {
+    if (!confirmation) return;
+    const lines = [
+      `🎉 Order Confirmed on Umoja Spark Trade!`,
+      `Product: ${confirmation.productName}`,
+      `Quantity: ${confirmation.qty}`,
+      confirmation.waybillNumber ? `Waybill: ${confirmation.waybillNumber}` : null,
+      confirmation.trackingUrl ? `Track: ${confirmation.trackingUrl}` : null,
+    ].filter(Boolean) as string[];
+    const url = `https://wa.me/?text=${encodeURIComponent(lines.join("\n"))}`;
+    window.open(url, "_blank", "noopener,noreferrer");
+  };
+
 
   if (authLoading || !user) {
     return (
