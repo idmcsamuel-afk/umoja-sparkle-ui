@@ -148,7 +148,7 @@ export default function SparkTradeDashboard() {
                   <Button variant="outline" size="sm" onClick={async () => { await navigator.clipboard.writeText(storeUrl); toast.success("Copied"); }}>
                     <Copy className="h-4 w-4 mr-1" /> Copy URL
                   </Button>
-                  <Button variant="outline" size="sm" asChild>
+                  <Button variant="outline" size="sm" asChild style={{ display: "none" }}>
                     <a href={storeUrl} target="_blank" rel="noopener noreferrer"><ExternalLink className="h-4 w-4 mr-1" /> Visit store</a>
                   </Button>
                   <Button variant="outline" size="sm" onClick={() => navigate("/spark-trade/onboarding/ai-store-creation")}>Edit store</Button>
