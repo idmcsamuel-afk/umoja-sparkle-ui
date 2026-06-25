@@ -22,4 +22,10 @@ verify_jwt = false
 [functions.platform_settings]
 verify_jwt = false
 
+[functions.product-commitment-status]
+verify_jwt = false
+
+[functions.daily-product-rotation]
+verify_jwt = false
+
 project_id = "lamohcoijkpigygiqyih"
