@@ -342,7 +342,23 @@ export default function SparkTradeProductOpportunities() {
       return;
     }
 
-    toast.success(`Reserved ${qty} units of ${active.product_name}`);
+    toast.success(`✅ Reserved ${qty} units of ${active.product_name}`);
+
+    // Refresh commitment status 3x with 2s delay so progress bar updates live
+    const oppId = active.id;
+    (async () => {
+      for (let i = 0; i < 3; i++) {
+        await new Promise((r) => setTimeout(r, 2000));
+        const s = await fetchCommitment(oppId);
+        if (s) {
+          setCommitments((prev) => ({ ...prev, [oppId]: s }));
+          if (s.status === "READY_TO_ORDER") {
+            toast.success("🎉 Order launching soon! Check back for fulfillment updates.");
+          }
+        }
+      }
+      await fetchCapital();
+    })();
 
     // Fetch shipment + reservation rows to populate confirmation
     const productName = active.product_name;
