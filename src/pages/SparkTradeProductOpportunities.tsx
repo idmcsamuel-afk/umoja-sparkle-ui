@@ -551,6 +551,62 @@ export default function SparkTradeProductOpportunities() {
                   </div>
                 </div>
 
+                {/* Capital validation */}
+                {availableCapital !== null && (() => {
+                  const hasEnough = totalCost <= availableCapital;
+                  return (
+                    <div
+                      className={`rounded-lg border p-3 text-sm ${
+                        hasEnough
+                          ? "border-green-600/30 bg-green-600/5"
+                          : "border-destructive/40 bg-destructive/5"
+                      }`}
+                    >
+                      <div className="flex items-center justify-between">
+                        <span className="text-muted-foreground">You have</span>
+                        <span className="font-semibold">{fmtZar(availableCapital)}</span>
+                      </div>
+                      <div className="flex items-center justify-between mt-1">
+                        <span className="text-muted-foreground">This costs</span>
+                        <span className="font-semibold">{fmtZar(totalCost)}</span>
+                      </div>
+                      <div className={`mt-2 font-medium ${hasEnough ? "text-green-600" : "text-destructive"}`}>
+                        {hasEnough
+                          ? `✅ OK — ${fmtZar(availableCapital - totalCost)} remaining after`
+                          : `❌ Short ${fmtZar(totalCost - availableCapital)}. Top up to continue.`}
+                      </div>
+                    </div>
+                  );
+                })()}
+
+                {/* Group buy progress preview */}
+                {commitments[active.id] && (() => {
+                  const c = commitments[active.id];
+                  const moq = c.moq_required || active.moq_required || 1;
+                  const afterUnits = c.total_units + (qty || 0);
+                  const afterPct = Math.min(100, Math.round((afterUnits / moq) * 100));
+                  return (
+                    <div className="rounded-lg border p-3 text-sm space-y-2">
+                      <div className="flex items-center justify-between text-xs text-muted-foreground">
+                        <span>Group progress</span>
+                        <span>Max {maxUnitsPerPerson(moq)} units / person</span>
+                      </div>
+                      <div className="flex items-center justify-between">
+                        <span>After your order</span>
+                        <span className="font-semibold">
+                          {afterUnits}/{moq} units · {afterPct}%
+                        </span>
+                      </div>
+                      <div className="h-2 w-full rounded-full bg-muted overflow-hidden">
+                        <div
+                          className="h-full bg-primary transition-all"
+                          style={{ width: `${afterPct}%` }}
+                        />
+                      </div>
+                    </div>
+                  );
+                })()}
+
                 {/* Delivery Address */}
                 <div className="space-y-3">
                   <div className="flex items-center justify-between">
