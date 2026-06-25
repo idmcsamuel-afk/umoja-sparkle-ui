@@ -4415,6 +4415,78 @@ export type Database = {
         }
         Relationships: []
       }
+      product_discovery: {
+        Row: {
+          amazon_price_zar: number | null
+          backend_id: number | null
+          category: string | null
+          china_api_price_zar: number | null
+          created_at: string | null
+          date_published: string | null
+          date_sent_to_supplier: string | null
+          date_supplier_responded: string | null
+          demand_score: number | null
+          estimated_margin_pct: number | null
+          final_moq: number | null
+          final_supplier_price_zar: number | null
+          id: number
+          is_published: boolean | null
+          lead_time_days: number | null
+          product_name: string
+          source: string | null
+          status: string | null
+          supplier_response_notes: string | null
+          takealot_price_zar: number | null
+          updated_at: string | null
+        }
+        Insert: {
+          amazon_price_zar?: number | null
+          backend_id?: number | null
+          category?: string | null
+          china_api_price_zar?: number | null
+          created_at?: string | null
+          date_published?: string | null
+          date_sent_to_supplier?: string | null
+          date_supplier_responded?: string | null
+          demand_score?: number | null
+          estimated_margin_pct?: number | null
+          final_moq?: number | null
+          final_supplier_price_zar?: number | null
+          id?: number
+          is_published?: boolean | null
+          lead_time_days?: number | null
+          product_name: string
+          source?: string | null
+          status?: string | null
+          supplier_response_notes?: string | null
+          takealot_price_zar?: number | null
+          updated_at?: string | null
+        }
+        Update: {
+          amazon_price_zar?: number | null
+          backend_id?: number | null
+          category?: string | null
+          china_api_price_zar?: number | null
+          created_at?: string | null
+          date_published?: string | null
+          date_sent_to_supplier?: string | null
+          date_supplier_responded?: string | null
+          demand_score?: number | null
+          estimated_margin_pct?: number | null
+          final_moq?: number | null
+          final_supplier_price_zar?: number | null
+          id?: number
+          is_published?: boolean | null
+          lead_time_days?: number | null
+          product_name?: string
+          source?: string | null
+          status?: string | null
+          supplier_response_notes?: string | null
+          takealot_price_zar?: number | null
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
       product_feeds: {
         Row: {
           ai_confidence: number | null
@@ -6953,6 +7025,63 @@ export type Database = {
           status: string | null
           total_capital: number | null
           total_units: number | null
+        }
+        Relationships: []
+      }
+      v_products_pending_supplier: {
+        Row: {
+          category: string | null
+          date_sent_to_supplier: string | null
+          estimated_margin_pct: number | null
+          id: number | null
+          product_name: string | null
+          status: string | null
+        }
+        Insert: {
+          category?: string | null
+          date_sent_to_supplier?: string | null
+          estimated_margin_pct?: number | null
+          id?: number | null
+          product_name?: string | null
+          status?: string | null
+        }
+        Update: {
+          category?: string | null
+          date_sent_to_supplier?: string | null
+          estimated_margin_pct?: number | null
+          id?: number | null
+          product_name?: string | null
+          status?: string | null
+        }
+        Relationships: []
+      }
+      v_products_ready_to_publish: {
+        Row: {
+          category: string | null
+          estimated_margin_pct: number | null
+          final_moq: number | null
+          final_supplier_price_zar: number | null
+          id: number | null
+          lead_time_days: number | null
+          product_name: string | null
+        }
+        Insert: {
+          category?: string | null
+          estimated_margin_pct?: number | null
+          final_moq?: number | null
+          final_supplier_price_zar?: number | null
+          id?: number | null
+          lead_time_days?: number | null
+          product_name?: string | null
+        }
+        Update: {
+          category?: string | null
+          estimated_margin_pct?: number | null
+          final_moq?: number | null
+          final_supplier_price_zar?: number | null
+          id?: number | null
+          lead_time_days?: number | null
+          product_name?: string | null
         }
         Relationships: []
       }
