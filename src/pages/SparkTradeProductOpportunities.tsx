@@ -42,7 +42,22 @@ interface Opportunity {
   stock_available: number | null;
   trending_direction: string | null;
   supplier_country: string | null;
+  is_spotlight?: boolean | null;
+  spotlight_rank?: number | null;
+  spotlight_title?: string | null;
 }
+
+interface CommitmentStatus {
+  members_committed: number;
+  total_units: number;
+  moq_required: number;
+  progress_percent: number;
+  status: string | null;
+}
+
+const SPOTLIGHT_MEMBER_TARGET = 10;
+const maxUnitsPerPerson = (moq: number) =>
+  Math.max(1, Math.ceil((moq || SPOTLIGHT_MEMBER_TARGET) / SPOTLIGHT_MEMBER_TARGET));
 
 const CATEGORIES = ["All", "Electronics", "Fashion", "Home", "Food", "Services", "Tech"] as const;
 type CategoryFilter = (typeof CATEGORIES)[number];
@@ -59,6 +74,8 @@ export default function SparkTradeProductOpportunities() {
   const [loading, setLoading] = useState(true);
   const [category, setCategory] = useState<CategoryFilter>("All");
   const [email, setEmail] = useState<string | null>(null);
+  const [availableCapital, setAvailableCapital] = useState<number | null>(null);
+  const [commitments, setCommitments] = useState<Record<number, CommitmentStatus>>({});
 
   const [reserveOpen, setReserveOpen] = useState(false);
   const [active, setActive] = useState<Opportunity | null>(null);
@@ -117,21 +134,72 @@ export default function SparkTradeProductOpportunities() {
   }, [user]);
 
 
+  // Fetch member capital
+  useEffect(() => {
+    if (!user) return;
+    (async () => {
+      try {
+        const base = import.meta.env.VITE_SUPABASE_URL;
+        const { data: sess } = await supabase.auth.getSession();
+        const res = await fetch(`${base}/functions/v1/member-capital/${user.id}`, {
+          headers: {
+            apikey: import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY as string,
+            Authorization: `Bearer ${sess.session?.access_token ?? import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY}`,
+          },
+        });
+        if (res.ok) {
+          const j = await res.json();
+          setAvailableCapital(Number(j.available_capital) || 0);
+        }
+      } catch (e) {
+        console.warn("[capital] failed", e);
+      }
+    })();
+  }, [user]);
+
   useEffect(() => {
     (async () => {
       setLoading(true);
       const { data, error } = await supabase
         .from("spark_trade_opportunities" as any)
         .select(
-          "id, product_name, category, moq_required, unit_cost_zar, suggested_selling_price_zar, expected_margin_percentage, product_image_url, stock_available, trending_direction, supplier_country",
+          "id, product_name, category, moq_required, unit_cost_zar, suggested_selling_price_zar, expected_margin_percentage, product_image_url, stock_available, trending_direction, supplier_country, is_spotlight, spotlight_rank, spotlight_title",
         )
+        .eq("is_spotlight", true)
+        .order("spotlight_rank", { ascending: true, nullsFirst: false })
         .order("created_at", { ascending: false });
       if (error) {
         console.error(error);
         toast.error("Could not load products");
       }
-      setItems(((data as any[]) ?? []) as Opportunity[]);
+      const rows = ((data as any[]) ?? []) as Opportunity[];
+      setItems(rows);
       setLoading(false);
+
+      // Fetch commitment status for each
+      if (rows.length) {
+        const entries = await Promise.all(
+          rows.map(async (r) => {
+            const { data: s } = await supabase
+              .from("v_product_commitment_status" as any)
+              .select("members_committed, total_units, moq_required, progress_percent, status")
+              .eq("opportunity_id", r.id)
+              .maybeSingle();
+            return [r.id, (s as any) ?? null] as const;
+          }),
+        );
+        const map: Record<number, CommitmentStatus> = {};
+        for (const [id, s] of entries) {
+          if (s) map[id] = {
+            members_committed: Number(s.members_committed) || 0,
+            total_units: Number(s.total_units) || 0,
+            moq_required: Number(s.moq_required) || 0,
+            progress_percent: Number(s.progress_percent) || 0,
+            status: s.status ?? null,
+          };
+        }
+        setCommitments(map);
+      }
     })();
   }, []);
 
@@ -349,6 +417,13 @@ export default function SparkTradeProductOpportunities() {
         <p className="mt-2 text-muted-foreground max-w-2xl">
           Vetted high-margin opportunities. Pick a category, choose a product, set your quantity — we handle the buy.
         </p>
+        {availableCapital !== null && (
+          <div className="mt-4 inline-flex items-center gap-2 rounded-full border bg-card px-4 py-2 text-sm">
+            <Sparkles className="h-4 w-4 text-primary" />
+            <span className="text-muted-foreground">Available capital:</span>
+            <span className="font-semibold">{fmtZar(availableCapital)}</span>
+          </div>
+        )}
 
         {/* Category buttons */}
         <div className="mt-6 flex flex-wrap gap-2">
@@ -385,7 +460,12 @@ export default function SparkTradeProductOpportunities() {
         ) : (
           <div className="mt-6 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
             {visible.map((p) => (
-              <OpportunityCard key={p.id} p={p} onReserve={() => openReserve(p)} />
+              <OpportunityCard
+                key={p.id}
+                p={p}
+                commitment={commitments[p.id]}
+                onReserve={() => openReserve(p)}
+              />
             ))}
           </div>
         )}
@@ -470,6 +550,62 @@ export default function SparkTradeProductOpportunities() {
                     <span className="font-bold">{fmtZar(totalProfit)}</span>
                   </div>
                 </div>
+
+                {/* Capital validation */}
+                {availableCapital !== null && (() => {
+                  const hasEnough = totalCost <= availableCapital;
+                  return (
+                    <div
+                      className={`rounded-lg border p-3 text-sm ${
+                        hasEnough
+                          ? "border-green-600/30 bg-green-600/5"
+                          : "border-destructive/40 bg-destructive/5"
+                      }`}
+                    >
+                      <div className="flex items-center justify-between">
+                        <span className="text-muted-foreground">You have</span>
+                        <span className="font-semibold">{fmtZar(availableCapital)}</span>
+                      </div>
+                      <div className="flex items-center justify-between mt-1">
+                        <span className="text-muted-foreground">This costs</span>
+                        <span className="font-semibold">{fmtZar(totalCost)}</span>
+                      </div>
+                      <div className={`mt-2 font-medium ${hasEnough ? "text-green-600" : "text-destructive"}`}>
+                        {hasEnough
+                          ? `✅ OK — ${fmtZar(availableCapital - totalCost)} remaining after`
+                          : `❌ Short ${fmtZar(totalCost - availableCapital)}. Top up to continue.`}
+                      </div>
+                    </div>
+                  );
+                })()}
+
+                {/* Group buy progress preview */}
+                {commitments[active.id] && (() => {
+                  const c = commitments[active.id];
+                  const moq = c.moq_required || active.moq_required || 1;
+                  const afterUnits = c.total_units + (qty || 0);
+                  const afterPct = Math.min(100, Math.round((afterUnits / moq) * 100));
+                  return (
+                    <div className="rounded-lg border p-3 text-sm space-y-2">
+                      <div className="flex items-center justify-between text-xs text-muted-foreground">
+                        <span>Group progress</span>
+                        <span>Max {maxUnitsPerPerson(moq)} units / person</span>
+                      </div>
+                      <div className="flex items-center justify-between">
+                        <span>After your order</span>
+                        <span className="font-semibold">
+                          {afterUnits}/{moq} units · {afterPct}%
+                        </span>
+                      </div>
+                      <div className="h-2 w-full rounded-full bg-muted overflow-hidden">
+                        <div
+                          className="h-full bg-primary transition-all"
+                          style={{ width: `${afterPct}%` }}
+                        />
+                      </div>
+                    </div>
+                  );
+                })()}
 
                 {/* Delivery Address */}
                 <div className="space-y-3">
@@ -577,7 +713,8 @@ export default function SparkTradeProductOpportunities() {
                     paying ||
                     !addrValid ||
                     qty < (active.moq_required ?? 1) ||
-                    (active.stock_available != null && qty > active.stock_available)
+                    (active.stock_available != null && qty > active.stock_available) ||
+                    (availableCapital !== null && totalCost > availableCapital)
                   }
                 >
                   {paying ? (
@@ -684,9 +821,22 @@ export default function SparkTradeProductOpportunities() {
   );
 }
 
-function OpportunityCard({ p, onReserve }: { p: Opportunity; onReserve: () => void }) {
+function OpportunityCard({
+  p,
+  commitment,
+  onReserve,
+}: {
+  p: Opportunity;
+  commitment?: CommitmentStatus;
+  onReserve: () => void;
+}) {
   const [errored, setErrored] = useState(false);
   const outOfStock = (p.stock_available ?? 0) <= 0;
+  const moq = commitment?.moq_required || p.moq_required || 1;
+  const totalUnits = commitment?.total_units ?? 0;
+  const members = commitment?.members_committed ?? 0;
+  const pct = commitment?.progress_percent ?? 0;
+  const maxPerPerson = maxUnitsPerPerson(moq);
 
   return (
     <Card className="overflow-hidden flex flex-col transition-all hover:shadow-lg hover:-translate-y-0.5">
@@ -723,10 +873,33 @@ function OpportunityCard({ p, onReserve }: { p: Opportunity; onReserve: () => vo
             +{p.expected_margin_percentage}% margin
           </span>
         </div>
-        <div className="flex items-center justify-between text-xs text-muted-foreground">
-          <span className="inline-flex items-center gap-1">
-            <Boxes className="h-3 w-3" /> MOQ {p.moq_required}
-          </span>
+
+        {/* Commitment block */}
+        <div className="mt-1 space-y-1.5">
+          <div className="flex items-center justify-between text-xs text-muted-foreground">
+            <span>Members committed</span>
+            <span className="font-medium text-foreground">
+              {members}/{SPOTLIGHT_MEMBER_TARGET}
+            </span>
+          </div>
+          <div className="flex items-center justify-between text-xs text-muted-foreground">
+            <span>Units</span>
+            <span className="font-medium text-foreground">
+              {totalUnits}/{moq}
+            </span>
+          </div>
+          <div className="h-1.5 w-full rounded-full bg-muted overflow-hidden">
+            <div className="h-full bg-primary transition-all" style={{ width: `${pct}%` }} />
+          </div>
+          <div className="flex items-center justify-between text-[11px] text-muted-foreground">
+            <span className="inline-flex items-center gap-1">
+              <Boxes className="h-3 w-3" /> MOQ {p.moq_required}
+            </span>
+            <span>Max {maxPerPerson} / person</span>
+          </div>
+        </div>
+
+        <div className="text-xs">
           <span className={outOfStock ? "text-destructive font-medium" : "text-green-600 font-medium"}>
             {outOfStock ? "Out of stock" : `${p.stock_available} in stock`}
           </span>
