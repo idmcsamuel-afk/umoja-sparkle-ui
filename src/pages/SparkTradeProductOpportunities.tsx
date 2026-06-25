@@ -444,13 +444,18 @@ export default function SparkTradeProductOpportunities() {
         <p className="mt-2 text-muted-foreground max-w-2xl">
           Vetted high-margin opportunities. Pick a category, choose a product, set your quantity — we handle the buy.
         </p>
-        {availableCapital !== null && (
-          <div className="mt-4 inline-flex items-center gap-2 rounded-full border bg-card px-4 py-2 text-sm">
-            <Sparkles className="h-4 w-4 text-primary" />
-            <span className="text-muted-foreground">Available capital:</span>
-            <span className="font-semibold">{fmtZar(availableCapital)}</span>
-          </div>
-        )}
+        <div className="mt-4 flex flex-wrap items-center gap-2">
+          {availableCapital !== null && (
+            <div className="inline-flex items-center gap-2 rounded-full border bg-card px-4 py-2 text-sm">
+              <Sparkles className="h-4 w-4 text-primary" />
+              <span className="text-muted-foreground">Available capital:</span>
+              <span className="font-semibold">{fmtZar(availableCapital)}</span>
+            </div>
+          )}
+          <Button variant="outline" size="sm" onClick={refreshAll} className="gap-1.5">
+            <RefreshCw className="h-3.5 w-3.5" /> Refresh
+          </Button>
+        </div>
 
         {/* Category buttons */}
         <div className="mt-6 flex flex-wrap gap-2">
