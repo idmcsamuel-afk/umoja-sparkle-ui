@@ -291,7 +291,7 @@ export function CircleTierCard({
         const hours = s.hours_remaining ?? null;
         let dueLabel: string | null = null;
         if (inQueue && hours !== null) {
-          if (hours < 0) dueLabel = `⚠️ Overdue ${Math.abs(Math.floor(hours))}h`;
+          if (hours < 0) dueLabel = `In queue · ${Math.abs(Math.floor(hours))}h`;
           else if (hours < 24) {
             const h = Math.floor(hours);
             const m = Math.floor((hours - h) * 60);
