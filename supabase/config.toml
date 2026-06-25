@@ -31,4 +31,7 @@ verify_jwt = false
 [functions.spark-trade-product-commitment-status]
 verify_jwt = false
 
+[functions.scan-and-score-products]
+verify_jwt = false
+
 project_id = "lamohcoijkpigygiqyih"
