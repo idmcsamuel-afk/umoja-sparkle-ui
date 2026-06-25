@@ -1,93 +1,98 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
-import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { createClient } from "https://esm.sh/@supabase/supabase-js@2.38.4";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
+  "Access-Control-Allow-Methods": "POST, OPTIONS",
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
 };
 
 const supabase = createClient(
-  Deno.env.get("SUPABASE_URL")!,
-  Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!
+  Deno.env.get("SUPABASE_URL") ?? "",
+  Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? ""
 );
-
-const STALL_DAYS = 5;
-const STALL_PROGRESS_THRESHOLD = 30; // percent
 
 serve(async (req) => {
   if (req.method === "OPTIONS") return new Response("ok", { headers: corsHeaders });
 
-  const paused: number[] = [];
-  const promoted: number[] = [];
+  // Verify this is a cron call
+  const authHeader = req.headers.get("Authorization") ?? "";
+  const cronSecret = Deno.env.get("CRON_SECRET") ?? "";
+  if (!cronSecret || !authHeader.includes(cronSecret)) {
+    return new Response(
+      JSON.stringify({ error: "Unauthorized" }),
+      { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+    );
+  }
 
   try {
-    // Active spotlight opportunities
-    const { data: spotlights, error: spotErr } = await supabase
+    const { data: spotlights, error: spotlightError } = await supabase
       .from("spark_trade_opportunities")
-      .select("id, product_name, spotlight_rank, created_at")
+      .select("id, product_name, is_spotlight, created_at, moq_required")
       .eq("is_spotlight", true);
-    if (spotErr) throw spotErr;
 
-    const cutoff = new Date(Date.now() - STALL_DAYS * 86400_000).toISOString();
+    if (spotlightError) throw spotlightError;
 
-    for (const opp of spotlights ?? []) {
-      const { data: status } = await supabase
+    const pausedProducts: string[] = [];
+    const promotedProducts: string[] = [];
+
+    for (const spotlight of spotlights || []) {
+      const { data: commitment } = await supabase
         .from("v_product_commitment_status")
-        .select("progress_percent, last_activity_at")
-        .eq("opportunity_id", opp.id)
+        .select("*")
+        .eq("opportunity_id", spotlight.id)
         .maybeSingle();
 
-      const progress = Number(status?.progress_percent ?? 0);
-      const lastActivity = status?.last_activity_at ?? opp.created_at;
-      const isStalled = (!lastActivity || lastActivity < cutoff) && progress < STALL_PROGRESS_THRESHOLD;
+      if (!commitment) continue;
 
-      if (isStalled) {
-        const { error: pauseErr } = await supabase
+      const daysSinceCreated = Math.floor(
+        (Date.now() - new Date(spotlight.created_at).getTime()) / (1000 * 60 * 60 * 24)
+      );
+
+      if (daysSinceCreated >= 5 && Number((commitment as any).progress_percent) < 30) {
+        await supabase
           .from("spark_trade_opportunities")
-          .update({ is_spotlight: false, spotlight_rank: null, group_buy_status: "paused" })
-          .eq("id", opp.id);
-        if (!pauseErr) paused.push(opp.id);
-      }
-    }
+          .update({ is_spotlight: false, spotlight_rank: null })
+          .eq("id", spotlight.id);
 
-    // Promote next candidates to keep spotlight filled (top 10)
-    if (paused.length > 0) {
-      const { data: candidates } = await supabase
-        .from("spark_trade_opportunities")
-        .select("id, product_name")
-        .eq("is_spotlight", false)
-        .neq("group_buy_status", "paused")
-        .order("created_at", { ascending: false })
-        .limit(paused.length);
+        pausedProducts.push(spotlight.product_name);
 
-      let rank = 1;
-      for (const cand of candidates ?? []) {
-        const { error: promoErr } = await supabase
+        const { data: nextProduct } = await supabase
           .from("spark_trade_opportunities")
-          .update({
-            is_spotlight: true,
-            spotlight_rank: rank,
-            spotlight_title: cand.product_name,
-          })
-          .eq("id", cand.id);
-        if (!promoErr) promoted.push(cand.id);
-        rank++;
+          .select("id, product_name, category, moq_required, unit_cost_zar, expected_margin_percentage")
+          .eq("is_spotlight", false)
+          .order("moq_required", { ascending: false })
+          .limit(1)
+          .maybeSingle();
+
+        if (nextProduct) {
+          await supabase
+            .from("spark_trade_opportunities")
+            .update({
+              is_spotlight: true,
+              spotlight_rank: 1,
+              spotlight_title: `New Featured: ${(nextProduct as any).product_name}`,
+            })
+            .eq("id", (nextProduct as any).id);
+
+          promotedProducts.push((nextProduct as any).product_name);
+        }
       }
     }
 
     return new Response(
       JSON.stringify({
-        ran_at: new Date().toISOString(),
-        paused_count: paused.length,
-        promoted_count: promoted.length,
-        paused,
-        promoted,
+        success: true,
+        timestamp: new Date().toISOString(),
+        paused: pausedProducts,
+        promoted: promotedProducts,
+        message: `${pausedProducts.length} products paused, ${promotedProducts.length} products promoted`,
       }),
       { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );
-  } catch (e) {
+  } catch (error) {
     return new Response(
-      JSON.stringify({ error: (e as Error).message, paused, promoted }),
+      JSON.stringify({ error: "Rotation failed", details: (error as Error).message }),
       { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );
   }

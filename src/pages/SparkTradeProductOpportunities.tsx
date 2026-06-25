@@ -28,6 +28,7 @@ import {
   Truck,
   Calendar,
   Share2,
+  RefreshCw,
 } from "lucide-react";
 
 interface Opportunity {
@@ -134,27 +135,70 @@ export default function SparkTradeProductOpportunities() {
   }, [user]);
 
 
-  // Fetch member capital
+  const supaBase = import.meta.env.VITE_SUPABASE_URL as string;
+  const anonKey = import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY as string;
+
+  const fetchCapital = async () => {
+    if (!user) return;
+    try {
+      const { data: sess } = await supabase.auth.getSession();
+      const res = await fetch(`${supaBase}/functions/v1/member-capital/${user.id}`, {
+        headers: {
+          apikey: anonKey,
+          Authorization: `Bearer ${sess.session?.access_token ?? anonKey}`,
+        },
+      });
+      if (res.ok) {
+        const j = await res.json();
+        setAvailableCapital(Number(j.available_capital) || 0);
+      }
+    } catch (e) {
+      console.warn("[capital] failed", e);
+    }
+  };
+
+  const fetchCommitment = async (opportunityId: number): Promise<CommitmentStatus | null> => {
+    try {
+      const { data: sess } = await supabase.auth.getSession();
+      const res = await fetch(
+        `${supaBase}/functions/v1/spark-trade-product-commitment-status/${opportunityId}`,
+        {
+          headers: {
+            apikey: anonKey,
+            Authorization: `Bearer ${sess.session?.access_token ?? anonKey}`,
+          },
+        }
+      );
+      if (!res.ok) return null;
+      const j = await res.json();
+      return {
+        members_committed: Number(j.members_committed) || 0,
+        total_units: Number(j.total_units_committed) || 0,
+        moq_required: Number(j.moq_required) || 0,
+        progress_percent: Number(j.progress_percent) || 0,
+        status: j.status ?? null,
+      };
+    } catch (e) {
+      console.warn("[commitment] failed", e);
+      return null;
+    }
+  };
+
+  const refreshAll = async () => {
+    await fetchCapital();
+    if (items.length) {
+      const entries = await Promise.all(
+        items.map(async (r) => [r.id, await fetchCommitment(r.id)] as const)
+      );
+      const map: Record<number, CommitmentStatus> = {};
+      for (const [id, s] of entries) if (s) map[id] = s;
+      setCommitments(map);
+    }
+  };
+
   useEffect(() => {
     if (!user) return;
-    (async () => {
-      try {
-        const base = import.meta.env.VITE_SUPABASE_URL;
-        const { data: sess } = await supabase.auth.getSession();
-        const res = await fetch(`${base}/functions/v1/member-capital/${user.id}`, {
-          headers: {
-            apikey: import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY as string,
-            Authorization: `Bearer ${sess.session?.access_token ?? import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY}`,
-          },
-        });
-        if (res.ok) {
-          const j = await res.json();
-          setAvailableCapital(Number(j.available_capital) || 0);
-        }
-      } catch (e) {
-        console.warn("[capital] failed", e);
-      }
-    })();
+    fetchCapital();
   }, [user]);
 
   useEffect(() => {
@@ -176,31 +220,14 @@ export default function SparkTradeProductOpportunities() {
       setItems(rows);
       setLoading(false);
 
-      // Fetch commitment status for each
       if (rows.length) {
-        const entries = await Promise.all(
-          rows.map(async (r) => {
-            const { data: s } = await supabase
-              .from("v_product_commitment_status" as any)
-              .select("members_committed, total_units, moq_required, progress_percent, status")
-              .eq("opportunity_id", r.id)
-              .maybeSingle();
-            return [r.id, (s as any) ?? null] as const;
-          }),
-        );
+        const entries = await Promise.all(rows.map(async (r) => [r.id, await fetchCommitment(r.id)] as const));
         const map: Record<number, CommitmentStatus> = {};
-        for (const [id, s] of entries) {
-          if (s) map[id] = {
-            members_committed: Number(s.members_committed) || 0,
-            total_units: Number(s.total_units) || 0,
-            moq_required: Number(s.moq_required) || 0,
-            progress_percent: Number(s.progress_percent) || 0,
-            status: s.status ?? null,
-          };
-        }
+        for (const [id, s] of entries) if (s) map[id] = s;
         setCommitments(map);
       }
     })();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const visible = useMemo(
@@ -315,7 +342,23 @@ export default function SparkTradeProductOpportunities() {
       return;
     }
 
-    toast.success(`Reserved ${qty} units of ${active.product_name}`);
+    toast.success(`✅ Reserved ${qty} units of ${active.product_name}`);
+
+    // Refresh commitment status 3x with 2s delay so progress bar updates live
+    const oppId = active.id;
+    (async () => {
+      for (let i = 0; i < 3; i++) {
+        await new Promise((r) => setTimeout(r, 2000));
+        const s = await fetchCommitment(oppId);
+        if (s) {
+          setCommitments((prev) => ({ ...prev, [oppId]: s }));
+          if (s.status === "READY_TO_ORDER") {
+            toast.success("🎉 Order launching soon! Check back for fulfillment updates.");
+          }
+        }
+      }
+      await fetchCapital();
+    })();
 
     // Fetch shipment + reservation rows to populate confirmation
     const productName = active.product_name;
@@ -417,13 +460,18 @@ export default function SparkTradeProductOpportunities() {
         <p className="mt-2 text-muted-foreground max-w-2xl">
           Vetted high-margin opportunities. Pick a category, choose a product, set your quantity — we handle the buy.
         </p>
-        {availableCapital !== null && (
-          <div className="mt-4 inline-flex items-center gap-2 rounded-full border bg-card px-4 py-2 text-sm">
-            <Sparkles className="h-4 w-4 text-primary" />
-            <span className="text-muted-foreground">Available capital:</span>
-            <span className="font-semibold">{fmtZar(availableCapital)}</span>
-          </div>
-        )}
+        <div className="mt-4 flex flex-wrap items-center gap-2">
+          {availableCapital !== null && (
+            <div className="inline-flex items-center gap-2 rounded-full border bg-card px-4 py-2 text-sm">
+              <Sparkles className="h-4 w-4 text-primary" />
+              <span className="text-muted-foreground">Available capital:</span>
+              <span className="font-semibold">{fmtZar(availableCapital)}</span>
+            </div>
+          )}
+          <Button variant="outline" size="sm" onClick={refreshAll} className="gap-1.5">
+            <RefreshCw className="h-3.5 w-3.5" /> Refresh
+          </Button>
+        </div>
 
         {/* Category buttons */}
         <div className="mt-6 flex flex-wrap gap-2">
@@ -889,15 +937,40 @@ function OpportunityCard({
             </span>
           </div>
           <div className="h-1.5 w-full rounded-full bg-muted overflow-hidden">
-            <div className="h-full bg-primary transition-all" style={{ width: `${pct}%` }} />
+            <div
+              className={`h-full transition-all ${
+                commitment?.status === "READY_TO_ORDER"
+                  ? "bg-green-500"
+                  : commitment?.status === "IN_PROGRESS"
+                  ? "bg-green-600"
+                  : "bg-muted-foreground/40"
+              }`}
+              style={{ width: `${pct}%` }}
+            />
           </div>
           <div className="flex items-center justify-between text-[11px] text-muted-foreground">
             <span className="inline-flex items-center gap-1">
-              <Boxes className="h-3 w-3" /> MOQ {p.moq_required}
+              <Boxes className="h-3 w-3" /> {totalUnits}/{moq} ({Math.round(pct)}%)
             </span>
             <span>Max {maxPerPerson} / person</span>
           </div>
+          {commitment?.status && (
+            <Badge
+              variant="secondary"
+              className={
+                commitment.status === "READY_TO_ORDER"
+                  ? "bg-green-600 text-white hover:bg-green-600"
+                  : commitment.status === "IN_PROGRESS"
+                  ? "bg-yellow-500 text-black hover:bg-yellow-500"
+                  : "bg-blue-500 text-white hover:bg-blue-500"
+              }
+            >
+              {commitment.status}
+            </Badge>
+          )}
         </div>
+
+
 
         <div className="text-xs">
           <span className={outOfStock ? "text-destructive font-medium" : "text-green-600 font-medium"}>
