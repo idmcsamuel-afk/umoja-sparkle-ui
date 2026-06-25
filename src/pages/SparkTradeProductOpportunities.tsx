@@ -937,15 +937,37 @@ function OpportunityCard({
             </span>
           </div>
           <div className="h-1.5 w-full rounded-full bg-muted overflow-hidden">
-            <div className="h-full bg-primary transition-all" style={{ width: `${pct}%` }} />
+            <div
+              className={`h-full transition-all ${
+                commitment?.status === "READY_TO_ORDER"
+                  ? "bg-green-500"
+                  : commitment?.status === "IN_PROGRESS"
+                  ? "bg-green-600"
+                  : "bg-muted-foreground/40"
+              }`}
+              style={{ width: `${pct}%` }}
+            />
           </div>
           <div className="flex items-center justify-between text-[11px] text-muted-foreground">
             <span className="inline-flex items-center gap-1">
-              <Boxes className="h-3 w-3" /> MOQ {p.moq_required}
+              <Boxes className="h-3 w-3" /> {totalUnits}/{moq} ({Math.round(pct)}%)
             </span>
             <span>Max {maxPerPerson} / person</span>
           </div>
-        </div>
+          {commitment?.status && (
+            <Badge
+              variant="secondary"
+              className={
+                commitment.status === "READY_TO_ORDER"
+                  ? "bg-green-600 text-white hover:bg-green-600"
+                  : commitment.status === "IN_PROGRESS"
+                  ? "bg-yellow-500 text-black hover:bg-yellow-500"
+                  : "bg-blue-500 text-white hover:bg-blue-500"
+              }
+            >
+              {commitment.status}
+            </Badge>
+          )}
 
         <div className="text-xs">
           <span className={outOfStock ? "text-destructive font-medium" : "text-green-600 font-medium"}>
