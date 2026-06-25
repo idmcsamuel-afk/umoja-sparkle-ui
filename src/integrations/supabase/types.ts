@@ -5405,6 +5405,13 @@ export type Database = {
             referencedRelation: "spark_trade_opportunities"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "spark_trade_inventory_reservations_opportunity_id_fkey"
+            columns: ["opportunity_id"]
+            isOneToOne: false
+            referencedRelation: "v_product_commitment_status"
+            referencedColumns: ["opportunity_id"]
+          },
         ]
       }
       spark_trade_joins: {
@@ -5480,9 +5487,12 @@ export type Database = {
           group_buy_status: string | null
           id: number
           is_approved_for_ai_recommendation: boolean | null
+          is_spotlight: boolean
           moq_required: number | null
           product_image_url: string | null
           product_name: string | null
+          spotlight_rank: number | null
+          spotlight_title: string | null
           stock_available: number | null
           suggested_selling_price_zar: number | null
           supplier_country: string | null
@@ -5501,9 +5511,12 @@ export type Database = {
           group_buy_status?: string | null
           id?: number
           is_approved_for_ai_recommendation?: boolean | null
+          is_spotlight?: boolean
           moq_required?: number | null
           product_image_url?: string | null
           product_name?: string | null
+          spotlight_rank?: number | null
+          spotlight_title?: string | null
           stock_available?: number | null
           suggested_selling_price_zar?: number | null
           supplier_country?: string | null
@@ -5522,9 +5535,12 @@ export type Database = {
           group_buy_status?: string | null
           id?: number
           is_approved_for_ai_recommendation?: boolean | null
+          is_spotlight?: boolean
           moq_required?: number | null
           product_image_url?: string | null
           product_name?: string | null
+          spotlight_rank?: number | null
+          spotlight_title?: string | null
           stock_available?: number | null
           suggested_selling_price_zar?: number | null
           supplier_country?: string | null
@@ -6924,6 +6940,39 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      v_product_commitment_status: {
+        Row: {
+          last_activity_at: string | null
+          legacy_reserved: number | null
+          members_committed: number | null
+          moq_required: number | null
+          opportunity_id: number | null
+          product_name: string | null
+          progress_percent: number | null
+          status: string | null
+          total_capital: number | null
+          total_units: number | null
+        }
+        Relationships: []
+      }
+      v_spark_trade_products: {
+        Row: {
+          category: string | null
+          image_url: string | null
+          last_updated: string | null
+          name: string | null
+          opportunity_score: number | null
+          price_zar: number | null
+          product_key: string | null
+          rating: number | null
+          review_count: number | null
+          sales_rank: number | null
+          source: string | null
+          source_id: string | null
+          source_url: string | null
+        }
+        Relationships: []
       }
     }
     Functions: {
