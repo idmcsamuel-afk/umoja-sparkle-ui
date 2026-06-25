@@ -82,6 +82,7 @@ import AdminContentDirector from "./pages/admin/AdminContentDirector.tsx";
 import AdminUgcSubmissions from "./pages/admin/AdminUgcSubmissions.tsx";
 import AdminFraudDashboard from "./pages/admin/AdminFraudDashboard.tsx";
 import AdminRevenueDashboard from "./pages/admin/AdminRevenueDashboard.tsx";
+import AdminSupplierDashboard from "./pages/admin/AdminSupplierDashboard.tsx";
 import MemberVideos from "./pages/MemberVideos.tsx";
 import UploadVideo from "./pages/UploadVideo.tsx";
 
@@ -229,6 +230,7 @@ const App = () => (
                 <Route path="countries" element={<AdminCountries />} />
                 <Route path="fraud-dashboard" element={<AdminFraudDashboard />} />
                 <Route path="revenue-dashboard" element={<AdminRevenueDashboard />} />
+                <Route path="supplier-dashboard" element={<AdminSupplierDashboard />} />
               </Route>
 
               <Route path="*" element={<NotFound />} />
