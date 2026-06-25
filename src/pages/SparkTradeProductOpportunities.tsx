@@ -968,6 +968,9 @@ function OpportunityCard({
               {commitment.status}
             </Badge>
           )}
+        </div>
+
+
 
         <div className="text-xs">
           <span className={outOfStock ? "text-destructive font-medium" : "text-green-600 font-medium"}>
