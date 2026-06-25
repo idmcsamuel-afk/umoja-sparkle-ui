@@ -713,7 +713,8 @@ export default function SparkTradeProductOpportunities() {
                     paying ||
                     !addrValid ||
                     qty < (active.moq_required ?? 1) ||
-                    (active.stock_available != null && qty > active.stock_available)
+                    (active.stock_available != null && qty > active.stock_available) ||
+                    (availableCapital !== null && totalCost > availableCapital)
                   }
                 >
                   {paying ? (
@@ -820,9 +821,22 @@ export default function SparkTradeProductOpportunities() {
   );
 }
 
-function OpportunityCard({ p, onReserve }: { p: Opportunity; onReserve: () => void }) {
+function OpportunityCard({
+  p,
+  commitment,
+  onReserve,
+}: {
+  p: Opportunity;
+  commitment?: CommitmentStatus;
+  onReserve: () => void;
+}) {
   const [errored, setErrored] = useState(false);
   const outOfStock = (p.stock_available ?? 0) <= 0;
+  const moq = commitment?.moq_required || p.moq_required || 1;
+  const totalUnits = commitment?.total_units ?? 0;
+  const members = commitment?.members_committed ?? 0;
+  const pct = commitment?.progress_percent ?? 0;
+  const maxPerPerson = maxUnitsPerPerson(moq);
 
   return (
     <Card className="overflow-hidden flex flex-col transition-all hover:shadow-lg hover:-translate-y-0.5">
@@ -859,10 +873,33 @@ function OpportunityCard({ p, onReserve }: { p: Opportunity; onReserve: () => vo
             +{p.expected_margin_percentage}% margin
           </span>
         </div>
-        <div className="flex items-center justify-between text-xs text-muted-foreground">
-          <span className="inline-flex items-center gap-1">
-            <Boxes className="h-3 w-3" /> MOQ {p.moq_required}
-          </span>
+
+        {/* Commitment block */}
+        <div className="mt-1 space-y-1.5">
+          <div className="flex items-center justify-between text-xs text-muted-foreground">
+            <span>Members committed</span>
+            <span className="font-medium text-foreground">
+              {members}/{SPOTLIGHT_MEMBER_TARGET}
+            </span>
+          </div>
+          <div className="flex items-center justify-between text-xs text-muted-foreground">
+            <span>Units</span>
+            <span className="font-medium text-foreground">
+              {totalUnits}/{moq}
+            </span>
+          </div>
+          <div className="h-1.5 w-full rounded-full bg-muted overflow-hidden">
+            <div className="h-full bg-primary transition-all" style={{ width: `${pct}%` }} />
+          </div>
+          <div className="flex items-center justify-between text-[11px] text-muted-foreground">
+            <span className="inline-flex items-center gap-1">
+              <Boxes className="h-3 w-3" /> MOQ {p.moq_required}
+            </span>
+            <span>Max {maxPerPerson} / person</span>
+          </div>
+        </div>
+
+        <div className="text-xs">
           <span className={outOfStock ? "text-destructive font-medium" : "text-green-600 font-medium"}>
             {outOfStock ? "Out of stock" : `${p.stock_available} in stock`}
           </span>
