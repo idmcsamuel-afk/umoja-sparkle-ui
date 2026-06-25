@@ -135,27 +135,70 @@ export default function SparkTradeProductOpportunities() {
   }, [user]);
 
 
-  // Fetch member capital
+  const supaBase = import.meta.env.VITE_SUPABASE_URL as string;
+  const anonKey = import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY as string;
+
+  const fetchCapital = async () => {
+    if (!user) return;
+    try {
+      const { data: sess } = await supabase.auth.getSession();
+      const res = await fetch(`${supaBase}/functions/v1/member-capital/${user.id}`, {
+        headers: {
+          apikey: anonKey,
+          Authorization: `Bearer ${sess.session?.access_token ?? anonKey}`,
+        },
+      });
+      if (res.ok) {
+        const j = await res.json();
+        setAvailableCapital(Number(j.available_capital) || 0);
+      }
+    } catch (e) {
+      console.warn("[capital] failed", e);
+    }
+  };
+
+  const fetchCommitment = async (opportunityId: number): Promise<CommitmentStatus | null> => {
+    try {
+      const { data: sess } = await supabase.auth.getSession();
+      const res = await fetch(
+        `${supaBase}/functions/v1/spark-trade-product-commitment-status/${opportunityId}`,
+        {
+          headers: {
+            apikey: anonKey,
+            Authorization: `Bearer ${sess.session?.access_token ?? anonKey}`,
+          },
+        }
+      );
+      if (!res.ok) return null;
+      const j = await res.json();
+      return {
+        members_committed: Number(j.members_committed) || 0,
+        total_units: Number(j.total_units_committed) || 0,
+        moq_required: Number(j.moq_required) || 0,
+        progress_percent: Number(j.progress_percent) || 0,
+        status: j.status ?? null,
+      };
+    } catch (e) {
+      console.warn("[commitment] failed", e);
+      return null;
+    }
+  };
+
+  const refreshAll = async () => {
+    await fetchCapital();
+    if (items.length) {
+      const entries = await Promise.all(
+        items.map(async (r) => [r.id, await fetchCommitment(r.id)] as const)
+      );
+      const map: Record<number, CommitmentStatus> = {};
+      for (const [id, s] of entries) if (s) map[id] = s;
+      setCommitments(map);
+    }
+  };
+
   useEffect(() => {
     if (!user) return;
-    (async () => {
-      try {
-        const base = import.meta.env.VITE_SUPABASE_URL;
-        const { data: sess } = await supabase.auth.getSession();
-        const res = await fetch(`${base}/functions/v1/member-capital/${user.id}`, {
-          headers: {
-            apikey: import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY as string,
-            Authorization: `Bearer ${sess.session?.access_token ?? import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY}`,
-          },
-        });
-        if (res.ok) {
-          const j = await res.json();
-          setAvailableCapital(Number(j.available_capital) || 0);
-        }
-      } catch (e) {
-        console.warn("[capital] failed", e);
-      }
-    })();
+    fetchCapital();
   }, [user]);
 
   useEffect(() => {
@@ -177,31 +220,14 @@ export default function SparkTradeProductOpportunities() {
       setItems(rows);
       setLoading(false);
 
-      // Fetch commitment status for each
       if (rows.length) {
-        const entries = await Promise.all(
-          rows.map(async (r) => {
-            const { data: s } = await supabase
-              .from("v_product_commitment_status" as any)
-              .select("members_committed, total_units, moq_required, progress_percent, status")
-              .eq("opportunity_id", r.id)
-              .maybeSingle();
-            return [r.id, (s as any) ?? null] as const;
-          }),
-        );
+        const entries = await Promise.all(rows.map(async (r) => [r.id, await fetchCommitment(r.id)] as const));
         const map: Record<number, CommitmentStatus> = {};
-        for (const [id, s] of entries) {
-          if (s) map[id] = {
-            members_committed: Number(s.members_committed) || 0,
-            total_units: Number(s.total_units) || 0,
-            moq_required: Number(s.moq_required) || 0,
-            progress_percent: Number(s.progress_percent) || 0,
-            status: s.status ?? null,
-          };
-        }
+        for (const [id, s] of entries) if (s) map[id] = s;
         setCommitments(map);
       }
     })();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const visible = useMemo(
