@@ -134,21 +134,72 @@ export default function SparkTradeProductOpportunities() {
   }, [user]);
 
 
+  // Fetch member capital
+  useEffect(() => {
+    if (!user) return;
+    (async () => {
+      try {
+        const base = import.meta.env.VITE_SUPABASE_URL;
+        const { data: sess } = await supabase.auth.getSession();
+        const res = await fetch(`${base}/functions/v1/member-capital/${user.id}`, {
+          headers: {
+            apikey: import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY as string,
+            Authorization: `Bearer ${sess.session?.access_token ?? import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY}`,
+          },
+        });
+        if (res.ok) {
+          const j = await res.json();
+          setAvailableCapital(Number(j.available_capital) || 0);
+        }
+      } catch (e) {
+        console.warn("[capital] failed", e);
+      }
+    })();
+  }, [user]);
+
   useEffect(() => {
     (async () => {
       setLoading(true);
       const { data, error } = await supabase
         .from("spark_trade_opportunities" as any)
         .select(
-          "id, product_name, category, moq_required, unit_cost_zar, suggested_selling_price_zar, expected_margin_percentage, product_image_url, stock_available, trending_direction, supplier_country",
+          "id, product_name, category, moq_required, unit_cost_zar, suggested_selling_price_zar, expected_margin_percentage, product_image_url, stock_available, trending_direction, supplier_country, is_spotlight, spotlight_rank, spotlight_title",
         )
+        .eq("is_spotlight", true)
+        .order("spotlight_rank", { ascending: true, nullsFirst: false })
         .order("created_at", { ascending: false });
       if (error) {
         console.error(error);
         toast.error("Could not load products");
       }
-      setItems(((data as any[]) ?? []) as Opportunity[]);
+      const rows = ((data as any[]) ?? []) as Opportunity[];
+      setItems(rows);
       setLoading(false);
+
+      // Fetch commitment status for each
+      if (rows.length) {
+        const entries = await Promise.all(
+          rows.map(async (r) => {
+            const { data: s } = await supabase
+              .from("v_product_commitment_status" as any)
+              .select("members_committed, total_units, moq_required, progress_percent, status")
+              .eq("opportunity_id", r.id)
+              .maybeSingle();
+            return [r.id, (s as any) ?? null] as const;
+          }),
+        );
+        const map: Record<number, CommitmentStatus> = {};
+        for (const [id, s] of entries) {
+          if (s) map[id] = {
+            members_committed: Number(s.members_committed) || 0,
+            total_units: Number(s.total_units) || 0,
+            moq_required: Number(s.moq_required) || 0,
+            progress_percent: Number(s.progress_percent) || 0,
+            status: s.status ?? null,
+          };
+        }
+        setCommitments(map);
+      }
     })();
   }, []);
 
