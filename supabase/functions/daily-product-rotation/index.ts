@@ -15,10 +15,16 @@ const supabase = createClient(
 serve(async (req) => {
   if (req.method === "OPTIONS") return new Response("ok", { headers: corsHeaders });
 
-  // Verify this is a cron call
+  // Verify this is an authorized cron call.
+  // Accept either CRON_SECRET (manual/dashboard schedules) or the project's
+  // SERVICE_ROLE_KEY (used by pg_cron + pg_net jobs scheduled from SQL).
   const authHeader = req.headers.get("Authorization") ?? "";
   const cronSecret = Deno.env.get("CRON_SECRET") ?? "";
-  if (!cronSecret || !authHeader.includes(cronSecret)) {
+  const serviceRole = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? "";
+  const ok =
+    (cronSecret && authHeader.includes(cronSecret)) ||
+    (serviceRole && authHeader.includes(serviceRole));
+  if (!ok) {
     return new Response(
       JSON.stringify({ error: "Unauthorized" }),
       { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } }
