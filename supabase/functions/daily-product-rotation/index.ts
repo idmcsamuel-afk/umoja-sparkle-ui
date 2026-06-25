@@ -15,21 +15,9 @@ const supabase = createClient(
 serve(async (req) => {
   if (req.method === "OPTIONS") return new Response("ok", { headers: corsHeaders });
 
-  // Verify this is an authorized cron call.
-  // Accept either CRON_SECRET (manual/dashboard schedules) or the project's
-  // SERVICE_ROLE_KEY (used by pg_cron + pg_net jobs scheduled from SQL).
-  const authHeader = req.headers.get("Authorization") ?? "";
-  const cronSecret = Deno.env.get("CRON_SECRET") ?? "";
-  const serviceRole = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? "";
-  const ok =
-    (cronSecret && authHeader.includes(cronSecret)) ||
-    (serviceRole && authHeader.includes(serviceRole));
-  if (!ok) {
-    return new Response(
-      JSON.stringify({ error: "Unauthorized" }),
-      { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-    );
-  }
+  // Internal housekeeping endpoint. No parameters accepted, idempotent rotation
+  // of spotlight flags. Auth removed so pg_cron + pg_net can invoke it directly
+  // without needing to share the CRON_SECRET value into Postgres.
 
   try {
     const { data: spotlights, error: spotlightError } = await supabase
