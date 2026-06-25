@@ -34,4 +34,10 @@ verify_jwt = false
 [functions.scan-and-score-products]
 verify_jwt = false
 
+[functions.queue-products-for-supplier]
+verify_jwt = false
+
+[functions.publish-confirmed-products]
+verify_jwt = false
+
 project_id = "lamohcoijkpigygiqyih"
