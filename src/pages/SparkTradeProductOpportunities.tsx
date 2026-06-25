@@ -417,6 +417,13 @@ export default function SparkTradeProductOpportunities() {
         <p className="mt-2 text-muted-foreground max-w-2xl">
           Vetted high-margin opportunities. Pick a category, choose a product, set your quantity — we handle the buy.
         </p>
+        {availableCapital !== null && (
+          <div className="mt-4 inline-flex items-center gap-2 rounded-full border bg-card px-4 py-2 text-sm">
+            <Sparkles className="h-4 w-4 text-primary" />
+            <span className="text-muted-foreground">Available capital:</span>
+            <span className="font-semibold">{fmtZar(availableCapital)}</span>
+          </div>
+        )}
 
         {/* Category buttons */}
         <div className="mt-6 flex flex-wrap gap-2">
@@ -453,7 +460,12 @@ export default function SparkTradeProductOpportunities() {
         ) : (
           <div className="mt-6 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
             {visible.map((p) => (
-              <OpportunityCard key={p.id} p={p} onReserve={() => openReserve(p)} />
+              <OpportunityCard
+                key={p.id}
+                p={p}
+                commitment={commitments[p.id]}
+                onReserve={() => openReserve(p)}
+              />
             ))}
           </div>
         )}
