@@ -101,11 +101,11 @@ async function createTcgShipment(opts: {
         phone: (member as any)?.phone ?? "",
       },
       parcels: [{
-        weight: "2",
-        length: "30",
-        width: "20",
-        height: "15",
-        description: "Spark Trade shipment",
+        submitted_weight_kg: "2",
+        submitted_length_cm: "30",
+        submitted_width_cm: "20",
+        submitted_height_cm: "15",
+        parcel_description: "Spark Trade shipment",
       }],
       service: "standard",
       recipient: {
