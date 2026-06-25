@@ -42,7 +42,22 @@ interface Opportunity {
   stock_available: number | null;
   trending_direction: string | null;
   supplier_country: string | null;
+  is_spotlight?: boolean | null;
+  spotlight_rank?: number | null;
+  spotlight_title?: string | null;
 }
+
+interface CommitmentStatus {
+  members_committed: number;
+  total_units: number;
+  moq_required: number;
+  progress_percent: number;
+  status: string | null;
+}
+
+const SPOTLIGHT_MEMBER_TARGET = 10;
+const maxUnitsPerPerson = (moq: number) =>
+  Math.max(1, Math.ceil((moq || SPOTLIGHT_MEMBER_TARGET) / SPOTLIGHT_MEMBER_TARGET));
 
 const CATEGORIES = ["All", "Electronics", "Fashion", "Home", "Food", "Services", "Tech"] as const;
 type CategoryFilter = (typeof CATEGORIES)[number];
@@ -59,6 +74,8 @@ export default function SparkTradeProductOpportunities() {
   const [loading, setLoading] = useState(true);
   const [category, setCategory] = useState<CategoryFilter>("All");
   const [email, setEmail] = useState<string | null>(null);
+  const [availableCapital, setAvailableCapital] = useState<number | null>(null);
+  const [commitments, setCommitments] = useState<Record<number, CommitmentStatus>>({});
 
   const [reserveOpen, setReserveOpen] = useState(false);
   const [active, setActive] = useState<Opportunity | null>(null);
