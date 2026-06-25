@@ -82,6 +82,7 @@ import AdminContentDirector from "./pages/admin/AdminContentDirector.tsx";
 import AdminUgcSubmissions from "./pages/admin/AdminUgcSubmissions.tsx";
 import AdminFraudDashboard from "./pages/admin/AdminFraudDashboard.tsx";
 import AdminRevenueDashboard from "./pages/admin/AdminRevenueDashboard.tsx";
+import AdminSupplierDashboard from "./pages/admin/AdminSupplierDashboard.tsx";
 import MemberVideos from "./pages/MemberVideos.tsx";
 import UploadVideo from "./pages/UploadVideo.tsx";
 
