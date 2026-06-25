@@ -230,6 +230,7 @@ const App = () => (
                 <Route path="countries" element={<AdminCountries />} />
                 <Route path="fraud-dashboard" element={<AdminFraudDashboard />} />
                 <Route path="revenue-dashboard" element={<AdminRevenueDashboard />} />
+                <Route path="supplier-dashboard" element={<AdminSupplierDashboard />} />
               </Route>
 
               <Route path="*" element={<NotFound />} />
