@@ -28,4 +28,7 @@ verify_jwt = false
 [functions.daily-product-rotation]
 verify_jwt = false
 
+[functions.spark-trade-product-commitment-status]
+verify_jwt = false
+
 project_id = "lamohcoijkpigygiqyih"
