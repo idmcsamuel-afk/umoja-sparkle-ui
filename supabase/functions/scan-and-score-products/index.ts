@@ -118,6 +118,8 @@ async function fetchAlibaba(): Promise<AlibabaItem[]> {
       price_cny: Number(r.price_cny ?? r.price ?? 0),
       supplier_rating: Number(r.supplier_rating ?? r.rating ?? 4),
       moq: Number(r.moq ?? 50),
+      product_url: r.product_url ?? r.url ?? null,
+      supplier_name: r.supplier_name ?? r.supplier ?? null,
     })).filter((i: AlibabaItem) => i.title && i.price_cny > 0);
     return items.length ? items : seedAlibaba();
   } catch (e) {
