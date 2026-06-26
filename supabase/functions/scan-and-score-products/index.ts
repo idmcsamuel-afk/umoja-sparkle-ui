@@ -277,6 +277,10 @@ Deno.serve(async (req) => {
     let inserted = 0;
     let updated = 0;
     let highMargin = 0;
+    let updateErrors = 0;
+    let insertErrors = 0;
+    let firstError: string | null = null;
+    let sampleLogged = false;
     for (const s of scored) {
       if (s.high_margin_flag) highMargin++;
       const { data: existing } = await supabase
@@ -308,17 +312,45 @@ Deno.serve(async (req) => {
         updated_at: new Date().toISOString(),
       };
 
+      if (!sampleLogged) {
+        console.log("Sample payload:", JSON.stringify({
+          name: s.product_name,
+          alibaba_url: s.alibaba_product_url,
+          amazon_url: s.amazon_product_url,
+          takealot_url: s.takealot_product_url,
+        }));
+        sampleLogged = true;
+      }
+
       if (existing) {
-        await supabase.from("product_discovery").update(payload).eq("id", (existing as any).id);
+        const { error, data } = await supabase
+          .from("product_discovery")
+          .update(payload)
+          .eq("id", (existing as any).id)
+          .select("id, alibaba_product_url, amazon_product_url")
+          .maybeSingle();
+        if (error) {
+          updateErrors++;
+          if (!firstError) firstError = `UPDATE: ${error.message} | code=${error.code} | details=${error.details} | hint=${error.hint}`;
+          console.error("Update error for", s.product_name, JSON.stringify(error));
+        } else if (updated === 0) {
+          console.log("First update returned:", JSON.stringify(data));
+        }
         updated++;
       } else {
-        await supabase.from("product_discovery").insert(payload);
+        const { error } = await supabase.from("product_discovery").insert(payload);
+        if (error) {
+          insertErrors++;
+          if (!firstError) firstError = `INSERT: ${error.message} | code=${error.code} | details=${error.details} | hint=${error.hint}`;
+          console.error("Insert error for", s.product_name, JSON.stringify(error));
+        }
         inserted++;
       }
     }
 
-    const summary = `Inserted ${inserted} products, ${updated} updated, ${highMargin} with margin > 30%`;
+    const summary = `Inserted ${inserted} products, ${updated} updated, ${highMargin} with margin > 30%, updateErrors=${updateErrors}, insertErrors=${insertErrors}`;
     console.log(summary);
+    if (firstError) console.error("First error:", firstError);
 
     return new Response(
       JSON.stringify({ ok: true, inserted, updated, high_margin: highMargin, total_scored: scored.length, summary }),
