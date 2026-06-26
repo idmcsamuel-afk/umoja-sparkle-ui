@@ -10,7 +10,7 @@ import { Check, X, Pause, ExternalLink, Copy, Star, RefreshCw } from "lucide-rea
 type ValidationStatus = "pending_review" | "urls_verified" | "approved_to_queue" | "rejected";
 
 interface ProductRow {
-  id: string;
+  id: number;
   product_name: string;
   category: string | null;
   estimated_margin_pct: number | null;
@@ -80,7 +80,7 @@ export default function AdminProductValidation() {
   const [loading, setLoading] = useState(true);
   const [filter, setFilter] = useState<Filter>("pending_review");
   const [sort, setSort] = useState<Sort>("newest");
-  const [notesDraft, setNotesDraft] = useState<Record<string, string>>({});
+  const [notesDraft, setNotesDraft] = useState<Record<number, string>>({});
   const [saving, setSaving] = useState<string | null>(null);
 
   const load = async () => {
