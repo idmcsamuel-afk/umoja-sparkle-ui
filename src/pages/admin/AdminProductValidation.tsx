@@ -72,7 +72,7 @@ export default function AdminProductValidation() {
     const { data, error } = await supabase
       .from("product_discovery")
       .select("*")
-      .eq("source", "amazon_products")
+      .eq("source", "china_api")
       .order("amazon_rating", { ascending: false, nullsFirst: false })
       .limit(500);
     if (error) {
