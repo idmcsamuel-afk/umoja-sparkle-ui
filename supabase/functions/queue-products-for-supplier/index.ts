@@ -62,40 +62,68 @@ CSV attached.`;
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response("ok", { headers: corsHeaders });
   try {
-    const { data: products, error } = await supabase
+    console.log("Fetching products...");
+    const response = await supabase
       .from("product_discovery")
       .select("id, product_name, category, amazon_price_zar, china_api_price_zar, estimated_margin_pct")
       .eq("status", "discovered")
       .gt("estimated_margin_pct", 30)
       .order("estimated_margin_pct", { ascending: false });
-    if (error) throw error;
 
-    if (!products || products.length === 0) {
-      console.log("No products to queue");
-      return new Response(JSON.stringify({ success: true, products_queued: 0, message: "No products to queue" }), {
+    console.log("Response:", JSON.stringify({ error: response.error, count: response.data?.length }));
+
+    if (response.error) {
+      console.error("Database error:", response.error);
+      return new Response(JSON.stringify({ success: false, error: response.error }), {
+        status: 500,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
+    }
+    if (!response.data) {
+      console.error("No data returned");
+      return new Response(JSON.stringify({ success: false, error: "No data" }), {
+        status: 500,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
+    const products = response.data;
+    console.log(`Found ${products.length} products`);
+
+    if (products.length === 0) {
+      return new Response(
+        JSON.stringify({ success: true, queued_count: 0, products_queued: 0, message: "No products to queue" }),
+        { headers: { ...corsHeaders, "Content-Type": "application/json" } },
+      );
     }
 
     const csv = buildCsv(products);
     const emailResult = await sendSupplierEmail(csv, products.length);
 
     const ids = products.map((p) => p.id);
-    const { error: upErr } = await supabase
+    const updateResponse = await supabase
       .from("product_discovery")
       .update({ status: "queued_for_supplier", date_sent_to_supplier: new Date().toISOString() })
       .in("id", ids);
-    if (upErr) throw upErr;
+
+    console.log("Update response:", JSON.stringify({ error: updateResponse.error, status: updateResponse.status }));
+
+    if (updateResponse.error) {
+      console.error("Update error:", updateResponse.error);
+      return new Response(JSON.stringify({ success: false, error: updateResponse.error }), {
+        status: 500,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
 
     const totalMarginValue = products.reduce(
-      (s, p) =>
-        s +
-        (Number(p.amazon_price_zar ?? 0) - Number(p.china_api_price_zar ?? 0)),
+      (s, p) => s + (Number(p.amazon_price_zar ?? 0) - Number(p.china_api_price_zar ?? 0)),
       0,
     );
 
     const summary = {
       success: true,
+      queued_count: products.length,
       products_queued: products.length,
       total_margin_value: totalMarginValue,
       email: emailResult,
@@ -108,7 +136,7 @@ Deno.serve(async (req) => {
     });
   } catch (e) {
     console.error("queue-products-for-supplier error:", e);
-    return new Response(JSON.stringify({ success: false, error: String(e?.message ?? e) }), {
+    return new Response(JSON.stringify({ success: false, error: String((e as any)?.message ?? e) }), {
       status: 500,
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
