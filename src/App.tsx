@@ -83,6 +83,7 @@ import AdminUgcSubmissions from "./pages/admin/AdminUgcSubmissions.tsx";
 import AdminFraudDashboard from "./pages/admin/AdminFraudDashboard.tsx";
 import AdminRevenueDashboard from "./pages/admin/AdminRevenueDashboard.tsx";
 import AdminSupplierDashboard from "./pages/admin/AdminSupplierDashboard.tsx";
+import AdminAutomationTest from "./pages/admin/AdminAutomationTest.tsx";
 import MemberVideos from "./pages/MemberVideos.tsx";
 import UploadVideo from "./pages/UploadVideo.tsx";
 
@@ -231,6 +232,7 @@ const App = () => (
                 <Route path="fraud-dashboard" element={<AdminFraudDashboard />} />
                 <Route path="revenue-dashboard" element={<AdminRevenueDashboard />} />
                 <Route path="supplier-dashboard" element={<AdminSupplierDashboard />} />
+                <Route path="automation-test" element={<AdminAutomationTest />} />
               </Route>
 
               <Route path="*" element={<NotFound />} />
