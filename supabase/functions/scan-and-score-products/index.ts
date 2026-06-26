@@ -19,6 +19,8 @@ interface AlibabaItem {
   price_cny: number;
   supplier_rating?: number; // 0-5
   moq?: number;
+  product_url?: string | null;
+  supplier_name?: string | null;
 }
 
 interface AmazonItem {
@@ -26,12 +28,17 @@ interface AmazonItem {
   price_usd: number;
   review_count: number;
   rating: number;
+  asin?: string | null;
+  product_url?: string | null;
 }
 
 interface TakealotItem {
   title: string;
   price_zar: number;
   sales_velocity?: number; // 0-100
+  rating?: number | null;
+  product_url?: string | null;
+  review_count?: number | null;
 }
 
 interface Scored {
@@ -43,6 +50,15 @@ interface Scored {
   demand_score: number;
   estimated_margin_pct: number;
   high_margin_flag: boolean;
+  alibaba_product_url: string | null;
+  alibaba_supplier_name: string | null;
+  alibaba_supplier_rating: number | null;
+  amazon_product_url: string | null;
+  amazon_rating: number | null;
+  amazon_reviews_count: number | null;
+  takealot_product_url: string | null;
+  takealot_rating: number | null;
+  takealot_reviews_count: number | null;
 }
 
 function normalize(s: string): string {
