@@ -99,18 +99,44 @@ async function fetchAlibaba(): Promise<AlibabaItem[]> {
     return seedAlibaba();
   }
   try {
-    const res = await fetch("https://api.alibabacloud.com/alitems/search?trending=true&limit=100", {
+    const url = "https://api.alibabacloud.com/alitems/search?trending=true&limit=100";
+    console.log("Alibaba API call starting", JSON.stringify({ url, hasAppId: Boolean(appId), hasAppSecret: Boolean(appSecret) }));
+    const res = await fetch(url, {
       headers: {
         "X-App-Id": appId,
         "Authorization": `Bearer ${appSecret}`,
         "Accept": "application/json",
       },
     });
+    const contentType = res.headers.get("content-type");
+    const rawText = await res.text();
+    console.log("Alibaba API response", JSON.stringify({
+      status: res.status,
+      ok: res.ok,
+      contentType,
+      bodyPreview: rawText.slice(0, 500),
+    }));
     if (!res.ok) {
-      console.error("Alibaba API non-OK", res.status, await res.text());
+      console.error("Alibaba API non-OK, using fallback seed", JSON.stringify({ status: res.status, bodyPreview: rawText.slice(0, 500) }));
       return seedAlibaba();
     }
-    const json = await res.json();
+    let json: any;
+    try {
+      json = JSON.parse(rawText);
+    } catch (parseError) {
+      console.error("Alibaba API JSON parse failed, using fallback seed", JSON.stringify({
+        error: parseError instanceof Error ? parseError.message : String(parseError),
+        contentType,
+        bodyPreview: rawText.slice(0, 500),
+      }));
+      return seedAlibaba();
+    }
+    console.log("Alibaba API parsed", JSON.stringify({
+      keys: Object.keys(json ?? {}).slice(0, 20),
+      itemsLength: Array.isArray(json?.items) ? json.items.length : null,
+      dataLength: Array.isArray(json?.data) ? json.data.length : null,
+      sample: (json?.items?.[0] ?? json?.data?.[0] ?? null),
+    }));
     const items: AlibabaItem[] = (json.items ?? json.data ?? []).map((r: any) => ({
       product_id: String(r.product_id ?? r.id ?? crypto.randomUUID()),
       title: String(r.title ?? r.name ?? ""),
@@ -121,6 +147,7 @@ async function fetchAlibaba(): Promise<AlibabaItem[]> {
       product_url: r.product_url ?? r.url ?? null,
       supplier_name: r.supplier_name ?? r.supplier ?? null,
     })).filter((i: AlibabaItem) => i.title && i.price_cny > 0);
+    console.log("Alibaba mapped items", JSON.stringify({ count: items.length, sample: items[0] ?? null }));
     return items.length ? items : seedAlibaba();
   } catch (e) {
     console.error("Alibaba fetch failed", e);
@@ -170,11 +197,17 @@ function seedAlibaba(): AlibabaItem[] {
 }
 
 async function fetchAmazon(supabase: ReturnType<typeof createClient>): Promise<AmazonItem[]> {
-  const { data } = await supabase
+  console.log("Amazon lookup starting", JSON.stringify({ table: "amazon_products", limit: 500 }));
+  const { data, error } = await supabase
     .from("amazon_products")
     .select("title, price_usd, review_count, rating, asin")
     .order("review_count", { ascending: false })
     .limit(500);
+  if (error) {
+    console.error("Amazon lookup failed", JSON.stringify(error));
+    return [];
+  }
+  console.log("Amazon lookup response", JSON.stringify({ count: data?.length ?? 0, sample: data?.[0] ?? null }));
   return (data ?? []).map((r: any) => ({
     title: r.title,
     price_usd: Number(r.price_usd ?? 0),
@@ -186,10 +219,16 @@ async function fetchAmazon(supabase: ReturnType<typeof createClient>): Promise<A
 }
 
 async function fetchTakealot(supabase: ReturnType<typeof createClient>): Promise<TakealotItem[]> {
-  const { data } = await supabase
+  console.log("Takealot lookup starting", JSON.stringify({ table: "takealot_products", limit: 500 }));
+  const { data, error } = await supabase
     .from("takealot_products")
     .select("takealot_name, takealot_price, takealot_url, rating, seller_count")
     .limit(500);
+  if (error) {
+    console.error("Takealot lookup failed", JSON.stringify(error));
+    return [];
+  }
+  console.log("Takealot lookup response", JSON.stringify({ count: data?.length ?? 0, sample: data?.[0] ?? null }));
   return (data ?? []).map((r: any) => ({
     title: r.takealot_name,
     price_zar: Number(r.takealot_price ?? 0),
@@ -273,6 +312,21 @@ Deno.serve(async (req) => {
       });
     }
 
+    const scoredDiagnostics = {
+      totalScored: scored.length,
+      alibabaUrls: scored.filter((s) => Boolean(s.alibaba_product_url)).length,
+      alibabaSupplierNames: scored.filter((s) => Boolean(s.alibaba_supplier_name)).length,
+      alibabaSupplierRatings: scored.filter((s) => s.alibaba_supplier_rating != null).length,
+      amazonUrls: scored.filter((s) => Boolean(s.amazon_product_url)).length,
+      amazonRatings: scored.filter((s) => s.amazon_rating != null).length,
+      amazonReviews: scored.filter((s) => s.amazon_reviews_count != null).length,
+      takealotUrls: scored.filter((s) => Boolean(s.takealot_product_url)).length,
+      takealotRatings: scored.filter((s) => s.takealot_rating != null).length,
+      takealotReviews: scored.filter((s) => s.takealot_reviews_count != null).length,
+      sampleScored: scored[0] ?? null,
+    };
+    console.log("Scored marketplace diagnostics", JSON.stringify(scoredDiagnostics));
+
     // Upsert: lookup by product_name, UPDATE if exists else INSERT.
     let inserted = 0;
     let updated = 0;
@@ -313,12 +367,7 @@ Deno.serve(async (req) => {
       };
 
       if (!sampleLogged) {
-        console.log("Sample payload:", JSON.stringify({
-          name: s.product_name,
-          alibaba_url: s.alibaba_product_url,
-          amazon_url: s.amazon_product_url,
-          takealot_url: s.takealot_product_url,
-        }));
+        console.log("Sample upsert payload:", JSON.stringify(payload));
         sampleLogged = true;
       }
 
@@ -327,7 +376,7 @@ Deno.serve(async (req) => {
           .from("product_discovery")
           .update(payload)
           .eq("id", (existing as any).id)
-          .select("id, alibaba_product_url, amazon_product_url")
+          .select("id, alibaba_product_url, alibaba_supplier_name, alibaba_supplier_rating, amazon_product_url, amazon_rating, amazon_reviews_count, takealot_product_url, takealot_rating, takealot_reviews_count")
           .maybeSingle();
         if (error) {
           updateErrors++;
