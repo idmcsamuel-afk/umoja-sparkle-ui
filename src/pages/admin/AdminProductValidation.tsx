@@ -123,7 +123,9 @@ export default function AdminProductValidation() {
 
   const updateStatus = async (id: string, status: ValidationStatus, notes?: string) => {
     setSaving(id);
-    const payload: Record<string, unknown> = { data_validation_status: status };
+    const payload: { data_validation_status: string; validation_notes?: string } = {
+      data_validation_status: status,
+    };
     if (typeof notes === "string") payload.validation_notes = notes;
     const { error } = await supabase.from("product_discovery").update(payload).eq("id", id);
     setSaving(null);
@@ -131,7 +133,7 @@ export default function AdminProductValidation() {
       toast({ title: "Update failed", description: error.message, variant: "destructive" });
       return;
     }
-    setRows((prev) => prev.map((r) => (r.id === id ? { ...r, ...payload } as ProductRow : r)));
+    setRows((prev) => prev.map((r) => (r.id === id ? ({ ...r, ...payload } as ProductRow) : r)));
     toast({ title: status === "approved_to_queue" ? "Approved & queued" : status === "rejected" ? "Rejected" : "Saved" });
   };
 
