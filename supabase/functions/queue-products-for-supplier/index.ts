@@ -98,7 +98,15 @@ Deno.serve(async (req) => {
     }
 
     const csv = buildCsv(products);
-    const emailResult = await sendSupplierEmail(csv, products.length);
+    let emailResult: any = { status: "not_attempted" };
+    try {
+      emailResult = await sendSupplierEmail(csv, products.length);
+      console.log("Email sent successfully", emailResult);
+    } catch (emailError) {
+      console.log("Email failed (Resend not connected?), but continuing with database updates");
+      console.log("Error:", (emailError as any)?.message ?? String(emailError));
+      emailResult = { status: "failed", error: (emailError as any)?.message ?? String(emailError) };
+    }
 
     const ids = products.map((p) => p.id);
     const updateResponse = await supabase
