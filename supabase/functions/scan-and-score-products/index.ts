@@ -19,6 +19,8 @@ interface AlibabaItem {
   price_cny: number;
   supplier_rating?: number; // 0-5
   moq?: number;
+  product_url?: string | null;
+  supplier_name?: string | null;
 }
 
 interface AmazonItem {
@@ -26,12 +28,17 @@ interface AmazonItem {
   price_usd: number;
   review_count: number;
   rating: number;
+  asin?: string | null;
+  product_url?: string | null;
 }
 
 interface TakealotItem {
   title: string;
   price_zar: number;
   sales_velocity?: number; // 0-100
+  rating?: number | null;
+  product_url?: string | null;
+  review_count?: number | null;
 }
 
 interface Scored {
@@ -43,6 +50,15 @@ interface Scored {
   demand_score: number;
   estimated_margin_pct: number;
   high_margin_flag: boolean;
+  alibaba_product_url: string | null;
+  alibaba_supplier_name: string | null;
+  alibaba_supplier_rating: number | null;
+  amazon_product_url: string | null;
+  amazon_rating: number | null;
+  amazon_reviews_count: number | null;
+  takealot_product_url: string | null;
+  takealot_rating: number | null;
+  takealot_reviews_count: number | null;
 }
 
 function normalize(s: string): string {
@@ -102,6 +118,8 @@ async function fetchAlibaba(): Promise<AlibabaItem[]> {
       price_cny: Number(r.price_cny ?? r.price ?? 0),
       supplier_rating: Number(r.supplier_rating ?? r.rating ?? 4),
       moq: Number(r.moq ?? 50),
+      product_url: r.product_url ?? r.url ?? null,
+      supplier_name: r.supplier_name ?? r.supplier ?? null,
     })).filter((i: AlibabaItem) => i.title && i.price_cny > 0);
     return items.length ? items : seedAlibaba();
   } catch (e) {
@@ -146,24 +164,40 @@ function seedAlibaba(): AlibabaItem[] {
     price_cny: Math.round((20 + Math.random() * 180) * 10) / 10,
     supplier_rating: 3.5 + Math.random() * 1.5,
     moq: 50,
+    product_url: `https://www.alibaba.com/trade/search?SearchText=${encodeURIComponent(title)}`,
+    supplier_name: null,
   }));
 }
 
 async function fetchAmazon(supabase: ReturnType<typeof createClient>): Promise<AmazonItem[]> {
   const { data } = await supabase
     .from("amazon_products")
-    .select("title, price_usd, review_count, rating")
+    .select("title, price_usd, review_count, rating, asin")
     .order("review_count", { ascending: false })
     .limit(500);
-  return (data ?? []) as AmazonItem[];
+  return (data ?? []).map((r: any) => ({
+    title: r.title,
+    price_usd: Number(r.price_usd ?? 0),
+    review_count: Number(r.review_count ?? 0),
+    rating: Number(r.rating ?? 0),
+    asin: r.asin ?? null,
+    product_url: r.asin ? `https://www.amazon.co.za/dp/${r.asin}` : null,
+  }));
 }
 
 async function fetchTakealot(supabase: ReturnType<typeof createClient>): Promise<TakealotItem[]> {
   const { data } = await supabase
     .from("takealot_products")
-    .select("title, price_zar, sales_velocity")
+    .select("takealot_name, takealot_price, takealot_url, rating, seller_count")
     .limit(500);
-  return (data ?? []) as TakealotItem[];
+  return (data ?? []).map((r: any) => ({
+    title: r.takealot_name,
+    price_zar: Number(r.takealot_price ?? 0),
+    sales_velocity: Math.min(100, (Number(r.seller_count ?? 0)) * 10),
+    rating: r.rating != null ? Number(r.rating) : null,
+    product_url: r.takealot_url ?? null,
+    review_count: null,
+  }));
 }
 
 function scoreDemand(amazon: AmazonItem | null, takealot: TakealotItem | null, supplierRating: number): number {
@@ -227,6 +261,15 @@ Deno.serve(async (req) => {
         demand_score: scoreDemand(ama, tak, a.supplier_rating ?? 4),
         estimated_margin_pct: Math.round(margin * 100) / 100,
         high_margin_flag: margin > 30,
+        alibaba_product_url: a.product_url ?? null,
+        alibaba_supplier_name: a.supplier_name ?? null,
+        alibaba_supplier_rating: a.supplier_rating ?? null,
+        amazon_product_url: ama?.product_url ?? null,
+        amazon_rating: ama?.rating ?? null,
+        amazon_reviews_count: ama?.review_count ?? null,
+        takealot_product_url: tak?.product_url ?? null,
+        takealot_rating: tak?.rating ?? null,
+        takealot_reviews_count: tak?.review_count ?? null,
       });
     }
 
@@ -247,11 +290,21 @@ Deno.serve(async (req) => {
         category: s.category,
         source: "china_api",
         status: "discovered",
+        data_validation_status: "pending_review",
         amazon_price_zar: s.amazon_price_zar,
         takealot_price_zar: s.takealot_price_zar,
         china_api_price_zar: s.china_api_price_zar,
         demand_score: s.demand_score,
         estimated_margin_pct: s.estimated_margin_pct,
+        alibaba_product_url: s.alibaba_product_url,
+        alibaba_supplier_name: s.alibaba_supplier_name,
+        alibaba_supplier_rating: s.alibaba_supplier_rating,
+        amazon_product_url: s.amazon_product_url,
+        amazon_rating: s.amazon_rating,
+        amazon_reviews_count: s.amazon_reviews_count,
+        takealot_product_url: s.takealot_product_url,
+        takealot_rating: s.takealot_rating,
+        takealot_reviews_count: s.takealot_reviews_count,
         updated_at: new Date().toISOString(),
       };
 

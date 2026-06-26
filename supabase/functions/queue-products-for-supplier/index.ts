@@ -67,6 +67,7 @@ Deno.serve(async (req) => {
       .from("product_discovery")
       .select("id, product_name, category, amazon_price_zar, china_api_price_zar, estimated_margin_pct")
       .eq("status", "discovered")
+      .eq("data_validation_status", "approved_to_queue")
       .gt("estimated_margin_pct", 30)
       .order("estimated_margin_pct", { ascending: false });
 

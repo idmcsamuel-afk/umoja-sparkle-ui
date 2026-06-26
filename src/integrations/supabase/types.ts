@@ -4417,11 +4417,18 @@ export type Database = {
       }
       product_discovery: {
         Row: {
+          alibaba_product_url: string | null
+          alibaba_supplier_name: string | null
+          alibaba_supplier_rating: number | null
           amazon_price_zar: number | null
+          amazon_product_url: string | null
+          amazon_rating: number | null
+          amazon_reviews_count: number | null
           backend_id: number | null
           category: string | null
           china_api_price_zar: number | null
           created_at: string | null
+          data_validation_status: string | null
           date_published: string | null
           date_sent_to_supplier: string | null
           date_supplier_responded: string | null
@@ -4437,14 +4444,25 @@ export type Database = {
           status: string | null
           supplier_response_notes: string | null
           takealot_price_zar: number | null
+          takealot_product_url: string | null
+          takealot_rating: number | null
+          takealot_reviews_count: number | null
           updated_at: string | null
+          validation_notes: string | null
         }
         Insert: {
+          alibaba_product_url?: string | null
+          alibaba_supplier_name?: string | null
+          alibaba_supplier_rating?: number | null
           amazon_price_zar?: number | null
+          amazon_product_url?: string | null
+          amazon_rating?: number | null
+          amazon_reviews_count?: number | null
           backend_id?: number | null
           category?: string | null
           china_api_price_zar?: number | null
           created_at?: string | null
+          data_validation_status?: string | null
           date_published?: string | null
           date_sent_to_supplier?: string | null
           date_supplier_responded?: string | null
@@ -4460,14 +4478,25 @@ export type Database = {
           status?: string | null
           supplier_response_notes?: string | null
           takealot_price_zar?: number | null
+          takealot_product_url?: string | null
+          takealot_rating?: number | null
+          takealot_reviews_count?: number | null
           updated_at?: string | null
+          validation_notes?: string | null
         }
         Update: {
+          alibaba_product_url?: string | null
+          alibaba_supplier_name?: string | null
+          alibaba_supplier_rating?: number | null
           amazon_price_zar?: number | null
+          amazon_product_url?: string | null
+          amazon_rating?: number | null
+          amazon_reviews_count?: number | null
           backend_id?: number | null
           category?: string | null
           china_api_price_zar?: number | null
           created_at?: string | null
+          data_validation_status?: string | null
           date_published?: string | null
           date_sent_to_supplier?: string | null
           date_supplier_responded?: string | null
@@ -4483,7 +4512,11 @@ export type Database = {
           status?: string | null
           supplier_response_notes?: string | null
           takealot_price_zar?: number | null
+          takealot_product_url?: string | null
+          takealot_rating?: number | null
+          takealot_reviews_count?: number | null
           updated_at?: string | null
+          validation_notes?: string | null
         }
         Relationships: []
       }
