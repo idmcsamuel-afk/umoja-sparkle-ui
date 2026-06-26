@@ -17,6 +17,7 @@ const items = [
   { to: "/admin/allocations", label: "Allocations", icon: Trophy },
   { to: "/admin/spark-trade", label: "Spark Trade", icon: ShoppingBag },
   { to: "/admin/automation-test", label: "🤖 Automation Control", icon: Zap },
+  { to: "/admin/product-validation", label: "✅ Product Validation", icon: ShieldCheck },
   { to: "/admin/supplier-dashboard", label: "📋 Supplier Dashboard", icon: FileText },
   { to: "/admin/trending", label: "Trending 🔥", icon: Flame },
   { to: "/admin/purchase-enforcement", label: "Enforcement", icon: ShieldAlert },
