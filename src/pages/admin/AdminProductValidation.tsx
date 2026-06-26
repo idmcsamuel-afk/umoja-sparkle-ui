@@ -85,13 +85,19 @@ export default function AdminProductValidation() {
 
   const load = async () => {
     setLoading(true);
+    console.log("[AdminProductValidation] Querying product_discovery...");
     const { data, error } = await supabase
       .from("product_discovery")
       .select("*")
       .order("created_at", { ascending: false })
       .limit(500);
+    console.log("[AdminProductValidation] Products returned:", data?.length ?? 0, "error:", error?.message ?? null);
     if (error) {
       toast({ title: "Load failed", description: error.message, variant: "destructive" });
+    }
+    if (!error && (!data || data.length === 0)) {
+      const fallback = await supabase.from("product_discovery").select("id").limit(5);
+      console.log("[AdminProductValidation] Fallback (no filters) rows:", fallback.data?.length ?? 0, "error:", fallback.error?.message ?? null);
     }
     setRows((data ?? []) as unknown as ProductRow[]);
     setLoading(false);
