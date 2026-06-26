@@ -234,6 +234,7 @@ const App = () => (
                 <Route path="revenue-dashboard" element={<AdminRevenueDashboard />} />
                 <Route path="supplier-dashboard" element={<AdminSupplierDashboard />} />
                 <Route path="automation-test" element={<AdminAutomationTest />} />
+                <Route path="product-validation" element={<AdminProductValidation />} />
               </Route>
 
               <Route path="*" element={<NotFound />} />
