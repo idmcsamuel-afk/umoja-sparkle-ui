@@ -3,6 +3,8 @@ import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 import { toast } from "@/hooks/use-toast";
 import {
   Pagination,
@@ -47,15 +49,35 @@ function Stars({ value }: { value: number | null }) {
   );
 }
 
-function parseNotes(notes: string | null): { product_image_url?: string; supplier_name?: string } {
+type NotesShape = {
+  product_image_url?: string;
+  supplier_name?: string;
+  monthly_sales_count?: number | null;
+  [k: string]: unknown;
+};
+
+function parseNotes(notes: string | null): NotesShape {
   if (!notes) return {};
   try {
     const obj = JSON.parse(notes);
-    if (obj && typeof obj === "object") return obj;
+    if (obj && typeof obj === "object") return obj as NotesShape;
   } catch {
     // not JSON
   }
   return {};
+}
+
+function DemandBadge({ count }: { count: number | null | undefined }) {
+  if (count == null || Number.isNaN(count)) {
+    return <Badge variant="outline" className="bg-muted text-muted-foreground">PENDING DATA</Badge>;
+  }
+  if (count >= 1000) {
+    return <Badge className="bg-green-600 hover:bg-green-700 text-white">HIGH DEMAND</Badge>;
+  }
+  if (count >= 500) {
+    return <Badge className="bg-amber-500 hover:bg-amber-600 text-white">MEDIUM DEMAND</Badge>;
+  }
+  return <Badge className="bg-red-600 hover:bg-red-700 text-white">LOW DEMAND</Badge>;
 }
 
 export default function AdminProductValidation() {
@@ -65,7 +87,8 @@ export default function AdminProductValidation() {
   const [ratingFilter, setRatingFilter] = useState<RatingFilter>("all");
   const [page, setPage] = useState(1);
   const [saving, setSaving] = useState<number | null>(null);
-  const [counts, setCounts] = useState({ pending: 0, approved: 0 });
+  const [salesDrafts, setSalesDrafts] = useState<Record<number, string>>({});
+  const [counts, setCounts] = useState({ pending: 0, approved: 0, withSales: 0 });
 
   const load = async () => {
     setLoading(true);
@@ -73,17 +96,37 @@ export default function AdminProductValidation() {
       .from("product_discovery")
       .select("*")
       .eq("source", "china_api")
-      .order("amazon_rating", { ascending: false, nullsFirst: false })
       .limit(500);
     if (error) {
       toast({ title: "Load failed", description: error.message, variant: "destructive" });
     }
     const all = (data ?? []) as unknown as ProductRow[];
-    setRows(all);
+
+    // Sort by monthly_sales_count DESC, NULL last
+    const sorted = [...all].sort((a, b) => {
+      const aSales = parseNotes(a.validation_notes).monthly_sales_count;
+      const bSales = parseNotes(b.validation_notes).monthly_sales_count;
+      const aVal = typeof aSales === "number" ? aSales : null;
+      const bVal = typeof bSales === "number" ? bSales : null;
+      if (aVal == null && bVal == null) return (b.amazon_rating ?? 0) - (a.amazon_rating ?? 0);
+      if (aVal == null) return 1;
+      if (bVal == null) return -1;
+      return bVal - aVal;
+    });
+    setRows(sorted);
 
     const pending = all.filter((r) => (r.data_validation_status ?? "pending_review") === "pending_review").length;
     const approved = all.filter((r) => r.data_validation_status === "approved_to_queue").length;
-    setCounts({ pending, approved });
+    const withSales = all.filter((r) => typeof parseNotes(r.validation_notes).monthly_sales_count === "number").length;
+    setCounts({ pending, approved, withSales });
+
+    // Seed drafts from notes
+    const drafts: Record<number, string> = {};
+    for (const r of all) {
+      const s = parseNotes(r.validation_notes).monthly_sales_count;
+      if (typeof s === "number") drafts[r.id] = String(s);
+    }
+    setSalesDrafts(drafts);
     setLoading(false);
   };
 
@@ -127,7 +170,6 @@ export default function AdminProductValidation() {
     }
     setRows((prev) => prev.map((r) => (r.id === id ? { ...r, data_validation_status: status } : r)));
     setCounts((prev) => {
-      // Recompute from rows after update
       const next = { ...prev };
       const before = rows.find((r) => r.id === id)?.data_validation_status ?? "pending_review";
       if (before === "pending_review") next.pending = Math.max(0, next.pending - 1);
@@ -139,6 +181,50 @@ export default function AdminProductValidation() {
     toast({
       title: status === "approved_to_queue" ? "Product approved" : status === "rejected" ? "Product rejected" : "Updated",
     });
+  };
+
+  const saveMonthlySales = async (row: ProductRow) => {
+    const raw = salesDrafts[row.id]?.trim() ?? "";
+    const existing = parseNotes(row.validation_notes);
+    const existingVal = existing.monthly_sales_count;
+
+    let newVal: number | null = null;
+    if (raw === "") {
+      newVal = null;
+    } else {
+      const parsed = Number(raw.replace(/[, ]/g, ""));
+      if (Number.isNaN(parsed) || parsed < 0) {
+        toast({ title: "Invalid number", description: "Enter a positive number.", variant: "destructive" });
+        return;
+      }
+      newVal = Math.floor(parsed);
+    }
+
+    // No-op if unchanged
+    const prevVal = typeof existingVal === "number" ? existingVal : null;
+    if (prevVal === newVal) return;
+
+    const nextNotes: NotesShape = { ...existing, monthly_sales_count: newVal };
+    const { error } = await supabase
+      .from("product_discovery")
+      .update({ validation_notes: JSON.stringify(nextNotes) })
+      .eq("id", row.id);
+    if (error) {
+      toast({ title: "Save failed", description: error.message, variant: "destructive" });
+      return;
+    }
+    setRows((prev) =>
+      prev.map((r) => (r.id === row.id ? { ...r, validation_notes: JSON.stringify(nextNotes) } : r)),
+    );
+    setCounts((prev) => {
+      const hadSales = typeof prevVal === "number";
+      const hasSales = typeof newVal === "number";
+      let withSales = prev.withSales;
+      if (!hadSales && hasSales) withSales += 1;
+      if (hadSales && !hasSales) withSales = Math.max(0, withSales - 1);
+      return { ...prev, withSales };
+    });
+    toast({ title: "Monthly sales saved" });
   };
 
   return (
@@ -155,7 +241,7 @@ export default function AdminProductValidation() {
         </Button>
       </div>
 
-      <div className="grid grid-cols-3 gap-3">
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
         <Card>
           <CardContent className="py-4">
             <p className="text-xs text-muted-foreground">Total pending</p>
@@ -172,6 +258,12 @@ export default function AdminProductValidation() {
           <CardContent className="py-4">
             <p className="text-xs text-muted-foreground">Approved %</p>
             <p className="text-2xl font-semibold">{approvedPct}%</p>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardContent className="py-4">
+            <p className="text-xs text-muted-foreground">With sales data</p>
+            <p className="text-2xl font-semibold">{counts.withSales}</p>
           </CardContent>
         </Card>
       </div>
@@ -210,6 +302,7 @@ export default function AdminProductValidation() {
             const notes = parseNotes(r.validation_notes);
             const image = notes.product_image_url;
             const supplier = notes.supplier_name ?? "Amazon";
+            const salesVal = typeof notes.monthly_sales_count === "number" ? notes.monthly_sales_count : null;
             const cardTone =
               status === "approved_to_queue"
                 ? "border-green-500/40 bg-green-500/5"
@@ -221,21 +314,24 @@ export default function AdminProductValidation() {
                 <CardHeader className="pb-3">
                   <div className="flex items-start justify-between gap-3 flex-wrap">
                     <CardTitle className="text-lg">{r.product_name}</CardTitle>
-                    <Badge
-                      variant={
-                        status === "approved_to_queue"
-                          ? "default"
+                    <div className="flex items-center gap-2 flex-wrap">
+                      <DemandBadge count={salesVal} />
+                      <Badge
+                        variant={
+                          status === "approved_to_queue"
+                            ? "default"
+                            : status === "rejected"
+                            ? "destructive"
+                            : "secondary"
+                        }
+                      >
+                        {status === "approved_to_queue"
+                          ? "✅ Approved"
                           : status === "rejected"
-                          ? "destructive"
-                          : "secondary"
-                      }
-                    >
-                      {status === "approved_to_queue"
-                        ? "✅ Approved"
-                        : status === "rejected"
-                        ? "❌ Rejected"
-                        : "⏳ Pending"}
-                    </Badge>
+                          ? "❌ Rejected"
+                          : "⏳ Pending"}
+                      </Badge>
+                    </div>
                   </div>
                 </CardHeader>
                 <CardContent className="space-y-4">
@@ -257,6 +353,10 @@ export default function AdminProductValidation() {
                       <p className="text-sm">
                         <span className="text-muted-foreground">Supplier:</span> {supplier}
                       </p>
+                      <p className="text-sm">
+                        <span className="text-muted-foreground">Monthly sales:</span>{" "}
+                        {salesVal != null ? `${salesVal.toLocaleString()}/month` : "—"}
+                      </p>
                       {r.amazon_product_url && (
                         <a
                           href={r.amazon_product_url}
@@ -268,6 +368,28 @@ export default function AdminProductValidation() {
                         </a>
                       )}
                     </div>
+                  </div>
+
+                  <div className="max-w-xs">
+                    <Label htmlFor={`sales-${r.id}`} className="text-xs">
+                      Monthly Sales/Month
+                    </Label>
+                    <Input
+                      id={`sales-${r.id}`}
+                      type="number"
+                      inputMode="numeric"
+                      min={0}
+                      placeholder="e.g., 15000"
+                      value={salesDrafts[r.id] ?? ""}
+                      onChange={(e) =>
+                        setSalesDrafts((prev) => ({ ...prev, [r.id]: e.target.value }))
+                      }
+                      onBlur={() => saveMonthlySales(r)}
+                      onKeyDown={(e) => {
+                        if (e.key === "Enter") (e.target as HTMLInputElement).blur();
+                      }}
+                      className="mt-1"
+                    />
                   </div>
 
                   <div className="flex flex-wrap gap-2">
