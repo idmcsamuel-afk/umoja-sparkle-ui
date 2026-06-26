@@ -198,23 +198,6 @@ async function fetchTakealot(supabase: ReturnType<typeof createClient>): Promise
   }));
 }
 
-async function fetchAmazon(supabase: ReturnType<typeof createClient>): Promise<AmazonItem[]> {
-  const { data } = await supabase
-    .from("amazon_products")
-    .select("title, price_usd, review_count, rating")
-    .order("review_count", { ascending: false })
-    .limit(500);
-  return (data ?? []) as AmazonItem[];
-}
-
-async function fetchTakealot(supabase: ReturnType<typeof createClient>): Promise<TakealotItem[]> {
-  const { data } = await supabase
-    .from("takealot_products")
-    .select("title, price_zar, sales_velocity")
-    .limit(500);
-  return (data ?? []) as TakealotItem[];
-}
-
 function scoreDemand(amazon: AmazonItem | null, takealot: TakealotItem | null, supplierRating: number): number {
   // Amazon review count → 0-5
   let amazonPts = 0;
