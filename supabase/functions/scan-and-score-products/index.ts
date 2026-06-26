@@ -162,6 +162,39 @@ function seedAlibaba(): AlibabaItem[] {
     price_cny: Math.round((20 + Math.random() * 180) * 10) / 10,
     supplier_rating: 3.5 + Math.random() * 1.5,
     moq: 50,
+    product_url: `https://www.alibaba.com/trade/search?SearchText=${encodeURIComponent(title)}`,
+    supplier_name: null,
+  }));
+}
+
+async function fetchAmazon(supabase: ReturnType<typeof createClient>): Promise<AmazonItem[]> {
+  const { data } = await supabase
+    .from("amazon_products")
+    .select("title, price_usd, review_count, rating, asin")
+    .order("review_count", { ascending: false })
+    .limit(500);
+  return (data ?? []).map((r: any) => ({
+    title: r.title,
+    price_usd: Number(r.price_usd ?? 0),
+    review_count: Number(r.review_count ?? 0),
+    rating: Number(r.rating ?? 0),
+    asin: r.asin ?? null,
+    product_url: r.asin ? `https://www.amazon.co.za/dp/${r.asin}` : null,
+  }));
+}
+
+async function fetchTakealot(supabase: ReturnType<typeof createClient>): Promise<TakealotItem[]> {
+  const { data } = await supabase
+    .from("takealot_products")
+    .select("takealot_name, takealot_price, takealot_url, rating, seller_count")
+    .limit(500);
+  return (data ?? []).map((r: any) => ({
+    title: r.takealot_name,
+    price_zar: Number(r.takealot_price ?? 0),
+    sales_velocity: Math.min(100, (Number(r.seller_count ?? 0)) * 10),
+    rating: r.rating != null ? Number(r.rating) : null,
+    product_url: r.takealot_url ?? null,
+    review_count: null,
   }));
 }
 
