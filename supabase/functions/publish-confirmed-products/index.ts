@@ -103,6 +103,7 @@ Deno.serve(async (req) => {
           spotlight_rank: nextRank,
           spotlight_title: `New: ${p.product_name}`,
           group_buy_status: "open",
+          stock_quantity: 99999,
           is_approved_for_ai_recommendation: true,
         })
         .select("id")

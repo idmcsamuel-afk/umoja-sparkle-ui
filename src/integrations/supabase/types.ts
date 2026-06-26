@@ -5566,6 +5566,7 @@ export type Database = {
           spotlight_rank: number | null
           spotlight_title: string | null
           stock_available: number | null
+          stock_quantity: number
           suggested_selling_price_zar: number | null
           supplier_country: string | null
           supplier_name: string | null
@@ -5590,6 +5591,7 @@ export type Database = {
           spotlight_rank?: number | null
           spotlight_title?: string | null
           stock_available?: number | null
+          stock_quantity?: number
           suggested_selling_price_zar?: number | null
           supplier_country?: string | null
           supplier_name?: string | null
@@ -5614,6 +5616,7 @@ export type Database = {
           spotlight_rank?: number | null
           spotlight_title?: string | null
           stock_available?: number | null
+          stock_quantity?: number
           suggested_selling_price_zar?: number | null
           supplier_country?: string | null
           supplier_name?: string | null
