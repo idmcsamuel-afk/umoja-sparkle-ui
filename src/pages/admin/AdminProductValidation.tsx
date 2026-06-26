@@ -81,7 +81,7 @@ export default function AdminProductValidation() {
   const [filter, setFilter] = useState<Filter>("pending_review");
   const [sort, setSort] = useState<Sort>("newest");
   const [notesDraft, setNotesDraft] = useState<Record<number, string>>({});
-  const [saving, setSaving] = useState<string | null>(null);
+  const [saving, setSaving] = useState<number | null>(null);
 
   const load = async () => {
     setLoading(true);
@@ -121,7 +121,7 @@ export default function AdminProductValidation() {
     return c;
   }, [rows]);
 
-  const updateStatus = async (id: string, status: ValidationStatus, notes?: string) => {
+  const updateStatus = async (id: number, status: ValidationStatus, notes?: string) => {
     setSaving(id);
     const payload: { data_validation_status: string; validation_notes?: string } = {
       data_validation_status: status,
@@ -137,7 +137,7 @@ export default function AdminProductValidation() {
     toast({ title: status === "approved_to_queue" ? "Approved & queued" : status === "rejected" ? "Rejected" : "Saved" });
   };
 
-  const saveNotes = async (id: string) => {
+  const saveNotes = async (id: number) => {
     const notes = notesDraft[id] ?? "";
     await updateStatus(id, (rows.find((r) => r.id === id)?.data_validation_status ?? "pending_review") as ValidationStatus, notes);
   };
