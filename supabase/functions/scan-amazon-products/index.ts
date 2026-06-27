@@ -10,18 +10,23 @@ const DEFAULT_CATEGORIES = [
   "wireless earbuds",
   "power banks",
   "laptop stands",
-  "usb cables",
-  "phone cases",
-  "keyboard mouse combo",
   "bluetooth speakers",
-  "screen protectors",
   "led bulbs",
-  "laptop cooling pads",
+  // broadened beyond phone accessories
+  "home and kitchen",
+  "beauty and personal care",
+  "toys and games",
+  "sports and outdoors",
+  "health and household",
+  "pet supplies",
+  "office products",
+  "baby",
+  "garden",
+  "automotive accessories",
 ];
 
 const RAINFOREST_KEY = Deno.env.get("RAINFOREST_API_KEY");
 const SERPAPI_KEY = Deno.env.get("SERPAPI_KEY");
-const CRON_SECRET = Deno.env.get("CRON_SECRET");
 
 interface ScanResult {
   category: string;
@@ -77,6 +82,28 @@ async function fetchSerpTrends(category: string) {
   }
 }
 
+function extractImage(p: any): string | null {
+  return (
+    p.image ??
+    (Array.isArray(p.images) ? (typeof p.images[0] === "string" ? p.images[0] : p.images[0]?.link) : null) ??
+    p.main_image?.link ??
+    p.thumbnail ??
+    null
+  );
+}
+
+function extractRank(p: any): { rank: number | null; category: string | null } {
+  const br = Array.isArray(p.bestsellers_rank) ? p.bestsellers_rank[0] : null;
+  const rank =
+    (br && typeof br.rank === "number" ? br.rank : null) ??
+    (typeof p.sales_rank === "number" ? p.sales_rank : null) ??
+    (typeof p.ranking === "number" ? p.ranking : null) ??
+    (typeof p.position === "number" ? p.position : null) ??
+    null;
+  const cat = br?.category ?? br?.name ?? null;
+  return { rank, category: cat };
+}
+
 async function scanCategory(
   supabase: ReturnType<typeof createClient>,
   category: string,
@@ -91,16 +118,21 @@ async function scanCategory(
 
     const products = raw
       .slice(0, 30)
-      .map((p: any) => ({
-        asin: p.asin,
-        title: p.title,
-        rating: typeof p.rating === "number" ? p.rating : null,
-        review_count: typeof p.ratings_total === "number" ? p.ratings_total : 0,
-        price: p.price?.value ?? null,
-        monthly_rank: p.bestsellers_rank?.[0]?.rank ?? p.sales_rank ?? null,
-        image_url: p.image ?? p.images?.[0] ?? null,
-        product_url: p.link ?? (p.asin ? `https://www.${domain}/dp/${p.asin}` : null),
-      }))
+      .map((p: any) => {
+        const { rank, category: rankCat } = extractRank(p);
+        return {
+          asin: p.asin,
+          title: p.title,
+          rating: typeof p.rating === "number" ? p.rating : null,
+          review_count: typeof p.ratings_total === "number" ? p.ratings_total : 0,
+          price: p.price?.value ?? null,
+          monthly_rank: rank,
+          sales_rank: rank,
+          sales_rank_category: rankCat,
+          image_url: extractImage(p),
+          product_url: p.link ?? (p.asin ? `https://www.${domain}/dp/${p.asin}` : null),
+        };
+      })
       .filter(
         (p: any) =>
           p.asin && p.title && (p.rating ?? 0) >= 4.0 && (p.review_count ?? 0) >= 50,
@@ -122,6 +154,8 @@ async function scanCategory(
       price_usd: isZA ? null : p.price,
       price_zar: isZA ? p.price : null,
       monthly_rank: p.monthly_rank,
+      sales_rank: p.sales_rank,
+      sales_rank_category: p.sales_rank_category,
       seller_count: 1,
       search_volume: trends.volume,
       related_keywords: trends.related,
@@ -149,14 +183,10 @@ async function scanCategory(
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response("ok", { headers: corsHeaders });
 
-  // Internal-only function, invoked by pg_cron. No auth required.
   const supabase = createClient(
     Deno.env.get("SUPABASE_URL")!,
     Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!,
   );
-
-
-
 
   let body: any = {};
   if (req.method === "POST") {

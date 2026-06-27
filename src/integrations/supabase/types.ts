@@ -4683,6 +4683,8 @@ export type Database = {
           related_keywords: Json | null
           review_count: number | null
           reviewed_at: string | null
+          sales_rank: number | null
+          sales_rank_category: string | null
           search_volume: number | null
           seller_count: number | null
           title: string
@@ -4706,6 +4708,8 @@ export type Database = {
           related_keywords?: Json | null
           review_count?: number | null
           reviewed_at?: string | null
+          sales_rank?: number | null
+          sales_rank_category?: string | null
           search_volume?: number | null
           seller_count?: number | null
           title: string
@@ -4729,6 +4733,8 @@ export type Database = {
           related_keywords?: Json | null
           review_count?: number | null
           reviewed_at?: string | null
+          sales_rank?: number | null
+          sales_rank_category?: string | null
           search_volume?: number | null
           seller_count?: number | null
           title?: string
