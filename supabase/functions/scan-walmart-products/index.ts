@@ -10,13 +10,18 @@ const DEFAULT_CATEGORIES = [
   "wireless earbuds",
   "power banks",
   "laptop stands",
-  "usb cables",
-  "phone cases",
-  "keyboard mouse combo",
   "bluetooth speakers",
-  "screen protectors",
   "led bulbs",
-  "laptop cooling pads",
+  "home and kitchen",
+  "beauty and personal care",
+  "toys and games",
+  "sports and outdoors",
+  "health and household",
+  "pet supplies",
+  "office products",
+  "baby",
+  "garden",
+  "automotive accessories",
 ];
 
 const RAINFOREST_KEY = Deno.env.get("RAINFOREST_API_KEY");
