@@ -1095,6 +1095,8 @@ export type Database = {
           priority_score: number | null
           priority_slot: boolean | null
           proof_extended_until: string | null
+          quarantine_reason: string | null
+          quarantined_at: string | null
           score_breakdown: Json | null
           spark_amount: number
           status: string | null
@@ -1149,6 +1151,8 @@ export type Database = {
           priority_score?: number | null
           priority_slot?: boolean | null
           proof_extended_until?: string | null
+          quarantine_reason?: string | null
+          quarantined_at?: string | null
           score_breakdown?: Json | null
           spark_amount: number
           status?: string | null
@@ -1203,6 +1207,8 @@ export type Database = {
           priority_score?: number | null
           priority_slot?: boolean | null
           proof_extended_until?: string | null
+          quarantine_reason?: string | null
+          quarantined_at?: string | null
           score_breakdown?: Json | null
           spark_amount?: number
           status?: string | null
@@ -1741,6 +1747,8 @@ export type Database = {
           payment_method: string | null
           payment_proof_url: string | null
           payment_ref: string | null
+          quarantine_reason: string | null
+          quarantined_at: string | null
           status: string
           week_number: number
         }
@@ -1755,6 +1763,8 @@ export type Database = {
           payment_method?: string | null
           payment_proof_url?: string | null
           payment_ref?: string | null
+          quarantine_reason?: string | null
+          quarantined_at?: string | null
           status?: string
           week_number: number
         }
@@ -1769,6 +1779,8 @@ export type Database = {
           payment_method?: string | null
           payment_proof_url?: string | null
           payment_ref?: string | null
+          quarantine_reason?: string | null
+          quarantined_at?: string | null
           status?: string
           week_number?: number
         }
@@ -4607,6 +4619,8 @@ export type Database = {
           payment_status: string | null
           paystack_reference: string | null
           product: string
+          quarantine_reason: string | null
+          quarantined_at: string | null
           status: string
           tier: string
           updated_at: string
@@ -4623,6 +4637,8 @@ export type Database = {
           payment_status?: string | null
           paystack_reference?: string | null
           product: string
+          quarantine_reason?: string | null
+          quarantined_at?: string | null
           status?: string
           tier: string
           updated_at?: string
@@ -4639,6 +4655,8 @@ export type Database = {
           payment_status?: string | null
           paystack_reference?: string | null
           product?: string
+          quarantine_reason?: string | null
+          quarantined_at?: string | null
           status?: string
           tier?: string
           updated_at?: string
@@ -4987,6 +5005,8 @@ export type Database = {
           price_per_unit: number
           proof_url: string | null
           property_id: string | null
+          quarantine_reason: string | null
+          quarantined_at: string | null
           status: string
           submitted_at: string | null
           total_paid: number
@@ -5005,6 +5025,8 @@ export type Database = {
           price_per_unit: number
           proof_url?: string | null
           property_id?: string | null
+          quarantine_reason?: string | null
+          quarantined_at?: string | null
           status?: string
           submitted_at?: string | null
           total_paid: number
@@ -5023,6 +5045,8 @@ export type Database = {
           price_per_unit?: number
           proof_url?: string | null
           property_id?: string | null
+          quarantine_reason?: string | null
+          quarantined_at?: string | null
           status?: string
           submitted_at?: string | null
           total_paid?: number
@@ -5340,6 +5364,8 @@ export type Database = {
           ownership_stake: number
           payment_reference: string | null
           payment_status: string
+          quarantine_reason: string | null
+          quarantined_at: string | null
           status: string
           updated_at: string
         }
@@ -5353,6 +5379,8 @@ export type Database = {
           ownership_stake?: number
           payment_reference?: string | null
           payment_status?: string
+          quarantine_reason?: string | null
+          quarantined_at?: string | null
           status?: string
           updated_at?: string
         }
@@ -5366,6 +5394,8 @@ export type Database = {
           ownership_stake?: number
           payment_reference?: string | null
           payment_status?: string
+          quarantine_reason?: string | null
+          quarantined_at?: string | null
           status?: string
           updated_at?: string
         }
@@ -5450,6 +5480,8 @@ export type Database = {
           opportunity_id: number
           paid_at: string | null
           payment_reference: string | null
+          quarantine_reason: string | null
+          quarantined_at: string | null
           received_at: string | null
           reservation_status: string | null
           reserved_at: string | null
@@ -5465,6 +5497,8 @@ export type Database = {
           opportunity_id: number
           paid_at?: string | null
           payment_reference?: string | null
+          quarantine_reason?: string | null
+          quarantined_at?: string | null
           received_at?: string | null
           reservation_status?: string | null
           reserved_at?: string | null
@@ -5480,6 +5514,8 @@ export type Database = {
           opportunity_id?: number
           paid_at?: string | null
           payment_reference?: string | null
+          quarantine_reason?: string | null
+          quarantined_at?: string | null
           received_at?: string | null
           reservation_status?: string | null
           reserved_at?: string | null
