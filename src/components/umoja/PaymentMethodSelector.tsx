@@ -6,10 +6,12 @@ export function PaymentMethodSelector({
   value,
   onChange,
   cryptoEnabled = false,
+  paystackEnabled = true,
 }: {
   value: PaymentMethod;
   onChange: (m: PaymentMethod) => void;
   cryptoEnabled?: boolean;
+  paystackEnabled?: boolean;
 }) {
   const opts: Array<{
     id: PaymentMethod;
@@ -25,6 +27,7 @@ export function PaymentMethodSelector({
       desc: "Process instantly via Paystack — no waiting for approval.",
       icon: CreditCard,
       badge: "Instant · Recommended",
+      hidden: !paystackEnabled,
     },
     {
       id: "eft",
