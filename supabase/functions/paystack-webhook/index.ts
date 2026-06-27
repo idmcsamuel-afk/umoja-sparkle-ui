@@ -34,6 +34,29 @@ Deno.serve(async (req) => {
   const reference: string | null = data.reference ?? data.subscription_code ?? null;
   const customerCode: string | null = data?.customer?.customer_code ?? null;
 
+  // Reject test/live cross-contamination BEFORE any writes to balance/tracker tables.
+  // Paystack event payloads carry `data.domain` ("live"|"test"); some envelopes also expose
+  // `payload.domain`. Webhooks for the wrong domain are logged and acked with 200 so Paystack
+  // does not retry indefinitely.
+  const evtDomain: string = String(data?.domain ?? payload?.domain ?? "").toLowerCase();
+  if (evtDomain && evtDomain !== EXPECTED_PAYSTACK_DOMAIN) {
+    console.warn(`[webhook] DOMAIN MISMATCH expected=${EXPECTED_PAYSTACK_DOMAIN} got=${evtDomain} ref=${reference}`);
+    try {
+      await sb.from("paystack_events").insert({
+        event: `${event}.rejected_domain_mismatch`,
+        reference,
+        member_id: null,
+        raw: { ...payload, _expected_domain: EXPECTED_PAYSTACK_DOMAIN },
+        processed: false,
+        error: `domain_mismatch:expected=${EXPECTED_PAYSTACK_DOMAIN};got=${evtDomain}`,
+      });
+    } catch (_) { /* swallow */ }
+    return new Response(JSON.stringify({ ok: false, error: "paystack_domain_mismatch" }), {
+      status: 200,
+      headers: { ...corsHeaders, "Content-Type": "application/json" },
+    });
+  }
+
   let memberId: string | null = null;
   let processError: string | null = null;
   try {
