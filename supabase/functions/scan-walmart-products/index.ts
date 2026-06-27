@@ -79,17 +79,17 @@ async function scanCategory(
     const products = raw
       .slice(0, 30)
       .map((p: any) => {
-        const product = p.product ?? p;
-        const itemId = product.item_id ?? product.us_item_id ?? p.item_id ?? null;
-        const link = product.link ?? p.link ?? (itemId ? `https://www.walmart.com/ip/${itemId}` : null);
+        const itemId = p.us_item_id ?? p.product_id ?? p.item_id ?? null;
+        const link = p.product_page_url ?? p.link ?? (itemId ? `https://www.walmart.com/ip/${itemId}` : null);
+        const price = p.primary_offer?.offer_price ?? p.price ?? null;
         return {
-          item_id: itemId,
-          title: product.title ?? p.title,
-          rating: typeof product.rating === "number" ? product.rating : (typeof p.rating === "number" ? p.rating : null),
-          review_count: typeof product.ratings_total === "number" ? product.ratings_total : (typeof p.ratings_total === "number" ? p.ratings_total : 0),
-          price: product.price?.value ?? p.price?.value ?? p.offers?.primary?.price ?? null,
+          item_id: itemId ? String(itemId) : null,
+          title: p.title ?? null,
+          rating: typeof p.rating === "number" ? p.rating : null,
+          review_count: typeof p.reviews === "number" ? p.reviews : 0,
+          price: typeof price === "number" ? price : (price ? Number(price) : null),
           monthly_rank: p.position ?? null,
-          image_url: product.main_image ?? product.image ?? p.image ?? null,
+          image_url: p.thumbnail ?? null,
           product_url: link,
         };
       })
