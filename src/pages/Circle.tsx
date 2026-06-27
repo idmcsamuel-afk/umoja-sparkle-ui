@@ -970,7 +970,7 @@ const Circle = () => {
                   </DialogDescription>
                 </DialogHeader>
 
-                <PaymentMethodSelector value={method} onChange={setMethod} cryptoEnabled={cryptoEnabled} />
+                <PaymentMethodSelector value={method} onChange={setMethod} cryptoEnabled={cryptoEnabled} paystackEnabled={PAYSTACK_CIRCLE_ENABLED} />
 
               {method === "usdt" && pendingBid && (
                 <UsdtPayPanel
