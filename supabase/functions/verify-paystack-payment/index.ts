@@ -692,6 +692,34 @@ Deno.serve(async (req) => {
       return json(200, { ok: false, error: `Paystack status=${tx.status}`, reference });
     }
 
+    // ===== Live/Test domain guard =====
+    // Paystack stamps every transaction with domain: "live" | "test".
+    // Reject mismatches so a test transaction never pollutes live data (and vice-versa).
+    const txDomain: string = String(tx.domain ?? "").toLowerCase();
+    if (txDomain && txDomain !== EXPECTED_PAYSTACK_DOMAIN) {
+      console.warn(
+        `[verify] DOMAIN MISMATCH — rejecting. expected=${EXPECTED_PAYSTACK_DOMAIN} got=${txDomain} ref=${reference}`,
+      );
+      try {
+        await sb.from("paystack_events").insert({
+          event: "manual.verify.rejected_domain_mismatch",
+          reference,
+          member_id: u.user.id,
+          raw: { tx, expected_domain: EXPECTED_PAYSTACK_DOMAIN, clientMeta },
+          processed: false,
+          error: `domain_mismatch:expected=${EXPECTED_PAYSTACK_DOMAIN};got=${txDomain}`,
+        });
+      } catch (_) { /* never let logging break the response */ }
+      // 200 so Paystack stops retrying; ok:false so the client knows.
+      return json(200, {
+        ok: false,
+        error: "paystack_domain_mismatch",
+        expected_domain: EXPECTED_PAYSTACK_DOMAIN,
+        got_domain: txDomain,
+        reference,
+      });
+    }
+
 
     const amountZar = Number(tx.amount) / 100;
     const parts = String(reference).split("-");
