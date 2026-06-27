@@ -101,25 +101,32 @@ async function scanCategory(
       return { category, count: 0 };
     }
 
-    const rows = products.map((p: any) => ({
-      category,
-      region: "US",
-      asin: p.item_id, // reuse asin column as source_item_id
-      title: p.title,
-      rating: p.rating,
-      review_count: p.review_count,
-      price_usd: p.price,
-      price_zar: null,
-      monthly_rank: p.monthly_rank,
-      seller_count: 1,
-      search_volume: trends.volume,
-      related_keywords: trends.related,
-      competition_level: trends.competition,
-      profit_potential: classifyProfit(p.price, p.review_count, p.monthly_rank),
-      marketplace: "walmart_us",
-      product_url: p.product_url,
-      image_url: p.image_url,
-    }));
+    const seen = new Set<string>();
+    const rows = products
+      .filter((p: any) => {
+        if (seen.has(p.item_id)) return false;
+        seen.add(p.item_id);
+        return true;
+      })
+      .map((p: any) => ({
+        category,
+        region: "US",
+        asin: p.item_id, // reuse asin column as source_item_id
+        title: p.title,
+        rating: p.rating,
+        review_count: p.review_count,
+        price_usd: p.price,
+        price_zar: null,
+        monthly_rank: p.monthly_rank,
+        seller_count: 1,
+        search_volume: trends.volume,
+        related_keywords: trends.related,
+        competition_level: trends.competition,
+        profit_potential: classifyProfit(p.price, p.review_count, p.monthly_rank),
+        marketplace: "walmart_us",
+        product_url: p.product_url,
+        image_url: p.image_url,
+      }));
 
     const { error } = await supabase
       .from("products")
