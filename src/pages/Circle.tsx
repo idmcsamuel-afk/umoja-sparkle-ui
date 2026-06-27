@@ -139,7 +139,9 @@ const Circle = () => {
   const [busy, setBusy] = useState(false);
   const [pendingBid, setPendingBid] = useState<{ id: string; amount: number; ref: string; eftDeadline?: number; usdtDeadline?: number; usdtAmount?: number } | null>(null);
   const [proofFile, setProofFile] = useState<File | null>(null);
-  const [method, setMethod] = useState<PaymentMethod>("paystack");
+  // Feature flag: re-enable on July 3 by setting to true.
+  const PAYSTACK_CIRCLE_ENABLED = false;
+  const [method, setMethod] = useState<PaymentMethod>(PAYSTACK_CIRCLE_ENABLED ? "paystack" : "eft");
   const { pay: payWithPaystack } = usePaystack();
   const [verifyBid, setVerifyBid] = useState<Bid | null>(null);
   const [uploadingBidId, setUploadingBidId] = useState<string | null>(null);
@@ -968,7 +970,7 @@ const Circle = () => {
                   </DialogDescription>
                 </DialogHeader>
 
-                <PaymentMethodSelector value={method} onChange={setMethod} cryptoEnabled={cryptoEnabled} />
+                <PaymentMethodSelector value={method} onChange={setMethod} cryptoEnabled={cryptoEnabled} paystackEnabled={PAYSTACK_CIRCLE_ENABLED} />
 
               {method === "usdt" && pendingBid && (
                 <UsdtPayPanel
