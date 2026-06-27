@@ -84,7 +84,8 @@ async function scanCategory(
   region: string,
 ): Promise<ScanResult> {
   try {
-    const raw = await fetchRainforest(category, region);
+    const { results: raw, domain } = await fetchRainforest(category, region);
+    const marketplace = marketplaceFor(domain);
     const trends = await fetchSerpTrends(category);
 
     const products = raw
@@ -96,6 +97,8 @@ async function scanCategory(
         review_count: typeof p.ratings_total === "number" ? p.ratings_total : 0,
         price_usd: p.price?.value ?? null,
         monthly_rank: p.bestsellers_rank?.[0]?.rank ?? p.sales_rank ?? null,
+        image_url: p.image ?? p.images?.[0] ?? null,
+        product_url: p.link ?? (p.asin ? `https://www.${domain}/dp/${p.asin}` : null),
       }))
       .filter(
         (p: any) =>
@@ -122,6 +125,9 @@ async function scanCategory(
       related_keywords: trends.related,
       competition_level: trends.competition,
       profit_potential: classifyProfit(p.price_usd, p.review_count, p.monthly_rank),
+      marketplace,
+      product_url: p.product_url,
+      image_url: p.image_url,
     }));
 
     const { error } = await supabase
