@@ -36,9 +36,8 @@ function classifyProfit(price: number | null, reviews: number, rank: number | nu
   return "low";
 }
 
-async function fetchRainforest(category: string, region: string): Promise<{ results: any[]; domain: string }> {
+async function fetchRainforest(category: string, domain: string): Promise<{ results: any[]; domain: string }> {
   if (!RAINFOREST_KEY) throw new Error("RAINFOREST_API_KEY not configured");
-  const domain = region === "ZA" ? "amazon.com" : "amazon.com"; // Rainforest has no .co.za; use US
   const url = new URL("https://api.rainforestapi.com/request");
   url.searchParams.set("api_key", RAINFOREST_KEY);
   url.searchParams.set("type", "search");

@@ -4675,6 +4675,7 @@ export type Database = {
           marketplace: string | null
           monthly_rank: number | null
           price_usd: number | null
+          price_zar: number | null
           product_url: string | null
           profit_potential: string | null
           rating: number | null
@@ -4697,6 +4698,7 @@ export type Database = {
           marketplace?: string | null
           monthly_rank?: number | null
           price_usd?: number | null
+          price_zar?: number | null
           product_url?: string | null
           profit_potential?: string | null
           rating?: number | null
@@ -4719,6 +4721,7 @@ export type Database = {
           marketplace?: string | null
           monthly_rank?: number | null
           price_usd?: number | null
+          price_zar?: number | null
           product_url?: string | null
           profit_potential?: string | null
           rating?: number | null
