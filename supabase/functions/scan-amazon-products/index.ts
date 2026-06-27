@@ -98,6 +98,7 @@ function extractRank(p: any): { rank: number | null; category: string | null } {
     (br && typeof br.rank === "number" ? br.rank : null) ??
     (typeof p.sales_rank === "number" ? p.sales_rank : null) ??
     (typeof p.ranking === "number" ? p.ranking : null) ??
+    (typeof p.position === "number" ? p.position : null) ??
     null;
   const cat = br?.category ?? br?.name ?? null;
   return { rank, category: cat };
