@@ -47,3 +47,6 @@ project_id = "lamohcoijkpigygiqyih"
 
 [functions.scan-amazon-products]
 verify_jwt = false
+
+[functions.scan-walmart-products]
+verify_jwt = false
