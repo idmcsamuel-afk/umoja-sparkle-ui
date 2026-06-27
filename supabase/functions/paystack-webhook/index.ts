@@ -12,6 +12,10 @@ const corsHeaders = {
 const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
 const SERVICE = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
 const PAYSTACK_SECRET = Deno.env.get("PAYSTACK_SECRET_KEY")!;
+// Live/test contamination guard — see verify-paystack-payment for full notes.
+const EXPECTED_PAYSTACK_DOMAIN: "live" | "test" =
+  (Deno.env.get("PAYSTACK_EXPECTED_DOMAIN") as any) ||
+  (PAYSTACK_SECRET?.startsWith("sk_live_") ? "live" : "test");
 const sb = createClient(SUPABASE_URL, SERVICE);
 
 Deno.serve(async (req) => {
