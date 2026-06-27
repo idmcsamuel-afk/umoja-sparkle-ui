@@ -264,6 +264,19 @@ function scoreDemand(amazon: AmazonItem | null, takealot: TakealotItem | null, s
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response("ok", { headers: corsHeaders });
 
+  const cronSecret = Deno.env.get("CRON_SECRET");
+  if (cronSecret && req.headers.get("x-cron-secret") !== cronSecret) {
+    const authHeader = req.headers.get("Authorization");
+    if (!authHeader) {
+      return new Response(
+        JSON.stringify({ error: "Unauthorized: Missing CRON_SECRET or auth" }),
+        { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } },
+      );
+    }
+  }
+
+
+
   try {
     const supabase = createClient(
       Deno.env.get("SUPABASE_URL")!,
