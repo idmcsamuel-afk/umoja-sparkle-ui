@@ -35,19 +35,17 @@ function classifyProfit(price: number | null, reviews: number, rank: number | nu
   return "low";
 }
 
-// Rainforest's Walmart product data API uses host bluecart, not rainforest.
-// https://www.bluecartapi.com/docs/product-data-api/overview
+// SerpAPI Walmart engine. Docs: https://serpapi.com/walmart-search-api
 async function fetchWalmart(category: string): Promise<any[]> {
-  if (!RAINFOREST_KEY) throw new Error("RAINFOREST_API_KEY not configured");
-  const url = new URL("https://api.bluecartapi.com/request");
-  url.searchParams.set("api_key", RAINFOREST_KEY);
-  url.searchParams.set("type", "search");
-  url.searchParams.set("search_term", category);
-  url.searchParams.set("sort_by", "best_seller");
+  if (!SERPAPI_KEY) throw new Error("SERPAPI_KEY not configured");
+  const url = new URL("https://serpapi.com/search.json");
+  url.searchParams.set("engine", "walmart");
+  url.searchParams.set("query", category);
+  url.searchParams.set("api_key", SERPAPI_KEY);
   const res = await fetch(url.toString());
-  if (!res.ok) throw new Error(`BlueCart ${res.status}: ${await res.text()}`);
+  if (!res.ok) throw new Error(`SerpAPI Walmart ${res.status}: ${await res.text()}`);
   const data = await res.json();
-  return Array.isArray(data.search_results) ? data.search_results : [];
+  return Array.isArray(data.organic_results) ? data.organic_results : [];
 }
 
 async function fetchSerpTrends(category: string) {
