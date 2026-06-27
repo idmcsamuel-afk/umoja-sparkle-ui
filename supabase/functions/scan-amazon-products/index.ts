@@ -163,13 +163,15 @@ Deno.serve(async (req) => {
     try { body = await req.json(); } catch { body = {}; }
   }
   const url = new URL(req.url);
-  const region = body.region ?? url.searchParams.get("region") ?? "US";
+  const domain = body.amazon_domain ?? url.searchParams.get("amazon_domain") ?? "amazon.com";
+  const defaultRegion = domain.endsWith(".co.za") ? "ZA" : "US";
+  const region = body.region ?? url.searchParams.get("region") ?? defaultRegion;
   const single = body.category ?? url.searchParams.get("category");
   const categories: string[] = single ? [single] : (body.categories ?? DEFAULT_CATEGORIES);
 
   const results: ScanResult[] = [];
   for (const cat of categories) {
-    results.push(await scanCategory(supabase, cat, region));
+    results.push(await scanCategory(supabase, cat, region, domain));
   }
 
   const total = results.reduce((s, r) => s + r.count, 0);
