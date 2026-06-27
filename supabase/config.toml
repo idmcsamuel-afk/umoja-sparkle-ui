@@ -50,3 +50,10 @@ verify_jwt = false
 
 [functions.scan-walmart-products]
 verify_jwt = false
+
+[functions.enrich-product-rank]
+verify_jwt = false
+
+[functions.backfill-amazon-images]
+verify_jwt = false
+

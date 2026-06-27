@@ -121,7 +121,17 @@ export default function AdminProductValidation() {
     }
     setRows((prev) => prev.map((r) => (r.id === id ? { ...r, validation_status: status, reviewed_at: new Date().toISOString() } : r)));
     toast({ title: status === "approved_to_queue" ? "Approved" : status === "rejected" ? "Rejected" : "Updated" });
+
+    // Auto-enrich sales_rank on approval (approved rows only).
+    if (status === "approved_to_queue") {
+      const row = rows.find((r) => r.id === id);
+      if (row?.asin) {
+        supabase.functions.invoke("enrich-product-rank", { body: { asin: row.asin } })
+          .catch((e) => console.warn("enrich-product-rank failed", e));
+      }
+    }
   };
+
 
   return (
     <div className="space-y-6">
