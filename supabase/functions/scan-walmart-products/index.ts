@@ -123,6 +123,8 @@ async function scanCategory(
         price_usd: p.price,
         price_zar: null,
         monthly_rank: p.monthly_rank,
+        sales_rank: p.monthly_rank,
+        sales_rank_category: category,
         seller_count: 1,
         search_volume: trends.volume,
         related_keywords: trends.related,
