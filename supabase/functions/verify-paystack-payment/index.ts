@@ -26,6 +26,15 @@ const TCG_ACCOUNT_CODE = Deno.env.get("TCG_ACCOUNT_CODE");
 const TCG_USERNAME = Deno.env.get("TCG_USERNAME");
 const TCG_API_BASE = Deno.env.get("TCG_API_BASE") ?? "https://api.portal.thecourierguy.co.za";
 
+// Single source of truth for live/test contamination protection.
+// Derived from the Paystack secret-key prefix:
+//   sk_live_* → "live"   (reject any transaction with tx.domain === "test")
+//   sk_test_* → "test"   (reject any transaction with tx.domain === "live")
+// Override with PAYSTACK_EXPECTED_DOMAIN env if you need to force a value.
+const EXPECTED_PAYSTACK_DOMAIN: "live" | "test" =
+  (Deno.env.get("PAYSTACK_EXPECTED_DOMAIN") as any) ||
+  (PAYSTACK_SECRET?.startsWith("sk_live_") ? "live" : "test");
+
 /**
  * Create a shipment with TheCourierGuy. Idempotent on (source_type, source_id):
  * if a row already exists with a waybill, returns it without re-calling TCG.
@@ -681,6 +690,34 @@ Deno.serve(async (req) => {
     if (tx.status !== "success") {
       console.warn("[verify] paystack tx not success", tx.status);
       return json(200, { ok: false, error: `Paystack status=${tx.status}`, reference });
+    }
+
+    // ===== Live/Test domain guard =====
+    // Paystack stamps every transaction with domain: "live" | "test".
+    // Reject mismatches so a test transaction never pollutes live data (and vice-versa).
+    const txDomain: string = String(tx.domain ?? "").toLowerCase();
+    if (txDomain && txDomain !== EXPECTED_PAYSTACK_DOMAIN) {
+      console.warn(
+        `[verify] DOMAIN MISMATCH — rejecting. expected=${EXPECTED_PAYSTACK_DOMAIN} got=${txDomain} ref=${reference}`,
+      );
+      try {
+        await sb.from("paystack_events").insert({
+          event: "manual.verify.rejected_domain_mismatch",
+          reference,
+          member_id: u.user.id,
+          raw: { tx, expected_domain: EXPECTED_PAYSTACK_DOMAIN, clientMeta },
+          processed: false,
+          error: `domain_mismatch:expected=${EXPECTED_PAYSTACK_DOMAIN};got=${txDomain}`,
+        });
+      } catch (_) { /* never let logging break the response */ }
+      // 200 so Paystack stops retrying; ok:false so the client knows.
+      return json(200, {
+        ok: false,
+        error: "paystack_domain_mismatch",
+        expected_domain: EXPECTED_PAYSTACK_DOMAIN,
+        got_domain: txDomain,
+        reference,
+      });
     }
 
 
