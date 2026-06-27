@@ -81,10 +81,12 @@ async function scanCategory(
   supabase: ReturnType<typeof createClient>,
   category: string,
   region: string,
+  domain: string,
 ): Promise<ScanResult> {
   try {
-    const { results: raw, domain } = await fetchRainforest(category, region);
+    const { results: raw } = await fetchRainforest(category, domain);
     const marketplace = marketplaceFor(domain);
+    const isZA = domain.endsWith(".co.za");
     const trends = await fetchSerpTrends(category);
 
     const products = raw
@@ -94,7 +96,7 @@ async function scanCategory(
         title: p.title,
         rating: typeof p.rating === "number" ? p.rating : null,
         review_count: typeof p.ratings_total === "number" ? p.ratings_total : 0,
-        price_usd: p.price?.value ?? null,
+        price: p.price?.value ?? null,
         monthly_rank: p.bestsellers_rank?.[0]?.rank ?? p.sales_rank ?? null,
         image_url: p.image ?? p.images?.[0] ?? null,
         product_url: p.link ?? (p.asin ? `https://www.${domain}/dp/${p.asin}` : null),
@@ -106,7 +108,7 @@ async function scanCategory(
       .slice(0, 20);
 
     if (products.length === 0) {
-      console.log(`[PRODUCTS] Found 0 products in category ${category}`);
+      console.log(`[PRODUCTS] Found 0 products in category ${category} (${marketplace})`);
       return { category, count: 0 };
     }
 
@@ -117,15 +119,16 @@ async function scanCategory(
       title: p.title,
       rating: p.rating,
       review_count: p.review_count,
-      price_usd: p.price_usd,
+      price_usd: isZA ? null : p.price,
+      price_zar: isZA ? p.price : null,
       monthly_rank: p.monthly_rank,
       seller_count: 1,
       search_volume: trends.volume,
       related_keywords: trends.related,
       competition_level: trends.competition,
-      profit_potential: classifyProfit(p.price_usd, p.review_count, p.monthly_rank),
+      profit_potential: classifyProfit(p.price, p.review_count, p.monthly_rank),
       marketplace,
-      product_url: p.product_url,
+      product_url: isZA ? `https://www.amazon.co.za/dp/${p.asin}` : p.product_url,
       image_url: p.image_url,
     }));
 
@@ -134,7 +137,7 @@ async function scanCategory(
       .upsert(rows, { onConflict: "asin,category,region" });
     if (error) throw error;
 
-    console.log(`[PRODUCTS] Found ${rows.length} products in category ${category}`);
+    console.log(`[PRODUCTS] Found ${rows.length} products in category ${category} (${marketplace})`);
     return { category, count: rows.length };
   } catch (e) {
     const msg = e instanceof Error ? e.message : String(e);
