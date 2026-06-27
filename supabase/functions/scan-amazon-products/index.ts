@@ -36,7 +36,7 @@ function classifyProfit(price: number | null, reviews: number, rank: number | nu
   return "low";
 }
 
-async function fetchRainforest(category: string, region: string) {
+async function fetchRainforest(category: string, region: string): Promise<{ results: any[]; domain: string }> {
   if (!RAINFOREST_KEY) throw new Error("RAINFOREST_API_KEY not configured");
   const domain = region === "ZA" ? "amazon.com" : "amazon.com"; // Rainforest has no .co.za; use US
   const url = new URL("https://api.rainforestapi.com/request");
@@ -48,7 +48,14 @@ async function fetchRainforest(category: string, region: string) {
   const res = await fetch(url.toString());
   if (!res.ok) throw new Error(`Rainforest ${res.status}: ${await res.text()}`);
   const data = await res.json();
-  return Array.isArray(data.search_results) ? data.search_results : [];
+  return { results: Array.isArray(data.search_results) ? data.search_results : [], domain };
+}
+
+function marketplaceFor(domain: string): string {
+  if (domain.endsWith(".co.za")) return "amazon_sa";
+  if (domain.endsWith(".co.uk")) return "amazon_uk";
+  if (domain.endsWith(".de")) return "amazon_de";
+  return "amazon_us";
 }
 
 async function fetchSerpTrends(category: string) {
@@ -77,7 +84,8 @@ async function scanCategory(
   region: string,
 ): Promise<ScanResult> {
   try {
-    const raw = await fetchRainforest(category, region);
+    const { results: raw, domain } = await fetchRainforest(category, region);
+    const marketplace = marketplaceFor(domain);
     const trends = await fetchSerpTrends(category);
 
     const products = raw
@@ -89,6 +97,8 @@ async function scanCategory(
         review_count: typeof p.ratings_total === "number" ? p.ratings_total : 0,
         price_usd: p.price?.value ?? null,
         monthly_rank: p.bestsellers_rank?.[0]?.rank ?? p.sales_rank ?? null,
+        image_url: p.image ?? p.images?.[0] ?? null,
+        product_url: p.link ?? (p.asin ? `https://www.${domain}/dp/${p.asin}` : null),
       }))
       .filter(
         (p: any) =>
@@ -115,6 +125,9 @@ async function scanCategory(
       related_keywords: trends.related,
       competition_level: trends.competition,
       profit_potential: classifyProfit(p.price_usd, p.review_count, p.monthly_rank),
+      marketplace,
+      product_url: p.product_url,
+      image_url: p.image_url,
     }));
 
     const { error } = await supabase

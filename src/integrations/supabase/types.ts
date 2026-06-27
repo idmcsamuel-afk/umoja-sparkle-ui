@@ -4671,16 +4671,21 @@ export type Database = {
           competition_level: string | null
           created_at: string
           id: string
+          image_url: string | null
+          marketplace: string | null
           monthly_rank: number | null
           price_usd: number | null
+          product_url: string | null
           profit_potential: string | null
           rating: number | null
           region: string | null
           related_keywords: Json | null
           review_count: number | null
+          reviewed_at: string | null
           search_volume: number | null
           seller_count: number | null
           title: string
+          validation_status: string | null
         }
         Insert: {
           asin: string
@@ -4688,16 +4693,21 @@ export type Database = {
           competition_level?: string | null
           created_at?: string
           id?: string
+          image_url?: string | null
+          marketplace?: string | null
           monthly_rank?: number | null
           price_usd?: number | null
+          product_url?: string | null
           profit_potential?: string | null
           rating?: number | null
           region?: string | null
           related_keywords?: Json | null
           review_count?: number | null
+          reviewed_at?: string | null
           search_volume?: number | null
           seller_count?: number | null
           title: string
+          validation_status?: string | null
         }
         Update: {
           asin?: string
@@ -4705,16 +4715,21 @@ export type Database = {
           competition_level?: string | null
           created_at?: string
           id?: string
+          image_url?: string | null
+          marketplace?: string | null
           monthly_rank?: number | null
           price_usd?: number | null
+          product_url?: string | null
           profit_potential?: string | null
           rating?: number | null
           region?: string | null
           related_keywords?: Json | null
           review_count?: number | null
+          reviewed_at?: string | null
           search_volume?: number | null
           seller_count?: number | null
           title?: string
+          validation_status?: string | null
         }
         Relationships: []
       }
