@@ -26,6 +26,15 @@ const TCG_ACCOUNT_CODE = Deno.env.get("TCG_ACCOUNT_CODE");
 const TCG_USERNAME = Deno.env.get("TCG_USERNAME");
 const TCG_API_BASE = Deno.env.get("TCG_API_BASE") ?? "https://api.portal.thecourierguy.co.za";
 
+// Single source of truth for live/test contamination protection.
+// Derived from the Paystack secret-key prefix:
+//   sk_live_* → "live"   (reject any transaction with tx.domain === "test")
+//   sk_test_* → "test"   (reject any transaction with tx.domain === "live")
+// Override with PAYSTACK_EXPECTED_DOMAIN env if you need to force a value.
+const EXPECTED_PAYSTACK_DOMAIN: "live" | "test" =
+  (Deno.env.get("PAYSTACK_EXPECTED_DOMAIN") as any) ||
+  (PAYSTACK_SECRET?.startsWith("sk_live_") ? "live" : "test");
+
 /**
  * Create a shipment with TheCourierGuy. Idempotent on (source_type, source_id):
  * if a row already exists with a waybill, returns it without re-calling TCG.
