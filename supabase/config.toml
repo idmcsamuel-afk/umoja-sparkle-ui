@@ -44,3 +44,6 @@ verify_jwt = false
 verify_jwt = false
 
 project_id = "lamohcoijkpigygiqyih"
+
+[functions.scan-amazon-products]
+verify_jwt = false
