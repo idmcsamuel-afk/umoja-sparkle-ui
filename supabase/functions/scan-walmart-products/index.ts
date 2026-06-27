@@ -35,19 +35,17 @@ function classifyProfit(price: number | null, reviews: number, rank: number | nu
   return "low";
 }
 
-// Rainforest's Walmart product data API uses host bluecart, not rainforest.
-// https://www.bluecartapi.com/docs/product-data-api/overview
+// SerpAPI Walmart engine. Docs: https://serpapi.com/walmart-search-api
 async function fetchWalmart(category: string): Promise<any[]> {
-  if (!RAINFOREST_KEY) throw new Error("RAINFOREST_API_KEY not configured");
-  const url = new URL("https://api.bluecartapi.com/request");
-  url.searchParams.set("api_key", RAINFOREST_KEY);
-  url.searchParams.set("type", "search");
-  url.searchParams.set("search_term", category);
-  url.searchParams.set("sort_by", "best_seller");
+  if (!SERPAPI_KEY) throw new Error("SERPAPI_KEY not configured");
+  const url = new URL("https://serpapi.com/search.json");
+  url.searchParams.set("engine", "walmart");
+  url.searchParams.set("query", category);
+  url.searchParams.set("api_key", SERPAPI_KEY);
   const res = await fetch(url.toString());
-  if (!res.ok) throw new Error(`BlueCart ${res.status}: ${await res.text()}`);
+  if (!res.ok) throw new Error(`SerpAPI Walmart ${res.status}: ${await res.text()}`);
   const data = await res.json();
-  return Array.isArray(data.search_results) ? data.search_results : [];
+  return Array.isArray(data.organic_results) ? data.organic_results : [];
 }
 
 async function fetchSerpTrends(category: string) {
@@ -81,17 +79,17 @@ async function scanCategory(
     const products = raw
       .slice(0, 30)
       .map((p: any) => {
-        const product = p.product ?? p;
-        const itemId = product.item_id ?? product.us_item_id ?? p.item_id ?? null;
-        const link = product.link ?? p.link ?? (itemId ? `https://www.walmart.com/ip/${itemId}` : null);
+        const itemId = p.us_item_id ?? p.product_id ?? p.item_id ?? null;
+        const link = p.product_page_url ?? p.link ?? (itemId ? `https://www.walmart.com/ip/${itemId}` : null);
+        const price = p.primary_offer?.offer_price ?? p.price ?? null;
         return {
-          item_id: itemId,
-          title: product.title ?? p.title,
-          rating: typeof product.rating === "number" ? product.rating : (typeof p.rating === "number" ? p.rating : null),
-          review_count: typeof product.ratings_total === "number" ? product.ratings_total : (typeof p.ratings_total === "number" ? p.ratings_total : 0),
-          price: product.price?.value ?? p.price?.value ?? p.offers?.primary?.price ?? null,
+          item_id: itemId ? String(itemId) : null,
+          title: p.title ?? null,
+          rating: typeof p.rating === "number" ? p.rating : null,
+          review_count: typeof p.reviews === "number" ? p.reviews : 0,
+          price: typeof price === "number" ? price : (price ? Number(price) : null),
           monthly_rank: p.position ?? null,
-          image_url: product.main_image ?? product.image ?? p.image ?? null,
+          image_url: p.thumbnail ?? null,
           product_url: link,
         };
       })
@@ -103,25 +101,32 @@ async function scanCategory(
       return { category, count: 0 };
     }
 
-    const rows = products.map((p: any) => ({
-      category,
-      region: "US",
-      asin: p.item_id, // reuse asin column as source_item_id
-      title: p.title,
-      rating: p.rating,
-      review_count: p.review_count,
-      price_usd: p.price,
-      price_zar: null,
-      monthly_rank: p.monthly_rank,
-      seller_count: 1,
-      search_volume: trends.volume,
-      related_keywords: trends.related,
-      competition_level: trends.competition,
-      profit_potential: classifyProfit(p.price, p.review_count, p.monthly_rank),
-      marketplace: "walmart_us",
-      product_url: p.product_url,
-      image_url: p.image_url,
-    }));
+    const seen = new Set<string>();
+    const rows = products
+      .filter((p: any) => {
+        if (seen.has(p.item_id)) return false;
+        seen.add(p.item_id);
+        return true;
+      })
+      .map((p: any) => ({
+        category,
+        region: "US",
+        asin: p.item_id, // reuse asin column as source_item_id
+        title: p.title,
+        rating: p.rating,
+        review_count: p.review_count,
+        price_usd: p.price,
+        price_zar: null,
+        monthly_rank: p.monthly_rank,
+        seller_count: 1,
+        search_volume: trends.volume,
+        related_keywords: trends.related,
+        competition_level: trends.competition,
+        profit_potential: classifyProfit(p.price, p.review_count, p.monthly_rank),
+        marketplace: "walmart_us",
+        product_url: p.product_url,
+        image_url: p.image_url,
+      }));
 
     const { error } = await supabase
       .from("products")
