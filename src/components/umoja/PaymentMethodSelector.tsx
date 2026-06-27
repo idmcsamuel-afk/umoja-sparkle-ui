@@ -84,6 +84,11 @@ export function PaymentMethodSelector({
           );
         })}
       </div>
+      {!paystackEnabled && (
+        <p className="text-xs text-muted-foreground rounded-xl border border-dashed border-border bg-secondary/30 p-3">
+          Card payments coming soon — please use EFT or USDT for now.
+        </p>
+      )}
     </div>
   );
 }
