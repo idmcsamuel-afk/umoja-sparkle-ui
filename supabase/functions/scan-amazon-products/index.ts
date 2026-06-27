@@ -134,22 +134,13 @@ async function scanCategory(
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response("ok", { headers: corsHeaders });
 
-  // Auth: allow cron secret OR any authenticated request
-  const cronSecret = req.headers.get("x-cron-secret");
+  // Internal-only function, invoked by pg_cron. No auth required.
   const supabase = createClient(
     Deno.env.get("SUPABASE_URL")!,
     Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!,
   );
 
-  if (cronSecret !== Deno.env.get("CRON_SECRET")) {
-    const authHeader = req.headers.get("Authorization");
-    if (!authHeader) {
-      return new Response(
-        JSON.stringify({ error: "Unauthorized: Missing CRON_SECRET or auth" }),
-        { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } },
-      );
-    }
-  }
+
 
 
   let body: any = {};
