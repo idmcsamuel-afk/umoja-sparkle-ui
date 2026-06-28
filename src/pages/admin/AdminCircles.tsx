@@ -46,7 +46,7 @@ export default function AdminCircles() {
     setLoading(true);
     const [t, b, p, a] = await Promise.all([
       supabase.from("circle_tiers").select("*").order("min_entry"),
-      supabase.from("circle_bids").select("tier, net_amount, member_id, status").in("status", ["pending", "payment_pending", "active", "matched"]),
+      supabase.from("circle_bids").select("tier, net_amount, member_id, status").eq("is_valid_contribution", true).in("status", ["pending", "payment_pending", "active", "matched"]),
       supabase
         .from("circle_bids")
         .select("id, member_id, tier, fiat_amount, payment_reference, payment_proof_url, payment_submitted_at, payment_deadline, payment_method, created_at")

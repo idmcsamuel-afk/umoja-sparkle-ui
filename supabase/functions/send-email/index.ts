@@ -410,7 +410,7 @@ Deno.serve(async (req) => {
       if (error) throw error;
       let scoped = (rows ?? []) as Array<{ id: string; email: string; full_name: string; email_preferences: Record<string, boolean> | null }>;
       if (audience === "circle" || audience === "tier") {
-        let bq = sb.from("circle_bids").select("member_id");
+        let bq = sb.from("circle_bids").select("member_id").eq("is_valid_contribution", true);
         if (audience === "tier" && tier) bq = bq.eq("tier", tier);
         const { data: bids } = await bq;
         const bidderIds = new Set((bids ?? []).map((b: any) => b.member_id));

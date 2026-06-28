@@ -1067,6 +1067,7 @@ export type Database = {
           fiat_amount: number
           id: string
           is_first_payout: boolean
+          is_valid_contribution: boolean | null
           last_boost_at: string | null
           matched_to: string | null
           member_id: string
@@ -1123,6 +1124,7 @@ export type Database = {
           fiat_amount: number
           id?: string
           is_first_payout?: boolean
+          is_valid_contribution?: boolean | null
           last_boost_at?: string | null
           matched_to?: string | null
           member_id: string
@@ -1179,6 +1181,7 @@ export type Database = {
           fiat_amount?: number
           id?: string
           is_first_payout?: boolean
+          is_valid_contribution?: boolean | null
           last_boost_at?: string | null
           matched_to?: string | null
           member_id?: string
@@ -1226,6 +1229,13 @@ export type Database = {
             columns: ["matched_to"]
             isOneToOne: false
             referencedRelation: "circle_bids"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "circle_bids_matched_to_fkey"
+            columns: ["matched_to"]
+            isOneToOne: false
+            referencedRelation: "v_valid_circle_bids"
             referencedColumns: ["id"]
           },
           {
@@ -1290,6 +1300,13 @@ export type Database = {
             columns: ["bid_id"]
             isOneToOne: false
             referencedRelation: "circle_bids"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "circle_boosts_bid_id_fkey"
+            columns: ["bid_id"]
+            isOneToOne: false
+            referencedRelation: "v_valid_circle_bids"
             referencedColumns: ["id"]
           },
           {
@@ -4058,6 +4075,13 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "members_promo_unlock_circle_id_fkey"
+            columns: ["promo_unlock_circle_id"]
+            isOneToOne: false
+            referencedRelation: "v_valid_circle_bids"
+            referencedColumns: ["id"]
+          },
+          {
             foreignKeyName: "members_referred_by_fkey"
             columns: ["referred_by"]
             isOneToOne: false
@@ -6537,6 +6561,13 @@ export type Database = {
             referencedRelation: "circle_bids"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "ubuntu_fund_txns_source_bid_fkey"
+            columns: ["source_bid"]
+            isOneToOne: false
+            referencedRelation: "v_valid_circle_bids"
+            referencedColumns: ["id"]
+          },
         ]
       }
       waitlist: {
@@ -6643,6 +6674,13 @@ export type Database = {
             columns: ["unlock_via_circle"]
             isOneToOne: false
             referencedRelation: "circle_bids"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "withdrawal_requests_unlock_via_circle_fkey"
+            columns: ["unlock_via_circle"]
+            isOneToOne: false
+            referencedRelation: "v_valid_circle_bids"
             referencedColumns: ["id"]
           },
         ]
@@ -7198,6 +7236,209 @@ export type Database = {
           source_url: string | null
         }
         Relationships: []
+      }
+      v_valid_circle_bids: {
+        Row: {
+          allocated_at: string | null
+          amount_usd: number | null
+          amount_usdt: number | null
+          amount_usdt_received: number | null
+          boost_count: number | null
+          consistency_percentage: number | null
+          created_at: string | null
+          currency_code: string | null
+          days_waiting: number | null
+          exchange_rate: number | null
+          expiration_notified: boolean | null
+          fiat_amount: number | null
+          id: string | null
+          is_first_payout: boolean | null
+          is_valid_contribution: boolean | null
+          last_boost_at: string | null
+          matched_to: string | null
+          member_id: string | null
+          net_amount: number | null
+          payment_completed_at: string | null
+          payment_confirmed_at: string | null
+          payment_confirmed_by: string | null
+          payment_crypto_address: string | null
+          payment_crypto_network: string | null
+          payment_crypto_txhash: string | null
+          payment_deadline: string | null
+          payment_method: string | null
+          payment_proof_url: string | null
+          payment_ref: string | null
+          payment_reference: string | null
+          payment_status: string | null
+          payment_submitted_at: string | null
+          payment_window_hours: number | null
+          payout_amount: number | null
+          payout_crypto_network: string | null
+          payout_crypto_txhash: string | null
+          payout_date: string | null
+          payout_rank: number | null
+          paystack_reference: string | null
+          platform_fee: number | null
+          priority_score: number | null
+          priority_slot: boolean | null
+          proof_extended_until: string | null
+          quarantine_reason: string | null
+          quarantined_at: string | null
+          score_breakdown: Json | null
+          spark_amount: number | null
+          status: string | null
+          streak_bonus: number | null
+          tier: string | null
+          total_sparks_spent_on_boosts: number | null
+          ubuntu_fund_cut: number | null
+          updated_at: string | null
+          vault_end: string | null
+          vault_start: string | null
+        }
+        Insert: {
+          allocated_at?: string | null
+          amount_usd?: number | null
+          amount_usdt?: number | null
+          amount_usdt_received?: number | null
+          boost_count?: number | null
+          consistency_percentage?: number | null
+          created_at?: string | null
+          currency_code?: string | null
+          days_waiting?: number | null
+          exchange_rate?: number | null
+          expiration_notified?: boolean | null
+          fiat_amount?: number | null
+          id?: string | null
+          is_first_payout?: boolean | null
+          is_valid_contribution?: boolean | null
+          last_boost_at?: string | null
+          matched_to?: string | null
+          member_id?: string | null
+          net_amount?: number | null
+          payment_completed_at?: string | null
+          payment_confirmed_at?: string | null
+          payment_confirmed_by?: string | null
+          payment_crypto_address?: string | null
+          payment_crypto_network?: string | null
+          payment_crypto_txhash?: string | null
+          payment_deadline?: string | null
+          payment_method?: string | null
+          payment_proof_url?: string | null
+          payment_ref?: string | null
+          payment_reference?: string | null
+          payment_status?: string | null
+          payment_submitted_at?: string | null
+          payment_window_hours?: number | null
+          payout_amount?: number | null
+          payout_crypto_network?: string | null
+          payout_crypto_txhash?: string | null
+          payout_date?: string | null
+          payout_rank?: number | null
+          paystack_reference?: string | null
+          platform_fee?: number | null
+          priority_score?: number | null
+          priority_slot?: boolean | null
+          proof_extended_until?: string | null
+          quarantine_reason?: string | null
+          quarantined_at?: string | null
+          score_breakdown?: Json | null
+          spark_amount?: number | null
+          status?: string | null
+          streak_bonus?: number | null
+          tier?: string | null
+          total_sparks_spent_on_boosts?: number | null
+          ubuntu_fund_cut?: number | null
+          updated_at?: string | null
+          vault_end?: string | null
+          vault_start?: string | null
+        }
+        Update: {
+          allocated_at?: string | null
+          amount_usd?: number | null
+          amount_usdt?: number | null
+          amount_usdt_received?: number | null
+          boost_count?: number | null
+          consistency_percentage?: number | null
+          created_at?: string | null
+          currency_code?: string | null
+          days_waiting?: number | null
+          exchange_rate?: number | null
+          expiration_notified?: boolean | null
+          fiat_amount?: number | null
+          id?: string | null
+          is_first_payout?: boolean | null
+          is_valid_contribution?: boolean | null
+          last_boost_at?: string | null
+          matched_to?: string | null
+          member_id?: string | null
+          net_amount?: number | null
+          payment_completed_at?: string | null
+          payment_confirmed_at?: string | null
+          payment_confirmed_by?: string | null
+          payment_crypto_address?: string | null
+          payment_crypto_network?: string | null
+          payment_crypto_txhash?: string | null
+          payment_deadline?: string | null
+          payment_method?: string | null
+          payment_proof_url?: string | null
+          payment_ref?: string | null
+          payment_reference?: string | null
+          payment_status?: string | null
+          payment_submitted_at?: string | null
+          payment_window_hours?: number | null
+          payout_amount?: number | null
+          payout_crypto_network?: string | null
+          payout_crypto_txhash?: string | null
+          payout_date?: string | null
+          payout_rank?: number | null
+          paystack_reference?: string | null
+          platform_fee?: number | null
+          priority_score?: number | null
+          priority_slot?: boolean | null
+          proof_extended_until?: string | null
+          quarantine_reason?: string | null
+          quarantined_at?: string | null
+          score_breakdown?: Json | null
+          spark_amount?: number | null
+          status?: string | null
+          streak_bonus?: number | null
+          tier?: string | null
+          total_sparks_spent_on_boosts?: number | null
+          ubuntu_fund_cut?: number | null
+          updated_at?: string | null
+          vault_end?: string | null
+          vault_start?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "circle_bids_matched_to_fkey"
+            columns: ["matched_to"]
+            isOneToOne: false
+            referencedRelation: "circle_bids"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "circle_bids_matched_to_fkey"
+            columns: ["matched_to"]
+            isOneToOne: false
+            referencedRelation: "v_valid_circle_bids"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "circle_bids_member_id_fkey"
+            columns: ["member_id"]
+            isOneToOne: false
+            referencedRelation: "members"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "circle_bids_tier_fkey"
+            columns: ["tier"]
+            isOneToOne: false
+            referencedRelation: "circle_tiers"
+            referencedColumns: ["tier"]
+          },
+        ]
       }
     }
     Functions: {

@@ -95,11 +95,13 @@ export function useSocialProof(refreshMs = 45_000): SocialProof {
             .from("circle_bids")
             .select("tier, payout_date, updated_at")
             .eq("status", "paid")
+            .eq("is_valid_contribution", true)
             .or(`payout_date.gte.${weekStart},and(payout_date.is.null,updated_at.gte.${weekStart})`),
 
           supabase
             .from("circle_bids")
             .select("tier")
+            .eq("is_valid_contribution", true)
             .gte("created_at", live),
           supabase
             .from("circle_payouts")
