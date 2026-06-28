@@ -604,6 +604,7 @@ function GenerateDialog({ open, onClose }: { open: boolean; onClose: () => void 
       .from("circle_bids")
       .select("id, member_id, tier, payout_amount")
       .eq("status", "matched")
+      .eq("is_valid_contribution", true)
       .not("payout_amount", "is", null);
     if (tier !== "all") q = q.eq("tier", tier);
     const { data, error } = await q;
