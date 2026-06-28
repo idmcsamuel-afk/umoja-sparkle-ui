@@ -231,6 +231,9 @@ export default function AdminCircleTracker() {
           contribution_volume_score, community_score, bid_boost_score
         )
       `)
+      // Tracker only shows real contributions: skip quarantined / rejected / expired /
+      // unpaid bids. See `is_valid_contribution` generated column on circle_bids.
+      .eq("is_valid_contribution", true)
       .order("created_at", { ascending: false });
 
     if (error) {
