@@ -39,6 +39,7 @@ export default function AdminRevenueDashboard() {
         .from("circle_bids")
         .select("id", { count: "exact", head: true })
         .eq("status", "vault")
+        .eq("is_valid_contribution", true)
         .lt("vault_end", new Date().toISOString());
       setOverdue(count ?? 0);
     };
