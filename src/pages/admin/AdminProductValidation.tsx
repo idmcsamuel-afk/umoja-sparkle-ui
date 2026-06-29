@@ -249,13 +249,8 @@ export default function AdminProductValidation() {
     const m = computeMargins({ alibaba_cost_zar: alibaba, weight_kg: weight, buffer_pct: buffer, commission_pct: commission, price_zar: Number(r.price_zar), freight_override_zar: freightOverride });
 
     setSaving(r.id);
-    // next spotlight rank
-    const { data: maxRow } = await supabase.from("spark_trade_opportunities")
-      .select("spotlight_rank").eq("is_spotlight", true)
-      .order("spotlight_rank", { ascending: false }).limit(1).maybeSingle();
-    const nextRank = Number((maxRow as any)?.spotlight_rank ?? 0) + 1;
 
-    const { error: insErr } = await supabase.from("spark_trade_opportunities").insert({
+    const row = {
       product_name: r.title,
       category: r.category,
       product_image_url: r.image_url,
@@ -277,17 +272,18 @@ export default function AdminProductValidation() {
       marketplace: "amazon_sa",
       source_product_url: r.product_url,
       is_spotlight: true,
-      spotlight_rank: nextRank,
       spotlight_title: `New: ${r.title ?? "Product"}`,
       group_buy_status: "open",
       stock_quantity: 99999,
       stock_available: 99999,
       is_approved_for_ai_recommendation: true,
-    } as any);
+    };
 
-    if (insErr) {
+    const { data: pubData, error: insErr } = await supabase.functions.invoke("admin-publish-opportunity", { body: { row } });
+    if (insErr || (pubData as any)?.error) {
       setSaving(null);
-      toast({ title: "Publish failed", description: insErr.message, variant: "destructive" });
+      const msg = (insErr as any)?.message || (pubData as any)?.error || "Publish failed";
+      toast({ title: "Publish failed", description: msg, variant: "destructive" });
       return;
     }
 
