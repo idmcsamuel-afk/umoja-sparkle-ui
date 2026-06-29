@@ -207,7 +207,7 @@ export default function AdminProductValidation() {
                       {r.product_url && (
                         <Button asChild size="sm" variant="outline">
                           <a href={r.product_url} target="_blank" rel="noopener noreferrer">
-                            <ExternalLink className="h-3.5 w-3.5 mr-1" /> View on Amazon
+                            <ExternalLink className="h-3.5 w-3.5 mr-1" /> View on {market === "walmart_us" ? "Walmart" : "Amazon"}
                           </a>
                         </Button>
                       )}
