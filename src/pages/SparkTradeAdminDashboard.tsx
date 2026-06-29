@@ -286,6 +286,66 @@ export default function SparkTradeAdminDashboard() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      <Dialog open={!!editingListing} onOpenChange={(o) => !o && setEditingListing(null)}>
+        <DialogContent className="max-w-xl max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>Edit member-facing listing</DialogTitle>
+          </DialogHeader>
+          {editingListing && (
+            <div className="space-y-4">
+              <div className="rounded-md bg-muted/50 p-3 text-xs text-muted-foreground">
+                Display-only override. Pricing, margins and publishing are NOT affected.
+                The original Amazon SA reference is preserved in <code>source_product_url</code>
+                {editingListing.original_reference_name && <> and <code>original_reference_name</code></>}.
+              </div>
+              {(editingListing.original_reference_name || editingListing.source_product_url) && (
+                <div className="rounded-md border p-3 text-xs space-y-1">
+                  <div className="font-medium text-muted-foreground">Original reference (preserved)</div>
+                  {editingListing.original_reference_name && <div>Name: {editingListing.original_reference_name}</div>}
+                  {editingListing.source_product_url && (
+                    <div>URL: <a href={editingListing.source_product_url} target="_blank" rel="noreferrer" className="underline break-all">{editingListing.source_product_url}</a></div>
+                  )}
+                </div>
+              )}
+              <Field label="Member-facing product name" value={editingListing.product_name ?? ""} onChange={(v) => setEditingListing({ ...editingListing, product_name: v })} />
+              <Field label="Spotlight title (optional)" value={editingListing.spotlight_title ?? ""} onChange={(v) => setEditingListing({ ...editingListing, spotlight_title: v })} />
+              <Field label="Category (optional)" value={editingListing.category ?? ""} onChange={(v) => setEditingListing({ ...editingListing, category: v })} />
+              <Field label="Image URL" value={editingListing.product_image_url ?? ""} onChange={(v) => setEditingListing({ ...editingListing, product_image_url: v })} />
+              <ImageUploader
+                value={editingListing.product_image_url ?? ""}
+                onChange={(url) => setEditingListing({ ...editingListing, product_image_url: url })}
+              />
+            </div>
+          )}
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setEditingListing(null)}>Cancel</Button>
+            <Button
+              onClick={async () => {
+                if (!editingListing) return;
+                setSavingListing(true);
+                const { error } = await supabase
+                  .from("spark_trade_opportunities" as any)
+                  .update({
+                    product_name: editingListing.product_name,
+                    product_image_url: editingListing.product_image_url || null,
+                    spotlight_title: editingListing.spotlight_title || null,
+                    category: editingListing.category || null,
+                  })
+                  .eq("id", editingListing.id);
+                setSavingListing(false);
+                if (error) { toast.error(error.message); return; }
+                toast.success("Listing updated — members see this immediately");
+                setEditingListing(null);
+                load();
+              }}
+              disabled={savingListing}
+            >
+              {savingListing && <Loader2 className="h-4 w-4 mr-1 animate-spin" />} Save listing
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
