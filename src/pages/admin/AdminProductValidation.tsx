@@ -75,16 +75,20 @@ interface PriceForm {
   commission_pct: string;
   moq: string;
   supplier_name: string;
+  freight_override_zar: string;
 }
 
-function computeMargins(input: { alibaba_cost_zar: number; weight_kg: number; buffer_pct: number; commission_pct: number; price_zar: number; }) {
+function computeMargins(input: { alibaba_cost_zar: number; weight_kg: number; buffer_pct: number; commission_pct: number; price_zar: number; freight_override_zar?: number | null; }) {
   const adjusted_cost = input.alibaba_cost_zar * (1 + input.buffer_pct / 100);
-  const freight_cost_zar = (input.weight_kg / DEFAULTS.kg_per_cbm) * DEFAULTS.freight_rate_per_cbm;
+  const hasOverride = input.freight_override_zar != null && !isNaN(input.freight_override_zar as number) && (input.freight_override_zar as number) >= 0;
+  const freight_cost_zar = hasOverride
+    ? (input.freight_override_zar as number)
+    : (input.weight_kg / DEFAULTS.kg_per_cbm) * DEFAULTS.freight_rate_per_cbm;
   const umoja_commission_zar = (adjusted_cost + freight_cost_zar) * (input.commission_pct / 100);
   const landed_cost_zar = adjusted_cost + freight_cost_zar + umoja_commission_zar;
   const gross_margin_zar = input.price_zar - landed_cost_zar;
   const expected_margin_percentage = input.price_zar > 0 ? (gross_margin_zar / input.price_zar) * 100 : 0;
-  return { adjusted_cost, freight_cost_zar, umoja_commission_zar, landed_cost_zar, gross_margin_zar, expected_margin_percentage };
+  return { adjusted_cost, freight_cost_zar, freight_is_override: hasOverride, umoja_commission_zar, landed_cost_zar, gross_margin_zar, expected_margin_percentage };
 }
 
 export default function AdminProductValidation() {
