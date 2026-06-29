@@ -152,6 +152,74 @@ export default function AdminProductValidation() {
   };
   const getForm = (id: string): PriceForm => forms[id] ?? blankForm();
 
+  // Load draft when form opens
+  useEffect(() => {
+    if (!openForm || !user?.id || draftLoaded[openForm]) return;
+    (async () => {
+      const { data } = await supabase
+        .from("product_pricing_drafts" as any)
+        .select("*")
+        .eq("product_id", openForm)
+        .eq("admin_user_id", user.id)
+        .maybeSingle();
+      if (data) {
+        const d = data as any;
+        const restored: PriceForm = {
+          alibaba_cost_zar: d.alibaba_cost_zar ?? "",
+          weight_kg: d.weight_kg ?? "",
+          freight_override_zar: d.freight_override_zar ?? "",
+          buffer_pct: d.buffer_pct ?? String(DEFAULTS.buffer_pct),
+          commission_pct: d.commission_pct ?? String(DEFAULTS.commission_pct),
+          moq: d.moq ?? "100",
+          supplier_name: d.supplier_name ?? "",
+        };
+        setForms((p) => ({ ...p, [openForm]: restored }));
+        setRestoredNote((p) => ({ ...p, [openForm]: true }));
+      }
+      setDraftLoaded((p) => ({ ...p, [openForm]: true }));
+    })();
+  }, [openForm, user?.id]);
+
+  // Debounced auto-save of form to draft
+  useEffect(() => {
+    if (!openForm || !user?.id || !draftLoaded[openForm]) return;
+    const f = forms[openForm];
+    if (!f) return;
+    const isEmpty = !f.alibaba_cost_zar && !f.weight_kg && !f.freight_override_zar && !f.supplier_name
+      && f.buffer_pct === String(DEFAULTS.buffer_pct) && f.commission_pct === String(DEFAULTS.commission_pct) && f.moq === "100";
+    if (isEmpty) return;
+    const t = setTimeout(() => {
+      supabase.from("product_pricing_drafts" as any).upsert({
+        product_id: openForm,
+        admin_user_id: user.id,
+        alibaba_cost_zar: f.alibaba_cost_zar || null,
+        weight_kg: f.weight_kg || null,
+        freight_override_zar: f.freight_override_zar || null,
+        buffer_pct: f.buffer_pct || null,
+        commission_pct: f.commission_pct || null,
+        moq: f.moq || null,
+        supplier_name: f.supplier_name || null,
+        updated_at: new Date().toISOString(),
+      }, { onConflict: "product_id,admin_user_id" }).then(({ error }) => {
+        if (error) console.warn("draft save failed", error);
+      });
+    }, 600);
+    return () => clearTimeout(t);
+  }, [forms, openForm, user?.id, draftLoaded]);
+
+  const deleteDraft = async (productId: string) => {
+    if (!user?.id) return;
+    await supabase.from("product_pricing_drafts" as any)
+      .delete().eq("product_id", productId).eq("admin_user_id", user.id);
+  };
+
+  const clearDraft = async (productId: string) => {
+    await deleteDraft(productId);
+    setForms((p) => ({ ...p, [productId]: blankForm() }));
+    setRestoredNote((p) => ({ ...p, [productId]: false }));
+    toast({ title: "Draft cleared" });
+  };
+
   const updateStatusOnly = async (id: string, status: ValidationStatus) => {
     setSaving(id);
     const { error } = await supabase.from("products" as any)
