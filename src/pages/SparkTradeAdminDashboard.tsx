@@ -166,9 +166,12 @@ export default function SparkTradeAdminDashboard() {
                           </div>
                         </TableCell>
                         <TableCell>
-                          <div className="flex gap-1">
+                          <div className="flex gap-1 flex-wrap">
                             <Button size="sm" variant="outline" onClick={() => setEditingListing({ ...o })} title="Edit member-facing name & image">
                               <ImagePlus className="h-4 w-4 mr-1" /> Edit listing
+                            </Button>
+                            <Button size="sm" variant="outline" onClick={() => setEditingPricing({ ...o })} title="Edit pricing & margin">
+                              <Calculator className="h-4 w-4 mr-1" /> Edit pricing
                             </Button>
                             <Button size="icon" variant="ghost" onClick={() => setEditing({ ...o })} title="Edit all fields"><Pencil className="h-4 w-4" /></Button>
                             <Button size="icon" variant="ghost" onClick={() => removeOpp(o)}><Trash2 className="h-4 w-4" /></Button>
