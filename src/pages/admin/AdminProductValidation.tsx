@@ -89,7 +89,10 @@ export default function AdminProductValidation() {
   };
 
   useEffect(() => { load(); }, []);
-  useEffect(() => { setPage(1); }, [statusFilter, marketFilter]);
+  useEffect(() => { setPage(1); }, [statusFilter, marketFilter, showImageless]);
+
+  const hasImage = (r: ProductRow) =>
+    typeof r.image_url === "string" && /^https?:\/\//i.test(r.image_url);
 
   const counts = useMemo(() => {
     const pending = rows.filter((r) => (r.validation_status ?? "pending_review") === "pending_review").length;
@@ -101,10 +104,13 @@ export default function AdminProductValidation() {
 
   const filtered = useMemo(() => {
     let list = rows;
+    if (!showImageless) list = list.filter(hasImage);
     if (statusFilter !== "all") list = list.filter((r) => (r.validation_status ?? "pending_review") === statusFilter);
     if (marketFilter !== "all") list = list.filter((r) => (r.marketplace ?? "amazon_us") === marketFilter);
     return list;
-  }, [rows, statusFilter, marketFilter]);
+  }, [rows, statusFilter, marketFilter, showImageless]);
+
+  const hiddenImagelessCount = useMemo(() => rows.filter((r) => !hasImage(r)).length, [rows]);
 
   const totalPages = Math.max(1, Math.ceil(filtered.length / PAGE_SIZE));
   const currentPage = Math.min(page, totalPages);
