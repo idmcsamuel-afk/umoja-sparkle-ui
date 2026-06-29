@@ -75,16 +75,20 @@ interface PriceForm {
   commission_pct: string;
   moq: string;
   supplier_name: string;
+  freight_override_zar: string;
 }
 
-function computeMargins(input: { alibaba_cost_zar: number; weight_kg: number; buffer_pct: number; commission_pct: number; price_zar: number; }) {
+function computeMargins(input: { alibaba_cost_zar: number; weight_kg: number; buffer_pct: number; commission_pct: number; price_zar: number; freight_override_zar?: number | null; }) {
   const adjusted_cost = input.alibaba_cost_zar * (1 + input.buffer_pct / 100);
-  const freight_cost_zar = (input.weight_kg / DEFAULTS.kg_per_cbm) * DEFAULTS.freight_rate_per_cbm;
+  const hasOverride = input.freight_override_zar != null && !isNaN(input.freight_override_zar as number) && (input.freight_override_zar as number) >= 0;
+  const freight_cost_zar = hasOverride
+    ? (input.freight_override_zar as number)
+    : (input.weight_kg / DEFAULTS.kg_per_cbm) * DEFAULTS.freight_rate_per_cbm;
   const umoja_commission_zar = (adjusted_cost + freight_cost_zar) * (input.commission_pct / 100);
   const landed_cost_zar = adjusted_cost + freight_cost_zar + umoja_commission_zar;
   const gross_margin_zar = input.price_zar - landed_cost_zar;
   const expected_margin_percentage = input.price_zar > 0 ? (gross_margin_zar / input.price_zar) * 100 : 0;
-  return { adjusted_cost, freight_cost_zar, umoja_commission_zar, landed_cost_zar, gross_margin_zar, expected_margin_percentage };
+  return { adjusted_cost, freight_cost_zar, freight_is_override: hasOverride, umoja_commission_zar, landed_cost_zar, gross_margin_zar, expected_margin_percentage };
 }
 
 export default function AdminProductValidation() {
@@ -138,10 +142,11 @@ export default function AdminProductValidation() {
   const currentPage = Math.min(page, totalPages);
   const pageRows = filtered.slice((currentPage - 1) * PAGE_SIZE, currentPage * PAGE_SIZE);
 
+  const blankForm = (): PriceForm => ({ alibaba_cost_zar: "", weight_kg: "", buffer_pct: String(DEFAULTS.buffer_pct), commission_pct: String(DEFAULTS.commission_pct), moq: "100", supplier_name: "", freight_override_zar: "" });
   const setFormField = (id: string, k: keyof PriceForm, v: string) => {
-    setForms((p) => ({ ...p, [id]: { ...(p[id] ?? { alibaba_cost_zar: "", weight_kg: "", buffer_pct: String(DEFAULTS.buffer_pct), commission_pct: String(DEFAULTS.commission_pct), moq: "100", supplier_name: "" }), [k]: v } }));
+    setForms((p) => ({ ...p, [id]: { ...(p[id] ?? blankForm()), [k]: v } }));
   };
-  const getForm = (id: string): PriceForm => forms[id] ?? { alibaba_cost_zar: "", weight_kg: "", buffer_pct: String(DEFAULTS.buffer_pct), commission_pct: String(DEFAULTS.commission_pct), moq: "100", supplier_name: "" };
+  const getForm = (id: string): PriceForm => forms[id] ?? blankForm();
 
   const updateStatusOnly = async (id: string, status: ValidationStatus) => {
     setSaving(id);
@@ -164,7 +169,12 @@ export default function AdminProductValidation() {
     if (!weight || weight <= 0) { toast({ title: "Weight (kg) is required", variant: "destructive" }); return; }
     if (!r.price_zar || r.price_zar <= 0) { toast({ title: "Missing SA selling price (price_zar) on source row", variant: "destructive" }); return; }
 
-    const m = computeMargins({ alibaba_cost_zar: alibaba, weight_kg: weight, buffer_pct: buffer, commission_pct: commission, price_zar: Number(r.price_zar) });
+    const freightOverrideRaw = f.freight_override_zar.trim();
+    const freightOverride = freightOverrideRaw === "" ? null : parseFloat(freightOverrideRaw);
+    if (freightOverride != null && (isNaN(freightOverride) || freightOverride < 0)) {
+      toast({ title: "Freight override must be a non-negative number", variant: "destructive" }); return;
+    }
+    const m = computeMargins({ alibaba_cost_zar: alibaba, weight_kg: weight, buffer_pct: buffer, commission_pct: commission, price_zar: Number(r.price_zar), freight_override_zar: freightOverride });
 
     setSaving(r.id);
     // next spotlight rank
@@ -182,6 +192,7 @@ export default function AdminProductValidation() {
       alibaba_cost_zar: alibaba,
       buffer_pct: buffer,
       freight_cost_zar: Math.round(m.freight_cost_zar * 100) / 100,
+      freight_is_override: m.freight_is_override,
       umoja_commission_zar: Math.round(m.umoja_commission_zar * 100) / 100,
       commission_pct: commission,
       landed_cost_zar: Math.round(m.landed_cost_zar * 100) / 100,
@@ -274,6 +285,7 @@ export default function AdminProductValidation() {
                   buffer_pct: parseFloat(f.buffer_pct) || 0,
                   commission_pct: parseFloat(f.commission_pct) || 0,
                   price_zar: Number(r.price_zar),
+                  freight_override_zar: f.freight_override_zar.trim() === "" ? null : parseFloat(f.freight_override_zar),
                 })
               : null;
 
@@ -326,9 +338,14 @@ export default function AdminProductValidation() {
                         <div><Label className="text-xs">MOQ</Label><Input type="number" value={f.moq} onChange={(e) => setFormField(r.id, "moq", e.target.value)} /></div>
                         <div><Label className="text-xs">Supplier / manufacturer</Label><Input value={f.supplier_name} onChange={(e) => setFormField(r.id, "supplier_name", e.target.value)} placeholder="optional" /></div>
                       </div>
+                      <div>
+                        <Label className="text-xs">Freight cost per unit (ZAR) — override</Label>
+                        <Input type="number" step="0.01" min="0" value={f.freight_override_zar} onChange={(e) => setFormField(r.id, "freight_override_zar", e.target.value)} placeholder="Leave blank to auto-estimate from weight" />
+                        <p className="text-[11px] text-muted-foreground mt-1">Leave blank to auto-estimate from weight. Enter the real per-unit freight (e.g. Accio DDP/air-freight quote) for batteries/hazmat or any product with a known shipping cost.</p>
+                      </div>
                       {live && (
                         <div className="text-xs grid grid-cols-2 md:grid-cols-4 gap-2 pt-2 border-t">
-                          <div><span className="text-muted-foreground">Freight: </span>R{live.freight_cost_zar.toFixed(2)}</div>
+                          <div><span className="text-muted-foreground">Freight{live.freight_is_override ? " (override)" : ""}: </span>R{live.freight_cost_zar.toFixed(2)}</div>
                           <div><span className="text-muted-foreground">Commission: </span>R{live.umoja_commission_zar.toFixed(2)}</div>
                           <div><span className="text-muted-foreground">Landed: </span>R{live.landed_cost_zar.toFixed(2)}</div>
                           <div className={live.gross_margin_zar > 0 ? "text-green-600" : "text-destructive"}>
