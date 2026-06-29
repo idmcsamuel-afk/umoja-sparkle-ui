@@ -32,12 +32,13 @@ interface ProductRow {
 }
 
 type StatusFilter = "all" | "pending_review" | "approved_to_queue";
-type MarketFilter = "all" | "amazon_us" | "amazon_sa";
+type MarketFilter = "all" | "amazon_us" | "amazon_sa" | "walmart_us";
 
 const PAGE_SIZE = 5;
 const MARKET_LABEL: Record<string, string> = {
   amazon_us: "Amazon US",
   amazon_sa: "Amazon SA",
+  walmart_us: "Walmart US",
   amazon_uk: "Amazon UK",
   amazon_de: "Amazon DE",
 };
