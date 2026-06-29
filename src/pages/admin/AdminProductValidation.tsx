@@ -297,6 +297,9 @@ export default function AdminProductValidation() {
     if (updErr) { toast({ title: "Status update failed", description: updErr.message, variant: "destructive" }); return; }
 
     setRows((prev) => prev.map((x) => (x.id === r.id ? { ...x, validation_status: "approved_to_queue", reviewed_at: new Date().toISOString() } : x)));
+    await deleteDraft(r.id);
+    setForms((p) => ({ ...p, [r.id]: blankForm() }));
+    setRestoredNote((p) => ({ ...p, [r.id]: false }));
     setOpenForm(null);
     toast({ title: "Published to Browse", description: `Margin ${m.expected_margin_percentage.toFixed(1)}% • R${m.gross_margin_zar.toFixed(2)}/unit` });
 
