@@ -5667,19 +5667,27 @@ export type Database = {
       }
       spark_trade_opportunities: {
         Row: {
+          alibaba_cost_zar: number | null
+          buffer_pct: number | null
           category: string | null
+          commission_pct: number | null
           created_at: string | null
           current_reserved: number | null
           expected_arrival_date: string | null
           expected_margin_percentage: number | null
           expected_order_date: string | null
+          freight_cost_zar: number | null
+          gross_margin_zar: number | null
           group_buy_status: string | null
           id: number
           is_approved_for_ai_recommendation: boolean | null
           is_spotlight: boolean
+          landed_cost_zar: number | null
+          marketplace: string | null
           moq_required: number | null
           product_image_url: string | null
           product_name: string | null
+          source_product_url: string | null
           spotlight_rank: number | null
           spotlight_title: string | null
           stock_available: number | null
@@ -5688,23 +5696,33 @@ export type Database = {
           supplier_country: string | null
           supplier_name: string | null
           trending_direction: string | null
+          umoja_commission_zar: number | null
           unit_cost_zar: number | null
           updated_at: string | null
+          weight_kg: number | null
         }
         Insert: {
+          alibaba_cost_zar?: number | null
+          buffer_pct?: number | null
           category?: string | null
+          commission_pct?: number | null
           created_at?: string | null
           current_reserved?: number | null
           expected_arrival_date?: string | null
           expected_margin_percentage?: number | null
           expected_order_date?: string | null
+          freight_cost_zar?: number | null
+          gross_margin_zar?: number | null
           group_buy_status?: string | null
           id?: number
           is_approved_for_ai_recommendation?: boolean | null
           is_spotlight?: boolean
+          landed_cost_zar?: number | null
+          marketplace?: string | null
           moq_required?: number | null
           product_image_url?: string | null
           product_name?: string | null
+          source_product_url?: string | null
           spotlight_rank?: number | null
           spotlight_title?: string | null
           stock_available?: number | null
@@ -5713,23 +5731,33 @@ export type Database = {
           supplier_country?: string | null
           supplier_name?: string | null
           trending_direction?: string | null
+          umoja_commission_zar?: number | null
           unit_cost_zar?: number | null
           updated_at?: string | null
+          weight_kg?: number | null
         }
         Update: {
+          alibaba_cost_zar?: number | null
+          buffer_pct?: number | null
           category?: string | null
+          commission_pct?: number | null
           created_at?: string | null
           current_reserved?: number | null
           expected_arrival_date?: string | null
           expected_margin_percentage?: number | null
           expected_order_date?: string | null
+          freight_cost_zar?: number | null
+          gross_margin_zar?: number | null
           group_buy_status?: string | null
           id?: number
           is_approved_for_ai_recommendation?: boolean | null
           is_spotlight?: boolean
+          landed_cost_zar?: number | null
+          marketplace?: string | null
           moq_required?: number | null
           product_image_url?: string | null
           product_name?: string | null
+          source_product_url?: string | null
           spotlight_rank?: number | null
           spotlight_title?: string | null
           stock_available?: number | null
@@ -5738,8 +5766,28 @@ export type Database = {
           supplier_country?: string | null
           supplier_name?: string | null
           trending_direction?: string | null
+          umoja_commission_zar?: number | null
           unit_cost_zar?: number | null
           updated_at?: string | null
+          weight_kg?: number | null
+        }
+        Relationships: []
+      }
+      spark_trade_settings: {
+        Row: {
+          key: string
+          updated_at: string
+          value: number
+        }
+        Insert: {
+          key: string
+          updated_at?: string
+          value: number
+        }
+        Update: {
+          key?: string
+          updated_at?: string
+          value?: number
         }
         Relationships: []
       }

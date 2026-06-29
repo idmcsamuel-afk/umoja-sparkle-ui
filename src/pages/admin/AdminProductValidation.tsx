@@ -3,6 +3,8 @@ import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 import { toast } from "@/hooks/use-toast";
 import {
   Pagination,
@@ -13,7 +15,7 @@ import {
 } from "@/components/ui/pagination";
 import { Check, X, ExternalLink, Star, RefreshCw, ImageOff } from "lucide-react";
 
-type ValidationStatus = "pending_review" | "approved_to_queue" | "rejected";
+type ValidationStatus = "pending_review" | "approved_to_queue" | "rejected" | "demand_validated";
 
 interface ProductRow {
   id: string;
@@ -23,6 +25,7 @@ interface ProductRow {
   rating: number | null;
   review_count: number | null;
   price_usd: number | null;
+  price_zar: number | null;
   marketplace: string | null;
   product_url: string | null;
   image_url: string | null;
@@ -42,6 +45,8 @@ const MARKET_LABEL: Record<string, string> = {
   amazon_uk: "Amazon UK",
   amazon_de: "Amazon DE",
 };
+
+const DEFAULTS = { buffer_pct: 10, commission_pct: 8, freight_rate_per_cbm: 8800, kg_per_cbm: 167 };
 
 function Stars({ value }: { value: number | null }) {
   if (value == null) return <span className="text-muted-foreground text-xs">No rating</span>;
@@ -63,6 +68,25 @@ function DemandBadge({ reviews }: { reviews: number | null }) {
   return <Badge className="bg-red-600 text-white">LOW DEMAND</Badge>;
 }
 
+interface PriceForm {
+  alibaba_cost_zar: string;
+  weight_kg: string;
+  buffer_pct: string;
+  commission_pct: string;
+  moq: string;
+  supplier_name: string;
+}
+
+function computeMargins(input: { alibaba_cost_zar: number; weight_kg: number; buffer_pct: number; commission_pct: number; price_zar: number; }) {
+  const adjusted_cost = input.alibaba_cost_zar * (1 + input.buffer_pct / 100);
+  const freight_cost_zar = (input.weight_kg / DEFAULTS.kg_per_cbm) * DEFAULTS.freight_rate_per_cbm;
+  const umoja_commission_zar = (adjusted_cost + freight_cost_zar) * (input.commission_pct / 100);
+  const landed_cost_zar = adjusted_cost + freight_cost_zar + umoja_commission_zar;
+  const gross_margin_zar = input.price_zar - landed_cost_zar;
+  const expected_margin_percentage = input.price_zar > 0 ? (gross_margin_zar / input.price_zar) * 100 : 0;
+  return { adjusted_cost, freight_cost_zar, umoja_commission_zar, landed_cost_zar, gross_margin_zar, expected_margin_percentage };
+}
+
 export default function AdminProductValidation() {
   const [rows, setRows] = useState<ProductRow[]>([]);
   const [loading, setLoading] = useState(true);
@@ -71,6 +95,8 @@ export default function AdminProductValidation() {
   const [showImageless, setShowImageless] = useState(false);
   const [page, setPage] = useState(1);
   const [saving, setSaving] = useState<string | null>(null);
+  const [openForm, setOpenForm] = useState<string | null>(null);
+  const [forms, setForms] = useState<Record<string, PriceForm>>({});
 
   const load = async () => {
     setLoading(true);
@@ -81,9 +107,7 @@ export default function AdminProductValidation() {
       .gte("created_at", since)
       .order("review_count", { ascending: false, nullsFirst: false })
       .limit(500);
-    if (error) {
-      toast({ title: "Load failed", description: error.message, variant: "destructive" });
-    }
+    if (error) toast({ title: "Load failed", description: error.message, variant: "destructive" });
     setRows(((data ?? []) as unknown) as ProductRow[]);
     setLoading(false);
   };
@@ -91,8 +115,7 @@ export default function AdminProductValidation() {
   useEffect(() => { load(); }, []);
   useEffect(() => { setPage(1); }, [statusFilter, marketFilter, showImageless]);
 
-  const hasImage = (r: ProductRow) =>
-    typeof r.image_url === "string" && /^https?:\/\//i.test(r.image_url);
+  const hasImage = (r: ProductRow) => typeof r.image_url === "string" && /^https?:\/\//i.test(r.image_url);
 
   const counts = useMemo(() => {
     const pending = rows.filter((r) => (r.validation_status ?? "pending_review") === "pending_review").length;
@@ -111,46 +134,102 @@ export default function AdminProductValidation() {
   }, [rows, statusFilter, marketFilter, showImageless]);
 
   const hiddenImagelessCount = useMemo(() => rows.filter((r) => !hasImage(r)).length, [rows]);
-
   const totalPages = Math.max(1, Math.ceil(filtered.length / PAGE_SIZE));
   const currentPage = Math.min(page, totalPages);
   const pageRows = filtered.slice((currentPage - 1) * PAGE_SIZE, currentPage * PAGE_SIZE);
 
-  const updateStatus = async (id: string, status: ValidationStatus) => {
-    setSaving(id);
-    const { error } = await supabase
-      .from("products" as any)
-      .update({ validation_status: status, reviewed_at: new Date().toISOString() })
-      .eq("id", id);
-    setSaving(null);
-    if (error) {
-      toast({ title: "Update failed", description: error.message, variant: "destructive" });
-      return;
-    }
-    setRows((prev) => prev.map((r) => (r.id === id ? { ...r, validation_status: status, reviewed_at: new Date().toISOString() } : r)));
-    toast({ title: status === "approved_to_queue" ? "Approved" : status === "rejected" ? "Rejected" : "Updated" });
+  const setFormField = (id: string, k: keyof PriceForm, v: string) => {
+    setForms((p) => ({ ...p, [id]: { ...(p[id] ?? { alibaba_cost_zar: "", weight_kg: "", buffer_pct: String(DEFAULTS.buffer_pct), commission_pct: String(DEFAULTS.commission_pct), moq: "100", supplier_name: "" }), [k]: v } }));
+  };
+  const getForm = (id: string): PriceForm => forms[id] ?? { alibaba_cost_zar: "", weight_kg: "", buffer_pct: String(DEFAULTS.buffer_pct), commission_pct: String(DEFAULTS.commission_pct), moq: "100", supplier_name: "" };
 
-    // Auto-enrich sales_rank on approval (approved rows only).
-    if (status === "approved_to_queue") {
-      const row = rows.find((r) => r.id === id);
-      if (row?.asin) {
-        supabase.functions.invoke("enrich-product-rank", { body: { asin: row.asin } })
-          .catch((e) => console.warn("enrich-product-rank failed", e));
-      }
-    }
+  const updateStatusOnly = async (id: string, status: ValidationStatus) => {
+    setSaving(id);
+    const { error } = await supabase.from("products" as any)
+      .update({ validation_status: status, reviewed_at: new Date().toISOString() }).eq("id", id);
+    setSaving(null);
+    if (error) { toast({ title: "Update failed", description: error.message, variant: "destructive" }); return; }
+    setRows((prev) => prev.map((r) => (r.id === id ? { ...r, validation_status: status, reviewed_at: new Date().toISOString() } : r)));
+    toast({ title: status === "rejected" ? "Rejected" : status === "demand_validated" ? "Marked as demand signal" : "Updated" });
   };
 
+  const publishAmazonSA = async (r: ProductRow) => {
+    const f = getForm(r.id);
+    const alibaba = parseFloat(f.alibaba_cost_zar);
+    const weight = parseFloat(f.weight_kg);
+    const buffer = parseFloat(f.buffer_pct);
+    const commission = parseFloat(f.commission_pct);
+    const moq = parseInt(f.moq) || 100;
+    if (!alibaba || alibaba <= 0) { toast({ title: "Alibaba unit cost (ZAR) is required", variant: "destructive" }); return; }
+    if (!weight || weight <= 0) { toast({ title: "Weight (kg) is required", variant: "destructive" }); return; }
+    if (!r.price_zar || r.price_zar <= 0) { toast({ title: "Missing SA selling price (price_zar) on source row", variant: "destructive" }); return; }
+
+    const m = computeMargins({ alibaba_cost_zar: alibaba, weight_kg: weight, buffer_pct: buffer, commission_pct: commission, price_zar: Number(r.price_zar) });
+
+    setSaving(r.id);
+    // next spotlight rank
+    const { data: maxRow } = await supabase.from("spark_trade_opportunities")
+      .select("spotlight_rank").eq("is_spotlight", true)
+      .order("spotlight_rank", { ascending: false }).limit(1).maybeSingle();
+    const nextRank = Number((maxRow as any)?.spotlight_rank ?? 0) + 1;
+
+    const { error: insErr } = await supabase.from("spark_trade_opportunities").insert({
+      product_name: r.title,
+      category: r.category,
+      product_image_url: r.image_url,
+      suggested_selling_price_zar: Number(r.price_zar),
+      unit_cost_zar: Math.round(m.landed_cost_zar * 100) / 100,
+      alibaba_cost_zar: alibaba,
+      buffer_pct: buffer,
+      freight_cost_zar: Math.round(m.freight_cost_zar * 100) / 100,
+      umoja_commission_zar: Math.round(m.umoja_commission_zar * 100) / 100,
+      commission_pct: commission,
+      landed_cost_zar: Math.round(m.landed_cost_zar * 100) / 100,
+      gross_margin_zar: Math.round(m.gross_margin_zar * 100) / 100,
+      expected_margin_percentage: Math.round(m.expected_margin_percentage * 100) / 100,
+      weight_kg: weight,
+      moq_required: moq,
+      supplier_name: f.supplier_name || "china_supplier",
+      supplier_country: "China",
+      marketplace: "amazon_sa",
+      source_product_url: r.product_url,
+      is_spotlight: true,
+      spotlight_rank: nextRank,
+      spotlight_title: `New: ${r.title ?? "Product"}`,
+      group_buy_status: "open",
+      stock_quantity: 99999,
+      stock_available: 99999,
+      is_approved_for_ai_recommendation: true,
+    } as any);
+
+    if (insErr) {
+      setSaving(null);
+      toast({ title: "Publish failed", description: insErr.message, variant: "destructive" });
+      return;
+    }
+
+    const { error: updErr } = await supabase.from("products" as any)
+      .update({ validation_status: "approved_to_queue", reviewed_at: new Date().toISOString() }).eq("id", r.id);
+    setSaving(null);
+    if (updErr) { toast({ title: "Status update failed", description: updErr.message, variant: "destructive" }); return; }
+
+    setRows((prev) => prev.map((x) => (x.id === r.id ? { ...x, validation_status: "approved_to_queue", reviewed_at: new Date().toISOString() } : x)));
+    setOpenForm(null);
+    toast({ title: "Published to Browse", description: `Margin ${m.expected_margin_percentage.toFixed(1)}% • R${m.gross_margin_zar.toFixed(2)}/unit` });
+
+    if (r.asin) {
+      supabase.functions.invoke("enrich-product-rank", { body: { asin: r.asin } }).catch((e) => console.warn("enrich-product-rank failed", e));
+    }
+  };
 
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between flex-wrap gap-3">
         <div>
           <h1 className="text-2xl font-semibold">Product Validation — Amazon (Live)</h1>
-          <p className="text-sm text-muted-foreground">Real Amazon products discovered in the last 7 days.</p>
+          <p className="text-sm text-muted-foreground">Approve Amazon SA products with Alibaba cost + weight to publish to Browse. US/Walmart are demand signals only.</p>
         </div>
-        <Button variant="outline" size="sm" onClick={load}>
-          <RefreshCw className="h-4 w-4 mr-1" /> Refresh
-        </Button>
+        <Button variant="outline" size="sm" onClick={load}><RefreshCw className="h-4 w-4 mr-1" /> Refresh</Button>
       </div>
 
       <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
@@ -175,18 +254,29 @@ export default function AdminProductValidation() {
         </Button>
       </div>
 
-      {loading ? (
-        <p className="text-sm text-muted-foreground">Loading…</p>
-      ) : pageRows.length === 0 ? (
-        <p className="text-sm text-muted-foreground">No products match these filters.</p>
-      ) : (
+      {loading ? <p className="text-sm text-muted-foreground">Loading…</p>
+      : pageRows.length === 0 ? <p className="text-sm text-muted-foreground">No products match these filters.</p>
+      : (
         <div className="space-y-4">
           {pageRows.map((r) => {
             const status = (r.validation_status ?? "pending_review") as ValidationStatus;
             const market = r.marketplace ?? "amazon_us";
+            const isSA = market === "amazon_sa";
             const cardTone =
               status === "approved_to_queue" ? "border-green-500/40 bg-green-500/5"
-              : status === "rejected" ? "border-destructive/40 bg-destructive/5" : "";
+              : status === "rejected" ? "border-destructive/40 bg-destructive/5"
+              : status === "demand_validated" ? "border-blue-500/40 bg-blue-500/5" : "";
+            const f = getForm(r.id);
+            const live = isSA && r.price_zar && parseFloat(f.alibaba_cost_zar) > 0 && parseFloat(f.weight_kg) > 0
+              ? computeMargins({
+                  alibaba_cost_zar: parseFloat(f.alibaba_cost_zar),
+                  weight_kg: parseFloat(f.weight_kg),
+                  buffer_pct: parseFloat(f.buffer_pct) || 0,
+                  commission_pct: parseFloat(f.commission_pct) || 0,
+                  price_zar: Number(r.price_zar),
+                })
+              : null;
+
             return (
               <Card key={r.id} className={cardTone}>
                 <CardHeader className="pb-3">
@@ -196,7 +286,7 @@ export default function AdminProductValidation() {
                       <Badge variant="outline">{MARKET_LABEL[market] ?? market}</Badge>
                       <DemandBadge reviews={r.review_count} />
                       <Badge variant={status==="approved_to_queue"?"default":status==="rejected"?"destructive":"secondary"}>
-                        {status==="approved_to_queue"?"✅ Approved":status==="rejected"?"❌ Rejected":"⏳ Pending"}
+                        {status==="approved_to_queue"?"✅ Published":status==="rejected"?"❌ Rejected":status==="demand_validated"?"📊 Demand signal":"⏳ Pending"}
                       </Badge>
                     </div>
                   </div>
@@ -204,35 +294,76 @@ export default function AdminProductValidation() {
                 <CardContent className="space-y-4">
                   <div className="flex gap-4 flex-wrap">
                     <div className="w-32 h-32 rounded border bg-muted flex items-center justify-center overflow-hidden shrink-0">
-                      {r.image_url ? (
-                        <img src={r.image_url} alt={r.title ?? ""} className="w-full h-full object-contain" />
-                      ) : (
-                        <ImageOff className="h-6 w-6 text-muted-foreground" />
-                      )}
+                      {r.image_url ? <img src={r.image_url} alt={r.title ?? ""} className="w-full h-full object-contain" /> : <ImageOff className="h-6 w-6 text-muted-foreground" />}
                     </div>
                     <div className="space-y-2 flex-1 min-w-[220px]">
                       <Stars value={r.rating} />
-                      <p className="text-sm"><span className="text-muted-foreground">Price:</span> {r.price_usd != null ? `$${Number(r.price_usd).toFixed(2)}` : "—"}</p>
+                      {isSA
+                        ? <p className="text-sm"><span className="text-muted-foreground">SA Price:</span> {r.price_zar != null ? `R${Number(r.price_zar).toFixed(2)}` : "—"}</p>
+                        : <p className="text-sm"><span className="text-muted-foreground">Price (USD):</span> {r.price_usd != null ? `$${Number(r.price_usd).toFixed(2)}` : "—"}</p>}
                       <p className="text-sm"><span className="text-muted-foreground">Reviews — demand proxy:</span> {r.review_count?.toLocaleString() ?? "—"}</p>
                       <p className="text-sm"><span className="text-muted-foreground">Category:</span> {r.category ?? "—"}</p>
                       {r.product_url && (
                         <Button asChild size="sm" variant="outline">
-                          <a href={r.product_url} target="_blank" rel="noopener noreferrer">
-                            <ExternalLink className="h-3.5 w-3.5 mr-1" /> View on {market === "walmart_us" ? "Walmart" : "Amazon"}
-                          </a>
+                          <a href={r.product_url} target="_blank" rel="noopener noreferrer"><ExternalLink className="h-3.5 w-3.5 mr-1" /> View on {market === "walmart_us" ? "Walmart" : "Amazon"}</a>
                         </Button>
                       )}
                     </div>
                   </div>
+
+                  {!isSA && status === "pending_review" && (
+                    <p className="text-xs text-blue-600 dark:text-blue-400">Demand signal only — needs SA selling price to publish.</p>
+                  )}
+
+                  {isSA && openForm === r.id && (
+                    <div className="rounded border p-3 space-y-3 bg-muted/30">
+                      <p className="text-sm font-medium">Pricing & margin (Alibaba → landed cost)</p>
+                      <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
+                        <div><Label className="text-xs">Alibaba unit cost (ZAR) *</Label><Input type="number" step="0.01" value={f.alibaba_cost_zar} onChange={(e) => setFormField(r.id, "alibaba_cost_zar", e.target.value)} placeholder="e.g. 85" /></div>
+                        <div><Label className="text-xs">Weight (kg) *</Label><Input type="number" step="0.01" value={f.weight_kg} onChange={(e) => setFormField(r.id, "weight_kg", e.target.value)} placeholder="e.g. 0.5" /></div>
+                        <div><Label className="text-xs">Buffer %</Label><Input type="number" step="0.1" value={f.buffer_pct} onChange={(e) => setFormField(r.id, "buffer_pct", e.target.value)} /></div>
+                        <div><Label className="text-xs">Commission %</Label><Input type="number" step="0.1" value={f.commission_pct} onChange={(e) => setFormField(r.id, "commission_pct", e.target.value)} /></div>
+                        <div><Label className="text-xs">MOQ</Label><Input type="number" value={f.moq} onChange={(e) => setFormField(r.id, "moq", e.target.value)} /></div>
+                        <div><Label className="text-xs">Supplier / manufacturer</Label><Input value={f.supplier_name} onChange={(e) => setFormField(r.id, "supplier_name", e.target.value)} placeholder="optional" /></div>
+                      </div>
+                      {live && (
+                        <div className="text-xs grid grid-cols-2 md:grid-cols-4 gap-2 pt-2 border-t">
+                          <div><span className="text-muted-foreground">Freight: </span>R{live.freight_cost_zar.toFixed(2)}</div>
+                          <div><span className="text-muted-foreground">Commission: </span>R{live.umoja_commission_zar.toFixed(2)}</div>
+                          <div><span className="text-muted-foreground">Landed: </span>R{live.landed_cost_zar.toFixed(2)}</div>
+                          <div className={live.gross_margin_zar > 0 ? "text-green-600" : "text-destructive"}>
+                            <span className="text-muted-foreground">Margin: </span>R{live.gross_margin_zar.toFixed(2)} ({live.expected_margin_percentage.toFixed(1)}%)
+                          </div>
+                        </div>
+                      )}
+                      <div className="flex gap-2">
+                        <Button size="sm" className="bg-green-600 hover:bg-green-700 text-white" onClick={() => publishAmazonSA(r)} disabled={saving===r.id}>
+                          <Check className="h-4 w-4 mr-1" /> Publish to Browse
+                        </Button>
+                        <Button size="sm" variant="ghost" onClick={() => setOpenForm(null)}>Cancel</Button>
+                      </div>
+                    </div>
+                  )}
+
                   <div className="flex flex-wrap gap-2">
-                    <Button size="sm" className="bg-green-600 hover:bg-green-700 text-white"
-                      onClick={() => updateStatus(r.id, "approved_to_queue")} disabled={saving===r.id}>
-                      <Check className="h-4 w-4 mr-1" /> Approve & Queue
-                    </Button>
-                    <Button variant="destructive" size="sm"
-                      onClick={() => updateStatus(r.id, "rejected")} disabled={saving===r.id}>
-                      <X className="h-4 w-4 mr-1" /> Reject
-                    </Button>
+                    {isSA ? (
+                      openForm !== r.id && status !== "approved_to_queue" && (
+                        <Button size="sm" className="bg-green-600 hover:bg-green-700 text-white" onClick={() => setOpenForm(r.id)}>
+                          <Check className="h-4 w-4 mr-1" /> Approve & Price
+                        </Button>
+                      )
+                    ) : (
+                      status !== "demand_validated" && status !== "approved_to_queue" && (
+                        <Button size="sm" variant="secondary" onClick={() => updateStatusOnly(r.id, "demand_validated")} disabled={saving===r.id}>
+                          📊 Mark as demand signal
+                        </Button>
+                      )
+                    )}
+                    {status !== "rejected" && (
+                      <Button variant="destructive" size="sm" onClick={() => updateStatusOnly(r.id, "rejected")} disabled={saving===r.id}>
+                        <X className="h-4 w-4 mr-1" /> Reject
+                      </Button>
+                    )}
                   </div>
                 </CardContent>
               </Card>
@@ -241,15 +372,9 @@ export default function AdminProductValidation() {
 
           <Pagination>
             <PaginationContent>
-              <PaginationItem>
-                <PaginationPrevious onClick={(e)=>{e.preventDefault();setPage((p)=>Math.max(1,p-1));}}
-                  className={currentPage<=1?"pointer-events-none opacity-50":"cursor-pointer"} />
-              </PaginationItem>
+              <PaginationItem><PaginationPrevious onClick={(e)=>{e.preventDefault();setPage((p)=>Math.max(1,p-1));}} className={currentPage<=1?"pointer-events-none opacity-50":"cursor-pointer"} /></PaginationItem>
               <PaginationItem><span className="px-3 text-sm text-muted-foreground">Page {currentPage} of {totalPages}</span></PaginationItem>
-              <PaginationItem>
-                <PaginationNext onClick={(e)=>{e.preventDefault();setPage((p)=>Math.min(totalPages,p+1));}}
-                  className={currentPage>=totalPages?"pointer-events-none opacity-50":"cursor-pointer"} />
-              </PaginationItem>
+              <PaginationItem><PaginationNext onClick={(e)=>{e.preventDefault();setPage((p)=>Math.min(totalPages,p+1));}} className={currentPage>=totalPages?"pointer-events-none opacity-50":"cursor-pointer"} /></PaginationItem>
             </PaginationContent>
           </Pagination>
         </div>
