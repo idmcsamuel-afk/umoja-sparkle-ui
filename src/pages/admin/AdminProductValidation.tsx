@@ -142,10 +142,11 @@ export default function AdminProductValidation() {
   const currentPage = Math.min(page, totalPages);
   const pageRows = filtered.slice((currentPage - 1) * PAGE_SIZE, currentPage * PAGE_SIZE);
 
+  const blankForm = (): PriceForm => ({ alibaba_cost_zar: "", weight_kg: "", buffer_pct: String(DEFAULTS.buffer_pct), commission_pct: String(DEFAULTS.commission_pct), moq: "100", supplier_name: "", freight_override_zar: "" });
   const setFormField = (id: string, k: keyof PriceForm, v: string) => {
-    setForms((p) => ({ ...p, [id]: { ...(p[id] ?? { alibaba_cost_zar: "", weight_kg: "", buffer_pct: String(DEFAULTS.buffer_pct), commission_pct: String(DEFAULTS.commission_pct), moq: "100", supplier_name: "" }), [k]: v } }));
+    setForms((p) => ({ ...p, [id]: { ...(p[id] ?? blankForm()), [k]: v } }));
   };
-  const getForm = (id: string): PriceForm => forms[id] ?? { alibaba_cost_zar: "", weight_kg: "", buffer_pct: String(DEFAULTS.buffer_pct), commission_pct: String(DEFAULTS.commission_pct), moq: "100", supplier_name: "" };
+  const getForm = (id: string): PriceForm => forms[id] ?? blankForm();
 
   const updateStatusOnly = async (id: string, status: ValidationStatus) => {
     setSaving(id);
