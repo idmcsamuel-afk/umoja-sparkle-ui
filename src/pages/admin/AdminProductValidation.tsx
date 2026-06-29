@@ -345,7 +345,7 @@ export default function AdminProductValidation() {
                       </div>
                       {live && (
                         <div className="text-xs grid grid-cols-2 md:grid-cols-4 gap-2 pt-2 border-t">
-                          <div><span className="text-muted-foreground">Freight: </span>R{live.freight_cost_zar.toFixed(2)}</div>
+                          <div><span className="text-muted-foreground">Freight{live.freight_is_override ? " (override)" : ""}: </span>R{live.freight_cost_zar.toFixed(2)}</div>
                           <div><span className="text-muted-foreground">Commission: </span>R{live.umoja_commission_zar.toFixed(2)}</div>
                           <div><span className="text-muted-foreground">Landed: </span>R{live.landed_cost_zar.toFixed(2)}</div>
                           <div className={live.gross_margin_zar > 0 ? "text-green-600" : "text-destructive"}>
