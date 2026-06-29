@@ -9,7 +9,7 @@ import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
-import { Loader2, Plus, Check, X, Pencil, Trash2, Upload, ImageIcon } from "lucide-react";
+import { Loader2, Plus, Check, X, Pencil, Trash2, Upload, ImageIcon, ImagePlus } from "lucide-react";
 import { toast } from "sonner";
 
 const PRODUCT_IMAGE_BUCKET = "spark_trade_product_images";
