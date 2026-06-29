@@ -404,7 +404,12 @@ export default function AdminProductValidation() {
 
                   {isSA && openForm === r.id && (
                     <div className="rounded border p-3 space-y-3 bg-muted/30">
-                      <p className="text-sm font-medium">Pricing & margin (Alibaba → landed cost)</p>
+                      <div className="flex items-center justify-between gap-2 flex-wrap">
+                        <p className="text-sm font-medium">Pricing & margin (Alibaba → landed cost)</p>
+                        {restoredNote[r.id] && (
+                          <span className="text-[11px] text-blue-600 dark:text-blue-400">Draft restored</span>
+                        )}
+                      </div>
                       <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
                         <div><Label className="text-xs">Alibaba unit cost (ZAR) *</Label><Input type="number" step="0.01" value={f.alibaba_cost_zar} onChange={(e) => setFormField(r.id, "alibaba_cost_zar", e.target.value)} placeholder="e.g. 85" /></div>
                         <div><Label className="text-xs">Weight (kg) *</Label><Input type="number" step="0.01" value={f.weight_kg} onChange={(e) => setFormField(r.id, "weight_kg", e.target.value)} placeholder="e.g. 0.5" /></div>
