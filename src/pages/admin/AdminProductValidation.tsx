@@ -159,7 +159,7 @@ export default function AdminProductValidation() {
           <Button key={f} size="sm" variant={statusFilter===f?"default":"outline"} onClick={()=>setStatusFilter(f)}>{l}</Button>
         ))}
         <span className="text-xs text-muted-foreground ml-4 mr-1">Marketplace:</span>
-        {([["all","All"],["amazon_us","Amazon US"],["amazon_sa","Amazon SA"]] as [MarketFilter,string][]).map(([f,l])=>(
+        {([["all","All"],["amazon_us","Amazon US"],["amazon_sa","Amazon SA"],["walmart_us","Walmart US"]] as [MarketFilter,string][]).map(([f,l])=>(
           <Button key={f} size="sm" variant={marketFilter===f?"default":"outline"} onClick={()=>setMarketFilter(f)}>{l}</Button>
         ))}
       </div>
