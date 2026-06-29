@@ -9,7 +9,7 @@ import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
-import { Loader2, Plus, Check, X, Pencil, Trash2, Upload, ImageIcon, ImagePlus } from "lucide-react";
+import { Loader2, Plus, Check, X, Pencil, Trash2, Upload, ImageIcon, ImagePlus, Calculator } from "lucide-react";
 import { toast } from "sonner";
 
 const PRODUCT_IMAGE_BUCKET = "spark_trade_product_images";
@@ -40,8 +40,10 @@ export default function SparkTradeAdminDashboard() {
   const [loading, setLoading] = useState(true);
   const [editing, setEditing] = useState<Opp | null>(null);
   const [editingListing, setEditingListing] = useState<Opp | null>(null);
+  const [editingPricing, setEditingPricing] = useState<Opp | null>(null);
   const [saving, setSaving] = useState(false);
   const [savingListing, setSavingListing] = useState(false);
+  const [savingPricing, setSavingPricing] = useState(false);
 
   useEffect(() => {
     if (!user) return;
@@ -164,9 +166,12 @@ export default function SparkTradeAdminDashboard() {
                           </div>
                         </TableCell>
                         <TableCell>
-                          <div className="flex gap-1">
+                          <div className="flex gap-1 flex-wrap">
                             <Button size="sm" variant="outline" onClick={() => setEditingListing({ ...o })} title="Edit member-facing name & image">
                               <ImagePlus className="h-4 w-4 mr-1" /> Edit listing
+                            </Button>
+                            <Button size="sm" variant="outline" onClick={() => setEditingPricing({ ...o })} title="Edit pricing & margin">
+                              <Calculator className="h-4 w-4 mr-1" /> Edit pricing
                             </Button>
                             <Button size="icon" variant="ghost" onClick={() => setEditing({ ...o })} title="Edit all fields"><Pencil className="h-4 w-4" /></Button>
                             <Button size="icon" variant="ghost" onClick={() => removeOpp(o)}><Trash2 className="h-4 w-4" /></Button>
@@ -346,6 +351,150 @@ export default function SparkTradeAdminDashboard() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      <PricingEditor
+        opp={editingPricing}
+        saving={savingPricing}
+        onClose={() => setEditingPricing(null)}
+        onSave={async (payload) => {
+          if (!editingPricing) return;
+          setSavingPricing(true);
+          const { data, error } = await supabase.functions.invoke("admin-update-opportunity-pricing", {
+            body: { id: editingPricing.id, ...payload },
+          });
+          setSavingPricing(false);
+          if (error || (data as any)?.error) {
+            toast.error((data as any)?.error || error?.message || "Update failed");
+            return;
+          }
+          toast.success("Pricing updated — members see the new price & margin");
+          setEditingPricing(null);
+          load();
+        }}
+      />
+    </div>
+  );
+}
+
+// ---------- Pricing Editor ----------
+function PricingEditor({
+  opp, saving, onClose, onSave,
+}: {
+  opp: Opp | null;
+  saving: boolean;
+  onClose: () => void;
+  onSave: (payload: {
+    alibaba_cost_zar: number;
+    weight_kg: number;
+    freight_override: number | null;
+    buffer_pct: number;
+    commission_pct: number;
+    moq_required: number;
+    suggested_selling_price_zar: number;
+  }) => void;
+}) {
+  const [alibaba, setAlibaba] = useState(0);
+  const [weight, setWeight] = useState(0);
+  const [freightOverride, setFreightOverride] = useState<string>("");
+  const [buffer, setBuffer] = useState(0);
+  const [commission, setCommission] = useState(0);
+  const [moq, setMoq] = useState(0);
+  const [sell, setSell] = useState(0);
+
+  useEffect(() => {
+    if (!opp) return;
+    setAlibaba(Number(opp.alibaba_cost_zar ?? 0));
+    setWeight(Number(opp.weight_kg ?? 0));
+    setFreightOverride(opp.freight_is_override ? String(opp.freight_cost_zar ?? "") : "");
+    setBuffer(Number(opp.buffer_pct ?? 0));
+    setCommission(Number(opp.commission_pct ?? 0));
+    setMoq(Number(opp.moq_required ?? 0));
+    setSell(Number(opp.suggested_selling_price_zar ?? 0));
+  }, [opp]);
+
+  const overrideNum = freightOverride.trim() === "" ? null : Number(freightOverride);
+  const isOverride = overrideNum != null && !Number.isNaN(overrideNum);
+  const adjusted = alibaba * (1 + buffer / 100);
+  const freight = isOverride ? (overrideNum as number) : (weight / 167) * 8800;
+  const commissionZar = (adjusted + freight) * (commission / 100);
+  const landed = adjusted + freight + commissionZar;
+  const margin = sell - landed;
+  const marginPct = sell > 0 ? (margin / sell) * 100 : 0;
+  const r = (n: number) => Math.round(n * 100) / 100;
+
+  return (
+    <Dialog open={!!opp} onOpenChange={(o) => !o && onClose()}>
+      <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+        <DialogHeader>
+          <DialogTitle>Edit pricing — {opp?.product_name}</DialogTitle>
+        </DialogHeader>
+        {opp && (
+          <div className="space-y-4">
+            <div className="rounded-md bg-muted/50 p-3 text-xs text-muted-foreground">
+              Recalculates landed cost and margin. Does NOT change name, image,
+              spotlight status, or rank. Commission is hidden from members.
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+              <Field label="Alibaba cost / unit (ZAR)" type="number" value={alibaba} onChange={(v) => setAlibaba(Number(v))} />
+              <Field label="Weight per unit (kg)" type="number" value={weight} onChange={(v) => setWeight(Number(v))} />
+              <Field
+                label="Freight cost / unit (ZAR) — override (blank = volumetric)"
+                type="number"
+                value={freightOverride}
+                onChange={(v) => setFreightOverride(v)}
+              />
+              <Field label="Buffer %" type="number" value={buffer} onChange={(v) => setBuffer(Number(v))} />
+              <Field label="Commission % (hidden from members)" type="number" value={commission} onChange={(v) => setCommission(Number(v))} />
+              <Field label="MOQ required" type="number" value={moq} onChange={(v) => setMoq(Number(v))} />
+              <Field label="Suggested selling price (ZAR)" type="number" value={sell} onChange={(v) => setSell(Number(v))} />
+            </div>
+
+            <div className="rounded-md border p-3 text-sm space-y-1">
+              <div className="font-medium mb-2">Live preview</div>
+              <Row k="Adjusted cost (alibaba + buffer)" v={`R${r(adjusted).toLocaleString()}`} />
+              <Row k={`Freight ${isOverride ? "(override)" : "(volumetric)"}`} v={`R${r(freight).toLocaleString()}`} />
+              <Row k="Umoja commission (hidden)" v={`R${r(commissionZar).toLocaleString()}`} muted />
+              <Row k="Landed cost / unit" v={`R${r(landed).toLocaleString()}`} bold />
+              <Row k="Selling price" v={`R${r(sell).toLocaleString()}`} />
+              <Row
+                k="Gross margin"
+                v={`R${r(margin).toLocaleString()} (${r(marginPct)}%)`}
+                bold
+                tone={margin > 0 ? "text-emerald-500" : "text-destructive"}
+              />
+            </div>
+          </div>
+        )}
+        <DialogFooter>
+          <Button variant="outline" onClick={onClose}>Cancel</Button>
+          <Button
+            onClick={() =>
+              onSave({
+                alibaba_cost_zar: alibaba,
+                weight_kg: weight,
+                freight_override: isOverride ? (overrideNum as number) : null,
+                buffer_pct: buffer,
+                commission_pct: commission,
+                moq_required: moq,
+                suggested_selling_price_zar: sell,
+              })
+            }
+            disabled={saving}
+          >
+            {saving && <Loader2 className="h-4 w-4 mr-1 animate-spin" />} Save pricing
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
+function Row({ k, v, bold, muted, tone }: { k: string; v: string; bold?: boolean; muted?: boolean; tone?: string }) {
+  return (
+    <div className={`flex justify-between ${muted ? "text-muted-foreground text-xs" : ""}`}>
+      <span>{k}</span>
+      <span className={`${bold ? "font-semibold" : ""} ${tone ?? ""}`}>{v}</span>
     </div>
   );
 }
