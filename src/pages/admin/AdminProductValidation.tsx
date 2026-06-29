@@ -192,6 +192,7 @@ export default function AdminProductValidation() {
       alibaba_cost_zar: alibaba,
       buffer_pct: buffer,
       freight_cost_zar: Math.round(m.freight_cost_zar * 100) / 100,
+      freight_is_override: m.freight_is_override,
       umoja_commission_zar: Math.round(m.umoja_commission_zar * 100) / 100,
       commission_pct: commission,
       landed_cost_zar: Math.round(m.landed_cost_zar * 100) / 100,
