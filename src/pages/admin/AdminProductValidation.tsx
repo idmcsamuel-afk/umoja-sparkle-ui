@@ -273,7 +273,7 @@ export default function AdminProductValidation() {
       weight_kg: weight,
       moq_required: moq,
       supplier_name: f.supplier_name || "china_supplier",
-      supplier_country: "China",
+      supplier_country: "CN",
       marketplace: "amazon_sa",
       source_product_url: r.product_url,
       is_spotlight: true,
