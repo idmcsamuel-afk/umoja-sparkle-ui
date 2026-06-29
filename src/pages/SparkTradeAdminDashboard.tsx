@@ -39,7 +39,9 @@ export default function SparkTradeAdminDashboard() {
   const [reservations, setReservations] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [editing, setEditing] = useState<Opp | null>(null);
+  const [editingListing, setEditingListing] = useState<Opp | null>(null);
   const [saving, setSaving] = useState(false);
+  const [savingListing, setSavingListing] = useState(false);
 
   useEffect(() => {
     if (!user) return;
