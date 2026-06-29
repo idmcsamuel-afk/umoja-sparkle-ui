@@ -13,7 +13,8 @@ import {
   PaginationNext,
   PaginationPrevious,
 } from "@/components/ui/pagination";
-import { Check, X, ExternalLink, Star, RefreshCw, ImageOff } from "lucide-react";
+import { Check, X, ExternalLink, Star, RefreshCw, ImageOff, Trash2 } from "lucide-react";
+import { useAuth } from "@/hooks/useAuth";
 
 type ValidationStatus = "pending_review" | "approved_to_queue" | "rejected" | "demand_validated";
 
@@ -92,6 +93,7 @@ function computeMargins(input: { alibaba_cost_zar: number; weight_kg: number; bu
 }
 
 export default function AdminProductValidation() {
+  const { user } = useAuth();
   const [rows, setRows] = useState<ProductRow[]>([]);
   const [loading, setLoading] = useState(true);
   const [statusFilter, setStatusFilter] = useState<StatusFilter>("pending_review");
@@ -101,6 +103,8 @@ export default function AdminProductValidation() {
   const [saving, setSaving] = useState<string | null>(null);
   const [openForm, setOpenForm] = useState<string | null>(null);
   const [forms, setForms] = useState<Record<string, PriceForm>>({});
+  const [draftLoaded, setDraftLoaded] = useState<Record<string, boolean>>({});
+  const [restoredNote, setRestoredNote] = useState<Record<string, boolean>>({});
 
   const load = async () => {
     setLoading(true);
@@ -147,6 +151,74 @@ export default function AdminProductValidation() {
     setForms((p) => ({ ...p, [id]: { ...(p[id] ?? blankForm()), [k]: v } }));
   };
   const getForm = (id: string): PriceForm => forms[id] ?? blankForm();
+
+  // Load draft when form opens
+  useEffect(() => {
+    if (!openForm || !user?.id || draftLoaded[openForm]) return;
+    (async () => {
+      const { data } = await supabase
+        .from("product_pricing_drafts" as any)
+        .select("*")
+        .eq("product_id", openForm)
+        .eq("admin_user_id", user.id)
+        .maybeSingle();
+      if (data) {
+        const d = data as any;
+        const restored: PriceForm = {
+          alibaba_cost_zar: d.alibaba_cost_zar ?? "",
+          weight_kg: d.weight_kg ?? "",
+          freight_override_zar: d.freight_override_zar ?? "",
+          buffer_pct: d.buffer_pct ?? String(DEFAULTS.buffer_pct),
+          commission_pct: d.commission_pct ?? String(DEFAULTS.commission_pct),
+          moq: d.moq ?? "100",
+          supplier_name: d.supplier_name ?? "",
+        };
+        setForms((p) => ({ ...p, [openForm]: restored }));
+        setRestoredNote((p) => ({ ...p, [openForm]: true }));
+      }
+      setDraftLoaded((p) => ({ ...p, [openForm]: true }));
+    })();
+  }, [openForm, user?.id]);
+
+  // Debounced auto-save of form to draft
+  useEffect(() => {
+    if (!openForm || !user?.id || !draftLoaded[openForm]) return;
+    const f = forms[openForm];
+    if (!f) return;
+    const isEmpty = !f.alibaba_cost_zar && !f.weight_kg && !f.freight_override_zar && !f.supplier_name
+      && f.buffer_pct === String(DEFAULTS.buffer_pct) && f.commission_pct === String(DEFAULTS.commission_pct) && f.moq === "100";
+    if (isEmpty) return;
+    const t = setTimeout(() => {
+      supabase.from("product_pricing_drafts" as any).upsert({
+        product_id: openForm,
+        admin_user_id: user.id,
+        alibaba_cost_zar: f.alibaba_cost_zar || null,
+        weight_kg: f.weight_kg || null,
+        freight_override_zar: f.freight_override_zar || null,
+        buffer_pct: f.buffer_pct || null,
+        commission_pct: f.commission_pct || null,
+        moq: f.moq || null,
+        supplier_name: f.supplier_name || null,
+        updated_at: new Date().toISOString(),
+      }, { onConflict: "product_id,admin_user_id" }).then(({ error }) => {
+        if (error) console.warn("draft save failed", error);
+      });
+    }, 600);
+    return () => clearTimeout(t);
+  }, [forms, openForm, user?.id, draftLoaded]);
+
+  const deleteDraft = async (productId: string) => {
+    if (!user?.id) return;
+    await supabase.from("product_pricing_drafts" as any)
+      .delete().eq("product_id", productId).eq("admin_user_id", user.id);
+  };
+
+  const clearDraft = async (productId: string) => {
+    await deleteDraft(productId);
+    setForms((p) => ({ ...p, [productId]: blankForm() }));
+    setRestoredNote((p) => ({ ...p, [productId]: false }));
+    toast({ title: "Draft cleared" });
+  };
 
   const updateStatusOnly = async (id: string, status: ValidationStatus) => {
     setSaving(id);
@@ -225,6 +297,9 @@ export default function AdminProductValidation() {
     if (updErr) { toast({ title: "Status update failed", description: updErr.message, variant: "destructive" }); return; }
 
     setRows((prev) => prev.map((x) => (x.id === r.id ? { ...x, validation_status: "approved_to_queue", reviewed_at: new Date().toISOString() } : x)));
+    await deleteDraft(r.id);
+    setForms((p) => ({ ...p, [r.id]: blankForm() }));
+    setRestoredNote((p) => ({ ...p, [r.id]: false }));
     setOpenForm(null);
     toast({ title: "Published to Browse", description: `Margin ${m.expected_margin_percentage.toFixed(1)}% • R${m.gross_margin_zar.toFixed(2)}/unit` });
 
@@ -329,7 +404,12 @@ export default function AdminProductValidation() {
 
                   {isSA && openForm === r.id && (
                     <div className="rounded border p-3 space-y-3 bg-muted/30">
-                      <p className="text-sm font-medium">Pricing & margin (Alibaba → landed cost)</p>
+                      <div className="flex items-center justify-between gap-2 flex-wrap">
+                        <p className="text-sm font-medium">Pricing & margin (Alibaba → landed cost)</p>
+                        {restoredNote[r.id] && (
+                          <span className="text-[11px] text-blue-600 dark:text-blue-400">Draft restored</span>
+                        )}
+                      </div>
                       <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
                         <div><Label className="text-xs">Alibaba unit cost (ZAR) *</Label><Input type="number" step="0.01" value={f.alibaba_cost_zar} onChange={(e) => setFormField(r.id, "alibaba_cost_zar", e.target.value)} placeholder="e.g. 85" /></div>
                         <div><Label className="text-xs">Weight (kg) *</Label><Input type="number" step="0.01" value={f.weight_kg} onChange={(e) => setFormField(r.id, "weight_kg", e.target.value)} placeholder="e.g. 0.5" /></div>
@@ -353,11 +433,14 @@ export default function AdminProductValidation() {
                           </div>
                         </div>
                       )}
-                      <div className="flex gap-2">
+                      <div className="flex gap-2 flex-wrap">
                         <Button size="sm" className="bg-green-600 hover:bg-green-700 text-white" onClick={() => publishAmazonSA(r)} disabled={saving===r.id}>
                           <Check className="h-4 w-4 mr-1" /> Publish to Browse
                         </Button>
-                        <Button size="sm" variant="ghost" onClick={() => setOpenForm(null)}>Cancel</Button>
+                        <Button size="sm" variant="outline" onClick={() => clearDraft(r.id)}>
+                          <Trash2 className="h-4 w-4 mr-1" /> Clear draft
+                        </Button>
+                        <Button size="sm" variant="ghost" onClick={() => setOpenForm(null)}>Close</Button>
                       </div>
                     </div>
                   )}
