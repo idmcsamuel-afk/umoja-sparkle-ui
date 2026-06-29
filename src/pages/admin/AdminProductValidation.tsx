@@ -68,6 +68,7 @@ export default function AdminProductValidation() {
   const [loading, setLoading] = useState(true);
   const [statusFilter, setStatusFilter] = useState<StatusFilter>("pending_review");
   const [marketFilter, setMarketFilter] = useState<MarketFilter>("all");
+  const [showImageless, setShowImageless] = useState(false);
   const [page, setPage] = useState(1);
   const [saving, setSaving] = useState<string | null>(null);
 
@@ -88,7 +89,10 @@ export default function AdminProductValidation() {
   };
 
   useEffect(() => { load(); }, []);
-  useEffect(() => { setPage(1); }, [statusFilter, marketFilter]);
+  useEffect(() => { setPage(1); }, [statusFilter, marketFilter, showImageless]);
+
+  const hasImage = (r: ProductRow) =>
+    typeof r.image_url === "string" && /^https?:\/\//i.test(r.image_url);
 
   const counts = useMemo(() => {
     const pending = rows.filter((r) => (r.validation_status ?? "pending_review") === "pending_review").length;
@@ -100,10 +104,13 @@ export default function AdminProductValidation() {
 
   const filtered = useMemo(() => {
     let list = rows;
+    if (!showImageless) list = list.filter(hasImage);
     if (statusFilter !== "all") list = list.filter((r) => (r.validation_status ?? "pending_review") === statusFilter);
     if (marketFilter !== "all") list = list.filter((r) => (r.marketplace ?? "amazon_us") === marketFilter);
     return list;
-  }, [rows, statusFilter, marketFilter]);
+  }, [rows, statusFilter, marketFilter, showImageless]);
+
+  const hiddenImagelessCount = useMemo(() => rows.filter((r) => !hasImage(r)).length, [rows]);
 
   const totalPages = Math.max(1, Math.ceil(filtered.length / PAGE_SIZE));
   const currentPage = Math.min(page, totalPages);
@@ -162,6 +169,10 @@ export default function AdminProductValidation() {
         {([["all","All"],["amazon_us","Amazon US"],["amazon_sa","Amazon SA"],["walmart_us","Walmart US"]] as [MarketFilter,string][]).map(([f,l])=>(
           <Button key={f} size="sm" variant={marketFilter===f?"default":"outline"} onClick={()=>setMarketFilter(f)}>{l}</Button>
         ))}
+        <span className="text-xs text-muted-foreground ml-4 mr-1">Images:</span>
+        <Button size="sm" variant={showImageless?"default":"outline"} onClick={()=>setShowImageless((v)=>!v)}>
+          {showImageless ? `Showing items without images (${hiddenImagelessCount})` : `Hide items without images${hiddenImagelessCount?` (${hiddenImagelessCount} hidden)`:""}`}
+        </Button>
       </div>
 
       {loading ? (
