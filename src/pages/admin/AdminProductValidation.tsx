@@ -13,7 +13,8 @@ import {
   PaginationNext,
   PaginationPrevious,
 } from "@/components/ui/pagination";
-import { Check, X, ExternalLink, Star, RefreshCw, ImageOff } from "lucide-react";
+import { Check, X, ExternalLink, Star, RefreshCw, ImageOff, Trash2 } from "lucide-react";
+import { useAuth } from "@/hooks/useAuth";
 
 type ValidationStatus = "pending_review" | "approved_to_queue" | "rejected" | "demand_validated";
 

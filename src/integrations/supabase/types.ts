@@ -4688,6 +4688,51 @@ export type Database = {
         }
         Relationships: []
       }
+      product_pricing_drafts: {
+        Row: {
+          admin_user_id: string
+          alibaba_cost_zar: string | null
+          buffer_pct: string | null
+          commission_pct: string | null
+          created_at: string
+          freight_override_zar: string | null
+          id: string
+          moq: string | null
+          product_id: string
+          supplier_name: string | null
+          updated_at: string
+          weight_kg: string | null
+        }
+        Insert: {
+          admin_user_id: string
+          alibaba_cost_zar?: string | null
+          buffer_pct?: string | null
+          commission_pct?: string | null
+          created_at?: string
+          freight_override_zar?: string | null
+          id?: string
+          moq?: string | null
+          product_id: string
+          supplier_name?: string | null
+          updated_at?: string
+          weight_kg?: string | null
+        }
+        Update: {
+          admin_user_id?: string
+          alibaba_cost_zar?: string | null
+          buffer_pct?: string | null
+          commission_pct?: string | null
+          created_at?: string
+          freight_override_zar?: string | null
+          id?: string
+          moq?: string | null
+          product_id?: string
+          supplier_name?: string | null
+          updated_at?: string
+          weight_kg?: string | null
+        }
+        Relationships: []
+      }
       products: {
         Row: {
           asin: string
