@@ -169,7 +169,12 @@ export default function AdminProductValidation() {
     if (!weight || weight <= 0) { toast({ title: "Weight (kg) is required", variant: "destructive" }); return; }
     if (!r.price_zar || r.price_zar <= 0) { toast({ title: "Missing SA selling price (price_zar) on source row", variant: "destructive" }); return; }
 
-    const m = computeMargins({ alibaba_cost_zar: alibaba, weight_kg: weight, buffer_pct: buffer, commission_pct: commission, price_zar: Number(r.price_zar) });
+    const freightOverrideRaw = f.freight_override_zar.trim();
+    const freightOverride = freightOverrideRaw === "" ? null : parseFloat(freightOverrideRaw);
+    if (freightOverride != null && (isNaN(freightOverride) || freightOverride < 0)) {
+      toast({ title: "Freight override must be a non-negative number", variant: "destructive" }); return;
+    }
+    const m = computeMargins({ alibaba_cost_zar: alibaba, weight_kg: weight, buffer_pct: buffer, commission_pct: commission, price_zar: Number(r.price_zar), freight_override_zar: freightOverride });
 
     setSaving(r.id);
     // next spotlight rank
