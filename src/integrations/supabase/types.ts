@@ -5677,6 +5677,7 @@ export type Database = {
           expected_margin_percentage: number | null
           expected_order_date: string | null
           freight_cost_zar: number | null
+          freight_is_override: boolean
           gross_margin_zar: number | null
           group_buy_status: string | null
           id: number
@@ -5714,6 +5715,7 @@ export type Database = {
           expected_margin_percentage?: number | null
           expected_order_date?: string | null
           freight_cost_zar?: number | null
+          freight_is_override?: boolean
           gross_margin_zar?: number | null
           group_buy_status?: string | null
           id?: number
@@ -5751,6 +5753,7 @@ export type Database = {
           expected_margin_percentage?: number | null
           expected_order_date?: string | null
           freight_cost_zar?: number | null
+          freight_is_override?: boolean
           gross_margin_zar?: number | null
           group_buy_status?: string | null
           id?: number

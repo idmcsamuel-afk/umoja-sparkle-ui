@@ -1,0 +1,1 @@
+ALTER TABLE public.spark_trade_opportunities ADD COLUMN IF NOT EXISTS freight_is_override boolean NOT NULL DEFAULT false;
