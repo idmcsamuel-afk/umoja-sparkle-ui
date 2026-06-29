@@ -169,6 +169,10 @@ export default function AdminProductValidation() {
         {([["all","All"],["amazon_us","Amazon US"],["amazon_sa","Amazon SA"],["walmart_us","Walmart US"]] as [MarketFilter,string][]).map(([f,l])=>(
           <Button key={f} size="sm" variant={marketFilter===f?"default":"outline"} onClick={()=>setMarketFilter(f)}>{l}</Button>
         ))}
+        <span className="text-xs text-muted-foreground ml-4 mr-1">Images:</span>
+        <Button size="sm" variant={showImageless?"default":"outline"} onClick={()=>setShowImageless((v)=>!v)}>
+          {showImageless ? `Showing items without images (${hiddenImagelessCount})` : `Hide items without images${hiddenImagelessCount?` (${hiddenImagelessCount} hidden)`:""}`}
+        </Button>
       </div>
 
       {loading ? (
