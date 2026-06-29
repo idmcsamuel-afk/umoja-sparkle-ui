@@ -433,11 +433,14 @@ export default function AdminProductValidation() {
                           </div>
                         </div>
                       )}
-                      <div className="flex gap-2">
+                      <div className="flex gap-2 flex-wrap">
                         <Button size="sm" className="bg-green-600 hover:bg-green-700 text-white" onClick={() => publishAmazonSA(r)} disabled={saving===r.id}>
                           <Check className="h-4 w-4 mr-1" /> Publish to Browse
                         </Button>
-                        <Button size="sm" variant="ghost" onClick={() => setOpenForm(null)}>Cancel</Button>
+                        <Button size="sm" variant="outline" onClick={() => clearDraft(r.id)}>
+                          <Trash2 className="h-4 w-4 mr-1" /> Clear draft
+                        </Button>
+                        <Button size="sm" variant="ghost" onClick={() => setOpenForm(null)}>Close</Button>
                       </div>
                     </div>
                   )}
