@@ -9,7 +9,7 @@ import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
-import { Loader2, Plus, Check, X, Pencil, Trash2, Upload, ImageIcon } from "lucide-react";
+import { Loader2, Plus, Check, X, Pencil, Trash2, Upload, ImageIcon, ImagePlus } from "lucide-react";
 import { toast } from "sonner";
 
 const PRODUCT_IMAGE_BUCKET = "spark_trade_product_images";
@@ -39,7 +39,9 @@ export default function SparkTradeAdminDashboard() {
   const [reservations, setReservations] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [editing, setEditing] = useState<Opp | null>(null);
+  const [editingListing, setEditingListing] = useState<Opp | null>(null);
   const [saving, setSaving] = useState(false);
+  const [savingListing, setSavingListing] = useState(false);
 
   useEffect(() => {
     if (!user) return;
@@ -132,21 +134,41 @@ export default function SparkTradeAdminDashboard() {
               <Card className="overflow-x-auto">
                 <Table>
                   <TableHeader><TableRow>
-                    <TableHead>Product</TableHead><TableHead>Supplier</TableHead><TableHead>MOQ</TableHead>
+                    <TableHead>Image</TableHead><TableHead>Product</TableHead><TableHead>Supplier</TableHead><TableHead>MOQ</TableHead>
                     <TableHead>Cost</TableHead><TableHead>Margin</TableHead><TableHead>Status</TableHead><TableHead>Actions</TableHead>
                   </TableRow></TableHeader>
                   <TableBody>
                     {opportunities.map((o) => (
                       <TableRow key={o.id}>
-                        <TableCell className="font-medium">{o.product_name}</TableCell>
+                        <TableCell>
+                          {o.product_image_url ? (
+                            <img src={o.product_image_url} alt="" className="h-10 w-10 rounded object-cover border" />
+                          ) : (
+                            <div className="h-10 w-10 rounded border bg-muted grid place-items-center"><ImageIcon className="h-4 w-4 text-muted-foreground" /></div>
+                          )}
+                        </TableCell>
+                        <TableCell className="font-medium">
+                          {o.product_name}
+                          {o.original_reference_name && (
+                            <div className="text-[10px] text-muted-foreground">orig: {o.original_reference_name}</div>
+                          )}
+                        </TableCell>
                         <TableCell>{o.supplier_name}</TableCell>
                         <TableCell>{o.moq_required?.toLocaleString()}</TableCell>
                         <TableCell>R{Number(o.unit_cost_zar).toFixed(2)}</TableCell>
                         <TableCell>{o.expected_margin_percentage}%</TableCell>
-                        <TableCell><Badge variant={o.is_approved_for_ai_recommendation ? "default" : "secondary"}>{o.is_approved_for_ai_recommendation ? "Approved" : "Pending"}</Badge></TableCell>
+                        <TableCell>
+                          <div className="flex flex-col gap-1">
+                            <Badge variant={o.is_approved_for_ai_recommendation ? "default" : "secondary"}>{o.is_approved_for_ai_recommendation ? "Approved" : "Pending"}</Badge>
+                            {o.is_spotlight && <Badge variant="outline" className="text-[10px]">Spotlight</Badge>}
+                          </div>
+                        </TableCell>
                         <TableCell>
                           <div className="flex gap-1">
-                            <Button size="icon" variant="ghost" onClick={() => setEditing({ ...o })}><Pencil className="h-4 w-4" /></Button>
+                            <Button size="sm" variant="outline" onClick={() => setEditingListing({ ...o })} title="Edit member-facing name & image">
+                              <ImagePlus className="h-4 w-4 mr-1" /> Edit listing
+                            </Button>
+                            <Button size="icon" variant="ghost" onClick={() => setEditing({ ...o })} title="Edit all fields"><Pencil className="h-4 w-4" /></Button>
                             <Button size="icon" variant="ghost" onClick={() => removeOpp(o)}><Trash2 className="h-4 w-4" /></Button>
                           </div>
                         </TableCell>
@@ -156,6 +178,7 @@ export default function SparkTradeAdminDashboard() {
                 </Table>
               </Card>
             </TabsContent>
+
 
             <TabsContent value="approvals" className="mt-4">
               {pendingApprovals.length === 0 ? (
@@ -260,6 +283,66 @@ export default function SparkTradeAdminDashboard() {
           <DialogFooter>
             <Button variant="outline" onClick={() => setEditing(null)}>Cancel</Button>
             <Button onClick={saveOpp} disabled={saving}>{saving && <Loader2 className="h-4 w-4 mr-1 animate-spin" />} Save</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={!!editingListing} onOpenChange={(o) => !o && setEditingListing(null)}>
+        <DialogContent className="max-w-xl max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>Edit member-facing listing</DialogTitle>
+          </DialogHeader>
+          {editingListing && (
+            <div className="space-y-4">
+              <div className="rounded-md bg-muted/50 p-3 text-xs text-muted-foreground">
+                Display-only override. Pricing, margins and publishing are NOT affected.
+                The original Amazon SA reference is preserved in <code>source_product_url</code>
+                {editingListing.original_reference_name && <> and <code>original_reference_name</code></>}.
+              </div>
+              {(editingListing.original_reference_name || editingListing.source_product_url) && (
+                <div className="rounded-md border p-3 text-xs space-y-1">
+                  <div className="font-medium text-muted-foreground">Original reference (preserved)</div>
+                  {editingListing.original_reference_name && <div>Name: {editingListing.original_reference_name}</div>}
+                  {editingListing.source_product_url && (
+                    <div>URL: <a href={editingListing.source_product_url} target="_blank" rel="noreferrer" className="underline break-all">{editingListing.source_product_url}</a></div>
+                  )}
+                </div>
+              )}
+              <Field label="Member-facing product name" value={editingListing.product_name ?? ""} onChange={(v) => setEditingListing({ ...editingListing, product_name: v })} />
+              <Field label="Spotlight title (optional)" value={editingListing.spotlight_title ?? ""} onChange={(v) => setEditingListing({ ...editingListing, spotlight_title: v })} />
+              <Field label="Category (optional)" value={editingListing.category ?? ""} onChange={(v) => setEditingListing({ ...editingListing, category: v })} />
+              <Field label="Image URL" value={editingListing.product_image_url ?? ""} onChange={(v) => setEditingListing({ ...editingListing, product_image_url: v })} />
+              <ImageUploader
+                value={editingListing.product_image_url ?? ""}
+                onChange={(url) => setEditingListing({ ...editingListing, product_image_url: url })}
+              />
+            </div>
+          )}
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setEditingListing(null)}>Cancel</Button>
+            <Button
+              onClick={async () => {
+                if (!editingListing) return;
+                setSavingListing(true);
+                const { error } = await supabase
+                  .from("spark_trade_opportunities" as any)
+                  .update({
+                    product_name: editingListing.product_name,
+                    product_image_url: editingListing.product_image_url || null,
+                    spotlight_title: editingListing.spotlight_title || null,
+                    category: editingListing.category || null,
+                  })
+                  .eq("id", editingListing.id);
+                setSavingListing(false);
+                if (error) { toast.error(error.message); return; }
+                toast.success("Listing updated — members see this immediately");
+                setEditingListing(null);
+                load();
+              }}
+              disabled={savingListing}
+            >
+              {savingListing && <Loader2 className="h-4 w-4 mr-1 animate-spin" />} Save listing
+            </Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>

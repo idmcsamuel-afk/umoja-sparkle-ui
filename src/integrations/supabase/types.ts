@@ -5685,6 +5685,8 @@ export type Database = {
           landed_cost_zar: number | null
           marketplace: string | null
           moq_required: number | null
+          original_reference_image_url: string | null
+          original_reference_name: string | null
           product_image_url: string | null
           product_name: string | null
           source_product_url: string | null
@@ -5720,6 +5722,8 @@ export type Database = {
           landed_cost_zar?: number | null
           marketplace?: string | null
           moq_required?: number | null
+          original_reference_image_url?: string | null
+          original_reference_name?: string | null
           product_image_url?: string | null
           product_name?: string | null
           source_product_url?: string | null
@@ -5755,6 +5759,8 @@ export type Database = {
           landed_cost_zar?: number | null
           marketplace?: string | null
           moq_required?: number | null
+          original_reference_image_url?: string | null
+          original_reference_name?: string | null
           product_image_url?: string | null
           product_name?: string | null
           source_product_url?: string | null
