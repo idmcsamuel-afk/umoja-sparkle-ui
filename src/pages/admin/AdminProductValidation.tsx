@@ -93,6 +93,7 @@ function computeMargins(input: { alibaba_cost_zar: number; weight_kg: number; bu
 }
 
 export default function AdminProductValidation() {
+  const { user } = useAuth();
   const [rows, setRows] = useState<ProductRow[]>([]);
   const [loading, setLoading] = useState(true);
   const [statusFilter, setStatusFilter] = useState<StatusFilter>("pending_review");
@@ -102,6 +103,8 @@ export default function AdminProductValidation() {
   const [saving, setSaving] = useState<string | null>(null);
   const [openForm, setOpenForm] = useState<string | null>(null);
   const [forms, setForms] = useState<Record<string, PriceForm>>({});
+  const [draftLoaded, setDraftLoaded] = useState<Record<string, boolean>>({});
+  const [restoredNote, setRestoredNote] = useState<Record<string, boolean>>({});
 
   const load = async () => {
     setLoading(true);
