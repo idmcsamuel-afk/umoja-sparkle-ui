@@ -338,6 +338,11 @@ export default function AdminProductValidation() {
                         <div><Label className="text-xs">MOQ</Label><Input type="number" value={f.moq} onChange={(e) => setFormField(r.id, "moq", e.target.value)} /></div>
                         <div><Label className="text-xs">Supplier / manufacturer</Label><Input value={f.supplier_name} onChange={(e) => setFormField(r.id, "supplier_name", e.target.value)} placeholder="optional" /></div>
                       </div>
+                      <div>
+                        <Label className="text-xs">Freight cost per unit (ZAR) — override</Label>
+                        <Input type="number" step="0.01" min="0" value={f.freight_override_zar} onChange={(e) => setFormField(r.id, "freight_override_zar", e.target.value)} placeholder="Leave blank to auto-estimate from weight" />
+                        <p className="text-[11px] text-muted-foreground mt-1">Leave blank to auto-estimate from weight. Enter the real per-unit freight (e.g. Accio DDP/air-freight quote) for batteries/hazmat or any product with a known shipping cost.</p>
+                      </div>
                       {live && (
                         <div className="text-xs grid grid-cols-2 md:grid-cols-4 gap-2 pt-2 border-t">
                           <div><span className="text-muted-foreground">Freight: </span>R{live.freight_cost_zar.toFixed(2)}</div>
