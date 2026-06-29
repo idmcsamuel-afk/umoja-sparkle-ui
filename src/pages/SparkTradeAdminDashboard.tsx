@@ -134,21 +134,41 @@ export default function SparkTradeAdminDashboard() {
               <Card className="overflow-x-auto">
                 <Table>
                   <TableHeader><TableRow>
-                    <TableHead>Product</TableHead><TableHead>Supplier</TableHead><TableHead>MOQ</TableHead>
+                    <TableHead>Image</TableHead><TableHead>Product</TableHead><TableHead>Supplier</TableHead><TableHead>MOQ</TableHead>
                     <TableHead>Cost</TableHead><TableHead>Margin</TableHead><TableHead>Status</TableHead><TableHead>Actions</TableHead>
                   </TableRow></TableHeader>
                   <TableBody>
                     {opportunities.map((o) => (
                       <TableRow key={o.id}>
-                        <TableCell className="font-medium">{o.product_name}</TableCell>
+                        <TableCell>
+                          {o.product_image_url ? (
+                            <img src={o.product_image_url} alt="" className="h-10 w-10 rounded object-cover border" />
+                          ) : (
+                            <div className="h-10 w-10 rounded border bg-muted grid place-items-center"><ImageIcon className="h-4 w-4 text-muted-foreground" /></div>
+                          )}
+                        </TableCell>
+                        <TableCell className="font-medium">
+                          {o.product_name}
+                          {o.original_reference_name && (
+                            <div className="text-[10px] text-muted-foreground">orig: {o.original_reference_name}</div>
+                          )}
+                        </TableCell>
                         <TableCell>{o.supplier_name}</TableCell>
                         <TableCell>{o.moq_required?.toLocaleString()}</TableCell>
                         <TableCell>R{Number(o.unit_cost_zar).toFixed(2)}</TableCell>
                         <TableCell>{o.expected_margin_percentage}%</TableCell>
-                        <TableCell><Badge variant={o.is_approved_for_ai_recommendation ? "default" : "secondary"}>{o.is_approved_for_ai_recommendation ? "Approved" : "Pending"}</Badge></TableCell>
+                        <TableCell>
+                          <div className="flex flex-col gap-1">
+                            <Badge variant={o.is_approved_for_ai_recommendation ? "default" : "secondary"}>{o.is_approved_for_ai_recommendation ? "Approved" : "Pending"}</Badge>
+                            {o.is_spotlight && <Badge variant="outline" className="text-[10px]">Spotlight</Badge>}
+                          </div>
+                        </TableCell>
                         <TableCell>
                           <div className="flex gap-1">
-                            <Button size="icon" variant="ghost" onClick={() => setEditing({ ...o })}><Pencil className="h-4 w-4" /></Button>
+                            <Button size="sm" variant="outline" onClick={() => setEditingListing({ ...o })} title="Edit member-facing name & image">
+                              <ImagePlus className="h-4 w-4 mr-1" /> Edit listing
+                            </Button>
+                            <Button size="icon" variant="ghost" onClick={() => setEditing({ ...o })} title="Edit all fields"><Pencil className="h-4 w-4" /></Button>
                             <Button size="icon" variant="ghost" onClick={() => removeOpp(o)}><Trash2 className="h-4 w-4" /></Button>
                           </div>
                         </TableCell>
@@ -158,6 +178,7 @@ export default function SparkTradeAdminDashboard() {
                 </Table>
               </Card>
             </TabsContent>
+
 
             <TabsContent value="approvals" className="mt-4">
               {pendingApprovals.length === 0 ? (
