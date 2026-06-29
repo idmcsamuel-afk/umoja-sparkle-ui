@@ -32,12 +32,13 @@ interface ProductRow {
 }
 
 type StatusFilter = "all" | "pending_review" | "approved_to_queue";
-type MarketFilter = "all" | "amazon_us" | "amazon_sa";
+type MarketFilter = "all" | "amazon_us" | "amazon_sa" | "walmart_us";
 
 const PAGE_SIZE = 5;
 const MARKET_LABEL: Record<string, string> = {
   amazon_us: "Amazon US",
   amazon_sa: "Amazon SA",
+  walmart_us: "Walmart US",
   amazon_uk: "Amazon UK",
   amazon_de: "Amazon DE",
 };
@@ -158,7 +159,7 @@ export default function AdminProductValidation() {
           <Button key={f} size="sm" variant={statusFilter===f?"default":"outline"} onClick={()=>setStatusFilter(f)}>{l}</Button>
         ))}
         <span className="text-xs text-muted-foreground ml-4 mr-1">Marketplace:</span>
-        {([["all","All"],["amazon_us","Amazon US"],["amazon_sa","Amazon SA"]] as [MarketFilter,string][]).map(([f,l])=>(
+        {([["all","All"],["amazon_us","Amazon US"],["amazon_sa","Amazon SA"],["walmart_us","Walmart US"]] as [MarketFilter,string][]).map(([f,l])=>(
           <Button key={f} size="sm" variant={marketFilter===f?"default":"outline"} onClick={()=>setMarketFilter(f)}>{l}</Button>
         ))}
       </div>
@@ -206,7 +207,7 @@ export default function AdminProductValidation() {
                       {r.product_url && (
                         <Button asChild size="sm" variant="outline">
                           <a href={r.product_url} target="_blank" rel="noopener noreferrer">
-                            <ExternalLink className="h-3.5 w-3.5 mr-1" /> View on Amazon
+                            <ExternalLink className="h-3.5 w-3.5 mr-1" /> View on {market === "walmart_us" ? "Walmart" : "Amazon"}
                           </a>
                         </Button>
                       )}
