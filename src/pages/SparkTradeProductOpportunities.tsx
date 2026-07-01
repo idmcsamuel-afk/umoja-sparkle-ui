@@ -47,6 +47,8 @@ interface Opportunity {
   spotlight_rank?: number | null;
   spotlight_title?: string | null;
   // Dual freight
+  landed_cost_sea_zar?: number | null;
+  landed_cost_air_zar?: number | null;
   gross_margin_sea_zar?: number | null;
   margin_sea_pct?: number | null;
   gross_margin_air_zar?: number | null;
