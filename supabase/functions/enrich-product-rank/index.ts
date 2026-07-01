@@ -62,12 +62,13 @@ function extractBuybox(p: any): { price: number | null; currency: string | null 
 
 async function fetchProduct(asin: string, marketplace: string | null) {
   if (!RAINFOREST_KEY) throw new Error("RAINFOREST_API_KEY not configured");
-  const url = new URL("https://api.rainforestapi.com/request");
-  url.searchParams.set("api_key", RAINFOREST_KEY);
-  url.searchParams.set("type", "product");
-  url.searchParams.set("amazon_domain", domainFor(marketplace));
-  url.searchParams.set("asin", asin);
-  const res = await fetch(url.toString());
+  const domain = domainFor(marketplace);
+  const productUrl = new URL("https://api.rainforestapi.com/request");
+  productUrl.searchParams.set("api_key", RAINFOREST_KEY);
+  productUrl.searchParams.set("type", "product");
+  productUrl.searchParams.set("amazon_domain", domain);
+  productUrl.searchParams.set("asin", asin);
+  const res = await fetch(productUrl.toString());
   if (!res.ok) throw new Error(`Rainforest ${res.status}: ${await res.text()}`);
   const data = await res.json();
   const p = data.product ?? {};
@@ -78,8 +79,29 @@ async function fetchProduct(asin: string, marketplace: string | null) {
     p.main_image?.link ??
     (Array.isArray(p.images) ? (p.images[0]?.link ?? p.images[0]) : null) ??
     null;
-  const sellers = extractSellerCount(p);
+  let sellers = extractSellerCount(p);
   const { price: buybox_price, currency: buybox_currency } = extractBuybox(p);
+
+  // Fallback: type=offers gives an authoritative offer count when the product
+  // response omits it (common on Amazon SA listings).
+  if (sellers == null) {
+    try {
+      const offersUrl = new URL("https://api.rainforestapi.com/request");
+      offersUrl.searchParams.set("api_key", RAINFOREST_KEY);
+      offersUrl.searchParams.set("type", "offers");
+      offersUrl.searchParams.set("amazon_domain", domain);
+      offersUrl.searchParams.set("asin", asin);
+      const or = await fetch(offersUrl.toString());
+      if (or.ok) {
+        const od = await or.json();
+        const t = od?.offers_results?.total_offers ??
+                  od?.pagination?.total_results ??
+                  (Array.isArray(od?.offers) ? od.offers.length : null);
+        if (typeof t === "number" && t > 0) sellers = t;
+      }
+    } catch (_) { /* ignore fallback failure */ }
+  }
+
   return {
     sales_rank: rank,
     sales_rank_category: cat,
