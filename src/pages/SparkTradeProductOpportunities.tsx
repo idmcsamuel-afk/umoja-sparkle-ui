@@ -213,7 +213,7 @@ export default function SparkTradeProductOpportunities() {
       const { data, error } = await supabase
         .from("spark_trade_opportunities" as any)
         .select(
-          "id, product_name, category, moq_required, unit_cost_zar, suggested_selling_price_zar, expected_margin_percentage, product_image_url, stock_available, trending_direction, supplier_country, is_spotlight, spotlight_rank, spotlight_title",
+          "id, product_name, category, moq_required, unit_cost_zar, suggested_selling_price_zar, expected_margin_percentage, product_image_url, stock_available, trending_direction, supplier_country, is_spotlight, spotlight_rank, spotlight_title, gross_margin_sea_zar, margin_sea_pct, gross_margin_air_zar, margin_air_pct, air_available",
         )
         .eq("is_spotlight", true)
         .order("spotlight_rank", { ascending: true, nullsFirst: false })
