@@ -601,10 +601,36 @@ export default function SparkTradeProductOpportunities() {
                   )}
                 </div>
 
+                {(() => {
+                  const airOn = !!active.air_available && Number(active.landed_cost_air_zar ?? 0) > 0;
+                  return airOn ? (
+                    <div className="flex gap-2">
+                      <button
+                        type="button"
+                        onClick={() => setFreightMode("sea")}
+                        className={`flex-1 rounded-md border px-3 py-2 text-xs font-medium ${freightMode === "sea" ? "border-primary bg-primary/10 text-primary" : "border-border text-muted-foreground"}`}
+                      >
+                        Sea · 4–6 weeks
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setFreightMode("air")}
+                        className={`flex-1 rounded-md border px-3 py-2 text-xs font-medium ${freightMode === "air" ? "border-primary bg-primary/10 text-primary" : "border-border text-muted-foreground"}`}
+                      >
+                        Air · 5–10 days
+                      </button>
+                    </div>
+                  ) : null;
+                })()}
+
                 <div className="rounded-lg bg-muted p-4 space-y-2 text-sm">
                   <div className="flex justify-between">
-                    <span className="text-muted-foreground">Unit price</span>
-                    <span className="font-medium">{fmtZar(active.suggested_selling_price_zar)}</span>
+                    <span className="text-muted-foreground">Your cost / unit ({freightMode === "air" ? "air" : "sea"})</span>
+                    <span className="font-medium">{fmtZar(landedPerUnit)}</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-muted-foreground">Sell at / unit</span>
+                    <span className="font-medium">{fmtZar(sellPerUnit)}</span>
                   </div>
                   <div className="flex justify-between">
                     <span className="text-muted-foreground">Quantity</span>
@@ -615,7 +641,7 @@ export default function SparkTradeProductOpportunities() {
                     <span className="font-medium text-green-600">{fmtZar(profitPerUnit)}</span>
                   </div>
                   <div className="border-t pt-2 flex justify-between">
-                    <span className="font-semibold">Total cost</span>
+                    <span className="font-semibold">Total cost (you pay)</span>
                     <span className="font-bold text-lg">{fmtZar(totalCost)}</span>
                   </div>
                   <div className="flex justify-between text-green-600">
