@@ -13,7 +13,7 @@ import {
   PaginationNext,
   PaginationPrevious,
 } from "@/components/ui/pagination";
-import { Check, X, ExternalLink, Star, RefreshCw, ImageOff, Trash2 } from "lucide-react";
+import { Check, X, ExternalLink, Star, RefreshCw, ImageOff, Trash2, Radar, Loader2 } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 
 type ValidationStatus = "pending_review" | "approved_to_queue" | "rejected" | "demand_validated";
@@ -33,6 +33,12 @@ interface ProductRow {
   validation_status: ValidationStatus | null;
   reviewed_at: string | null;
   created_at: string;
+  sales_rank: number | null;
+  sales_rank_category: string | null;
+  seller_count: number | null;
+  seller_count_verified: boolean | null;
+  buybox_price: number | null;
+  buybox_currency: string | null;
 }
 
 type StatusFilter = "all" | "pending_review" | "approved_to_queue";
@@ -105,6 +111,7 @@ export default function AdminProductValidation() {
   const [forms, setForms] = useState<Record<string, PriceForm>>({});
   const [draftLoaded, setDraftLoaded] = useState<Record<string, boolean>>({});
   const [restoredNote, setRestoredNote] = useState<Record<string, boolean>>({});
+  const [enriching, setEnriching] = useState<string | null>(null);
 
   const load = async () => {
     setLoading(true);
@@ -228,6 +235,30 @@ export default function AdminProductValidation() {
     if (error) { toast({ title: "Update failed", description: error.message, variant: "destructive" }); return; }
     setRows((prev) => prev.map((r) => (r.id === id ? { ...r, validation_status: status, reviewed_at: new Date().toISOString() } : r)));
     toast({ title: status === "rejected" ? "Rejected" : status === "demand_validated" ? "Marked as demand signal" : "Updated" });
+  };
+
+  const fetchCompetition = async (r: ProductRow) => {
+    if (!r.asin) { toast({ title: "No ASIN on this row", variant: "destructive" }); return; }
+    setEnriching(r.id);
+    const { data, error } = await supabase.functions.invoke("enrich-product-rank", { body: { product_id: r.id } });
+    setEnriching(null);
+    if (error) { toast({ title: "Fetch failed", description: (error as any).message ?? String(error), variant: "destructive" }); return; }
+    const res = Array.isArray((data as any)?.results) ? (data as any).results[0] : null;
+    if (!res) { toast({ title: "No data returned", variant: "destructive" }); return; }
+    setRows((prev) => prev.map((x) => x.id === r.id ? {
+      ...x,
+      sales_rank: res.sales_rank ?? x.sales_rank,
+      sales_rank_category: res.sales_rank_category ?? x.sales_rank_category,
+      seller_count: typeof res.seller_count === "number" ? res.seller_count : x.seller_count,
+      seller_count_verified: typeof res.seller_count === "number" ? true : x.seller_count_verified,
+      buybox_price: typeof res.buybox_price === "number" ? res.buybox_price : x.buybox_price,
+      buybox_currency: res.buybox_currency ?? x.buybox_currency,
+      image_url: res.image_url ?? x.image_url,
+    } : x));
+    const bits: string[] = [];
+    if (res.sales_rank) bits.push(`BSR #${Number(res.sales_rank).toLocaleString()}`);
+    if (typeof res.seller_count === "number") bits.push(`Sellers: ${res.seller_count}`);
+    toast({ title: "Competition data fetched", description: bits.join(" • ") || "No BSR/sellers on listing" });
   };
 
   const publishAmazonSA = async (r: ProductRow) => {
@@ -386,6 +417,18 @@ export default function AdminProductValidation() {
                         : <p className="text-sm"><span className="text-muted-foreground">Price (USD):</span> {r.price_usd != null ? `$${Number(r.price_usd).toFixed(2)}` : "—"}</p>}
                       <p className="text-sm"><span className="text-muted-foreground">Reviews — demand proxy:</span> {r.review_count?.toLocaleString() ?? "—"}</p>
                       <p className="text-sm"><span className="text-muted-foreground">Category:</span> {r.category ?? "—"}</p>
+                      <p className="text-sm">
+                        <span className="text-muted-foreground">BSR:</span>{" "}
+                        {r.sales_rank ? `#${r.sales_rank.toLocaleString()}${r.sales_rank_category ? ` in ${r.sales_rank_category}` : ""}` : "—"}
+                        <span className="text-muted-foreground ml-3">Sellers:</span>{" "}
+                        {r.seller_count_verified && typeof r.seller_count === "number" ? r.seller_count.toLocaleString() : "—"}
+                        {r.buybox_price != null && (
+                          <>
+                            <span className="text-muted-foreground ml-3">Buy-box:</span>{" "}
+                            {r.buybox_currency === "ZAR" || r.marketplace === "amazon_sa" ? "R" : "$"}{Number(r.buybox_price).toFixed(2)}
+                          </>
+                        )}
+                      </p>
                       {r.product_url && (
                         <Button asChild size="sm" variant="outline">
                           <a href={r.product_url} target="_blank" rel="noopener noreferrer"><ExternalLink className="h-3.5 w-3.5 mr-1" /> View on {market === "walmart_us" ? "Walmart" : "Amazon"}</a>
@@ -458,6 +501,12 @@ export default function AdminProductValidation() {
                     {status !== "rejected" && (
                       <Button variant="destructive" size="sm" onClick={() => updateStatusOnly(r.id, "rejected")} disabled={saving===r.id}>
                         <X className="h-4 w-4 mr-1" /> Reject
+                      </Button>
+                    )}
+                    {r.asin && (
+                      <Button size="sm" variant="outline" onClick={() => fetchCompetition(r)} disabled={enriching===r.id} title="Rainforest type=product call (~$0.0035)">
+                        {enriching===r.id ? <Loader2 className="h-4 w-4 mr-1 animate-spin" /> : <Radar className="h-4 w-4 mr-1" />}
+                        Fetch competition data
                       </Button>
                     )}
                   </div>

@@ -4736,6 +4736,8 @@ export type Database = {
       products: {
         Row: {
           asin: string
+          buybox_currency: string | null
+          buybox_price: number | null
           category: string
           competition_level: string | null
           created_at: string
@@ -4756,11 +4758,14 @@ export type Database = {
           sales_rank_category: string | null
           search_volume: number | null
           seller_count: number | null
+          seller_count_verified: boolean
           title: string
           validation_status: string | null
         }
         Insert: {
           asin: string
+          buybox_currency?: string | null
+          buybox_price?: number | null
           category: string
           competition_level?: string | null
           created_at?: string
@@ -4781,11 +4786,14 @@ export type Database = {
           sales_rank_category?: string | null
           search_volume?: number | null
           seller_count?: number | null
+          seller_count_verified?: boolean
           title: string
           validation_status?: string | null
         }
         Update: {
           asin?: string
+          buybox_currency?: string | null
+          buybox_price?: number | null
           category?: string
           competition_level?: string | null
           created_at?: string
@@ -4806,6 +4814,7 @@ export type Database = {
           sales_rank_category?: string | null
           search_volume?: number | null
           seller_count?: number | null
+          seller_count_verified?: boolean
           title?: string
           validation_status?: string | null
         }
