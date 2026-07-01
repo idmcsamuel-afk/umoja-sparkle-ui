@@ -250,21 +250,35 @@ export default function SparkTradeProductOpportunities() {
   const openReserve = (p: Opportunity) => {
     setActive(p);
     setQty(p.moq_required ?? 1);
+    setFreightMode("sea");
     setReserveOpen(true);
   };
 
-  const totalCost = useMemo(() => {
+  const landedPerUnit = useMemo(() => {
     if (!active) return 0;
-    return Number(active.suggested_selling_price_zar ?? 0) * (qty || 0);
-  }, [active, qty]);
+    const sea = Number(active.landed_cost_sea_zar ?? 0);
+    const air = Number(active.landed_cost_air_zar ?? 0);
+    const fallback = Number(active.unit_cost_zar ?? 0);
+    if (freightMode === "air") return air > 0 ? air : (sea > 0 ? sea : fallback);
+    return sea > 0 ? sea : fallback;
+  }, [active, freightMode]);
+
+  const sellPerUnit = useMemo(
+    () => (active ? Number(active.suggested_selling_price_zar ?? 0) : 0),
+    [active],
+  );
+
+  const totalCost = useMemo(() => landedPerUnit * (qty || 0), [landedPerUnit, qty]);
 
   const profitPerUnit = useMemo(() => {
     if (!active) return 0;
-    return (
-      Number(active.suggested_selling_price_zar ?? 0) -
-      Number(active.unit_cost_zar ?? 0)
-    );
-  }, [active]);
+    const seaP = Number(active.gross_margin_sea_zar ?? 0);
+    const airP = Number(active.gross_margin_air_zar ?? 0);
+    if (freightMode === "air" && airP) return airP;
+    if (seaP) return seaP;
+    return Math.max(0, sellPerUnit - landedPerUnit);
+  }, [active, freightMode, sellPerUnit, landedPerUnit]);
+
 
   const totalProfit = useMemo(() => profitPerUnit * (qty || 0), [profitPerUnit, qty]);
 
