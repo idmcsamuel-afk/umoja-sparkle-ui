@@ -33,6 +33,12 @@ interface ProductRow {
   validation_status: ValidationStatus | null;
   reviewed_at: string | null;
   created_at: string;
+  sales_rank: number | null;
+  sales_rank_category: string | null;
+  seller_count: number | null;
+  seller_count_verified: boolean | null;
+  buybox_price: number | null;
+  buybox_currency: string | null;
 }
 
 type StatusFilter = "all" | "pending_review" | "approved_to_queue";
