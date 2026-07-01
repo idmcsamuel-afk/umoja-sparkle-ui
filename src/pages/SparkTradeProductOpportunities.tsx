@@ -89,6 +89,7 @@ export default function SparkTradeProductOpportunities() {
   const [reserveOpen, setReserveOpen] = useState(false);
   const [active, setActive] = useState<Opportunity | null>(null);
   const [qty, setQty] = useState<number>(0);
+  const [freightMode, setFreightMode] = useState<"sea" | "air">("sea");
   const [paying, setPaying] = useState(false);
 
   // Address state
