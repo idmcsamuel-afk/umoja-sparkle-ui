@@ -212,6 +212,7 @@ export default function AdminProductValidation() {
           alibaba_cost_zar: d.alibaba_cost_zar ?? "",
           weight_kg: d.weight_kg ?? "",
           freight_override_zar: d.freight_override_zar ?? "",
+          freight_air_zar: d.freight_air_zar ?? "",
           buffer_pct: d.buffer_pct ?? String(DEFAULTS.buffer_pct),
           commission_pct: d.commission_pct ?? String(DEFAULTS.commission_pct),
           moq: d.moq ?? "100",
