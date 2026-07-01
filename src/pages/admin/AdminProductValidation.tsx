@@ -417,6 +417,18 @@ export default function AdminProductValidation() {
                         : <p className="text-sm"><span className="text-muted-foreground">Price (USD):</span> {r.price_usd != null ? `$${Number(r.price_usd).toFixed(2)}` : "—"}</p>}
                       <p className="text-sm"><span className="text-muted-foreground">Reviews — demand proxy:</span> {r.review_count?.toLocaleString() ?? "—"}</p>
                       <p className="text-sm"><span className="text-muted-foreground">Category:</span> {r.category ?? "—"}</p>
+                      <p className="text-sm">
+                        <span className="text-muted-foreground">BSR:</span>{" "}
+                        {r.sales_rank ? `#${r.sales_rank.toLocaleString()}${r.sales_rank_category ? ` in ${r.sales_rank_category}` : ""}` : "—"}
+                        <span className="text-muted-foreground ml-3">Sellers:</span>{" "}
+                        {r.seller_count_verified && typeof r.seller_count === "number" ? r.seller_count.toLocaleString() : "—"}
+                        {r.buybox_price != null && (
+                          <>
+                            <span className="text-muted-foreground ml-3">Buy-box:</span>{" "}
+                            {r.buybox_currency === "ZAR" || r.marketplace === "amazon_sa" ? "R" : "$"}{Number(r.buybox_price).toFixed(2)}
+                          </>
+                        )}
+                      </p>
                       {r.product_url && (
                         <Button asChild size="sm" variant="outline">
                           <a href={r.product_url} target="_blank" rel="noopener noreferrer"><ExternalLink className="h-3.5 w-3.5 mr-1" /> View on {market === "walmart_us" ? "Walmart" : "Amazon"}</a>
