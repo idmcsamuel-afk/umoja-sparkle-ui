@@ -923,9 +923,31 @@ function OpportunityCard({
         <h3 className="font-semibold line-clamp-2 min-h-[3rem]">{p.product_name}</h3>
         <div className="flex items-baseline justify-between">
           <span className="text-lg font-bold">{fmtZar(p.suggested_selling_price_zar)}</span>
-          <span className="text-xs font-semibold text-green-600">
-            +{p.expected_margin_percentage}% margin
-          </span>
+        </div>
+
+        {/* Freight/margin options */}
+        <div className="mt-1 space-y-1 rounded-md bg-muted/40 px-2 py-2 text-xs">
+          {(() => {
+            const seaMargin = Number(p.gross_margin_sea_zar ?? 0);
+            const seaPct = Number(p.margin_sea_pct ?? p.expected_margin_percentage ?? 0);
+            const airAvail = p.air_available !== false && Number(p.gross_margin_air_zar ?? 0) > 0;
+            const airMargin = Number(p.gross_margin_air_zar ?? 0);
+            const airPct = Number(p.margin_air_pct ?? 0);
+            return (
+              <>
+                <div className="flex items-center justify-between gap-2">
+                  <span>🚢 <span className="text-muted-foreground">Sea:</span> you make <span className="font-semibold text-green-600">{fmtZar(seaMargin)}</span> ({seaPct.toFixed(0)}%)</span>
+                  <span className="text-muted-foreground">~4–6 wks</span>
+                </div>
+                {airAvail && (
+                  <div className="flex items-center justify-between gap-2">
+                    <span>✈️ <span className="text-muted-foreground">Air:</span> you make <span className="font-semibold text-green-600">{fmtZar(airMargin)}</span> ({airPct.toFixed(0)}%)</span>
+                    <span className="text-muted-foreground">~5–10 days</span>
+                  </div>
+                )}
+              </>
+            );
+          })()}
         </div>
 
         {/* Commitment block */}
