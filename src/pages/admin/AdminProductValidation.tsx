@@ -518,19 +518,40 @@ export default function AdminProductValidation() {
                         <div><Label className="text-xs">MOQ</Label><Input type="number" value={f.moq} onChange={(e) => setFormField(r.id, "moq", e.target.value)} /></div>
                         <div><Label className="text-xs">Supplier / manufacturer</Label><Input value={f.supplier_name} onChange={(e) => setFormField(r.id, "supplier_name", e.target.value)} placeholder="optional" /></div>
                       </div>
-                      <div>
-                        <Label className="text-xs">Freight cost per unit (ZAR) — override</Label>
-                        <Input type="number" step="0.01" min="0" value={f.freight_override_zar} onChange={(e) => setFormField(r.id, "freight_override_zar", e.target.value)} placeholder="Leave blank to auto-estimate from weight" />
-                        <p className="text-[11px] text-muted-foreground mt-1">Leave blank to auto-estimate from weight. Enter the real per-unit freight (e.g. Accio DDP/air-freight quote) for batteries/hazmat or any product with a known shipping cost.</p>
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                        <div>
+                          <Label className="text-xs">🚢 Sea freight per unit (ZAR) — override</Label>
+                          <Input type="number" step="0.01" min="0" value={f.freight_override_zar} onChange={(e) => setFormField(r.id, "freight_override_zar", e.target.value)} placeholder="Blank = auto (weight ÷ 167 × R8800)" />
+                          <p className="text-[11px] text-muted-foreground mt-1">Blank = volumetric estimate from weight (~4–6 weeks).</p>
+                        </div>
+                        <div>
+                          <Label className="text-xs">✈️ Air freight per unit (ZAR)</Label>
+                          <Input type="number" step="0.01" min="0" value={f.freight_air_zar} onChange={(e) => setFormField(r.id, "freight_air_zar", e.target.value)} placeholder="Blank = air not available" />
+                          <p className="text-[11px] text-muted-foreground mt-1">Enter the real air-freight quote (~5–10 days). Blank means members only see sea.</p>
+                        </div>
                       </div>
                       {live && (
-                        <div className="text-xs grid grid-cols-2 md:grid-cols-4 gap-2 pt-2 border-t">
-                          <div><span className="text-muted-foreground">Freight{live.freight_is_override ? " (override)" : ""}: </span>R{live.freight_cost_zar.toFixed(2)}</div>
-                          <div><span className="text-muted-foreground">Commission: </span>R{live.umoja_commission_zar.toFixed(2)}</div>
-                          <div><span className="text-muted-foreground">Landed: </span>R{live.landed_cost_zar.toFixed(2)}</div>
-                          <div className={live.gross_margin_zar > 0 ? "text-green-600" : "text-destructive"}>
-                            <span className="text-muted-foreground">Margin: </span>R{live.gross_margin_zar.toFixed(2)} ({live.expected_margin_percentage.toFixed(1)}%)
+                        <div className="text-xs pt-2 border-t space-y-2">
+                          <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
+                            <div><span className="text-muted-foreground">🚢 Sea freight{live.freight_is_override ? " (override)" : " (est.)"}: </span>R{live.freight_sea_zar.toFixed(2)}</div>
+                            <div><span className="text-muted-foreground">Landed (sea): </span>R{live.landed_cost_sea_zar.toFixed(2)}</div>
+                            <div className={live.gross_margin_sea_zar > 0 ? "text-green-600" : "text-destructive"}>
+                              <span className="text-muted-foreground">Margin (sea): </span>R{live.gross_margin_sea_zar.toFixed(2)} ({live.margin_sea_pct.toFixed(1)}%)
+                            </div>
+                            <div className="text-muted-foreground">Commission (hidden): R{live.umoja_commission_zar.toFixed(2)}</div>
                           </div>
+                          {live.air_available ? (
+                            <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
+                              <div><span className="text-muted-foreground">✈️ Air freight: </span>R{live.freight_air_zar.toFixed(2)}</div>
+                              <div><span className="text-muted-foreground">Landed (air): </span>R{live.landed_cost_air_zar.toFixed(2)}</div>
+                              <div className={live.gross_margin_air_zar > 0 ? "text-green-600" : "text-destructive"}>
+                                <span className="text-muted-foreground">Margin (air): </span>R{live.gross_margin_air_zar.toFixed(2)} ({live.margin_air_pct.toFixed(1)}%)
+                              </div>
+                              <div></div>
+                            </div>
+                          ) : (
+                            <p className="text-muted-foreground">✈️ Air option hidden — members will only see Sea.</p>
+                          )}
                         </div>
                       )}
                       <div className="flex gap-2 flex-wrap">
