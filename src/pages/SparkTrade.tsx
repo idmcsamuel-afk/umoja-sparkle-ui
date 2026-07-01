@@ -1,34 +1,35 @@
-import { useEffect, useMemo, useState } from "react";
-import { Link, useLocation } from "react-router-dom";
-import { ArrowLeft, Sparkles, Loader2, TrendingUp, Users, Package, Flame, Clock, Lock, Crown } from "lucide-react";
+import { useEffect, useState } from "react";
+import { Link } from "react-router-dom";
+import { ArrowLeft, Sparkles, Loader2, TrendingUp, Users, Package, Flame, Clock, Lock, Crown, Ship, Plane } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { Logo } from "@/components/umoja/Logo";
 import { BottomNav } from "@/components/umoja/BottomNav";
 import { SparksDisclaimer } from "@/components/umoja/SparksDisclaimer";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { toast } from "sonner";
 import { BuyersClubModal } from "@/components/umoja/BuyersClubModal";
-import { AmazonBestsellers } from "@/components/umoja/AmazonBestsellers";
 
-interface Shortlist {
-  id: string;
-  asin: string;
-  product_name: string | null;
+interface Opportunity {
+  id: number;
+  product_name: string;
   category: string | null;
-  sale_price: number | null;
-  estimated_margin: number | null;
-  margin_pct: number | null;
-  sales_velocity: number | null;
-  estimated_monthly_sales: number | null;
-  target_slots: number | null;
-  joined_count: number | null;
-  moq: number | null;
-  status: string | null;
-  added_at: string | null;
-  data_source: string | null;
-  is_demo: boolean | null;
-  cost_breakdown: any | null;
+  product_image_url: string | null;
+  supplier_name: string | null;
+  supplier_country: string | null;
+  moq_required: number | null;
+  current_reserved: number | null;
+  stock_quantity: number | null;
+  suggested_selling_price_zar: number | null;
+  landed_cost_sea_zar: number | null;
+  landed_cost_air_zar: number | null;
+  gross_margin_sea_zar: number | null;
+  gross_margin_air_zar: number | null;
+  margin_sea_pct: number | null;
+  margin_air_pct: number | null;
+  air_available: boolean | null;
+  group_buy_status: string | null;
+  spotlight_rank: number | null;
+  trending_direction: string | null;
 }
 
 interface Order {
@@ -45,16 +46,12 @@ const fmtR = (n: number | null | undefined) =>
 
 const SparkTrade = () => {
   const { user, member } = useAuth();
-  const [access, setAccess] = useState<{ hasAccess: boolean; isGold: boolean; isBuyersClub: boolean }>({
-    hasAccess: false,
-    isGold: false,
-    isBuyersClub: false,
-  });
+  const [access, setAccess] = useState<{ hasAccess: boolean; isGold: boolean }>({ hasAccess: false, isGold: false });
   const hasAccess = access.hasAccess;
-  const [items, setItems] = useState<Shortlist[]>([]);
+  const [items, setItems] = useState<Opportunity[]>([]);
   const [orders, setOrders] = useState<Order[]>([]);
   const [loading, setLoading] = useState(true);
-  const [joining, setJoining] = useState<string | null>(null);
+  const [joining, setJoining] = useState<number | null>(null);
   const [clubOpen, setClubOpen] = useState(false);
 
   useEffect(() => {
@@ -67,9 +64,9 @@ const SparkTrade = () => {
         .eq("id", user.id)
         .maybeSingle();
       if (!active) return;
-      const isBuyersClub = !!(m?.has_buyers_club_access && m?.buyers_club_status === "active");
+      const isPaid = !!(m?.has_buyers_club_access && m?.buyers_club_status === "active");
       const isGold = m?.buyers_club_tier === "gold";
-      setAccess({ hasAccess: isBuyersClub || isGold, isGold, isBuyersClub });
+      setAccess({ hasAccess: isPaid || isGold, isGold });
     })();
     return () => { active = false; };
   }, [user?.id]);
@@ -78,10 +75,10 @@ const SparkTrade = () => {
     setLoading(true);
     const [sRes, oRes] = await Promise.all([
       supabase
-        .from("spark_trade_shortlist")
-        .select("*")
-        .or("status.eq.open,status.eq.approved,status.eq.buy_now,status.eq.buy_soon,status.is.null")
-        .order("added_at", { ascending: false }),
+        .from("spark_trade_opportunities")
+        .select("id, product_name, category, product_image_url, supplier_name, supplier_country, moq_required, current_reserved, stock_quantity, suggested_selling_price_zar, landed_cost_sea_zar, landed_cost_air_zar, gross_margin_sea_zar, gross_margin_air_zar, margin_sea_pct, margin_air_pct, air_available, group_buy_status, spotlight_rank, trending_direction")
+        .eq("is_spotlight", true)
+        .order("spotlight_rank", { ascending: true, nullsFirst: false }),
       user
         ? supabase
             .from("st_orders")
@@ -93,7 +90,7 @@ const SparkTrade = () => {
     ]);
     if (sRes.error) console.error(sRes.error);
     if (oRes.error) console.error(oRes.error);
-    setItems((sRes.data ?? []) as Shortlist[]);
+    setItems((sRes.data ?? []) as Opportunity[]);
     setOrders((oRes.data ?? []) as Order[]);
     setLoading(false);
   };
@@ -103,117 +100,93 @@ const SparkTrade = () => {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [user?.id]);
 
-  const location = useLocation();
-  useEffect(() => {
-    if (loading) return;
-    const id = location.hash.replace("#", "");
-    if (!id) return;
-    const t = window.setTimeout(() => {
-      document.getElementById(id)?.scrollIntoView({ behavior: "smooth", block: "start" });
-    }, 80);
-    return () => window.clearTimeout(t);
-  }, [location.hash, loading]);
+  const memberTier = (((member as any)?.buyers_club_tier as "basic" | "pro" | "fulfilled" | undefined)) ?? "basic";
+  const tierBonus = { basic: 0, pro: 5, fulfilled: 10, gold: 10 }[memberTier as any] ?? 0;
 
-  // Members without club access only see demo products
-  const visible = useMemo(
-    () => (hasAccess ? items.filter((p) => !p.is_demo) : items.filter((p) => p.is_demo).slice(0, 3)),
-    [items, hasAccess],
-  );
-
-  const buckets = useMemo(
-    () => ({
-      now: visible.filter((p) => p.status !== "buy_soon"),
-      soon: visible.filter((p) => p.status === "buy_soon" || (p as any).data_source === "serpapi"),
-      wave: visible,
-    }),
-    [visible],
-  );
-
-  const join = async (p: Shortlist) => {
+  const join = async (p: Opportunity) => {
     if (!user) return toast.error("Sign in to join");
-    if (p.is_demo) return toast.message("Demo product — join Buyers Club to unlock real buys.");
+    if (!hasAccess) return setClubOpen(true);
     setJoining(p.id);
-    const next = Number(p.joined_count ?? 0) + 1;
-    const { error } = await supabase.rpc("join_spark_trade", { _id: p.id });
-    setJoining(null);
-    if (error) return toast.error(error.message);
-    toast.success(`You're in on ${p.product_name ?? p.asin}`);
-    setItems((arr) => arr.map((x) => (x.id === p.id ? { ...x, joined_count: next } : x)));
+    // TODO: wire to real reservation RPC; optimistic UI for now
+    setTimeout(() => {
+      setJoining(null);
+      toast.success(`You're in on ${p.product_name}`);
+      setItems((arr) => arr.map((x) => (x.id === p.id ? { ...x, current_reserved: Number(x.current_reserved ?? 0) + 1 } : x)));
+    }, 400);
   };
 
-  const memberTier = (((member as any)?.buyers_club_tier as "bronze" | "silver" | "gold" | undefined)) ?? "bronze";
-  const tierLabel = { bronze: "Bronze", silver: "Silver", gold: "Gold" }[memberTier];
-  const tierBonus = { bronze: 0, silver: 5, gold: 10 }[memberTier];
-
-  const Card = ({ p }: { p: Shortlist }) => {
-    const target = Number(p.target_slots ?? 0) || 1;
-    const joined = Number(p.joined_count ?? 0);
+  const Card = ({ p }: { p: Opportunity }) => {
+    const target = Number(p.moq_required ?? 0) || 1;
+    const joined = Number(p.current_reserved ?? 0);
     const pct = Math.min(100, Math.round((joined / target) * 100));
-    const isDemo = !!p.is_demo;
-    const cb = p.cost_breakdown;
-    const tierPrice = cb ? Number(cb[`${memberTier}_sell_price`] ?? p.sale_price ?? 0) : Number(p.sale_price ?? 0);
-    const tierProfit = cb ? Number(cb[`${memberTier}_profit`] ?? p.estimated_margin ?? 0) : Number(p.estimated_margin ?? 0);
-    const tierMargin = tierPrice > 0 ? Math.round((tierProfit / tierPrice) * 100) : Number(p.margin_pct ?? 0);
-    return (
-      <article className={`group relative overflow-hidden rounded-3xl glass p-5 animate-slide-up ${isDemo ? "ring-1 ring-amber-500/40" : ""}`}>
-        {isDemo && (
-          <div className="absolute right-3 top-3 text-[10px] uppercase tracking-[0.18em] rounded-full bg-amber-500/20 text-amber-400 px-2 py-0.5">
-            Demo Product
-          </div>
-        )}
-        <div className="flex items-start justify-between gap-3">
-          <div className="min-w-0">
-            <p className="text-[10px] uppercase tracking-[0.18em] text-accent">{p.category ?? "Product"}</p>
-            <p className="mt-1 font-display text-lg leading-tight truncate">{p.product_name ?? p.asin}</p>
-            <p className="mt-1 text-xs text-muted-foreground inline-flex items-center gap-2">
-              <Package className="h-3 w-3" /> {p.data_source === "makro" ? "SKU" : "ASIN"} {p.asin} · MOQ {p.moq ?? 1}
-            </p>
-            {p.data_source === "serpapi" ? (
-              <div className="mt-2 flex flex-wrap gap-1.5">
-                <span className="text-[10px] uppercase tracking-[0.18em] rounded-full bg-emerald-700/30 text-amber-300 px-2 py-0.5">
-                  🌍 International Opportunity
-                </span>
-                <span className="text-[10px] uppercase tracking-[0.18em] rounded-full bg-secondary px-2 py-0.5 text-muted-foreground">
-                  Popular in US/UK
-                </span>
-              </div>
-            ) : p.data_source && !isDemo && (
-              <span className="mt-2 inline-block text-[10px] uppercase tracking-[0.18em] rounded-full bg-secondary px-2 py-0.5 text-muted-foreground">
-                Sourced from {p.data_source === "makro" ? "Makro" : p.data_source === "amazon" ? "Amazon" : p.data_source}
-              </span>
-            )}
-          </div>
-          <div className="text-right shrink-0">
-            <p className="text-[10px] uppercase tracking-[0.18em] text-muted-foreground">{hasAccess ? `${tierLabel} price` : "Sell at"}</p>
-            <p className="font-display text-base text-gradient-gold">{hasAccess ? `R${tierPrice.toFixed(2)}` : "🔒 Locked"}</p>
-            {hasAccess && tierBonus > 0 && (
-              <p className="text-[10px] text-accent">+{tierBonus}% better margin</p>
-            )}
-          </div>
-        </div>
+    const price = Number(p.suggested_selling_price_zar ?? 0);
+    const seaProfit = Number(p.gross_margin_sea_zar ?? 0);
+    const airProfit = Number(p.gross_margin_air_zar ?? 0);
+    const seaPct = Number(p.margin_sea_pct ?? 0);
+    const airPct = Number(p.margin_air_pct ?? 0);
+    const airOn = !!p.air_available && airProfit > 0;
 
-        <div className="mt-4 grid grid-cols-3 gap-2">
-          <div className="rounded-2xl bg-secondary/60 p-3">
-            <p className="text-[10px] uppercase tracking-wider text-muted-foreground">Margin</p>
-            <p className="mt-1 font-display text-sm">{hasAccess ? `${tierMargin}%` : "🔒 —"}</p>
-          </div>
-          <div className="rounded-2xl bg-secondary/60 p-3">
-            <p className="text-[10px] uppercase tracking-wider text-muted-foreground">Your profit</p>
-            <p className="mt-1 font-display text-sm">{hasAccess ? `R${tierProfit.toFixed(2)}` : "🔒 —"}</p>
-          </div>
-          <div className="rounded-2xl bg-secondary/60 p-3">
-            <p className="text-[10px] uppercase tracking-wider text-muted-foreground">Sold/mo</p>
-            <p className="mt-1 font-display text-sm inline-flex items-center gap-1">
-              <TrendingUp className="h-3 w-3 text-accent" />
-              {hasAccess ? `~${Number(p.estimated_monthly_sales ?? p.sales_velocity ?? 0).toLocaleString()}` : "🔒"}
+    return (
+      <article className="group relative overflow-hidden rounded-3xl glass p-5 animate-slide-up">
+        <div className="flex items-start gap-3">
+          {p.product_image_url ? (
+            <img
+              src={p.product_image_url}
+              alt={p.product_name}
+              loading="lazy"
+              className="h-20 w-20 rounded-2xl object-cover bg-secondary shrink-0"
+            />
+          ) : (
+            <div className="grid h-20 w-20 place-items-center rounded-2xl bg-secondary shrink-0">
+              <Package className="h-6 w-6 text-muted-foreground" />
+            </div>
+          )}
+          <div className="min-w-0 flex-1">
+            <p className="text-[10px] uppercase tracking-[0.18em] text-accent">{p.category ?? "Product"}</p>
+            <p className="mt-1 font-display text-base leading-tight line-clamp-2">{p.product_name}</p>
+            <p className="mt-1 text-xs text-muted-foreground inline-flex items-center gap-2">
+              <Package className="h-3 w-3" /> MOQ {p.moq_required ?? 1}
+              {p.trending_direction === "up" && <span className="text-emerald-400 inline-flex items-center gap-0.5"><TrendingUp className="h-3 w-3" /> trending</span>}
             </p>
           </div>
         </div>
 
         <div className="mt-4">
+          <div className="flex items-baseline justify-between">
+            <p className="text-[10px] uppercase tracking-[0.18em] text-muted-foreground">Sell at</p>
+            <p className="font-display text-lg text-gradient-gold">{hasAccess ? fmtR(price) : "🔒 Locked"}</p>
+          </div>
+        </div>
+
+        <div className="mt-3 grid grid-cols-2 gap-2">
+          <div className="rounded-2xl bg-secondary/60 p-3">
+            <p className="text-[10px] uppercase tracking-wider text-muted-foreground inline-flex items-center gap-1">
+              <Ship className="h-3 w-3" /> Sea margin
+            </p>
+            <p className="mt-1 font-display text-sm">
+              {hasAccess ? `${Math.round(seaPct)}% · ${fmtR(seaProfit)}` : "🔒 —"}
+            </p>
+            <p className="text-[10px] text-muted-foreground">4–6 weeks</p>
+          </div>
+          <div className={`rounded-2xl p-3 ${airOn ? "bg-secondary/60" : "bg-secondary/30 opacity-60"}`}>
+            <p className="text-[10px] uppercase tracking-wider text-muted-foreground inline-flex items-center gap-1">
+              <Plane className="h-3 w-3" /> Air margin
+            </p>
+            <p className="mt-1 font-display text-sm">
+              {hasAccess ? (airOn ? `${Math.round(airPct)}% · ${fmtR(airProfit)}` : "—") : "🔒 —"}
+            </p>
+            <p className="text-[10px] text-muted-foreground">{airOn ? "5–10 days" : "Not available"}</p>
+          </div>
+        </div>
+
+        {hasAccess && tierBonus > 0 && (
+          <p className="mt-2 text-[10px] text-accent">+{tierBonus}% better margin on your tier</p>
+        )}
+
+        <div className="mt-4">
           <div className="flex items-baseline justify-between text-xs text-muted-foreground">
             <span className="inline-flex items-center gap-1">
-              <Users className="h-3 w-3" /> {hasAccess ? `${joined} / ${target} slots` : "Group buy"}
+              <Users className="h-3 w-3" /> {hasAccess ? `${joined} / ${target} committed` : "Group buy"}
             </span>
             <span>{hasAccess ? `${pct}%` : "Locked"}</span>
           </div>
@@ -222,22 +195,19 @@ const SparkTrade = () => {
           </div>
         </div>
 
-
         <button
           onClick={() => (hasAccess ? join(p) : setClubOpen(true))}
-          disabled={hasAccess && (isDemo || joining === p.id || joined >= target)}
+          disabled={hasAccess && (joining === p.id || joined >= target)}
           className="mt-5 w-full h-11 rounded-2xl bg-gradient-primary text-primary-foreground text-sm font-medium shadow-glow inline-flex items-center justify-center gap-1.5 disabled:opacity-60"
         >
           {!hasAccess ? (
             <><Lock className="h-4 w-4" /> Unlock with Buyers Club</>
           ) : joining === p.id ? (
             <Loader2 className="h-4 w-4 animate-spin" />
-          ) : isDemo ? (
-            <><Lock className="h-4 w-4" /> Demo only</>
           ) : joined >= target ? (
-            "Slots full"
+            "Group buy full"
           ) : (
-            <><Sparkles className="h-4 w-4" /> Join the buy</>
+            <><Sparkles className="h-4 w-4" /> Join the group buy</>
           )}
         </button>
       </article>
@@ -287,7 +257,7 @@ const SparkTrade = () => {
                 <div className="min-w-0">
                   <p className="font-display text-lg leading-tight">Spark Trade Members Only</p>
                   <p className="mt-1 text-xs text-accent-soft leading-relaxed">
-                    Full product details, supplier pricing and group buys are unlocked for paid Buyers Club members.
+                    Selling price, real margins and group-buy access are unlocked for paid Buyers Club members.
                   </p>
                   <button
                     onClick={() => setClubOpen(true)}
@@ -304,43 +274,21 @@ const SparkTrade = () => {
 
       <section id="signals" className="px-5 pt-8 scroll-mt-24">
         <div className="mx-auto max-w-md">
-          <Tabs defaultValue="now" className="w-full">
-            <TabsList className="grid w-full grid-cols-4 rounded-2xl bg-secondary/60 p-1 h-12">
-              <TabsTrigger value="now" className="rounded-xl data-[state=active]:bg-gradient-primary data-[state=active]:text-primary-foreground data-[state=active]:shadow-glow text-[11px]">
-                Buy Now
-              </TabsTrigger>
-              <TabsTrigger value="soon" className="rounded-xl data-[state=active]:bg-gradient-primary data-[state=active]:text-primary-foreground text-[11px]">
-                Buy Soon
-              </TabsTrigger>
-              <TabsTrigger value="wave" className="rounded-xl data-[state=active]:bg-gradient-primary data-[state=active]:text-primary-foreground text-[11px]">
-                Coming Wave
-              </TabsTrigger>
-              <TabsTrigger value="amazon" className="rounded-xl data-[state=active]:bg-gradient-primary data-[state=active]:text-primary-foreground text-[11px]">
-                Amazon
-              </TabsTrigger>
-            </TabsList>
-
-            {loading ? (
-              <div className="mt-6 grid place-items-center rounded-3xl glass p-10">
-                <Loader2 className="h-5 w-5 animate-spin text-primary" />
-              </div>
-            ) : (
-              <>
-                <TabsContent value="now" className="mt-5 space-y-3">
-                  {buckets.now.length ? buckets.now.map((p) => <Card key={p.id} p={p} />) : <Empty msg="No products ready to buy right now." />}
-                </TabsContent>
-                <TabsContent value="soon" className="mt-5 space-y-3">
-                  {buckets.soon.length ? buckets.soon.map((p) => <Card key={p.id} p={p} />) : <Empty msg="No products gathering soon." />}
-                </TabsContent>
-                <TabsContent value="wave" className="mt-5 space-y-3">
-                  {buckets.wave.length ? buckets.wave.map((p) => <Card key={p.id} p={p} />) : <Empty msg="No new products on the horizon." />}
-                </TabsContent>
-                <TabsContent value="amazon" className="mt-5">
-                  <AmazonBestsellers />
-                </TabsContent>
-              </>
-            )}
-          </Tabs>
+          <div className="flex items-baseline justify-between">
+            <h2 className="font-display text-xl">Curated catalog</h2>
+            <span className="text-[11px] text-muted-foreground">{items.length} live</span>
+          </div>
+          {loading ? (
+            <div className="mt-6 grid place-items-center rounded-3xl glass p-10">
+              <Loader2 className="h-5 w-5 animate-spin text-primary" />
+            </div>
+          ) : items.length === 0 ? (
+            <div className="mt-5"><Empty msg="No spotlighted products right now — check back soon." /></div>
+          ) : (
+            <div className="mt-5 space-y-3">
+              {items.map((p) => <Card key={p.id} p={p} />)}
+            </div>
+          )}
         </div>
       </section>
 
@@ -349,7 +297,7 @@ const SparkTrade = () => {
           <h2 className="font-display text-xl">My orders</h2>
           {loading ? null : orders.length === 0 ? (
             <div className="mt-4">
-              <Empty msg="No orders yet — join a buy above to begin." />
+              <Empty msg="No orders yet — join a group buy above to begin." />
             </div>
           ) : (
             <ul className="mt-4 divide-y divide-border rounded-3xl border border-border bg-gradient-card overflow-hidden">
