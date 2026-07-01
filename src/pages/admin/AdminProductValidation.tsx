@@ -311,29 +311,51 @@ export default function AdminProductValidation() {
     if (!r.price_zar || r.price_zar <= 0) { toast({ title: "Missing SA selling price (price_zar) on source row", variant: "destructive" }); return; }
 
     const freightOverrideRaw = f.freight_override_zar.trim();
-    const freightOverride = freightOverrideRaw === "" ? null : parseFloat(freightOverrideRaw);
-    if (freightOverride != null && (isNaN(freightOverride) || freightOverride < 0)) {
-      toast({ title: "Freight override must be a non-negative number", variant: "destructive" }); return;
+    const freightSeaOverride = freightOverrideRaw === "" ? null : parseFloat(freightOverrideRaw);
+    if (freightSeaOverride != null && (isNaN(freightSeaOverride) || freightSeaOverride < 0)) {
+      toast({ title: "Sea freight override must be a non-negative number", variant: "destructive" }); return;
     }
-    const m = computeMargins({ alibaba_cost_zar: alibaba, weight_kg: weight, buffer_pct: buffer, commission_pct: commission, price_zar: Number(r.price_zar), freight_override_zar: freightOverride });
+    const freightAirRaw = f.freight_air_zar.trim();
+    const freightAirOverride = freightAirRaw === "" ? null : parseFloat(freightAirRaw);
+    if (freightAirOverride != null && (isNaN(freightAirOverride) || freightAirOverride < 0)) {
+      toast({ title: "Air freight must be a non-negative number", variant: "destructive" }); return;
+    }
+    const m = computeMargins({
+      alibaba_cost_zar: alibaba, weight_kg: weight, buffer_pct: buffer, commission_pct: commission,
+      price_zar: Number(r.price_zar),
+      freight_sea_override: freightSeaOverride,
+      freight_air_override: freightAirOverride,
+    });
 
     setSaving(r.id);
 
+    const r2 = (n: number) => Math.round(n * 100) / 100;
     const row = {
       product_name: r.title,
       category: r.category,
       product_image_url: r.image_url,
       suggested_selling_price_zar: Number(r.price_zar),
-      unit_cost_zar: Math.round(m.landed_cost_zar * 100) / 100,
+      unit_cost_zar: r2(m.landed_cost_zar),
       alibaba_cost_zar: alibaba,
       buffer_pct: buffer,
-      freight_cost_zar: Math.round(m.freight_cost_zar * 100) / 100,
+      // Legacy single-mode (mirror of sea)
+      freight_cost_zar: r2(m.freight_cost_zar),
       freight_is_override: m.freight_is_override,
-      umoja_commission_zar: Math.round(m.umoja_commission_zar * 100) / 100,
+      umoja_commission_zar: r2(m.umoja_commission_zar),
       commission_pct: commission,
-      landed_cost_zar: Math.round(m.landed_cost_zar * 100) / 100,
-      gross_margin_zar: Math.round(m.gross_margin_zar * 100) / 100,
-      expected_margin_percentage: Math.round(m.expected_margin_percentage * 100) / 100,
+      landed_cost_zar: r2(m.landed_cost_zar),
+      gross_margin_zar: r2(m.gross_margin_zar),
+      expected_margin_percentage: r2(m.expected_margin_percentage),
+      // Dual freight
+      freight_sea_zar: r2(m.freight_sea_zar),
+      landed_cost_sea_zar: r2(m.landed_cost_sea_zar),
+      gross_margin_sea_zar: r2(m.gross_margin_sea_zar),
+      margin_sea_pct: r2(m.margin_sea_pct),
+      air_available: m.air_available,
+      freight_air_zar: r2(m.freight_air_zar),
+      landed_cost_air_zar: r2(m.landed_cost_air_zar),
+      gross_margin_air_zar: r2(m.gross_margin_air_zar),
+      margin_air_pct: r2(m.margin_air_pct),
       weight_kg: weight,
       moq_required: moq,
       supplier_name: f.supplier_name || "china_supplier",
