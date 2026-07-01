@@ -447,7 +447,8 @@ export default function AdminProductValidation() {
                   buffer_pct: parseFloat(f.buffer_pct) || 0,
                   commission_pct: parseFloat(f.commission_pct) || 0,
                   price_zar: Number(r.price_zar),
-                  freight_override_zar: f.freight_override_zar.trim() === "" ? null : parseFloat(f.freight_override_zar),
+                  freight_sea_override: f.freight_override_zar.trim() === "" ? null : parseFloat(f.freight_override_zar),
+                  freight_air_override: f.freight_air_zar.trim() === "" ? null : parseFloat(f.freight_air_zar),
                 })
               : null;
 
