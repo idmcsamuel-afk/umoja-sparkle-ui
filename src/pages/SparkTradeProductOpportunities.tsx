@@ -351,7 +351,9 @@ export default function SparkTradeProductOpportunities() {
         product_name: active.product_name,
         category: active.category,
         units: qty,
-        unit_price: active.suggested_selling_price_zar,
+        unit_price: landedPerUnit,
+        selling_price: sellPerUnit,
+        freight_mode: freightMode,
         delivery_address: { ...addr },
       },
     });
