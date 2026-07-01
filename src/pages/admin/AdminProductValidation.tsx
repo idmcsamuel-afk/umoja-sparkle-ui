@@ -503,6 +503,12 @@ export default function AdminProductValidation() {
                         <X className="h-4 w-4 mr-1" /> Reject
                       </Button>
                     )}
+                    {r.asin && (
+                      <Button size="sm" variant="outline" onClick={() => fetchCompetition(r)} disabled={enriching===r.id} title="Rainforest type=product call (~$0.0035)">
+                        {enriching===r.id ? <Loader2 className="h-4 w-4 mr-1 animate-spin" /> : <Radar className="h-4 w-4 mr-1" />}
+                        Fetch competition data
+                      </Button>
+                    )}
                   </div>
                 </CardContent>
               </Card>
