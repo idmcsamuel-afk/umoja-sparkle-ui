@@ -47,6 +47,8 @@ interface Opportunity {
   spotlight_rank?: number | null;
   spotlight_title?: string | null;
   // Dual freight
+  landed_cost_sea_zar?: number | null;
+  landed_cost_air_zar?: number | null;
   gross_margin_sea_zar?: number | null;
   margin_sea_pct?: number | null;
   gross_margin_air_zar?: number | null;
@@ -87,6 +89,7 @@ export default function SparkTradeProductOpportunities() {
   const [reserveOpen, setReserveOpen] = useState(false);
   const [active, setActive] = useState<Opportunity | null>(null);
   const [qty, setQty] = useState<number>(0);
+  const [freightMode, setFreightMode] = useState<"sea" | "air">("sea");
   const [paying, setPaying] = useState(false);
 
   // Address state
@@ -213,7 +216,7 @@ export default function SparkTradeProductOpportunities() {
       const { data, error } = await supabase
         .from("spark_trade_opportunities" as any)
         .select(
-          "id, product_name, category, moq_required, unit_cost_zar, suggested_selling_price_zar, expected_margin_percentage, product_image_url, stock_available, trending_direction, supplier_country, is_spotlight, spotlight_rank, spotlight_title, gross_margin_sea_zar, margin_sea_pct, gross_margin_air_zar, margin_air_pct, air_available",
+          "id, product_name, category, moq_required, unit_cost_zar, suggested_selling_price_zar, expected_margin_percentage, product_image_url, stock_available, trending_direction, supplier_country, is_spotlight, spotlight_rank, spotlight_title, landed_cost_sea_zar, landed_cost_air_zar, gross_margin_sea_zar, margin_sea_pct, gross_margin_air_zar, margin_air_pct, air_available",
         )
         .eq("is_spotlight", true)
         .order("spotlight_rank", { ascending: true, nullsFirst: false })
@@ -247,21 +250,35 @@ export default function SparkTradeProductOpportunities() {
   const openReserve = (p: Opportunity) => {
     setActive(p);
     setQty(p.moq_required ?? 1);
+    setFreightMode("sea");
     setReserveOpen(true);
   };
 
-  const totalCost = useMemo(() => {
+  const landedPerUnit = useMemo(() => {
     if (!active) return 0;
-    return Number(active.suggested_selling_price_zar ?? 0) * (qty || 0);
-  }, [active, qty]);
+    const sea = Number(active.landed_cost_sea_zar ?? 0);
+    const air = Number(active.landed_cost_air_zar ?? 0);
+    const fallback = Number(active.unit_cost_zar ?? 0);
+    if (freightMode === "air") return air > 0 ? air : (sea > 0 ? sea : fallback);
+    return sea > 0 ? sea : fallback;
+  }, [active, freightMode]);
+
+  const sellPerUnit = useMemo(
+    () => (active ? Number(active.suggested_selling_price_zar ?? 0) : 0),
+    [active],
+  );
+
+  const totalCost = useMemo(() => landedPerUnit * (qty || 0), [landedPerUnit, qty]);
 
   const profitPerUnit = useMemo(() => {
     if (!active) return 0;
-    return (
-      Number(active.suggested_selling_price_zar ?? 0) -
-      Number(active.unit_cost_zar ?? 0)
-    );
-  }, [active]);
+    const seaP = Number(active.gross_margin_sea_zar ?? 0);
+    const airP = Number(active.gross_margin_air_zar ?? 0);
+    if (freightMode === "air" && airP) return airP;
+    if (seaP) return seaP;
+    return Math.max(0, sellPerUnit - landedPerUnit);
+  }, [active, freightMode, sellPerUnit, landedPerUnit]);
+
 
   const totalProfit = useMemo(() => profitPerUnit * (qty || 0), [profitPerUnit, qty]);
 
@@ -334,7 +351,9 @@ export default function SparkTradeProductOpportunities() {
         product_name: active.product_name,
         category: active.category,
         units: qty,
-        unit_price: active.suggested_selling_price_zar,
+        unit_price: landedPerUnit,
+        selling_price: sellPerUnit,
+        freight_mode: freightMode,
         delivery_address: { ...addr },
       },
     });
@@ -582,10 +601,36 @@ export default function SparkTradeProductOpportunities() {
                   )}
                 </div>
 
+                {(() => {
+                  const airOn = !!active.air_available && Number(active.landed_cost_air_zar ?? 0) > 0;
+                  return airOn ? (
+                    <div className="flex gap-2">
+                      <button
+                        type="button"
+                        onClick={() => setFreightMode("sea")}
+                        className={`flex-1 rounded-md border px-3 py-2 text-xs font-medium ${freightMode === "sea" ? "border-primary bg-primary/10 text-primary" : "border-border text-muted-foreground"}`}
+                      >
+                        Sea · 4–6 weeks
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setFreightMode("air")}
+                        className={`flex-1 rounded-md border px-3 py-2 text-xs font-medium ${freightMode === "air" ? "border-primary bg-primary/10 text-primary" : "border-border text-muted-foreground"}`}
+                      >
+                        Air · 5–10 days
+                      </button>
+                    </div>
+                  ) : null;
+                })()}
+
                 <div className="rounded-lg bg-muted p-4 space-y-2 text-sm">
                   <div className="flex justify-between">
-                    <span className="text-muted-foreground">Unit price</span>
-                    <span className="font-medium">{fmtZar(active.suggested_selling_price_zar)}</span>
+                    <span className="text-muted-foreground">Your cost / unit ({freightMode === "air" ? "air" : "sea"})</span>
+                    <span className="font-medium">{fmtZar(landedPerUnit)}</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-muted-foreground">Sell at / unit</span>
+                    <span className="font-medium">{fmtZar(sellPerUnit)}</span>
                   </div>
                   <div className="flex justify-between">
                     <span className="text-muted-foreground">Quantity</span>
@@ -596,7 +641,7 @@ export default function SparkTradeProductOpportunities() {
                     <span className="font-medium text-green-600">{fmtZar(profitPerUnit)}</span>
                   </div>
                   <div className="border-t pt-2 flex justify-between">
-                    <span className="font-semibold">Total cost</span>
+                    <span className="font-semibold">Total cost (you pay)</span>
                     <span className="font-bold text-lg">{fmtZar(totalCost)}</span>
                   </div>
                   <div className="flex justify-between text-green-600">
