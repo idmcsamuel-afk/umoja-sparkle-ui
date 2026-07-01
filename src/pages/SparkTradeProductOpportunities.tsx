@@ -46,6 +46,12 @@ interface Opportunity {
   is_spotlight?: boolean | null;
   spotlight_rank?: number | null;
   spotlight_title?: string | null;
+  // Dual freight
+  gross_margin_sea_zar?: number | null;
+  margin_sea_pct?: number | null;
+  gross_margin_air_zar?: number | null;
+  margin_air_pct?: number | null;
+  air_available?: boolean | null;
 }
 
 interface CommitmentStatus {
