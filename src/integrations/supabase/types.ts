@@ -5721,6 +5721,7 @@ export type Database = {
       }
       spark_trade_opportunities: {
         Row: {
+          air_available: boolean
           alibaba_cost_zar: number | null
           buffer_pct: number | null
           category: string | null
@@ -5730,14 +5731,22 @@ export type Database = {
           expected_arrival_date: string | null
           expected_margin_percentage: number | null
           expected_order_date: string | null
+          freight_air_zar: number | null
           freight_cost_zar: number | null
           freight_is_override: boolean
+          freight_sea_zar: number | null
+          gross_margin_air_zar: number | null
+          gross_margin_sea_zar: number | null
           gross_margin_zar: number | null
           group_buy_status: string | null
           id: number
           is_approved_for_ai_recommendation: boolean | null
           is_spotlight: boolean
+          landed_cost_air_zar: number | null
+          landed_cost_sea_zar: number | null
           landed_cost_zar: number | null
+          margin_air_pct: number | null
+          margin_sea_pct: number | null
           marketplace: string | null
           moq_required: number | null
           original_reference_image_url: string | null
@@ -5759,6 +5768,7 @@ export type Database = {
           weight_kg: number | null
         }
         Insert: {
+          air_available?: boolean
           alibaba_cost_zar?: number | null
           buffer_pct?: number | null
           category?: string | null
@@ -5768,14 +5778,22 @@ export type Database = {
           expected_arrival_date?: string | null
           expected_margin_percentage?: number | null
           expected_order_date?: string | null
+          freight_air_zar?: number | null
           freight_cost_zar?: number | null
           freight_is_override?: boolean
+          freight_sea_zar?: number | null
+          gross_margin_air_zar?: number | null
+          gross_margin_sea_zar?: number | null
           gross_margin_zar?: number | null
           group_buy_status?: string | null
           id?: number
           is_approved_for_ai_recommendation?: boolean | null
           is_spotlight?: boolean
+          landed_cost_air_zar?: number | null
+          landed_cost_sea_zar?: number | null
           landed_cost_zar?: number | null
+          margin_air_pct?: number | null
+          margin_sea_pct?: number | null
           marketplace?: string | null
           moq_required?: number | null
           original_reference_image_url?: string | null
@@ -5797,6 +5815,7 @@ export type Database = {
           weight_kg?: number | null
         }
         Update: {
+          air_available?: boolean
           alibaba_cost_zar?: number | null
           buffer_pct?: number | null
           category?: string | null
@@ -5806,14 +5825,22 @@ export type Database = {
           expected_arrival_date?: string | null
           expected_margin_percentage?: number | null
           expected_order_date?: string | null
+          freight_air_zar?: number | null
           freight_cost_zar?: number | null
           freight_is_override?: boolean
+          freight_sea_zar?: number | null
+          gross_margin_air_zar?: number | null
+          gross_margin_sea_zar?: number | null
           gross_margin_zar?: number | null
           group_buy_status?: string | null
           id?: number
           is_approved_for_ai_recommendation?: boolean | null
           is_spotlight?: boolean
+          landed_cost_air_zar?: number | null
+          landed_cost_sea_zar?: number | null
           landed_cost_zar?: number | null
+          margin_air_pct?: number | null
+          margin_sea_pct?: number | null
           marketplace?: string | null
           moq_required?: number | null
           original_reference_image_url?: string | null
