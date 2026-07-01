@@ -237,6 +237,30 @@ export default function AdminProductValidation() {
     toast({ title: status === "rejected" ? "Rejected" : status === "demand_validated" ? "Marked as demand signal" : "Updated" });
   };
 
+  const fetchCompetition = async (r: ProductRow) => {
+    if (!r.asin) { toast({ title: "No ASIN on this row", variant: "destructive" }); return; }
+    setEnriching(r.id);
+    const { data, error } = await supabase.functions.invoke("enrich-product-rank", { body: { product_id: r.id } });
+    setEnriching(null);
+    if (error) { toast({ title: "Fetch failed", description: (error as any).message ?? String(error), variant: "destructive" }); return; }
+    const res = Array.isArray((data as any)?.results) ? (data as any).results[0] : null;
+    if (!res) { toast({ title: "No data returned", variant: "destructive" }); return; }
+    setRows((prev) => prev.map((x) => x.id === r.id ? {
+      ...x,
+      sales_rank: res.sales_rank ?? x.sales_rank,
+      sales_rank_category: res.sales_rank_category ?? x.sales_rank_category,
+      seller_count: typeof res.seller_count === "number" ? res.seller_count : x.seller_count,
+      seller_count_verified: typeof res.seller_count === "number" ? true : x.seller_count_verified,
+      buybox_price: typeof res.buybox_price === "number" ? res.buybox_price : x.buybox_price,
+      buybox_currency: res.buybox_currency ?? x.buybox_currency,
+      image_url: res.image_url ?? x.image_url,
+    } : x));
+    const bits: string[] = [];
+    if (res.sales_rank) bits.push(`BSR #${Number(res.sales_rank).toLocaleString()}`);
+    if (typeof res.seller_count === "number") bits.push(`Sellers: ${res.seller_count}`);
+    toast({ title: "Competition data fetched", description: bits.join(" • ") || "No BSR/sellers on listing" });
+  };
+
   const publishAmazonSA = async (r: ProductRow) => {
     const f = getForm(r.id);
     const alibaba = parseFloat(f.alibaba_cost_zar);
