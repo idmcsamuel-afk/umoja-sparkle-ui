@@ -111,6 +111,7 @@ export default function AdminProductValidation() {
   const [forms, setForms] = useState<Record<string, PriceForm>>({});
   const [draftLoaded, setDraftLoaded] = useState<Record<string, boolean>>({});
   const [restoredNote, setRestoredNote] = useState<Record<string, boolean>>({});
+  const [enriching, setEnriching] = useState<string | null>(null);
 
   const load = async () => {
     setLoading(true);
