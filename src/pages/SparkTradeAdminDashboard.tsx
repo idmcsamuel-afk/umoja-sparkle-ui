@@ -386,7 +386,9 @@ function PricingEditor({
   onSave: (payload: {
     alibaba_cost_zar: number;
     weight_kg: number;
-    freight_override: number | null;
+    freight_sea_override: number | null;
+    freight_air_override: number | null;
+    air_available: boolean;
     buffer_pct: number;
     commission_pct: number;
     moq_required: number;
@@ -395,7 +397,8 @@ function PricingEditor({
 }) {
   const [alibaba, setAlibaba] = useState(0);
   const [weight, setWeight] = useState(0);
-  const [freightOverride, setFreightOverride] = useState<string>("");
+  const [freightSeaOverride, setFreightSeaOverride] = useState<string>("");
+  const [freightAir, setFreightAir] = useState<string>("");
   const [buffer, setBuffer] = useState(0);
   const [commission, setCommission] = useState(0);
   const [moq, setMoq] = useState(0);
@@ -405,21 +408,36 @@ function PricingEditor({
     if (!opp) return;
     setAlibaba(Number(opp.alibaba_cost_zar ?? 0));
     setWeight(Number(opp.weight_kg ?? 0));
-    setFreightOverride(opp.freight_is_override ? String(opp.freight_cost_zar ?? "") : "");
+    // Prefer explicit sea override; fall back to legacy freight_is_override + freight_cost_zar
+    const seaOverrideSeed = opp.freight_is_override
+      ? String(opp.freight_sea_zar ?? opp.freight_cost_zar ?? "")
+      : "";
+    setFreightSeaOverride(seaOverrideSeed);
+    setFreightAir(opp.air_available && Number(opp.freight_air_zar) > 0 ? String(opp.freight_air_zar) : "");
     setBuffer(Number(opp.buffer_pct ?? 0));
     setCommission(Number(opp.commission_pct ?? 0));
     setMoq(Number(opp.moq_required ?? 0));
     setSell(Number(opp.suggested_selling_price_zar ?? 0));
   }, [opp]);
 
-  const overrideNum = freightOverride.trim() === "" ? null : Number(freightOverride);
-  const isOverride = overrideNum != null && !Number.isNaN(overrideNum);
+  const seaOverrideNum = freightSeaOverride.trim() === "" ? null : Number(freightSeaOverride);
+  const isSeaOverride = seaOverrideNum != null && !Number.isNaN(seaOverrideNum);
+  const airNum = freightAir.trim() === "" ? null : Number(freightAir);
+  const airAvailable = airNum != null && !Number.isNaN(airNum) && airNum > 0;
+
   const adjusted = alibaba * (1 + buffer / 100);
-  const freight = isOverride ? (overrideNum as number) : (weight / 167) * 8800;
-  const commissionZar = (adjusted + freight) * (commission / 100);
-  const landed = adjusted + freight + commissionZar;
-  const margin = sell - landed;
-  const marginPct = sell > 0 ? (margin / sell) * 100 : 0;
+  const freightSea = isSeaOverride ? (seaOverrideNum as number) : (weight / 167) * 8800;
+  const commissionSea = (adjusted + freightSea) * (commission / 100);
+  const landedSea = adjusted + freightSea + commissionSea;
+  const marginSea = sell - landedSea;
+  const marginSeaPct = sell > 0 ? (marginSea / sell) * 100 : 0;
+
+  const freightAirVal = airAvailable ? (airNum as number) : 0;
+  const commissionAir = (adjusted + freightAirVal) * (commission / 100);
+  const landedAir = adjusted + freightAirVal + commissionAir;
+  const marginAir = sell - landedAir;
+  const marginAirPct = sell > 0 ? (marginAir / sell) * 100 : 0;
+
   const r = (n: number) => Math.round(n * 100) / 100;
 
   return (
@@ -431,18 +449,24 @@ function PricingEditor({
         {opp && (
           <div className="space-y-4">
             <div className="rounded-md bg-muted/50 p-3 text-xs text-muted-foreground">
-              Recalculates landed cost and margin. Does NOT change name, image,
-              spotlight status, or rank. Commission is hidden from members.
+              Members see two shipping options — Sea (cheap, ~4–6 weeks) and Air (faster, ~5–10 days).
+              Leave Air blank to hide it. Commission stays hidden from members.
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
               <Field label="Alibaba cost / unit (ZAR)" type="number" value={alibaba} onChange={(v) => setAlibaba(Number(v))} />
               <Field label="Weight per unit (kg)" type="number" value={weight} onChange={(v) => setWeight(Number(v))} />
               <Field
-                label="Freight cost / unit (ZAR) — override (blank = volumetric)"
+                label="🚢 Sea freight / unit (ZAR) — override (blank = volumetric)"
                 type="number"
-                value={freightOverride}
-                onChange={(v) => setFreightOverride(v)}
+                value={freightSeaOverride}
+                onChange={(v) => setFreightSeaOverride(v)}
+              />
+              <Field
+                label="✈️ Air freight / unit (ZAR) — blank = air unavailable"
+                type="number"
+                value={freightAir}
+                onChange={(v) => setFreightAir(v)}
               />
               <Field label="Buffer %" type="number" value={buffer} onChange={(v) => setBuffer(Number(v))} />
               <Field label="Commission % (hidden from members)" type="number" value={commission} onChange={(v) => setCommission(Number(v))} />
@@ -451,18 +475,40 @@ function PricingEditor({
             </div>
 
             <div className="rounded-md border p-3 text-sm space-y-1">
-              <div className="font-medium mb-2">Live preview</div>
+              <div className="font-medium mb-2">🚢 Sea — live preview</div>
               <Row k="Adjusted cost (alibaba + buffer)" v={`R${r(adjusted).toLocaleString()}`} />
-              <Row k={`Freight ${isOverride ? "(override)" : "(volumetric)"}`} v={`R${r(freight).toLocaleString()}`} />
-              <Row k="Umoja commission (hidden)" v={`R${r(commissionZar).toLocaleString()}`} muted />
-              <Row k="Landed cost / unit" v={`R${r(landed).toLocaleString()}`} bold />
-              <Row k="Selling price" v={`R${r(sell).toLocaleString()}`} />
+              <Row k={`Freight ${isSeaOverride ? "(override)" : "(volumetric)"}`} v={`R${r(freightSea).toLocaleString()}`} />
+              <Row k="Umoja commission (hidden)" v={`R${r(commissionSea).toLocaleString()}`} muted />
+              <Row k="Landed / unit" v={`R${r(landedSea).toLocaleString()}`} bold />
               <Row
                 k="Gross margin"
-                v={`R${r(margin).toLocaleString()} (${r(marginPct)}%)`}
+                v={`R${r(marginSea).toLocaleString()} (${r(marginSeaPct)}%)`}
                 bold
-                tone={margin > 0 ? "text-emerald-500" : "text-destructive"}
+                tone={marginSea > 0 ? "text-emerald-500" : "text-destructive"}
               />
+            </div>
+
+            <div className="rounded-md border p-3 text-sm space-y-1">
+              <div className="font-medium mb-2">✈️ Air — live preview</div>
+              {airAvailable ? (
+                <>
+                  <Row k="Freight (air override)" v={`R${r(freightAirVal).toLocaleString()}`} />
+                  <Row k="Umoja commission (hidden)" v={`R${r(commissionAir).toLocaleString()}`} muted />
+                  <Row k="Landed / unit" v={`R${r(landedAir).toLocaleString()}`} bold />
+                  <Row
+                    k="Gross margin"
+                    v={`R${r(marginAir).toLocaleString()} (${r(marginAirPct)}%)`}
+                    bold
+                    tone={marginAir > 0 ? "text-emerald-500" : "text-destructive"}
+                  />
+                </>
+              ) : (
+                <div className="text-xs text-muted-foreground">Air option hidden — members will only see Sea.</div>
+              )}
+            </div>
+
+            <div className="rounded-md border p-3 text-xs text-muted-foreground">
+              Selling price: R{r(sell).toLocaleString()}
             </div>
           </div>
         )}
@@ -473,7 +519,9 @@ function PricingEditor({
               onSave({
                 alibaba_cost_zar: alibaba,
                 weight_kg: weight,
-                freight_override: isOverride ? (overrideNum as number) : null,
+                freight_sea_override: isSeaOverride ? (seaOverrideNum as number) : null,
+                freight_air_override: airAvailable ? (airNum as number) : null,
+                air_available: airAvailable,
                 buffer_pct: buffer,
                 commission_pct: commission,
                 moq_required: moq,
