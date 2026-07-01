@@ -82,20 +82,57 @@ interface PriceForm {
   commission_pct: string;
   moq: string;
   supplier_name: string;
-  freight_override_zar: string;
+  freight_override_zar: string;   // sea override (legacy key retained)
+  freight_air_zar: string;        // air override (blank = air unavailable)
 }
 
-function computeMargins(input: { alibaba_cost_zar: number; weight_kg: number; buffer_pct: number; commission_pct: number; price_zar: number; freight_override_zar?: number | null; }) {
+function computeMargins(input: {
+  alibaba_cost_zar: number;
+  weight_kg: number;
+  buffer_pct: number;
+  commission_pct: number;
+  price_zar: number;
+  freight_sea_override?: number | null;
+  freight_air_override?: number | null;
+}) {
   const adjusted_cost = input.alibaba_cost_zar * (1 + input.buffer_pct / 100);
-  const hasOverride = input.freight_override_zar != null && !isNaN(input.freight_override_zar as number) && (input.freight_override_zar as number) >= 0;
-  const freight_cost_zar = hasOverride
-    ? (input.freight_override_zar as number)
+
+  const hasSea = input.freight_sea_override != null && !isNaN(input.freight_sea_override as number) && (input.freight_sea_override as number) >= 0;
+  const freight_sea_zar = hasSea
+    ? (input.freight_sea_override as number)
     : (input.weight_kg / DEFAULTS.kg_per_cbm) * DEFAULTS.freight_rate_per_cbm;
-  const umoja_commission_zar = (adjusted_cost + freight_cost_zar) * (input.commission_pct / 100);
-  const landed_cost_zar = adjusted_cost + freight_cost_zar + umoja_commission_zar;
-  const gross_margin_zar = input.price_zar - landed_cost_zar;
-  const expected_margin_percentage = input.price_zar > 0 ? (gross_margin_zar / input.price_zar) * 100 : 0;
-  return { adjusted_cost, freight_cost_zar, freight_is_override: hasOverride, umoja_commission_zar, landed_cost_zar, gross_margin_zar, expected_margin_percentage };
+  const commission_sea = (adjusted_cost + freight_sea_zar) * (input.commission_pct / 100);
+  const landed_sea = adjusted_cost + freight_sea_zar + commission_sea;
+  const margin_sea = input.price_zar - landed_sea;
+  const margin_sea_pct = input.price_zar > 0 ? (margin_sea / input.price_zar) * 100 : 0;
+
+  const hasAir = input.freight_air_override != null && !isNaN(input.freight_air_override as number) && (input.freight_air_override as number) > 0;
+  const freight_air_zar = hasAir ? (input.freight_air_override as number) : 0;
+  const commission_air = (adjusted_cost + freight_air_zar) * (input.commission_pct / 100);
+  const landed_air = adjusted_cost + freight_air_zar + commission_air;
+  const margin_air = input.price_zar - landed_air;
+  const margin_air_pct = input.price_zar > 0 ? (margin_air / input.price_zar) * 100 : 0;
+
+  return {
+    adjusted_cost,
+    // sea (also legacy)
+    freight_cost_zar: freight_sea_zar,
+    freight_is_override: hasSea,
+    umoja_commission_zar: commission_sea,
+    landed_cost_zar: landed_sea,
+    gross_margin_zar: margin_sea,
+    expected_margin_percentage: margin_sea_pct,
+    // dual
+    freight_sea_zar,
+    landed_cost_sea_zar: landed_sea,
+    gross_margin_sea_zar: margin_sea,
+    margin_sea_pct,
+    air_available: hasAir,
+    freight_air_zar,
+    landed_cost_air_zar: hasAir ? landed_air : 0,
+    gross_margin_air_zar: hasAir ? margin_air : 0,
+    margin_air_pct: hasAir ? margin_air_pct : 0,
+  };
 }
 
 export default function AdminProductValidation() {
@@ -153,7 +190,7 @@ export default function AdminProductValidation() {
   const currentPage = Math.min(page, totalPages);
   const pageRows = filtered.slice((currentPage - 1) * PAGE_SIZE, currentPage * PAGE_SIZE);
 
-  const blankForm = (): PriceForm => ({ alibaba_cost_zar: "", weight_kg: "", buffer_pct: String(DEFAULTS.buffer_pct), commission_pct: String(DEFAULTS.commission_pct), moq: "100", supplier_name: "", freight_override_zar: "" });
+  const blankForm = (): PriceForm => ({ alibaba_cost_zar: "", weight_kg: "", buffer_pct: String(DEFAULTS.buffer_pct), commission_pct: String(DEFAULTS.commission_pct), moq: "100", supplier_name: "", freight_override_zar: "", freight_air_zar: "" });
   const setFormField = (id: string, k: keyof PriceForm, v: string) => {
     setForms((p) => ({ ...p, [id]: { ...(p[id] ?? blankForm()), [k]: v } }));
   };
@@ -175,6 +212,7 @@ export default function AdminProductValidation() {
           alibaba_cost_zar: d.alibaba_cost_zar ?? "",
           weight_kg: d.weight_kg ?? "",
           freight_override_zar: d.freight_override_zar ?? "",
+          freight_air_zar: d.freight_air_zar ?? "",
           buffer_pct: d.buffer_pct ?? String(DEFAULTS.buffer_pct),
           commission_pct: d.commission_pct ?? String(DEFAULTS.commission_pct),
           moq: d.moq ?? "100",
@@ -273,29 +311,51 @@ export default function AdminProductValidation() {
     if (!r.price_zar || r.price_zar <= 0) { toast({ title: "Missing SA selling price (price_zar) on source row", variant: "destructive" }); return; }
 
     const freightOverrideRaw = f.freight_override_zar.trim();
-    const freightOverride = freightOverrideRaw === "" ? null : parseFloat(freightOverrideRaw);
-    if (freightOverride != null && (isNaN(freightOverride) || freightOverride < 0)) {
-      toast({ title: "Freight override must be a non-negative number", variant: "destructive" }); return;
+    const freightSeaOverride = freightOverrideRaw === "" ? null : parseFloat(freightOverrideRaw);
+    if (freightSeaOverride != null && (isNaN(freightSeaOverride) || freightSeaOverride < 0)) {
+      toast({ title: "Sea freight override must be a non-negative number", variant: "destructive" }); return;
     }
-    const m = computeMargins({ alibaba_cost_zar: alibaba, weight_kg: weight, buffer_pct: buffer, commission_pct: commission, price_zar: Number(r.price_zar), freight_override_zar: freightOverride });
+    const freightAirRaw = f.freight_air_zar.trim();
+    const freightAirOverride = freightAirRaw === "" ? null : parseFloat(freightAirRaw);
+    if (freightAirOverride != null && (isNaN(freightAirOverride) || freightAirOverride < 0)) {
+      toast({ title: "Air freight must be a non-negative number", variant: "destructive" }); return;
+    }
+    const m = computeMargins({
+      alibaba_cost_zar: alibaba, weight_kg: weight, buffer_pct: buffer, commission_pct: commission,
+      price_zar: Number(r.price_zar),
+      freight_sea_override: freightSeaOverride,
+      freight_air_override: freightAirOverride,
+    });
 
     setSaving(r.id);
 
+    const r2 = (n: number) => Math.round(n * 100) / 100;
     const row = {
       product_name: r.title,
       category: r.category,
       product_image_url: r.image_url,
       suggested_selling_price_zar: Number(r.price_zar),
-      unit_cost_zar: Math.round(m.landed_cost_zar * 100) / 100,
+      unit_cost_zar: r2(m.landed_cost_zar),
       alibaba_cost_zar: alibaba,
       buffer_pct: buffer,
-      freight_cost_zar: Math.round(m.freight_cost_zar * 100) / 100,
+      // Legacy single-mode (mirror of sea)
+      freight_cost_zar: r2(m.freight_cost_zar),
       freight_is_override: m.freight_is_override,
-      umoja_commission_zar: Math.round(m.umoja_commission_zar * 100) / 100,
+      umoja_commission_zar: r2(m.umoja_commission_zar),
       commission_pct: commission,
-      landed_cost_zar: Math.round(m.landed_cost_zar * 100) / 100,
-      gross_margin_zar: Math.round(m.gross_margin_zar * 100) / 100,
-      expected_margin_percentage: Math.round(m.expected_margin_percentage * 100) / 100,
+      landed_cost_zar: r2(m.landed_cost_zar),
+      gross_margin_zar: r2(m.gross_margin_zar),
+      expected_margin_percentage: r2(m.expected_margin_percentage),
+      // Dual freight
+      freight_sea_zar: r2(m.freight_sea_zar),
+      landed_cost_sea_zar: r2(m.landed_cost_sea_zar),
+      gross_margin_sea_zar: r2(m.gross_margin_sea_zar),
+      margin_sea_pct: r2(m.margin_sea_pct),
+      air_available: m.air_available,
+      freight_air_zar: r2(m.freight_air_zar),
+      landed_cost_air_zar: r2(m.landed_cost_air_zar),
+      gross_margin_air_zar: r2(m.gross_margin_air_zar),
+      margin_air_pct: r2(m.margin_air_pct),
       weight_kg: weight,
       moq_required: moq,
       supplier_name: f.supplier_name || "china_supplier",
@@ -387,7 +447,8 @@ export default function AdminProductValidation() {
                   buffer_pct: parseFloat(f.buffer_pct) || 0,
                   commission_pct: parseFloat(f.commission_pct) || 0,
                   price_zar: Number(r.price_zar),
-                  freight_override_zar: f.freight_override_zar.trim() === "" ? null : parseFloat(f.freight_override_zar),
+                  freight_sea_override: f.freight_override_zar.trim() === "" ? null : parseFloat(f.freight_override_zar),
+                  freight_air_override: f.freight_air_zar.trim() === "" ? null : parseFloat(f.freight_air_zar),
                 })
               : null;
 
@@ -457,19 +518,40 @@ export default function AdminProductValidation() {
                         <div><Label className="text-xs">MOQ</Label><Input type="number" value={f.moq} onChange={(e) => setFormField(r.id, "moq", e.target.value)} /></div>
                         <div><Label className="text-xs">Supplier / manufacturer</Label><Input value={f.supplier_name} onChange={(e) => setFormField(r.id, "supplier_name", e.target.value)} placeholder="optional" /></div>
                       </div>
-                      <div>
-                        <Label className="text-xs">Freight cost per unit (ZAR) — override</Label>
-                        <Input type="number" step="0.01" min="0" value={f.freight_override_zar} onChange={(e) => setFormField(r.id, "freight_override_zar", e.target.value)} placeholder="Leave blank to auto-estimate from weight" />
-                        <p className="text-[11px] text-muted-foreground mt-1">Leave blank to auto-estimate from weight. Enter the real per-unit freight (e.g. Accio DDP/air-freight quote) for batteries/hazmat or any product with a known shipping cost.</p>
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                        <div>
+                          <Label className="text-xs">🚢 Sea freight per unit (ZAR) — override</Label>
+                          <Input type="number" step="0.01" min="0" value={f.freight_override_zar} onChange={(e) => setFormField(r.id, "freight_override_zar", e.target.value)} placeholder="Blank = auto (weight ÷ 167 × R8800)" />
+                          <p className="text-[11px] text-muted-foreground mt-1">Blank = volumetric estimate from weight (~4–6 weeks).</p>
+                        </div>
+                        <div>
+                          <Label className="text-xs">✈️ Air freight per unit (ZAR)</Label>
+                          <Input type="number" step="0.01" min="0" value={f.freight_air_zar} onChange={(e) => setFormField(r.id, "freight_air_zar", e.target.value)} placeholder="Blank = air not available" />
+                          <p className="text-[11px] text-muted-foreground mt-1">Enter the real air-freight quote (~5–10 days). Blank means members only see sea.</p>
+                        </div>
                       </div>
                       {live && (
-                        <div className="text-xs grid grid-cols-2 md:grid-cols-4 gap-2 pt-2 border-t">
-                          <div><span className="text-muted-foreground">Freight{live.freight_is_override ? " (override)" : ""}: </span>R{live.freight_cost_zar.toFixed(2)}</div>
-                          <div><span className="text-muted-foreground">Commission: </span>R{live.umoja_commission_zar.toFixed(2)}</div>
-                          <div><span className="text-muted-foreground">Landed: </span>R{live.landed_cost_zar.toFixed(2)}</div>
-                          <div className={live.gross_margin_zar > 0 ? "text-green-600" : "text-destructive"}>
-                            <span className="text-muted-foreground">Margin: </span>R{live.gross_margin_zar.toFixed(2)} ({live.expected_margin_percentage.toFixed(1)}%)
+                        <div className="text-xs pt-2 border-t space-y-2">
+                          <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
+                            <div><span className="text-muted-foreground">🚢 Sea freight{live.freight_is_override ? " (override)" : " (est.)"}: </span>R{live.freight_sea_zar.toFixed(2)}</div>
+                            <div><span className="text-muted-foreground">Landed (sea): </span>R{live.landed_cost_sea_zar.toFixed(2)}</div>
+                            <div className={live.gross_margin_sea_zar > 0 ? "text-green-600" : "text-destructive"}>
+                              <span className="text-muted-foreground">Margin (sea): </span>R{live.gross_margin_sea_zar.toFixed(2)} ({live.margin_sea_pct.toFixed(1)}%)
+                            </div>
+                            <div className="text-muted-foreground">Commission (hidden): R{live.umoja_commission_zar.toFixed(2)}</div>
                           </div>
+                          {live.air_available ? (
+                            <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
+                              <div><span className="text-muted-foreground">✈️ Air freight: </span>R{live.freight_air_zar.toFixed(2)}</div>
+                              <div><span className="text-muted-foreground">Landed (air): </span>R{live.landed_cost_air_zar.toFixed(2)}</div>
+                              <div className={live.gross_margin_air_zar > 0 ? "text-green-600" : "text-destructive"}>
+                                <span className="text-muted-foreground">Margin (air): </span>R{live.gross_margin_air_zar.toFixed(2)} ({live.margin_air_pct.toFixed(1)}%)
+                              </div>
+                              <div></div>
+                            </div>
+                          ) : (
+                            <p className="text-muted-foreground">✈️ Air option hidden — members will only see Sea.</p>
+                          )}
                         </div>
                       )}
                       <div className="flex gap-2 flex-wrap">

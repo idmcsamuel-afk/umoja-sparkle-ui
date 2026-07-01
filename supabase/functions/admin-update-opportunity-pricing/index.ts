@@ -2,39 +2,67 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { corsHeaders } from "npm:@supabase/supabase-js@2/cors";
 
 // Locked margin engine — must mirror the approval form.
+// buffer → freight → commission for BOTH sea and air.
 function computePricing(input: {
   alibaba_cost_zar: number;
   weight_kg: number;
-  freight_override?: number | null;
+  freight_sea_override?: number | null;
+  freight_air_override?: number | null;
   buffer_pct: number;
   commission_pct: number;
   suggested_selling_price_zar: number;
+  air_available?: boolean;
 }) {
   const alibaba = Number(input.alibaba_cost_zar) || 0;
   const weight = Number(input.weight_kg) || 0;
   const buffer = Number(input.buffer_pct) || 0;
   const commission = Number(input.commission_pct) || 0;
   const sell = Number(input.suggested_selling_price_zar) || 0;
-  const isOverride = input.freight_override != null && !Number.isNaN(Number(input.freight_override));
 
-  const adjusted_cost = alibaba * (1 + buffer / 100);
-  const freight_cost_zar = isOverride
-    ? Number(input.freight_override)
+  const adjusted = alibaba * (1 + buffer / 100);
+
+  // Sea: volumetric default unless override provided
+  const seaOverride = input.freight_sea_override;
+  const hasSeaOverride = seaOverride != null && !Number.isNaN(Number(seaOverride));
+  const freight_sea_zar = hasSeaOverride
+    ? Number(seaOverride)
     : (weight / 167) * 8800;
-  const umoja_commission_zar = (adjusted_cost + freight_cost_zar) * (commission / 100);
-  const landed_cost_zar = adjusted_cost + freight_cost_zar + umoja_commission_zar;
-  const gross_margin_zar = sell - landed_cost_zar;
-  const expected_margin_percentage = sell > 0 ? (gross_margin_zar / sell) * 100 : 0;
+  const commission_sea = (adjusted + freight_sea_zar) * (commission / 100);
+  const landed_sea = adjusted + freight_sea_zar + commission_sea;
+  const margin_sea = sell - landed_sea;
+  const margin_sea_pct = sell > 0 ? (margin_sea / sell) * 100 : 0;
+
+  // Air: override-only. If missing/zero, air unavailable.
+  const airOverride = input.freight_air_override;
+  const hasAirOverride = airOverride != null && !Number.isNaN(Number(airOverride)) && Number(airOverride) > 0;
+  const air_available = input.air_available !== false && hasAirOverride;
+  const freight_air_zar = hasAirOverride ? Number(airOverride) : 0;
+  const commission_air = (adjusted + freight_air_zar) * (commission / 100);
+  const landed_air = adjusted + freight_air_zar + commission_air;
+  const margin_air = sell - landed_air;
+  const margin_air_pct = sell > 0 ? (margin_air / sell) * 100 : 0;
 
   const r2 = (n: number) => Math.round(n * 100) / 100;
   return {
-    freight_cost_zar: r2(freight_cost_zar),
-    umoja_commission_zar: r2(umoja_commission_zar),
-    landed_cost_zar: r2(landed_cost_zar),
-    gross_margin_zar: r2(gross_margin_zar),
-    expected_margin_percentage: r2(expected_margin_percentage),
-    unit_cost_zar: r2(landed_cost_zar),
-    freight_is_override: isOverride,
+    // Sea (also mirrored to legacy single-mode columns)
+    freight_sea_zar: r2(freight_sea_zar),
+    landed_cost_sea_zar: r2(landed_sea),
+    gross_margin_sea_zar: r2(margin_sea),
+    margin_sea_pct: r2(margin_sea_pct),
+    // Air
+    freight_air_zar: air_available ? r2(freight_air_zar) : 0,
+    landed_cost_air_zar: air_available ? r2(landed_air) : 0,
+    gross_margin_air_zar: air_available ? r2(margin_air) : 0,
+    margin_air_pct: air_available ? r2(margin_air_pct) : 0,
+    air_available,
+    // Legacy mirror (sea = default)
+    freight_cost_zar: r2(freight_sea_zar),
+    umoja_commission_zar: r2(commission_sea),
+    landed_cost_zar: r2(landed_sea),
+    gross_margin_zar: r2(margin_sea),
+    expected_margin_percentage: r2(margin_sea_pct),
+    unit_cost_zar: r2(landed_sea),
+    freight_is_override: hasSeaOverride,
   };
 }
 
@@ -85,15 +113,23 @@ Deno.serve(async (req) => {
       });
     }
 
+    // Accept both new fields (freight_sea_override / freight_air_override) and
+    // the legacy `freight_override` (treated as sea) for backward compat.
+    const legacyOverride = body.freight_override;
+    const seaOverrideRaw = body.freight_sea_override !== undefined
+      ? body.freight_sea_override
+      : legacyOverride;
+    const airOverrideRaw = body.freight_air_override;
+
     const computed = computePricing({
       alibaba_cost_zar: Number(body.alibaba_cost_zar) || 0,
       weight_kg: Number(body.weight_kg) || 0,
-      freight_override: body.freight_override === "" || body.freight_override == null
-        ? null
-        : Number(body.freight_override),
+      freight_sea_override: seaOverrideRaw === "" || seaOverrideRaw == null ? null : Number(seaOverrideRaw),
+      freight_air_override: airOverrideRaw === "" || airOverrideRaw == null ? null : Number(airOverrideRaw),
       buffer_pct: Number(body.buffer_pct) || 0,
       commission_pct: Number(body.commission_pct) || 0,
       suggested_selling_price_zar: Number(body.suggested_selling_price_zar) || 0,
+      air_available: body.air_available !== false,
     });
 
     const updatePayload: Record<string, unknown> = {
@@ -107,7 +143,6 @@ Deno.serve(async (req) => {
       ...computed,
       updated_at: new Date().toISOString(),
     };
-    // Strip undefined
     Object.keys(updatePayload).forEach((k) => updatePayload[k] === undefined && delete updatePayload[k]);
 
     const { data: updated, error: updErr } = await admin
