@@ -82,20 +82,57 @@ interface PriceForm {
   commission_pct: string;
   moq: string;
   supplier_name: string;
-  freight_override_zar: string;
+  freight_override_zar: string;   // sea override (legacy key retained)
+  freight_air_zar: string;        // air override (blank = air unavailable)
 }
 
-function computeMargins(input: { alibaba_cost_zar: number; weight_kg: number; buffer_pct: number; commission_pct: number; price_zar: number; freight_override_zar?: number | null; }) {
+function computeMargins(input: {
+  alibaba_cost_zar: number;
+  weight_kg: number;
+  buffer_pct: number;
+  commission_pct: number;
+  price_zar: number;
+  freight_sea_override?: number | null;
+  freight_air_override?: number | null;
+}) {
   const adjusted_cost = input.alibaba_cost_zar * (1 + input.buffer_pct / 100);
-  const hasOverride = input.freight_override_zar != null && !isNaN(input.freight_override_zar as number) && (input.freight_override_zar as number) >= 0;
-  const freight_cost_zar = hasOverride
-    ? (input.freight_override_zar as number)
+
+  const hasSea = input.freight_sea_override != null && !isNaN(input.freight_sea_override as number) && (input.freight_sea_override as number) >= 0;
+  const freight_sea_zar = hasSea
+    ? (input.freight_sea_override as number)
     : (input.weight_kg / DEFAULTS.kg_per_cbm) * DEFAULTS.freight_rate_per_cbm;
-  const umoja_commission_zar = (adjusted_cost + freight_cost_zar) * (input.commission_pct / 100);
-  const landed_cost_zar = adjusted_cost + freight_cost_zar + umoja_commission_zar;
-  const gross_margin_zar = input.price_zar - landed_cost_zar;
-  const expected_margin_percentage = input.price_zar > 0 ? (gross_margin_zar / input.price_zar) * 100 : 0;
-  return { adjusted_cost, freight_cost_zar, freight_is_override: hasOverride, umoja_commission_zar, landed_cost_zar, gross_margin_zar, expected_margin_percentage };
+  const commission_sea = (adjusted_cost + freight_sea_zar) * (input.commission_pct / 100);
+  const landed_sea = adjusted_cost + freight_sea_zar + commission_sea;
+  const margin_sea = input.price_zar - landed_sea;
+  const margin_sea_pct = input.price_zar > 0 ? (margin_sea / input.price_zar) * 100 : 0;
+
+  const hasAir = input.freight_air_override != null && !isNaN(input.freight_air_override as number) && (input.freight_air_override as number) > 0;
+  const freight_air_zar = hasAir ? (input.freight_air_override as number) : 0;
+  const commission_air = (adjusted_cost + freight_air_zar) * (input.commission_pct / 100);
+  const landed_air = adjusted_cost + freight_air_zar + commission_air;
+  const margin_air = input.price_zar - landed_air;
+  const margin_air_pct = input.price_zar > 0 ? (margin_air / input.price_zar) * 100 : 0;
+
+  return {
+    adjusted_cost,
+    // sea (also legacy)
+    freight_cost_zar: freight_sea_zar,
+    freight_is_override: hasSea,
+    umoja_commission_zar: commission_sea,
+    landed_cost_zar: landed_sea,
+    gross_margin_zar: margin_sea,
+    expected_margin_percentage: margin_sea_pct,
+    // dual
+    freight_sea_zar,
+    landed_cost_sea_zar: landed_sea,
+    gross_margin_sea_zar: margin_sea,
+    margin_sea_pct,
+    air_available: hasAir,
+    freight_air_zar,
+    landed_cost_air_zar: hasAir ? landed_air : 0,
+    gross_margin_air_zar: hasAir ? margin_air : 0,
+    margin_air_pct: hasAir ? margin_air_pct : 0,
+  };
 }
 
 export default function AdminProductValidation() {
