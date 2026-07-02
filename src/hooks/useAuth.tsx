@@ -78,7 +78,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     const ensureSignupBonus = async () => {
       try {
-        await supabase.rpc("claim_signup_bonus");
+        const { error } = await supabase.rpc("claim_signup_bonus");
+        // Ignore duplicate-wallet races (23505) — wallet already exists, nothing to do.
+        if (error && error.code !== "23505") {
+          console.warn("[useAuth] claim_signup_bonus failed", error);
+        }
       } catch (e) {
         console.warn("[useAuth] claim_signup_bonus failed", e);
       }
