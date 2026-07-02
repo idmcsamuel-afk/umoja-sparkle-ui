@@ -171,3 +171,20 @@ function CrystalBall() {
     </div>
   );
 }
+
+function WheelVisual() {
+  return (
+    <div className="relative h-16 w-16 grid place-items-center">
+      <div
+        className="h-14 w-14 rounded-full border-4 border-amber-300 shadow-[0_0_20px_rgba(245,158,11,0.5)] grid place-items-center"
+        style={{
+          background:
+            "conic-gradient(#d97706 0 60deg,#f59e0b 60deg 120deg,#fbbf24 120deg 180deg,#fcd34d 180deg 240deg,#fde68a 240deg 300deg,#3f3f46 300deg 360deg)",
+          animation: "spin 4s linear infinite",
+        }}
+      >
+        <Disc3 className="h-4 w-4 text-black/70" />
+      </div>
+    </div>
+  );
+}
