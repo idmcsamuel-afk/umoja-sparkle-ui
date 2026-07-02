@@ -134,8 +134,39 @@ export default function SparkTradeStoreCreation() {
       setErrors({ storeName: "Store name required" });
       return;
     }
+    if (!blueprintId) {
+      setErrors({
+        form:
+          "Your AI blueprint hasn't been generated yet. Go back one step and complete the AI Business Blueprint before creating your store.",
+      });
+      return;
+    }
     setErrors({});
     setIsSubmitting(true);
+    try {
+      const { error } = await supabase
+        .from("spark_trade_stores" as any)
+        .upsert(
+          {
+            member_id: user.id,
+            blueprint_id: blueprintId,
+            store_name: store.storeName.trim(),
+            store_template: store.template,
+            banner_color: store.bannerColor,
+            accent_color: store.accentColor,
+            featured_products: store.featuredProducts,
+          },
+          { onConflict: "member_id" }
+        );
+      if (error) throw error;
+      toast.success("Store created");
+      nav("/spark-trade/onboarding/subscription-recommendation");
+    } catch (err: any) {
+      console.error("[StoreCreation] save failed", err);
+      setErrors({ form: err?.message ?? "Failed to save store. Try again." });
+      setIsSubmitting(false);
+    }
+  };
     try {
       const { error } = await supabase
         .from("spark_trade_stores" as any)
