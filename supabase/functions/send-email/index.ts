@@ -259,11 +259,15 @@ function buildEmail(template: TemplateName, data: Record<string, any>) {
       return { subject, html };
     }
     case "custom": {
-      const subject = String(data.subject ?? "A message from UMOJA");
-      const body = sanitizeHtml(String(data.body_html ?? ""));
+      const nameStr = String(data.name ?? "");
+      const firstName = String(data.first_name ?? "").trim() || firstNameOf(nameStr);
+      const ctx = { first_name: firstName, name: nameStr };
+      const subject = personalize(String(data.subject ?? "A message from UMOJA"), ctx);
+      const body = sanitizeHtml(personalize(String(data.body_html ?? ""), ctx));
       const safeCtaUrl = safeUrl(data.cta_url);
       const safeCtaLabel = data.cta_label ? esc(data.cta_label) : undefined;
-      const html = shell(esc(data.title ?? subject), body, safeCtaLabel, safeCtaUrl);
+      const title = personalize(String(data.title ?? subject), ctx);
+      const html = shell(esc(title), body, safeCtaLabel, safeCtaUrl);
       return { subject, html };
     }
   }
