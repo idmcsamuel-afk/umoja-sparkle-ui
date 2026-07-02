@@ -32,21 +32,30 @@ export default function SparkTradeAIBlueprint() {
   const [blueprint, setBlueprint] = useState<Blueprint | null>(null);
   const [error, setError] = useState<string | null>(null);
 
-  const extractFnError = async (err: any): Promise<string> => {
-    try {
-      const res = err?.context?.response;
-      if (res && typeof res.json === "function") {
-        const body = await res.clone().json().catch(() => null);
-        if (body?.error) return String(body.error);
-      }
-      if (res && typeof res.text === "function") {
-        const txt = await res.clone().text().catch(() => "");
-        if (txt) return txt;
-      }
-    } catch {
-      // ignore
+  // Call the edge function via direct fetch so the user's access token is
+  // explicitly attached (supabase.functions.invoke was not forwarding it).
+  const callBlueprintFn = async (payload: Record<string, unknown>) => {
+    const { data: sess } = await supabase.auth.getSession();
+    const accessToken = sess?.session?.access_token;
+    if (!accessToken) {
+      throw new Error("Your session expired. Please sign in again.");
     }
-    return err?.message ?? "Failed to generate blueprint. Please try again.";
+    const url = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/generate-spark-trade-blueprint`;
+    const res = await fetch(url, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${accessToken}`,
+        apikey: import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY,
+      },
+      body: JSON.stringify(payload),
+    });
+    const body = await res.json().catch(() => null);
+    if (!res.ok) {
+      throw new Error(body?.error ?? `Blueprint generation failed (HTTP ${res.status})`);
+    }
+    if (!body) throw new Error("No blueprint returned");
+    return body as Blueprint;
   };
 
   const generate = async () => {
@@ -71,21 +80,11 @@ export default function SparkTradeAIBlueprint() {
         return;
       }
 
-      const { data: sess } = await supabase.auth.getSession();
-      if (!sess?.session?.access_token) {
-        throw new Error("Your session expired. Please sign in again.");
-      }
-
-      const { data, error: fnError } = await supabase.functions.invoke(
-        "generate-spark-trade-blueprint",
-        { body: { memberId: user.id } }
-      );
-      if (fnError) throw fnError;
-      if (!data) throw new Error("No blueprint returned");
-      setBlueprint(data as Blueprint);
+      const data = await callBlueprintFn({ memberId: user.id });
+      setBlueprint(data);
     } catch (err: any) {
       console.error("[AIBlueprint] generate failed", err);
-      setError(await extractFnError(err));
+      setError(err?.message ?? "Failed to generate blueprint. Please try again.");
     } finally {
       setGenerating(false);
     }
@@ -96,15 +95,12 @@ export default function SparkTradeAIBlueprint() {
     setGenerating(true);
     setError(null);
     try {
-      const { data, error: fnError } = await supabase.functions.invoke(
-        "generate-spark-trade-blueprint",
-        { body: { memberId: user.id, force: true } }
-      );
-      if (fnError) throw fnError;
-      setBlueprint(data as Blueprint);
+      const data = await callBlueprintFn({ memberId: user.id, force: true });
+      setBlueprint(data);
       toast.success("Blueprint regenerated");
     } catch (err: any) {
-      setError(await extractFnError(err));
+      console.error("[AIBlueprint] regenerate failed", err);
+      setError(err?.message ?? "Failed to regenerate blueprint. Please try again.");
     } finally {
       setGenerating(false);
     }

@@ -12,24 +12,26 @@ Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response("ok", { headers: corsHeaders });
 
   try {
-    const authHeader = req.headers.get("Authorization");
-    if (!authHeader) {
-      return new Response(JSON.stringify({ error: "Unauthorized" }), {
+    const authHeader = req.headers.get("Authorization") ?? "";
+    const token = authHeader.replace(/^Bearer\s+/i, "").trim();
+    if (!token) {
+      console.log("[blueprint] no Authorization header");
+      return new Response(JSON.stringify({ error: "Unauthorized: no token" }), {
         status: 401,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
-    const userClient = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY, {
-      global: { headers: { Authorization: authHeader } },
-    });
-    const { data: userData } = await userClient.auth.getUser();
+    const authClient = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
+    const { data: userData, error: userErr } = await authClient.auth.getUser(token);
     const callerId = userData?.user?.id;
-    if (!callerId) {
-      return new Response(JSON.stringify({ error: "Unauthorized" }), {
-        status: 401,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
+    if (userErr || !callerId) {
+      console.log("[blueprint] getUser failed:", userErr?.message ?? "no user (anon token?)");
+      return new Response(
+        JSON.stringify({ error: "Unauthorized: invalid or anonymous token. Please sign in again." }),
+        { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
     }
+    console.log("[blueprint] caller:", callerId);
 
     const body = await req.json().catch(() => ({}));
     const memberId: string = body?.memberId ?? callerId;
