@@ -1,0 +1,1 @@
+update public.members set spark_trade_income_goal=20000, spark_trade_business_type='Electronics', spark_trade_capital=5000, spark_trade_income_path='individual', country_code='ZA' where email='bpfix1782983281@mailinator.com';
