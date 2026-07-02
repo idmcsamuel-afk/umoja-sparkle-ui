@@ -95,15 +95,12 @@ export default function SparkTradeAIBlueprint() {
     setGenerating(true);
     setError(null);
     try {
-      const { data, error: fnError } = await supabase.functions.invoke(
-        "generate-spark-trade-blueprint",
-        { body: { memberId: user.id, force: true } }
-      );
-      if (fnError) throw fnError;
-      setBlueprint(data as Blueprint);
+      const data = await callBlueprintFn({ memberId: user.id, force: true });
+      setBlueprint(data);
       toast.success("Blueprint regenerated");
     } catch (err: any) {
-      setError(await extractFnError(err));
+      console.error("[AIBlueprint] regenerate failed", err);
+      setError(err?.message ?? "Failed to regenerate blueprint. Please try again.");
     } finally {
       setGenerating(false);
     }
