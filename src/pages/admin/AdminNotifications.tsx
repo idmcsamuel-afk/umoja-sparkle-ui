@@ -193,6 +193,7 @@ export default function AdminNotifications() {
         action: "preview_recipients", audience,
         tier: audience === "tier" ? tier : undefined,
         member_ids: audience === "custom" ? parsedIds : undefined,
+        bypass_prefs: bypassPrefs,
       },
     });
     if (previewErr || !preview?.ok) {
@@ -204,7 +205,7 @@ export default function AdminNotifications() {
       setBusy(false);
       return toast.error(`No eligible recipients (total: ${preview.total_members}, after filter: ${preview.after_audience_filter}).`);
     }
-    if (!confirm(`This email will be sent to ${count} member${count === 1 ? "" : "s"}.\n\nAudience: ${audience}${audience === "tier" ? " · " + tier : ""}\n\nProceed?`)) {
+    if (!confirm(`This email will be sent to ${count} member${count === 1 ? "" : "s"}.\n\nAudience: ${audience}${audience === "tier" ? " · " + tier : ""}${bypassPrefs ? "\nMarketing filter: BYPASSED (service message)" : ""}\n\nProceed?`)) {
       setBusy(false);
       return;
     }
@@ -215,6 +216,7 @@ export default function AdminNotifications() {
         subject, body_html: body, audience,
         tier: audience === "tier" ? tier : undefined,
         member_ids: audience === "custom" ? parsedIds : undefined,
+        bypass_prefs: bypassPrefs,
       },
     });
     setBusy(false);
