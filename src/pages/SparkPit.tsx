@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
-import { Sparkles, Trophy, Coins, Dice5, Eye } from "lucide-react";
+import { Sparkles, Trophy, Coins, Dice5, Eye, Disc3 } from "lucide-react";
 import { BottomNav } from "@/components/umoja/BottomNav";
 import { SparksDisclaimer } from "@/components/umoja/SparksDisclaimer";
 import { Card } from "@/components/ui/card";
@@ -75,6 +75,16 @@ export default function SparkPit() {
           reward="2x payout"
           desc="Heads or tails. Double or nothing. 10 flips/day."
           visual={<SpinningCoin />}
+        />
+        <GameCard
+          to="/spark-pit/sparkwheel"
+          accent="from-amber-300 to-yellow-500"
+          title="Sparkwheel"
+          tag="🎡 Wheel"
+          cost="20+ Sparks"
+          reward="Up to 10x"
+          desc="Spin the weighted wheel — land 1.2× up to 10×. Higher risk, higher reward."
+          visual={<WheelVisual />}
         />
         <GameCard
           to="/predictor"
