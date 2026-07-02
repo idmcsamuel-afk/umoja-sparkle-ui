@@ -113,6 +113,30 @@ export default function AdminNotifications() {
 
   const parsedIds = memberIds.split(/[\s,]+/).map((s) => s.trim()).filter(Boolean);
 
+  // Live recipient count preview for the currently selected segment.
+  useEffect(() => {
+    let cancelled = false;
+    if (audience === "custom" && parsedIds.length === 0) { setAudienceCount(null); return; }
+    setCountLoading(true);
+    const t = setTimeout(async () => {
+      const { data, error } = await supabase.functions.invoke("send-email", {
+        body: {
+          action: "preview_recipients",
+          audience,
+          tier: audience === "tier" ? tier : undefined,
+          member_ids: audience === "custom" ? parsedIds : undefined,
+          bypass_prefs: bypassPrefs,
+        },
+      });
+      if (cancelled) return;
+      setCountLoading(false);
+      if (error || !data?.ok) setAudienceCount(null);
+      else setAudienceCount(data.recipient_count as number);
+    }, 300);
+    return () => { cancelled = true; clearTimeout(t); setCountLoading(false); };
+  }, [audience, tier, memberIds, bypassPrefs]);
+
+
   const sendTest = async () => {
     if (!user?.email) return toast.error("No email on your account");
     if (!subject || !body) return toast.error("Subject and body required");
