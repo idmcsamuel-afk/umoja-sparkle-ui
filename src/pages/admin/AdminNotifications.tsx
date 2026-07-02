@@ -23,7 +23,7 @@ function timeAgo(ts: number) {
   return `${Math.floor(s / 86400)}d ago`;
 }
 
-type Audience = "all" | "circle" | "buyers_club" | "tier" | "custom";
+type Audience = "all" | "circle" | "buyers_club" | "no_contribution" | "tier" | "custom";
 
 interface LogRow {
   id: string;
