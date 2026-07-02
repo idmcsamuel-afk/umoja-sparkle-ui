@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
-import { Sparkles, Trophy, Coins, Dice5, Eye } from "lucide-react";
+import { Sparkles, Trophy, Coins, Dice5, Eye, Disc3 } from "lucide-react";
 import { BottomNav } from "@/components/umoja/BottomNav";
 import { SparksDisclaimer } from "@/components/umoja/SparksDisclaimer";
 import { Card } from "@/components/ui/card";
@@ -75,6 +75,16 @@ export default function SparkPit() {
           reward="2x payout"
           desc="Heads or tails. Double or nothing. 10 flips/day."
           visual={<SpinningCoin />}
+        />
+        <GameCard
+          to="/spark-pit/sparkwheel"
+          accent="from-amber-300 to-yellow-500"
+          title="Sparkwheel"
+          tag="🎡 Wheel"
+          cost="20+ Sparks"
+          reward="Up to 10x"
+          desc="Spin the weighted wheel — land 1.2× up to 10×. Higher risk, higher reward."
+          visual={<WheelVisual />}
         />
         <GameCard
           to="/predictor"
@@ -157,6 +167,23 @@ function CrystalBall() {
       <div className="absolute inset-0 rounded-full bg-gradient-to-br from-emerald-300/40 via-teal-400/30 to-cyan-500/20 blur-md animate-pulse" />
       <div className="relative h-12 w-12 rounded-full bg-gradient-to-br from-emerald-200/80 via-teal-300/60 to-emerald-600/80 shadow-[inset_-4px_-4px_10px_rgba(0,40,30,0.5),inset_4px_4px_10px_rgba(255,255,255,0.3)] grid place-items-center">
         <Eye className="h-5 w-5 text-emerald-900" />
+      </div>
+    </div>
+  );
+}
+
+function WheelVisual() {
+  return (
+    <div className="relative h-16 w-16 grid place-items-center">
+      <div
+        className="h-14 w-14 rounded-full border-4 border-amber-300 shadow-[0_0_20px_rgba(245,158,11,0.5)] grid place-items-center"
+        style={{
+          background:
+            "conic-gradient(#d97706 0 60deg,#f59e0b 60deg 120deg,#fbbf24 120deg 180deg,#fcd34d 180deg 240deg,#fde68a 240deg 300deg,#3f3f46 300deg 360deg)",
+          animation: "spin 4s linear infinite",
+        }}
+      >
+        <Disc3 className="h-4 w-4 text-black/70" />
       </div>
     </div>
   );

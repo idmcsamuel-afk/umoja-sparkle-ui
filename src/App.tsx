@@ -35,6 +35,7 @@ import FlameMarketing from "./pages/FlameMarketing.tsx";
 import SparkPit from "./pages/SparkPit.tsx";
 import DreamDraw from "./pages/DreamDraw.tsx";
 import SparkFlip from "./pages/SparkFlip.tsx";
+import Sparkwheel from "./pages/Sparkwheel.tsx";
 import Kyc from "./pages/Kyc.tsx";
 import Waitlist from "./pages/Waitlist.tsx";
 import Referrals from "./pages/Referrals.tsx";
@@ -179,6 +180,7 @@ const App = () => (
                 <Route path="/spark-pit" element={<ProtectedRoute><SparkPit /></ProtectedRoute>} />
                 <Route path="/spark-pit/dream-draw" element={<ProtectedRoute><DreamDraw /></ProtectedRoute>} />
                 <Route path="/spark-pit/spark-flip" element={<ProtectedRoute><SparkFlip /></ProtectedRoute>} />
+                <Route path="/spark-pit/sparkwheel" element={<ProtectedRoute><Sparkwheel /></ProtectedRoute>} />
                 <Route path="/buy-sparks" element={<ProtectedRoute><BuySparks /></ProtectedRoute>} />
                 <Route path="/withdraw" element={<ProtectedRoute><Withdraw /></ProtectedRoute>} />
                 <Route path="/kyc" element={<ProtectedRoute><Kyc /></ProtectedRoute>} />

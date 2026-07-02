@@ -6177,6 +6177,42 @@ export type Database = {
           },
         ]
       }
+      sparkwheel_games: {
+        Row: {
+          bucket_used: string
+          daily_game_count: number
+          house_edge: number
+          id: string
+          member_id: string
+          outcome_multiplier: number
+          payout_amount: number
+          stake_amount: number
+          timestamp: string
+        }
+        Insert: {
+          bucket_used: string
+          daily_game_count: number
+          house_edge: number
+          id?: string
+          member_id: string
+          outcome_multiplier: number
+          payout_amount?: number
+          stake_amount: number
+          timestamp?: string
+        }
+        Update: {
+          bucket_used?: string
+          daily_game_count?: number
+          house_edge?: number
+          id?: string
+          member_id?: string
+          outcome_multiplier?: number
+          payout_amount?: number
+          stake_amount?: number
+          timestamp?: string
+        }
+        Relationships: []
+      }
       st_buying_groups: {
         Row: {
           closes_at: string | null
@@ -7928,6 +7964,10 @@ export type Database = {
       releasable_referral_sparks: { Args: { _member: string }; Returns: number }
       run_drive_allocation: { Args: { p_tier_id: string }; Returns: Json }
       spark_balance_breakdown: { Args: { _member?: string }; Returns: Json }
+      spin_sparkwheel: {
+        Args: { p_bucket: string; p_member_id: string; p_stake_amount: number }
+        Returns: Json
+      }
       submit_buyers_club_payment: {
         Args: { _amount: number; _proof_url: string; _tier: string }
         Returns: undefined
