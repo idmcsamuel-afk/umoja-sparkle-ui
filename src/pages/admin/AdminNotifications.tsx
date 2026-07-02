@@ -329,7 +329,7 @@ export default function AdminNotifications() {
           <Label className="text-xs uppercase tracking-wider text-muted-foreground">Body (HTML supported)</Label>
           <Textarea value={body} onChange={(e) => setBody(e.target.value)} className="mt-1 rounded-2xl" rows={8}
             placeholder="<p>Hi members,</p><p>Here is what's new...</p>" />
-          <p className="text-[11px] text-muted-foreground mt-1">Wraps automatically in dark green/gold UMOJA template. Marketing recipients filtered by member preference.</p>
+          <p className="text-[11px] text-muted-foreground mt-1">Wraps automatically in dark green/gold UMOJA template. Marketing recipients filtered by member preference. Personalize with <code>{"{{first_name}}"}</code> or <code>{"{{name}}"}</code> in the subject or body — falls back to "there" if a member has no name on file.</p>
           {lastSaved && (
             <p className="text-[11px] text-muted-foreground mt-1 flex items-center gap-1">
               <CheckCircle2 className="h-3 w-3 text-primary" /> Draft saved at {lastSaved.toLocaleTimeString([], { hour: "numeric", minute: "2-digit" })}

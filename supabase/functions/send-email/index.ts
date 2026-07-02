@@ -82,6 +82,22 @@ function sanitizeHtml(input: string): string {
   return s;
 }
 
+function firstNameOf(full?: string | null): string {
+  const s = String(full ?? "").trim();
+  if (!s) return "";
+  return s.split(/\s+/)[0];
+}
+
+// Replace merge tokens {{first_name}} and {{name}} (case-insensitive, optional spaces).
+// Empty values fall back to "there" so greetings read "Hi there," instead of "Hi ,".
+function personalize(input: string, ctx: { first_name?: string; name?: string }): string {
+  const fn = (ctx.first_name ?? "").trim() || "there";
+  const nm = (ctx.name ?? "").trim() || "there";
+  return String(input ?? "")
+    .replace(/\{\{\s*first[_\s-]?name\s*\}\}/gi, fn)
+    .replace(/\{\{\s*name\s*\}\}/gi, nm);
+}
+
 function safeUrl(u: unknown): string | undefined {
   if (!u) return undefined;
   const str = String(u).trim();
@@ -243,11 +259,15 @@ function buildEmail(template: TemplateName, data: Record<string, any>) {
       return { subject, html };
     }
     case "custom": {
-      const subject = String(data.subject ?? "A message from UMOJA");
-      const body = sanitizeHtml(String(data.body_html ?? ""));
+      const nameStr = String(data.name ?? "");
+      const firstName = String(data.first_name ?? "").trim() || firstNameOf(nameStr);
+      const ctx = { first_name: firstName, name: nameStr };
+      const subject = personalize(String(data.subject ?? "A message from UMOJA"), ctx);
+      const body = sanitizeHtml(personalize(String(data.body_html ?? ""), ctx));
       const safeCtaUrl = safeUrl(data.cta_url);
       const safeCtaLabel = data.cta_label ? esc(data.cta_label) : undefined;
-      const html = shell(esc(data.title ?? subject), body, safeCtaLabel, safeCtaUrl);
+      const title = personalize(String(data.title ?? subject), ctx);
+      const html = shell(esc(title), body, safeCtaLabel, safeCtaUrl);
       return { subject, html };
     }
   }
