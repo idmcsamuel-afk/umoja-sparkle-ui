@@ -6770,12 +6770,12 @@ export type Database = {
       }
       withdrawal_requests: {
         Row: {
-          account_holder: string
-          account_number: string
+          account_holder: string | null
+          account_number: string | null
           amount_r_gross: number
           amount_r_net: number
           amount_sparks: number
-          bank_name: string
+          bank_name: string | null
           branch_code: string | null
           completed_at: string | null
           created_at: string
@@ -6792,12 +6792,12 @@ export type Database = {
           unlock_via_circle: string | null
         }
         Insert: {
-          account_holder: string
-          account_number: string
+          account_holder?: string | null
+          account_number?: string | null
           amount_r_gross: number
           amount_r_net: number
           amount_sparks: number
-          bank_name: string
+          bank_name?: string | null
           branch_code?: string | null
           completed_at?: string | null
           created_at?: string
@@ -6814,12 +6814,12 @@ export type Database = {
           unlock_via_circle?: string | null
         }
         Update: {
-          account_holder?: string
-          account_number?: string
+          account_holder?: string | null
+          account_number?: string | null
           amount_r_gross?: number
           amount_r_net?: number
           amount_sparks?: number
-          bank_name?: string
+          bank_name?: string | null
           branch_code?: string | null
           completed_at?: string | null
           created_at?: string
