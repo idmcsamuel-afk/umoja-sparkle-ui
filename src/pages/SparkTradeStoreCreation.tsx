@@ -52,26 +52,52 @@ export default function SparkTradeStoreCreation() {
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [isSubmitting, setIsSubmitting] = useState(false);
 
+  const fetchBlueprint = async (uid: string) => {
+    const { data } = await supabase
+      .from("spark_trade_blueprints" as any)
+      .select("id, recommended_products, recommended_business_name")
+      .eq("member_id", uid)
+      .order("created_at", { ascending: false })
+      .limit(1)
+      .maybeSingle();
+    return data as any | null;
+  };
+
   useEffect(() => {
     if (!user) return;
     (async () => {
-      const { data: bp } = await supabase
-        .from("spark_trade_blueprints" as any)
-        .select("id, recommended_products, recommended_business_name")
-        .eq("member_id", user.id)
-        .order("created_at", { ascending: false })
-        .limit(1)
-        .maybeSingle();
+      let bp = await fetchBlueprint(user.id);
+
+      // Self-heal: if no blueprint persisted yet (deep link, resume path, prior
+      // silent failure), generate one now so store creation has a valid id.
+      if (!bp) {
+        try {
+          const { error: fnError } = await supabase.functions.invoke(
+            "generate-spark-trade-blueprint",
+            { body: { memberId: user.id } }
+          );
+          if (fnError) throw fnError;
+          bp = await fetchBlueprint(user.id);
+        } catch (err: any) {
+          console.error("[StoreCreation] blueprint bootstrap failed", err);
+          setErrors({
+            form:
+              "We couldn't load your AI blueprint. Go back to the AI Business Blueprint step and try again.",
+          });
+        }
+      }
+
       if (bp) {
-        setBlueprintId((bp as any).id);
-        const prods = ((bp as any).recommended_products as Product[]) ?? [];
+        setBlueprintId(bp.id);
+        const prods = (bp.recommended_products as Product[]) ?? [];
         setProducts(prods);
         setStore((s) => ({
           ...s,
-          storeName: s.storeName || (bp as any).recommended_business_name || "",
+          storeName: s.storeName || bp.recommended_business_name || "",
           featuredProducts: prods.slice(0, 3),
         }));
       }
+
       // Prefill existing store if any
       const { data: existing } = await supabase
         .from("spark_trade_stores" as any)
