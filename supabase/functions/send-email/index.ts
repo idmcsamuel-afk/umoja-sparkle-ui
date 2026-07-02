@@ -395,7 +395,7 @@ Deno.serve(async (req) => {
     }
 
     // Helper: build the recipient list for blasts (used by `blast` and `preview_recipients`).
-    const buildBlastRecipients = async (audience: string, tier?: string | null, member_ids?: string[] | null) => {
+    const buildBlastRecipients = async (audience: string, tier?: string | null, member_ids?: string[] | null, bypass_prefs?: boolean) => {
       const emailRegex = "^[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\\.[A-Za-z]{2,}$";
       let q = sb.from("members")
         .select("id, email, full_name, email_preferences, has_buyers_club_access, created_at")
@@ -415,9 +415,21 @@ Deno.serve(async (req) => {
         const { data: bids } = await bq;
         const bidderIds = new Set((bids ?? []).map((b: any) => b.member_id));
         scoped = scoped.filter((m) => bidderIds.has(m.id));
+      } else if (audience === "no_contribution") {
+        // Members who have NEVER made a valid contribution.
+        // Valid = quarantined_at IS NULL AND payment_confirmed_at IS NOT NULL AND status NOT IN ('rejected','expired').
+        const { data: bids } = await sb.from("circle_bids")
+          .select("member_id")
+          .is("quarantined_at", null)
+          .not("payment_confirmed_at", "is", null)
+          .not("status", "in", "(rejected,expired)");
+        const contributorIds = new Set((bids ?? []).map((b: any) => b.member_id));
+        scoped = scoped.filter((m) => !contributorIds.has(m.id));
       }
       const total_members = rows?.length ?? 0;
-      const eligible = scoped.filter((m) => (m.email_preferences ?? {}).marketing !== false);
+      const eligible = bypass_prefs
+        ? scoped
+        : scoped.filter((m) => (m.email_preferences ?? {}).marketing !== false);
       return { total_members, after_audience: scoped.length, recipients: eligible };
     };
 
