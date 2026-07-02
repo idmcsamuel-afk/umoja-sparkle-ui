@@ -115,27 +115,28 @@ export default function Sparkwheel() {
   async function loadState(uid: string) {
     // Balances via shared breakdown RPC.
     const { data: bal } = await supabase.rpc("spark_balance_breakdown", { _member: uid });
-    if (bal) {
+    const b = bal as unknown as Partial<BucketBalances> | null;
+    if (b) {
       setBalances({
-        promotional: Number(bal.promotional ?? 0),
-        earned: Number(bal.earned ?? 0),
-        purchased: Number(bal.purchased ?? 0),
-        referral: Number(bal.referral ?? 0),
+        promotional: Number(b.promotional ?? 0),
+        earned: Number(b.earned ?? 0),
+        purchased: Number(b.purchased ?? 0),
+        referral: Number(b.referral ?? 0),
       });
     }
     // Recent history (RLS restricts to own rows).
     const { data: rows } = await supabase
-      .from("sparkwheel_games")
+      .from("sparkwheel_games" as never)
       .select("*")
       .order("timestamp", { ascending: false })
       .limit(20);
-    if (rows) setHistory(rows as SparkwheelGame[]);
+    if (rows) setHistory(rows as unknown as SparkwheelGame[]);
 
     // Today's spin count.
     const startOfDay = new Date();
     startOfDay.setHours(0, 0, 0, 0);
     const { count } = await supabase
-      .from("sparkwheel_games")
+      .from("sparkwheel_games" as never)
       .select("*", { count: "exact", head: true })
       .gte("timestamp", startOfDay.toISOString());
     setDailyUsed(count ?? 0);
@@ -158,14 +159,14 @@ export default function Sparkwheel() {
     playChime();
 
     try {
-      const { data, error } = await supabase.rpc("spin_sparkwheel", {
+      const { data, error } = await supabase.rpc("spin_sparkwheel" as never, {
         p_member_id: memberId,
         p_bucket: bucket,
         p_stake_amount: stakeNum,
-      });
+      } as never);
 
       if (error) throw error;
-      const result = data as SpinSparkwheelResult;
+      const result = data as unknown as SpinSparkwheelResult;
 
       // Find the slice for the returned multiplier and animate the wheel so the
       // top pointer lands within that slice (+ several full turns for suspense).
