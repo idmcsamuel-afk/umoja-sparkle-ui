@@ -167,30 +167,6 @@ export default function SparkTradeStoreCreation() {
       setIsSubmitting(false);
     }
   };
-    try {
-      const { error } = await supabase
-        .from("spark_trade_stores" as any)
-        .upsert(
-          {
-            member_id: user.id,
-            blueprint_id: blueprintId,
-            store_name: store.storeName.trim(),
-            store_template: store.template,
-            banner_color: store.bannerColor,
-            accent_color: store.accentColor,
-            featured_products: store.featuredProducts,
-          },
-          { onConflict: "member_id" }
-        );
-      if (error) throw error;
-      toast.success("Store created");
-      nav("/spark-trade/onboarding/subscription-recommendation");
-    } catch (err: any) {
-      console.error("[StoreCreation] save failed", err);
-      setErrors({ form: err?.message ?? "Failed to save store. Try again." });
-      setIsSubmitting(false);
-    }
-  };
 
   if (loading) {
     return (
