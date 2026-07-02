@@ -82,6 +82,22 @@ function sanitizeHtml(input: string): string {
   return s;
 }
 
+function firstNameOf(full?: string | null): string {
+  const s = String(full ?? "").trim();
+  if (!s) return "";
+  return s.split(/\s+/)[0];
+}
+
+// Replace merge tokens {{first_name}} and {{name}} (case-insensitive, optional spaces).
+// Empty values fall back to "there" so greetings read "Hi there," instead of "Hi ,".
+function personalize(input: string, ctx: { first_name?: string; name?: string }): string {
+  const fn = (ctx.first_name ?? "").trim() || "there";
+  const nm = (ctx.name ?? "").trim() || "there";
+  return String(input ?? "")
+    .replace(/\{\{\s*first[_\s-]?name\s*\}\}/gi, fn)
+    .replace(/\{\{\s*name\s*\}\}/gi, nm);
+}
+
 function safeUrl(u: unknown): string | undefined {
   if (!u) return undefined;
   const str = String(u).trim();
