@@ -545,7 +545,8 @@ Deno.serve(async (req) => {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
   } catch (e) {
-    const msg = e instanceof Error ? e.message : String(e);
+    // Serialize non-Error throws (e.g. raw PostgREST error objects) so we never log "[object Object]".
+    const msg = e instanceof Error ? e.message : (typeof e === "object" && e !== null ? JSON.stringify(e) : String(e));
     const stack = e instanceof Error ? e.stack : undefined;
     console.error("[send-email] handler error:", msg, stack);
     return new Response(JSON.stringify({ ok: false, error: msg }), {
