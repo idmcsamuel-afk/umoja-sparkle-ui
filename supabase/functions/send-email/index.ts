@@ -438,14 +438,35 @@ Deno.serve(async (req) => {
       } else if (audience === "no_contribution") {
         // Members who have NEVER made a valid contribution.
         // Valid = quarantined_at IS NULL AND payment_confirmed_at IS NOT NULL AND status NOT IN ('rejected','expired').
-        const { data: bids } = await sb.from("circle_bids")
-          .select("member_id")
-          .is("quarantined_at", null)
-          .not("payment_confirmed_at", "is", null)
-          .not("status", "in", "(rejected,expired)");
-        const contributorIds = new Set((bids ?? []).map((b: any) => b.member_id));
+        // Use neq chain (safer than .not('status','in',...) which PostgREST parses oddly)
+        // and paginate to bypass the default 1000-row limit.
+        const contributorIds = new Set<string>();
+        const PAGE = 1000;
+        let from = 0;
+        // eslint-disable-next-line no-constant-condition
+        while (true) {
+          const { data: bids, error: bidsErr } = await sb
+            .from("circle_bids")
+            .select("member_id")
+            .is("quarantined_at", null)
+            .not("payment_confirmed_at", "is", null)
+            .neq("status", "rejected")
+            .neq("status", "expired")
+            .range(from, from + PAGE - 1);
+          if (bidsErr) {
+            console.error("[no_contribution] circle_bids query failed:", bidsErr);
+            throw new Error(`circle_bids read failed: ${bidsErr.message}`);
+          }
+          const batch = bids ?? [];
+          for (const b of batch as any[]) if (b.member_id) contributorIds.add(b.member_id);
+          if (batch.length < PAGE) break;
+          from += PAGE;
+        }
+        console.log(`[no_contribution] contributors=${contributorIds.size} members_before=${scoped.length}`);
         scoped = scoped.filter((m) => !contributorIds.has(m.id));
+        console.log(`[no_contribution] members_after=${scoped.length}`);
       }
+
       const total_members = rows?.length ?? 0;
       const eligible = bypass_prefs
         ? scoped
@@ -522,9 +543,13 @@ Deno.serve(async (req) => {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
   } catch (e) {
-    return new Response(JSON.stringify({ ok: false, error: e instanceof Error ? e.message : String(e) }), {
-      status: 400,
+    const msg = e instanceof Error ? e.message : String(e);
+    const stack = e instanceof Error ? e.stack : undefined;
+    console.error("[send-email] handler error:", msg, stack);
+    return new Response(JSON.stringify({ ok: false, error: msg }), {
+      status: 500,
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
   }
+
 });
