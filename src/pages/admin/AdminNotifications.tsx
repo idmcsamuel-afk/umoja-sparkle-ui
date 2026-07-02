@@ -265,13 +265,19 @@ export default function AdminNotifications() {
 
         <div className="grid sm:grid-cols-2 gap-4">
           <div>
-            <Label className="text-xs uppercase tracking-wider text-muted-foreground">Recipients</Label>
+            <Label className="text-xs uppercase tracking-wider text-muted-foreground flex items-center justify-between">
+              <span>Recipients</span>
+              <span className="text-[11px] normal-case tracking-normal text-muted-foreground">
+                {countLoading ? "counting…" : audienceCount !== null ? `≈${audienceCount} members` : ""}
+              </span>
+            </Label>
             <Select value={audience} onValueChange={(v) => setAudience(v as Audience)}>
               <SelectTrigger className="mt-1 rounded-2xl"><SelectValue /></SelectTrigger>
               <SelectContent>
                 <SelectItem value="all">All members</SelectItem>
                 <SelectItem value="circle">Circle members only</SelectItem>
                 <SelectItem value="buyers_club">Buyers Club only</SelectItem>
+                <SelectItem value="no_contribution">Registered — no contribution yet</SelectItem>
                 <SelectItem value="tier">Specific tier</SelectItem>
                 <SelectItem value="custom">Custom (member IDs)</SelectItem>
               </SelectContent>
@@ -291,6 +297,21 @@ export default function AdminNotifications() {
             </div>
           )}
         </div>
+
+        <label className="flex items-start gap-3 rounded-2xl border border-border bg-background/40 p-3 cursor-pointer">
+          <input
+            type="checkbox"
+            checked={bypassPrefs}
+            onChange={(e) => setBypassPrefs(e.target.checked)}
+            className="mt-1 h-4 w-4 accent-primary"
+          />
+          <span className="text-sm">
+            <span className="font-medium">Send as service message (bypass marketing filter)</span>
+            <span className="block text-[11px] text-muted-foreground mt-0.5">
+              Use only for genuinely transactional/service emails (e.g. helping a member complete onboarding). Default OFF.
+            </span>
+          </span>
+        </label>
         {audience === "custom" && (
           <div>
             <Label className="text-xs uppercase tracking-wider text-muted-foreground">Member IDs (comma or newline)</Label>
