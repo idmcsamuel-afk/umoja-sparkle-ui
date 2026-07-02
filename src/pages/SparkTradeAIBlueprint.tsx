@@ -32,12 +32,31 @@ export default function SparkTradeAIBlueprint() {
   const [blueprint, setBlueprint] = useState<Blueprint | null>(null);
   const [error, setError] = useState<string | null>(null);
 
+  const extractFnError = async (err: any): Promise<string> => {
+    try {
+      const res = err?.context?.response;
+      if (res && typeof res.json === "function") {
+        const body = await res.clone().json().catch(() => null);
+        if (body?.error) return String(body.error);
+      }
+      if (res && typeof res.text === "function") {
+        const txt = await res.clone().text().catch(() => "");
+        if (txt) return txt;
+      }
+    } catch {
+      // ignore
+    }
+    return err?.message ?? "Failed to generate blueprint. Please try again.";
+  };
+
   const generate = async () => {
-    if (!user) return;
+    if (!user) {
+      setError("You need to sign in to generate your blueprint.");
+      return;
+    }
     setGenerating(true);
     setError(null);
     try {
-      // Check if blueprint exists already
       const { data: existing } = await supabase
         .from("spark_trade_blueprints" as any)
         .select("blueprint_json")
@@ -52,6 +71,11 @@ export default function SparkTradeAIBlueprint() {
         return;
       }
 
+      const { data: sess } = await supabase.auth.getSession();
+      if (!sess?.session?.access_token) {
+        throw new Error("Your session expired. Please sign in again.");
+      }
+
       const { data, error: fnError } = await supabase.functions.invoke(
         "generate-spark-trade-blueprint",
         { body: { memberId: user.id } }
@@ -61,7 +85,7 @@ export default function SparkTradeAIBlueprint() {
       setBlueprint(data as Blueprint);
     } catch (err: any) {
       console.error("[AIBlueprint] generate failed", err);
-      setError(err?.message ?? "Failed to generate blueprint. Please try again.");
+      setError(await extractFnError(err));
     } finally {
       setGenerating(false);
     }
@@ -80,16 +104,22 @@ export default function SparkTradeAIBlueprint() {
       setBlueprint(data as Blueprint);
       toast.success("Blueprint regenerated");
     } catch (err: any) {
-      setError(err?.message ?? "Failed to regenerate.");
+      setError(await extractFnError(err));
     } finally {
       setGenerating(false);
     }
   };
 
   useEffect(() => {
-    if (user && !blueprint && !generating) generate();
+    if (loading) return;
+    if (!user) {
+      setError("You need to sign in to generate your blueprint.");
+      return;
+    }
+    if (!blueprint && !generating) generate();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [user]);
+  }, [user, loading]);
+
 
   if (loading) {
     return (
