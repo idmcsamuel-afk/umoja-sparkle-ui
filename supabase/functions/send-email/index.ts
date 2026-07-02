@@ -419,7 +419,9 @@ Deno.serve(async (req) => {
       const emailRegex = "^[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\\.[A-Za-z]{2,}$";
       let q = sb.from("members")
         .select("id, email, full_name, email_preferences, has_buyers_club_access, created_at")
-        .not("email", "is", null).neq("email", "").filter("email", "~*", emailRegex);
+        // PostgREST operator name for case-insensitive regex is `imatch` (NOT `~*`,
+        // which fails to parse: PGRST100). This was the source of the generic non-2xx.
+        .not("email", "is", null).neq("email", "").filter("email", "imatch", emailRegex);
       if (audience === "buyers_club") q = q.eq("has_buyers_club_access", true);
       else if (audience === "custom") {
         const ids = (member_ids ?? []) as string[];
@@ -427,7 +429,7 @@ Deno.serve(async (req) => {
         q = q.in("id", ids);
       }
       const { data: rows, error } = await q.order("created_at", { ascending: false });
-      if (error) throw error;
+      if (error) throw new Error(`members read failed: ${error.message ?? JSON.stringify(error)}`);
       let scoped = (rows ?? []) as Array<{ id: string; email: string; full_name: string; email_preferences: Record<string, boolean> | null }>;
       if (audience === "circle" || audience === "tier") {
         let bq = sb.from("circle_bids").select("member_id").eq("is_valid_contribution", true);
@@ -543,7 +545,8 @@ Deno.serve(async (req) => {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
   } catch (e) {
-    const msg = e instanceof Error ? e.message : String(e);
+    // Serialize non-Error throws (e.g. raw PostgREST error objects) so we never log "[object Object]".
+    const msg = e instanceof Error ? e.message : (typeof e === "object" && e !== null ? JSON.stringify(e) : String(e));
     const stack = e instanceof Error ? e.stack : undefined;
     console.error("[send-email] handler error:", msg, stack);
     return new Response(JSON.stringify({ ok: false, error: msg }), {
