@@ -293,7 +293,10 @@ const Signup = () => {
     }
 
     if (hasSession) {
-      await supabase.rpc("claim_signup_bonus");
+      const { error: bonusErr } = await supabase.rpc("claim_signup_bonus");
+      if (bonusErr && bonusErr.code !== "23505") {
+        console.warn("[Signup] claim_signup_bonus failed", bonusErr);
+      }
     }
 
     const { data: meRow } = await supabase.from("members").select("referral_code").eq("id", uid).maybeSingle();
