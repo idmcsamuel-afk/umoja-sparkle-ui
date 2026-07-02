@@ -435,8 +435,8 @@ Deno.serve(async (req) => {
 
     if (action === "preview_recipients") {
       if (!caller.is_admin) return forbid();
-      const { audience, tier, member_ids } = body;
-      const r = await buildBlastRecipients(audience, tier, member_ids);
+      const { audience, tier, member_ids, bypass_prefs } = body;
+      const r = await buildBlastRecipients(audience, tier, member_ids, !!bypass_prefs);
       return new Response(JSON.stringify({
         ok: true,
         total_members: r.total_members,
@@ -448,16 +448,16 @@ Deno.serve(async (req) => {
 
     if (action === "blast") {
       if (!caller.is_admin) return forbid();
-      const { subject, body_html, audience, tier, member_ids } = body;
+      const { subject, body_html, audience, tier, member_ids, bypass_prefs } = body;
       // Create blast row
       const { data: blast } = await sb.from("email_blasts").insert({
         subject, body_html, audience, status: "running",
-        audience_filter: { tier, member_ids },
+        audience_filter: { tier, member_ids, bypass_prefs: !!bypass_prefs },
       }).select("id").single();
 
-      const built = await buildBlastRecipients(audience, tier, member_ids);
+      const built = await buildBlastRecipients(audience, tier, member_ids, !!bypass_prefs);
       const list = built.recipients;
-      console.log(`[blast] audience=${audience} tier=${tier ?? "-"} total_members=${built.total_members} after_audience=${built.after_audience} after_marketing=${list.length}`);
+      console.log(`[blast] audience=${audience} tier=${tier ?? "-"} bypass_prefs=${!!bypass_prefs} total_members=${built.total_members} after_audience=${built.after_audience} after_marketing=${list.length}`);
 
       const failures: Array<{ email: string; error: string }> = [];
       let sent = 0, failed = 0, suppressed = 0;
@@ -468,6 +468,7 @@ Deno.serve(async (req) => {
           data: { subject, title: subject, body_html, name: r.full_name },
           member_id: r.id,
           blast_id: blast?.id,
+          bypass_prefs: !!bypass_prefs,
         });
         if (res.ok && res.suppressed) suppressed++;
         else if (res.ok) sent++;
