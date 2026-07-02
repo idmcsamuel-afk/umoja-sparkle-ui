@@ -395,7 +395,7 @@ Deno.serve(async (req) => {
     }
 
     // Helper: build the recipient list for blasts (used by `blast` and `preview_recipients`).
-    const buildBlastRecipients = async (audience: string, tier?: string | null, member_ids?: string[] | null) => {
+    const buildBlastRecipients = async (audience: string, tier?: string | null, member_ids?: string[] | null, bypass_prefs?: boolean) => {
       const emailRegex = "^[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\\.[A-Za-z]{2,}$";
       let q = sb.from("members")
         .select("id, email, full_name, email_preferences, has_buyers_club_access, created_at")
@@ -415,16 +415,28 @@ Deno.serve(async (req) => {
         const { data: bids } = await bq;
         const bidderIds = new Set((bids ?? []).map((b: any) => b.member_id));
         scoped = scoped.filter((m) => bidderIds.has(m.id));
+      } else if (audience === "no_contribution") {
+        // Members who have NEVER made a valid contribution.
+        // Valid = quarantined_at IS NULL AND payment_confirmed_at IS NOT NULL AND status NOT IN ('rejected','expired').
+        const { data: bids } = await sb.from("circle_bids")
+          .select("member_id")
+          .is("quarantined_at", null)
+          .not("payment_confirmed_at", "is", null)
+          .not("status", "in", "(rejected,expired)");
+        const contributorIds = new Set((bids ?? []).map((b: any) => b.member_id));
+        scoped = scoped.filter((m) => !contributorIds.has(m.id));
       }
       const total_members = rows?.length ?? 0;
-      const eligible = scoped.filter((m) => (m.email_preferences ?? {}).marketing !== false);
+      const eligible = bypass_prefs
+        ? scoped
+        : scoped.filter((m) => (m.email_preferences ?? {}).marketing !== false);
       return { total_members, after_audience: scoped.length, recipients: eligible };
     };
 
     if (action === "preview_recipients") {
       if (!caller.is_admin) return forbid();
-      const { audience, tier, member_ids } = body;
-      const r = await buildBlastRecipients(audience, tier, member_ids);
+      const { audience, tier, member_ids, bypass_prefs } = body;
+      const r = await buildBlastRecipients(audience, tier, member_ids, !!bypass_prefs);
       return new Response(JSON.stringify({
         ok: true,
         total_members: r.total_members,
@@ -436,16 +448,16 @@ Deno.serve(async (req) => {
 
     if (action === "blast") {
       if (!caller.is_admin) return forbid();
-      const { subject, body_html, audience, tier, member_ids } = body;
+      const { subject, body_html, audience, tier, member_ids, bypass_prefs } = body;
       // Create blast row
       const { data: blast } = await sb.from("email_blasts").insert({
         subject, body_html, audience, status: "running",
-        audience_filter: { tier, member_ids },
+        audience_filter: { tier, member_ids, bypass_prefs: !!bypass_prefs },
       }).select("id").single();
 
-      const built = await buildBlastRecipients(audience, tier, member_ids);
+      const built = await buildBlastRecipients(audience, tier, member_ids, !!bypass_prefs);
       const list = built.recipients;
-      console.log(`[blast] audience=${audience} tier=${tier ?? "-"} total_members=${built.total_members} after_audience=${built.after_audience} after_marketing=${list.length}`);
+      console.log(`[blast] audience=${audience} tier=${tier ?? "-"} bypass_prefs=${!!bypass_prefs} total_members=${built.total_members} after_audience=${built.after_audience} after_marketing=${list.length}`);
 
       const failures: Array<{ email: string; error: string }> = [];
       let sent = 0, failed = 0, suppressed = 0;
@@ -456,6 +468,7 @@ Deno.serve(async (req) => {
           data: { subject, title: subject, body_html, name: r.full_name },
           member_id: r.id,
           blast_id: blast?.id,
+          bypass_prefs: !!bypass_prefs,
         });
         if (res.ok && res.suppressed) suppressed++;
         else if (res.ok) sent++;

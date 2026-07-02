@@ -23,7 +23,7 @@ function timeAgo(ts: number) {
   return `${Math.floor(s / 86400)}d ago`;
 }
 
-type Audience = "all" | "circle" | "buyers_club" | "tier" | "custom";
+type Audience = "all" | "circle" | "buyers_club" | "no_contribution" | "tier" | "custom";
 
 interface LogRow {
   id: string;
@@ -49,6 +49,9 @@ export default function AdminNotifications() {
   const [lastSaved, setLastSaved] = useState<Date | null>(null);
   const [draftPrompt, setDraftPrompt] = useState<{ subject: string; body: string; timestamp: number } | null>(null);
   const [draftLoaded, setDraftLoaded] = useState(false);
+  const [bypassPrefs, setBypassPrefs] = useState(false);
+  const [audienceCount, setAudienceCount] = useState<number | null>(null);
+  const [countLoading, setCountLoading] = useState(false);
 
   // Load draft on mount
   useEffect(() => {
@@ -110,6 +113,30 @@ export default function AdminNotifications() {
 
   const parsedIds = memberIds.split(/[\s,]+/).map((s) => s.trim()).filter(Boolean);
 
+  // Live recipient count preview for the currently selected segment.
+  useEffect(() => {
+    let cancelled = false;
+    if (audience === "custom" && parsedIds.length === 0) { setAudienceCount(null); return; }
+    setCountLoading(true);
+    const t = setTimeout(async () => {
+      const { data, error } = await supabase.functions.invoke("send-email", {
+        body: {
+          action: "preview_recipients",
+          audience,
+          tier: audience === "tier" ? tier : undefined,
+          member_ids: audience === "custom" ? parsedIds : undefined,
+          bypass_prefs: bypassPrefs,
+        },
+      });
+      if (cancelled) return;
+      setCountLoading(false);
+      if (error || !data?.ok) setAudienceCount(null);
+      else setAudienceCount(data.recipient_count as number);
+    }, 300);
+    return () => { cancelled = true; clearTimeout(t); setCountLoading(false); };
+  }, [audience, tier, memberIds, bypassPrefs]);
+
+
   const sendTest = async () => {
     if (!user?.email) return toast.error("No email on your account");
     if (!subject || !body) return toast.error("Subject and body required");
@@ -166,6 +193,7 @@ export default function AdminNotifications() {
         action: "preview_recipients", audience,
         tier: audience === "tier" ? tier : undefined,
         member_ids: audience === "custom" ? parsedIds : undefined,
+        bypass_prefs: bypassPrefs,
       },
     });
     if (previewErr || !preview?.ok) {
@@ -177,7 +205,7 @@ export default function AdminNotifications() {
       setBusy(false);
       return toast.error(`No eligible recipients (total: ${preview.total_members}, after filter: ${preview.after_audience_filter}).`);
     }
-    if (!confirm(`This email will be sent to ${count} member${count === 1 ? "" : "s"}.\n\nAudience: ${audience}${audience === "tier" ? " · " + tier : ""}\n\nProceed?`)) {
+    if (!confirm(`This email will be sent to ${count} member${count === 1 ? "" : "s"}.\n\nAudience: ${audience}${audience === "tier" ? " · " + tier : ""}${bypassPrefs ? "\nMarketing filter: BYPASSED (service message)" : ""}\n\nProceed?`)) {
       setBusy(false);
       return;
     }
@@ -188,6 +216,7 @@ export default function AdminNotifications() {
         subject, body_html: body, audience,
         tier: audience === "tier" ? tier : undefined,
         member_ids: audience === "custom" ? parsedIds : undefined,
+        bypass_prefs: bypassPrefs,
       },
     });
     setBusy(false);
@@ -238,13 +267,19 @@ export default function AdminNotifications() {
 
         <div className="grid sm:grid-cols-2 gap-4">
           <div>
-            <Label className="text-xs uppercase tracking-wider text-muted-foreground">Recipients</Label>
+            <Label className="text-xs uppercase tracking-wider text-muted-foreground flex items-center justify-between">
+              <span>Recipients</span>
+              <span className="text-[11px] normal-case tracking-normal text-muted-foreground">
+                {countLoading ? "counting…" : audienceCount !== null ? `≈${audienceCount} members` : ""}
+              </span>
+            </Label>
             <Select value={audience} onValueChange={(v) => setAudience(v as Audience)}>
               <SelectTrigger className="mt-1 rounded-2xl"><SelectValue /></SelectTrigger>
               <SelectContent>
                 <SelectItem value="all">All members</SelectItem>
                 <SelectItem value="circle">Circle members only</SelectItem>
                 <SelectItem value="buyers_club">Buyers Club only</SelectItem>
+                <SelectItem value="no_contribution">Registered — no contribution yet</SelectItem>
                 <SelectItem value="tier">Specific tier</SelectItem>
                 <SelectItem value="custom">Custom (member IDs)</SelectItem>
               </SelectContent>
@@ -264,6 +299,21 @@ export default function AdminNotifications() {
             </div>
           )}
         </div>
+
+        <label className="flex items-start gap-3 rounded-2xl border border-border bg-background/40 p-3 cursor-pointer">
+          <input
+            type="checkbox"
+            checked={bypassPrefs}
+            onChange={(e) => setBypassPrefs(e.target.checked)}
+            className="mt-1 h-4 w-4 accent-primary"
+          />
+          <span className="text-sm">
+            <span className="font-medium">Send as service message (bypass marketing filter)</span>
+            <span className="block text-[11px] text-muted-foreground mt-0.5">
+              Use only for genuinely transactional/service emails (e.g. helping a member complete onboarding). Default OFF.
+            </span>
+          </span>
+        </label>
         {audience === "custom" && (
           <div>
             <Label className="text-xs uppercase tracking-wider text-muted-foreground">Member IDs (comma or newline)</Label>
