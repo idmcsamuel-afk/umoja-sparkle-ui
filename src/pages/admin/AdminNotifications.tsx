@@ -49,6 +49,9 @@ export default function AdminNotifications() {
   const [lastSaved, setLastSaved] = useState<Date | null>(null);
   const [draftPrompt, setDraftPrompt] = useState<{ subject: string; body: string; timestamp: number } | null>(null);
   const [draftLoaded, setDraftLoaded] = useState(false);
+  const [bypassPrefs, setBypassPrefs] = useState(false);
+  const [audienceCount, setAudienceCount] = useState<number | null>(null);
+  const [countLoading, setCountLoading] = useState(false);
 
   // Load draft on mount
   useEffect(() => {
