@@ -7893,6 +7893,10 @@ export type Database = {
       is_admin: { Args: { _uid: string }; Returns: boolean }
       is_admin_user: { Args: never; Returns: boolean }
       join_spark_trade: { Args: { _id: string }; Returns: undefined }
+      kyc_verified_referral_sparks: {
+        Args: { _member: string }
+        Returns: number
+      }
       lookup_referrer: {
         Args: { _code: string }
         Returns: {
