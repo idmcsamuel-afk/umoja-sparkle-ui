@@ -80,21 +80,11 @@ export default function SparkTradeAIBlueprint() {
         return;
       }
 
-      const { data: sess } = await supabase.auth.getSession();
-      if (!sess?.session?.access_token) {
-        throw new Error("Your session expired. Please sign in again.");
-      }
-
-      const { data, error: fnError } = await supabase.functions.invoke(
-        "generate-spark-trade-blueprint",
-        { body: { memberId: user.id } }
-      );
-      if (fnError) throw fnError;
-      if (!data) throw new Error("No blueprint returned");
-      setBlueprint(data as Blueprint);
+      const data = await callBlueprintFn({ memberId: user.id });
+      setBlueprint(data);
     } catch (err: any) {
       console.error("[AIBlueprint] generate failed", err);
-      setError(await extractFnError(err));
+      setError(err?.message ?? "Failed to generate blueprint. Please try again.");
     } finally {
       setGenerating(false);
     }
