@@ -308,9 +308,13 @@ export default function AdminProductValidation() {
     const weight = parseFloat(f.weight_kg);
     const buffer = parseFloat(f.buffer_pct);
     const commission = parseFloat(f.commission_pct);
-    const moq = parseInt(f.moq) || 100;
+    const moq = parseInt(f.moq);
+    const memberMinBuyinRaw = f.member_min_buyin_zar.trim();
+    const memberMinBuyin = memberMinBuyinRaw === "" ? null : parseFloat(memberMinBuyinRaw);
     if (!alibaba || alibaba <= 0) { toast({ title: "Alibaba unit cost (ZAR) is required", variant: "destructive" }); return; }
     if (!weight || weight <= 0) { toast({ title: "Weight (kg) is required", variant: "destructive" }); return; }
+    if (!moq || moq <= 0) { toast({ title: "Factory MOQ (units) is required", description: "Enter the real MOQ your factory requires (100, 500, 10000…).", variant: "destructive" }); return; }
+    if (memberMinBuyin != null && (isNaN(memberMinBuyin) || memberMinBuyin < 0)) { toast({ title: "Member min buy-in must be a non-negative number", variant: "destructive" }); return; }
     if (!r.price_zar || r.price_zar <= 0) { toast({ title: "Missing SA selling price (price_zar) on source row", variant: "destructive" }); return; }
 
     const freightOverrideRaw = f.freight_override_zar.trim();
