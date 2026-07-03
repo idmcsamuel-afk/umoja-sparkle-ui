@@ -550,7 +550,16 @@ function PricingEditor({
         <DialogFooter>
           <Button variant="outline" onClick={onClose}>Cancel</Button>
           <Button
-            onClick={() =>
+            onClick={() => {
+              if (!moq || moq <= 0) {
+                toast.error("Factory MOQ (units) is required — enter the real factory MOQ.");
+                return;
+              }
+              const memberMinNum = memberMinBuyin.trim() === "" ? null : Number(memberMinBuyin);
+              if (memberMinNum != null && (Number.isNaN(memberMinNum) || memberMinNum < 0)) {
+                toast.error("Member min buy-in must be a non-negative number.");
+                return;
+              }
               onSave({
                 alibaba_cost_zar: alibaba,
                 weight_kg: weight,
@@ -560,9 +569,10 @@ function PricingEditor({
                 buffer_pct: buffer,
                 commission_pct: commission,
                 moq_required: moq,
+                member_min_buyin_zar: memberMinNum,
                 suggested_selling_price_zar: sell,
-              })
-            }
+              });
+            }}
             disabled={saving}
           >
             {saving && <Loader2 className="h-4 w-4 mr-1 animate-spin" />} Save pricing
