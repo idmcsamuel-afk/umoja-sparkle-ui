@@ -852,7 +852,8 @@ export default function SparkTradeProductOpportunities() {
                   disabled={
                     paying ||
                     !addrValid ||
-                    qty < (active.moq_required ?? 1) ||
+                    qty < memberMoq.memberMoqUnits ||
+                    totalCost < floors.minOrderTotalZar ||
                     (active.stock_available != null && qty > active.stock_available) ||
                     (availableCapital !== null && totalCost > availableCapital)
                   }
