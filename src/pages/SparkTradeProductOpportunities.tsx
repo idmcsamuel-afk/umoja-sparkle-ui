@@ -55,6 +55,7 @@ interface Opportunity {
   gross_margin_air_zar?: number | null;
   margin_air_pct?: number | null;
   air_available?: boolean | null;
+  member_min_buyin_zar?: number | null;
 }
 
 interface CommitmentStatus {
