@@ -80,6 +80,7 @@ export default function SparkTradeProductOpportunities() {
   const { user, loading: authLoading } = useAuth();
   const navigate = useNavigate();
   const { pay, ready: paystackReady } = usePaystack();
+  const floors = useSparkTradeFloors();
 
   const [items, setItems] = useState<Opportunity[]>([]);
   const [loading, setLoading] = useState(true);
