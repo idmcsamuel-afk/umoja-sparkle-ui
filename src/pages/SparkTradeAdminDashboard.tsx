@@ -421,6 +421,7 @@ function PricingEditor({
     setBuffer(Number(opp.buffer_pct ?? 0));
     setCommission(Number(opp.commission_pct ?? 0));
     setMoq(Number(opp.moq_required ?? 0));
+    setMemberMinBuyin(opp.member_min_buyin_zar != null ? String(opp.member_min_buyin_zar) : "");
     setSell(Number(opp.suggested_selling_price_zar ?? 0));
   }, [opp]);
 
