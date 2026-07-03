@@ -324,8 +324,13 @@ export default function SparkTradeProductOpportunities() {
       toast.error("Payment gateway loading… try again in a moment");
       return;
     }
-    if (qty < (active.moq_required ?? 1)) {
-      toast.error(`Minimum order is ${active.moq_required} units`);
+    if (qty < memberMoq.memberMoqUnits) {
+      toast.error(`Minimum order is ${memberMoq.memberMoqUnits} units (R${memberMoq.effectiveMinItem})`);
+      return;
+    }
+    if (totalCost < floors.minOrderTotalZar) {
+      const short = Math.ceil(floors.minOrderTotalZar - totalCost);
+      toast.error(`Add R${short.toLocaleString("en-ZA")} more to reach the R${floors.minOrderTotalZar.toLocaleString("en-ZA")} minimum order.`);
       return;
     }
     if (active.stock_available != null && qty > active.stock_available) {
