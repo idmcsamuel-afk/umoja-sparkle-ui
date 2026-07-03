@@ -11,6 +11,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Loader2, Plus, Check, X, Pencil, Trash2, Upload, ImageIcon, ImagePlus, Calculator } from "lucide-react";
 import { toast } from "sonner";
+import { computeMemberMoq, useSparkTradeFloors } from "@/lib/sparkTradeMoq";
 
 const PRODUCT_IMAGE_BUCKET = "spark_trade_product_images";
 
