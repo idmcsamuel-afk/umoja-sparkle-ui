@@ -247,6 +247,7 @@ export default function AdminProductValidation() {
         buffer_pct: f.buffer_pct || null,
         commission_pct: f.commission_pct || null,
         moq: f.moq || null,
+        member_min_buyin_zar: f.member_min_buyin_zar || null,
         supplier_name: f.supplier_name || null,
         updated_at: new Date().toISOString(),
       }, { onConflict: "product_id,admin_user_id" }).then(({ error }) => {
