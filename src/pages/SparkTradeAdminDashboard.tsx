@@ -475,9 +475,39 @@ function PricingEditor({
               />
               <Field label="Buffer %" type="number" value={buffer} onChange={(v) => setBuffer(Number(v))} />
               <Field label="Commission % (hidden from members)" type="number" value={commission} onChange={(v) => setCommission(Number(v))} />
-              <Field label="MOQ required" type="number" value={moq} onChange={(v) => setMoq(Number(v))} />
+              <Field label="Factory MOQ (units) *" type="number" value={moq} onChange={(v) => setMoq(Number(v))} />
+              <Field label={`Member min buy-in (ZAR) — blank = global R${floors.minItemBuyinZar}`} type="number" value={memberMinBuyin} onChange={(v) => setMemberMinBuyin(v)} />
               <Field label="Suggested selling price (ZAR)" type="number" value={sell} onChange={(v) => setSell(Number(v))} />
             </div>
+
+            {(() => {
+              const memberMinNum = memberMinBuyin.trim() === "" ? null : Number(memberMinBuyin);
+              const moqCalc = computeMemberMoq({
+                landedCostZar: landedSea,
+                memberMinBuyinZar: memberMinNum,
+                factoryMoq: moq,
+                globalMinItem: floors.minItemBuyinZar,
+              });
+              const canPreview = landedSea > 0 && moq > 0;
+              return (
+                <div className="rounded-md border border-primary/30 bg-primary/5 p-3 text-sm">
+                  <div className="font-medium mb-1">🎯 Viability preview</div>
+                  {canPreview ? (
+                    <>
+                      <p>
+                        Each member buys min <span className="font-semibold">{moqCalc.memberMoqUnits} units</span> (R{moqCalc.effectiveMinItem}).{" "}
+                        <span className="font-semibold">{moqCalc.membersNeeded} members</span> needed to fill the factory order of {moq.toLocaleString()}.
+                      </p>
+                      {moqCalc.membersNeeded > 100 && (
+                        <p className="text-amber-600 mt-1 text-xs">⚠️ High member count — raise the per-item floor to reduce members needed.</p>
+                      )}
+                    </>
+                  ) : (
+                    <p className="text-xs text-muted-foreground">Enter Factory MOQ and Alibaba/weight to compute member units and members needed.</p>
+                  )}
+                </div>
+              );
+            })()}
 
             <div className="rounded-md border p-3 text-sm space-y-1">
               <div className="font-medium mb-2">🚢 Sea — live preview</div>
