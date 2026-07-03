@@ -30,6 +30,7 @@ import {
   Share2,
   RefreshCw,
 } from "lucide-react";
+import { computeMemberMoq, useSparkTradeFloors } from "@/lib/sparkTradeMoq";
 
 interface Opportunity {
   id: number;
@@ -54,6 +55,7 @@ interface Opportunity {
   gross_margin_air_zar?: number | null;
   margin_air_pct?: number | null;
   air_available?: boolean | null;
+  member_min_buyin_zar?: number | null;
 }
 
 interface CommitmentStatus {
@@ -78,6 +80,7 @@ export default function SparkTradeProductOpportunities() {
   const { user, loading: authLoading } = useAuth();
   const navigate = useNavigate();
   const { pay, ready: paystackReady } = usePaystack();
+  const floors = useSparkTradeFloors();
 
   const [items, setItems] = useState<Opportunity[]>([]);
   const [loading, setLoading] = useState(true);
@@ -216,7 +219,7 @@ export default function SparkTradeProductOpportunities() {
       const { data, error } = await supabase
         .from("spark_trade_opportunities" as any)
         .select(
-          "id, product_name, category, moq_required, unit_cost_zar, suggested_selling_price_zar, expected_margin_percentage, product_image_url, stock_available, trending_direction, supplier_country, is_spotlight, spotlight_rank, spotlight_title, landed_cost_sea_zar, landed_cost_air_zar, gross_margin_sea_zar, margin_sea_pct, gross_margin_air_zar, margin_air_pct, air_available",
+          "id, product_name, category, moq_required, unit_cost_zar, suggested_selling_price_zar, expected_margin_percentage, product_image_url, stock_available, trending_direction, supplier_country, is_spotlight, spotlight_rank, spotlight_title, landed_cost_sea_zar, landed_cost_air_zar, gross_margin_sea_zar, margin_sea_pct, gross_margin_air_zar, margin_air_pct, air_available, member_min_buyin_zar",
         )
         .eq("is_spotlight", true)
         .order("spotlight_rank", { ascending: true, nullsFirst: false })
@@ -249,7 +252,14 @@ export default function SparkTradeProductOpportunities() {
 
   const openReserve = (p: Opportunity) => {
     setActive(p);
-    setQty(p.moq_required ?? 1);
+    const seed = Number(p.landed_cost_sea_zar ?? p.unit_cost_zar ?? 0);
+    const seedMoq = computeMemberMoq({
+      landedCostZar: seed,
+      memberMinBuyinZar: p.member_min_buyin_zar,
+      factoryMoq: p.moq_required,
+      globalMinItem: floors.minItemBuyinZar,
+    }).memberMoqUnits;
+    setQty(seedMoq);
     setFreightMode("sea");
     setReserveOpen(true);
   };
@@ -262,6 +272,16 @@ export default function SparkTradeProductOpportunities() {
     if (freightMode === "air") return air > 0 ? air : (sea > 0 ? sea : fallback);
     return sea > 0 ? sea : fallback;
   }, [active, freightMode]);
+
+  const memberMoq = useMemo(() => {
+    if (!active) return { memberMoqUnits: 1, effectiveMinItem: floors.minItemBuyinZar, membersNeeded: 0 };
+    return computeMemberMoq({
+      landedCostZar: landedPerUnit,
+      memberMinBuyinZar: active.member_min_buyin_zar,
+      factoryMoq: active.moq_required,
+      globalMinItem: floors.minItemBuyinZar,
+    });
+  }, [active, landedPerUnit, floors.minItemBuyinZar]);
 
   const sellPerUnit = useMemo(
     () => (active ? Number(active.suggested_selling_price_zar ?? 0) : 0),
@@ -304,8 +324,13 @@ export default function SparkTradeProductOpportunities() {
       toast.error("Payment gateway loading… try again in a moment");
       return;
     }
-    if (qty < (active.moq_required ?? 1)) {
-      toast.error(`Minimum order is ${active.moq_required} units`);
+    if (qty < memberMoq.memberMoqUnits) {
+      toast.error(`Minimum order is ${memberMoq.memberMoqUnits} units (R${memberMoq.effectiveMinItem})`);
+      return;
+    }
+    if (totalCost < floors.minOrderTotalZar) {
+      const short = Math.ceil(floors.minOrderTotalZar - totalCost);
+      toast.error(`Add R${short.toLocaleString("en-ZA")} more to reach the R${floors.minOrderTotalZar.toLocaleString("en-ZA")} minimum order.`);
       return;
     }
     if (active.stock_available != null && qty > active.stock_available) {
@@ -560,7 +585,7 @@ export default function SparkTradeProductOpportunities() {
                   Reserve {active.product_name}
                 </DialogTitle>
                 <DialogDescription>
-                  {active.category} · MOQ {active.moq_required} units · {active.expected_margin_percentage}% margin
+                  {active.category} · Factory MOQ {active.moq_required?.toLocaleString()} units · {active.expected_margin_percentage}% margin
                 </DialogDescription>
               </DialogHeader>
               <div className="flex-1 overflow-y-auto px-6 py-4 space-y-4">
@@ -579,11 +604,11 @@ export default function SparkTradeProductOpportunities() {
               <div className="space-y-4">
                 <div>
                   <label className="text-sm font-medium">
-                    How many units? (Minimum: {active.moq_required})
+                    How many units? (Minimum {memberMoq.memberMoqUnits} units · R{memberMoq.effectiveMinItem})
                   </label>
                   <Input
                     type="number"
-                    min={active.moq_required ?? 1}
+                    min={memberMoq.memberMoqUnits}
                     max={active.stock_available ?? undefined}
                     value={qty}
                     onChange={(e) => setQty(Math.max(0, Number(e.target.value) || 0))}
@@ -594,9 +619,9 @@ export default function SparkTradeProductOpportunities() {
                       {active.stock_available} units available
                     </p>
                   )}
-                  {qty > 0 && qty < (active.moq_required ?? 1) && (
+                  {qty > 0 && qty < memberMoq.memberMoqUnits && (
                     <p className="mt-1 text-xs text-destructive">
-                      Below minimum order of {active.moq_required}
+                      Below minimum of {memberMoq.memberMoqUnits} units (R{memberMoq.effectiveMinItem})
                     </p>
                   )}
                 </div>
@@ -650,6 +675,22 @@ export default function SparkTradeProductOpportunities() {
                   </div>
                 </div>
 
+                {/* Order-total floor */}
+                {qty > 0 && totalCost < floors.minOrderTotalZar && (() => {
+                  const short = Math.ceil(floors.minOrderTotalZar - totalCost);
+                  return (
+                    <div className="rounded-lg border border-amber-500/40 bg-amber-500/5 p-3 text-sm">
+                      <p className="font-medium text-amber-700 dark:text-amber-400">
+                        Add R{short.toLocaleString("en-ZA")} more to reach the R{floors.minOrderTotalZar.toLocaleString("en-ZA")} minimum order.
+                      </p>
+                      <p className="text-xs text-muted-foreground mt-1">
+                        Increase quantity to unlock checkout.
+                      </p>
+                    </div>
+                  );
+                })()}
+
+
                 {/* Capital validation */}
                 {availableCapital !== null && (() => {
                   const hasEnough = totalCost <= availableCapital;
@@ -688,7 +729,7 @@ export default function SparkTradeProductOpportunities() {
                     <div className="rounded-lg border p-3 text-sm space-y-2">
                       <div className="flex items-center justify-between text-xs text-muted-foreground">
                         <span>Group progress</span>
-                        <span>Max {maxUnitsPerPerson(moq)} units / person</span>
+                        <span>Min {memberMoq.memberMoqUnits} / person · {memberMoq.membersNeeded || "—"} members needed</span>
                       </div>
                       <div className="flex items-center justify-between">
                         <span>After your order</span>
@@ -811,7 +852,8 @@ export default function SparkTradeProductOpportunities() {
                   disabled={
                     paying ||
                     !addrValid ||
-                    qty < (active.moq_required ?? 1) ||
+                    qty < memberMoq.memberMoqUnits ||
+                    totalCost < floors.minOrderTotalZar ||
                     (active.stock_available != null && qty > active.stock_available) ||
                     (availableCapital !== null && totalCost > availableCapital)
                   }
@@ -929,13 +971,20 @@ function OpportunityCard({
   commitment?: CommitmentStatus;
   onReserve: () => void;
 }) {
+  const floors = useSparkTradeFloors();
   const [errored, setErrored] = useState(false);
   const outOfStock = (p.stock_available ?? 0) <= 0;
   const moq = commitment?.moq_required || p.moq_required || 1;
   const totalUnits = commitment?.total_units ?? 0;
   const members = commitment?.members_committed ?? 0;
   const pct = commitment?.progress_percent ?? 0;
-  const maxPerPerson = maxUnitsPerPerson(moq);
+  const landedForCard = Number(p.landed_cost_sea_zar ?? p.unit_cost_zar ?? 0);
+  const cardMoq = computeMemberMoq({
+    landedCostZar: landedForCard,
+    memberMinBuyinZar: p.member_min_buyin_zar,
+    factoryMoq: p.moq_required,
+    globalMinItem: floors.minItemBuyinZar,
+  });
 
   return (
     <Card className="overflow-hidden flex flex-col transition-all hover:shadow-lg hover:-translate-y-0.5">
@@ -1000,13 +1049,13 @@ function OpportunityCard({
           <div className="flex items-center justify-between text-xs text-muted-foreground">
             <span>Members committed</span>
             <span className="font-medium text-foreground">
-              {members}/{SPOTLIGHT_MEMBER_TARGET}
+              {members}/{cardMoq.membersNeeded || SPOTLIGHT_MEMBER_TARGET}
             </span>
           </div>
           <div className="flex items-center justify-between text-xs text-muted-foreground">
             <span>Units</span>
             <span className="font-medium text-foreground">
-              {totalUnits}/{moq}
+              {totalUnits.toLocaleString()}/{moq.toLocaleString()}
             </span>
           </div>
           <div className="h-1.5 w-full rounded-full bg-muted overflow-hidden">
@@ -1025,7 +1074,7 @@ function OpportunityCard({
             <span className="inline-flex items-center gap-1">
               <Boxes className="h-3 w-3" /> {totalUnits}/{moq} ({Math.round(pct)}%)
             </span>
-            <span>Max {maxPerPerson} / person</span>
+            <span>Min {cardMoq.memberMoqUnits} / person (R{cardMoq.effectiveMinItem})</span>
           </div>
           {commitment?.status && (
             <Badge

@@ -15,6 +15,7 @@ import {
 } from "@/components/ui/pagination";
 import { Check, X, ExternalLink, Star, RefreshCw, ImageOff, Trash2, Radar, Loader2 } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
+import { computeMemberMoq, useSparkTradeFloors } from "@/lib/sparkTradeMoq";
 
 type ValidationStatus = "pending_review" | "approved_to_queue" | "rejected" | "demand_validated";
 
@@ -81,6 +82,7 @@ interface PriceForm {
   buffer_pct: string;
   commission_pct: string;
   moq: string;
+  member_min_buyin_zar: string;   // optional per-product override of global R400
   supplier_name: string;
   freight_override_zar: string;   // sea override (legacy key retained)
   freight_air_zar: string;        // air override (blank = air unavailable)
@@ -149,6 +151,7 @@ export default function AdminProductValidation() {
   const [draftLoaded, setDraftLoaded] = useState<Record<string, boolean>>({});
   const [restoredNote, setRestoredNote] = useState<Record<string, boolean>>({});
   const [enriching, setEnriching] = useState<string | null>(null);
+  const floors = useSparkTradeFloors();
 
   const load = async () => {
     setLoading(true);
@@ -190,7 +193,7 @@ export default function AdminProductValidation() {
   const currentPage = Math.min(page, totalPages);
   const pageRows = filtered.slice((currentPage - 1) * PAGE_SIZE, currentPage * PAGE_SIZE);
 
-  const blankForm = (): PriceForm => ({ alibaba_cost_zar: "", weight_kg: "", buffer_pct: String(DEFAULTS.buffer_pct), commission_pct: String(DEFAULTS.commission_pct), moq: "100", supplier_name: "", freight_override_zar: "", freight_air_zar: "" });
+  const blankForm = (): PriceForm => ({ alibaba_cost_zar: "", weight_kg: "", buffer_pct: String(DEFAULTS.buffer_pct), commission_pct: String(DEFAULTS.commission_pct), moq: "", member_min_buyin_zar: "", supplier_name: "", freight_override_zar: "", freight_air_zar: "" });
   const setFormField = (id: string, k: keyof PriceForm, v: string) => {
     setForms((p) => ({ ...p, [id]: { ...(p[id] ?? blankForm()), [k]: v } }));
   };
@@ -215,7 +218,8 @@ export default function AdminProductValidation() {
           freight_air_zar: d.freight_air_zar ?? "",
           buffer_pct: d.buffer_pct ?? String(DEFAULTS.buffer_pct),
           commission_pct: d.commission_pct ?? String(DEFAULTS.commission_pct),
-          moq: d.moq ?? "100",
+          moq: d.moq ?? "",
+          member_min_buyin_zar: d.member_min_buyin_zar ?? "",
           supplier_name: d.supplier_name ?? "",
         };
         setForms((p) => ({ ...p, [openForm]: restored }));
@@ -231,7 +235,7 @@ export default function AdminProductValidation() {
     const f = forms[openForm];
     if (!f) return;
     const isEmpty = !f.alibaba_cost_zar && !f.weight_kg && !f.freight_override_zar && !f.supplier_name
-      && f.buffer_pct === String(DEFAULTS.buffer_pct) && f.commission_pct === String(DEFAULTS.commission_pct) && f.moq === "100";
+      && f.buffer_pct === String(DEFAULTS.buffer_pct) && f.commission_pct === String(DEFAULTS.commission_pct) && !f.moq && !f.member_min_buyin_zar;
     if (isEmpty) return;
     const t = setTimeout(() => {
       supabase.from("product_pricing_drafts" as any).upsert({
@@ -243,6 +247,7 @@ export default function AdminProductValidation() {
         buffer_pct: f.buffer_pct || null,
         commission_pct: f.commission_pct || null,
         moq: f.moq || null,
+        member_min_buyin_zar: f.member_min_buyin_zar || null,
         supplier_name: f.supplier_name || null,
         updated_at: new Date().toISOString(),
       }, { onConflict: "product_id,admin_user_id" }).then(({ error }) => {
@@ -305,9 +310,13 @@ export default function AdminProductValidation() {
     const weight = parseFloat(f.weight_kg);
     const buffer = parseFloat(f.buffer_pct);
     const commission = parseFloat(f.commission_pct);
-    const moq = parseInt(f.moq) || 100;
+    const moq = parseInt(f.moq);
+    const memberMinBuyinRaw = f.member_min_buyin_zar.trim();
+    const memberMinBuyin = memberMinBuyinRaw === "" ? null : parseFloat(memberMinBuyinRaw);
     if (!alibaba || alibaba <= 0) { toast({ title: "Alibaba unit cost (ZAR) is required", variant: "destructive" }); return; }
     if (!weight || weight <= 0) { toast({ title: "Weight (kg) is required", variant: "destructive" }); return; }
+    if (!moq || moq <= 0) { toast({ title: "Factory MOQ (units) is required", description: "Enter the real MOQ your factory requires (100, 500, 10000…).", variant: "destructive" }); return; }
+    if (memberMinBuyin != null && (isNaN(memberMinBuyin) || memberMinBuyin < 0)) { toast({ title: "Member min buy-in must be a non-negative number", variant: "destructive" }); return; }
     if (!r.price_zar || r.price_zar <= 0) { toast({ title: "Missing SA selling price (price_zar) on source row", variant: "destructive" }); return; }
 
     const freightOverrideRaw = f.freight_override_zar.trim();
@@ -358,6 +367,7 @@ export default function AdminProductValidation() {
       margin_air_pct: r2(m.margin_air_pct),
       weight_kg: weight,
       moq_required: moq,
+      member_min_buyin_zar: memberMinBuyin,
       supplier_name: f.supplier_name || "china_supplier",
       supplier_country: "CN",
       marketplace: "amazon_sa",
@@ -515,8 +525,15 @@ export default function AdminProductValidation() {
                         <div><Label className="text-xs">Weight (kg) *</Label><Input type="number" step="0.01" value={f.weight_kg} onChange={(e) => setFormField(r.id, "weight_kg", e.target.value)} placeholder="e.g. 0.5" /></div>
                         <div><Label className="text-xs">Buffer %</Label><Input type="number" step="0.1" value={f.buffer_pct} onChange={(e) => setFormField(r.id, "buffer_pct", e.target.value)} /></div>
                         <div><Label className="text-xs">Commission %</Label><Input type="number" step="0.1" value={f.commission_pct} onChange={(e) => setFormField(r.id, "commission_pct", e.target.value)} /></div>
-                        <div><Label className="text-xs">MOQ</Label><Input type="number" value={f.moq} onChange={(e) => setFormField(r.id, "moq", e.target.value)} /></div>
-                        <div><Label className="text-xs">Supplier / manufacturer</Label><Input value={f.supplier_name} onChange={(e) => setFormField(r.id, "supplier_name", e.target.value)} placeholder="optional" /></div>
+                        <div>
+                          <Label className="text-xs">Factory MOQ (units) *</Label>
+                          <Input type="number" min="1" value={f.moq} onChange={(e) => setFormField(r.id, "moq", e.target.value)} placeholder="Real factory MOQ (100, 500, 10000…)" />
+                        </div>
+                        <div>
+                          <Label className="text-xs">Member min buy-in (ZAR)</Label>
+                          <Input type="number" step="0.01" min="0" value={f.member_min_buyin_zar} onChange={(e) => setFormField(r.id, "member_min_buyin_zar", e.target.value)} placeholder={`Blank = global R${floors.minItemBuyinZar}`} />
+                        </div>
+                        <div className="md:col-span-2"><Label className="text-xs">Supplier / manufacturer</Label><Input value={f.supplier_name} onChange={(e) => setFormField(r.id, "supplier_name", e.target.value)} placeholder="optional" /></div>
                       </div>
                       <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                         <div>
@@ -552,6 +569,32 @@ export default function AdminProductValidation() {
                           ) : (
                             <p className="text-muted-foreground">✈️ Air option hidden — members will only see Sea.</p>
                           )}
+                          {(() => {
+                            const factory = parseInt(f.moq);
+                            if (!factory || factory <= 0) {
+                              return <p className="text-amber-600 dark:text-amber-500 pt-1">Enter Factory MOQ to see viability (member units + members needed).</p>;
+                            }
+                            const memberMinRaw = f.member_min_buyin_zar.trim();
+                            const memberMin = memberMinRaw === "" ? null : parseFloat(memberMinRaw);
+                            const moqCalc = computeMemberMoq({
+                              landedCostZar: live.landed_cost_sea_zar,
+                              memberMinBuyinZar: memberMin,
+                              factoryMoq: factory,
+                              globalMinItem: floors.minItemBuyinZar,
+                            });
+                            return (
+                              <div className="rounded-md border border-primary/30 bg-primary/5 p-2 mt-1">
+                                <p className="font-medium text-foreground">Viability preview</p>
+                                <p className="text-muted-foreground mt-0.5">
+                                  Each member buys min <span className="font-semibold text-foreground">{moqCalc.memberMoqUnits} units</span> (R{moqCalc.effectiveMinItem}).{" "}
+                                  <span className="font-semibold text-foreground">{moqCalc.membersNeeded} members</span> needed to fill the factory order of {factory.toLocaleString()}.
+                                </p>
+                                {moqCalc.membersNeeded > 100 && (
+                                  <p className="text-amber-600 dark:text-amber-500 mt-1">⚠️ High member count — consider raising the per-item floor to reduce members needed.</p>
+                                )}
+                              </div>
+                            );
+                          })()}
                         </div>
                       )}
                       <div className="flex gap-2 flex-wrap">

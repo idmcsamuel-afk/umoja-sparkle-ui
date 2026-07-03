@@ -195,7 +195,10 @@ export default function SparkTradeAIBlueprint() {
                       <div>
                         <p className="font-medium text-sm">{p.name}</p>
                         <p className="text-xs text-muted-foreground">
-                          MOQ: {p.moq} · Cost: R{p.unit_cost_zar}
+                          MOQ: {(() => {
+                            const c = Number(p.unit_cost_zar) || 0;
+                            return c > 0 ? `${Math.max(1, Math.ceil(400 / c))} units` : `${p.moq} units`;
+                          })()} · Cost: R{p.unit_cost_zar}
                         </p>
                       </div>
                       {p.suggested_selling_price_zar && (

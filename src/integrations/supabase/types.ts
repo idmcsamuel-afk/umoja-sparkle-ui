@@ -5748,6 +5748,7 @@ export type Database = {
           margin_air_pct: number | null
           margin_sea_pct: number | null
           marketplace: string | null
+          member_min_buyin_zar: number | null
           moq_required: number | null
           original_reference_image_url: string | null
           original_reference_name: string | null
@@ -5795,6 +5796,7 @@ export type Database = {
           margin_air_pct?: number | null
           margin_sea_pct?: number | null
           marketplace?: string | null
+          member_min_buyin_zar?: number | null
           moq_required?: number | null
           original_reference_image_url?: string | null
           original_reference_name?: string | null
@@ -5842,6 +5844,7 @@ export type Database = {
           margin_air_pct?: number | null
           margin_sea_pct?: number | null
           marketplace?: string | null
+          member_min_buyin_zar?: number | null
           moq_required?: number | null
           original_reference_image_url?: string | null
           original_reference_name?: string | null

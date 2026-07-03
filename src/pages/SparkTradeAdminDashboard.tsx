@@ -11,6 +11,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Loader2, Plus, Check, X, Pencil, Trash2, Upload, ImageIcon, ImagePlus, Calculator } from "lucide-react";
 import { toast } from "sonner";
+import { computeMemberMoq, useSparkTradeFloors } from "@/lib/sparkTradeMoq";
 
 const PRODUCT_IMAGE_BUCKET = "spark_trade_product_images";
 
@@ -392,9 +393,11 @@ function PricingEditor({
     buffer_pct: number;
     commission_pct: number;
     moq_required: number;
+    member_min_buyin_zar: number | null;
     suggested_selling_price_zar: number;
   }) => void;
 }) {
+  const floors = useSparkTradeFloors();
   const [alibaba, setAlibaba] = useState(0);
   const [weight, setWeight] = useState(0);
   const [freightSeaOverride, setFreightSeaOverride] = useState<string>("");
@@ -402,6 +405,7 @@ function PricingEditor({
   const [buffer, setBuffer] = useState(0);
   const [commission, setCommission] = useState(0);
   const [moq, setMoq] = useState(0);
+  const [memberMinBuyin, setMemberMinBuyin] = useState<string>("");
   const [sell, setSell] = useState(0);
 
   useEffect(() => {
@@ -417,6 +421,7 @@ function PricingEditor({
     setBuffer(Number(opp.buffer_pct ?? 0));
     setCommission(Number(opp.commission_pct ?? 0));
     setMoq(Number(opp.moq_required ?? 0));
+    setMemberMinBuyin(opp.member_min_buyin_zar != null ? String(opp.member_min_buyin_zar) : "");
     setSell(Number(opp.suggested_selling_price_zar ?? 0));
   }, [opp]);
 
@@ -470,9 +475,39 @@ function PricingEditor({
               />
               <Field label="Buffer %" type="number" value={buffer} onChange={(v) => setBuffer(Number(v))} />
               <Field label="Commission % (hidden from members)" type="number" value={commission} onChange={(v) => setCommission(Number(v))} />
-              <Field label="MOQ required" type="number" value={moq} onChange={(v) => setMoq(Number(v))} />
+              <Field label="Factory MOQ (units) *" type="number" value={moq} onChange={(v) => setMoq(Number(v))} />
+              <Field label={`Member min buy-in (ZAR) — blank = global R${floors.minItemBuyinZar}`} type="number" value={memberMinBuyin} onChange={(v) => setMemberMinBuyin(v)} />
               <Field label="Suggested selling price (ZAR)" type="number" value={sell} onChange={(v) => setSell(Number(v))} />
             </div>
+
+            {(() => {
+              const memberMinNum = memberMinBuyin.trim() === "" ? null : Number(memberMinBuyin);
+              const moqCalc = computeMemberMoq({
+                landedCostZar: landedSea,
+                memberMinBuyinZar: memberMinNum,
+                factoryMoq: moq,
+                globalMinItem: floors.minItemBuyinZar,
+              });
+              const canPreview = landedSea > 0 && moq > 0;
+              return (
+                <div className="rounded-md border border-primary/30 bg-primary/5 p-3 text-sm">
+                  <div className="font-medium mb-1">🎯 Viability preview</div>
+                  {canPreview ? (
+                    <>
+                      <p>
+                        Each member buys min <span className="font-semibold">{moqCalc.memberMoqUnits} units</span> (R{moqCalc.effectiveMinItem}).{" "}
+                        <span className="font-semibold">{moqCalc.membersNeeded} members</span> needed to fill the factory order of {moq.toLocaleString()}.
+                      </p>
+                      {moqCalc.membersNeeded > 100 && (
+                        <p className="text-amber-600 mt-1 text-xs">⚠️ High member count — raise the per-item floor to reduce members needed.</p>
+                      )}
+                    </>
+                  ) : (
+                    <p className="text-xs text-muted-foreground">Enter Factory MOQ and Alibaba/weight to compute member units and members needed.</p>
+                  )}
+                </div>
+              );
+            })()}
 
             <div className="rounded-md border p-3 text-sm space-y-1">
               <div className="font-medium mb-2">🚢 Sea — live preview</div>
@@ -515,7 +550,16 @@ function PricingEditor({
         <DialogFooter>
           <Button variant="outline" onClick={onClose}>Cancel</Button>
           <Button
-            onClick={() =>
+            onClick={() => {
+              if (!moq || moq <= 0) {
+                toast.error("Factory MOQ (units) is required — enter the real factory MOQ.");
+                return;
+              }
+              const memberMinNum = memberMinBuyin.trim() === "" ? null : Number(memberMinBuyin);
+              if (memberMinNum != null && (Number.isNaN(memberMinNum) || memberMinNum < 0)) {
+                toast.error("Member min buy-in must be a non-negative number.");
+                return;
+              }
               onSave({
                 alibaba_cost_zar: alibaba,
                 weight_kg: weight,
@@ -525,9 +569,10 @@ function PricingEditor({
                 buffer_pct: buffer,
                 commission_pct: commission,
                 moq_required: moq,
+                member_min_buyin_zar: memberMinNum,
                 suggested_selling_price_zar: sell,
-              })
-            }
+              });
+            }}
             disabled={saving}
           >
             {saving && <Loader2 className="h-4 w-4 mr-1 animate-spin" />} Save pricing
