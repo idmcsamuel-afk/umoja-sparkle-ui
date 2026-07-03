@@ -1,94 +1,85 @@
-This is a large, multi-phase feature spanning DB, UI, edge functions, and a third-party blockchain API. Here is the plan I'll follow once you approve. I'll likely ship it in 2–3 review cycles.
+## Member MOQ + Aggregation Engine
 
-## 1. Database (migration)
+Two floors, one factory MOQ, one live viability preview — everywhere.
 
-Add to `circle_bids`:
-- `payment_crypto_network text` (e.g. `TRC20`)
-- `payment_crypto_txhash text`
-- `payment_crypto_address text` (sender wallet, optional)
-- `amount_usdt numeric(12,2)`
-- `payout_crypto_txhash text`
-- `payout_crypto_network text`
+---
 
-Add to `platform_settings`:
-- `usdt_trc20_address text`
-- `usdt_zar_rate numeric(12,4)` (fallback rate, admin-editable; live rate fetched in edge function)
-- `crypto_enabled boolean default false`
+### 1. Settings (migration + admin UI later)
 
-Add to `members`:
-- `usdt_wallet_trc20 text` (for receiving payouts)
+Insert two rows into `spark_trade_settings`:
+- `min_item_buyin_zar` = **400** — per-item member floor (landed R)
+- `min_order_total_zar` = **2500** — whole-order minimum
 
-Extend allowed `payment_method` values to include `usdt`. No CHECK constraints (trigger-based if needed).
+These become the global defaults everywhere; Idara can edit values in-DB (existing admin settings surface can be extended in a follow-up).
 
-## 2. Edge functions
+### 2. Schema
 
-- `usdt-rate` (GET) — returns current ZAR→USD rate (cache 10 min). Source: free public FX API (e.g. exchangerate.host). No secret required.
-- `usdt-verify-tx` (POST `{ bidId, txHash }`) — calls TronScan/Trongrid public API to verify:
-  - tx exists, confirmed
-  - `to` == platform USDT TRC20 address (USDT contract `TR7NHqjeKQxGTCi8q8ZY4pL8otSzgjLj6t`)
-  - amount ≥ `amount_usdt` (within 1% tolerance)
-  - tx not already used by another bid
-  - On success, updates bid: `status='payment_pending'→'confirmed'`-equivalent (matches existing EFT confirm flow), sets `payment_confirmed_at`, `payment_crypto_txhash`, `payment_crypto_network='TRC20'`.
-- `usdt-auto-verify` (cron, every 5 min) — scans pending USDT bids in last 2h; for those with a saved sender address or txhash, re-checks status. Light v1: only re-check rows with txhash set.
+Migration on `spark_trade_opportunities`:
+- Add `member_min_buyin_zar numeric NULL` — per-product override of the R400 floor.
+- `moq_required` (already exists) is now **treated as real factory MOQ** — no more silent default of 100. Approve/Edit forms require Idara to type it.
 
-Public TronScan / Trongrid endpoints don't require keys for read calls. No secrets needed for v1. If rate-limited later, we'll add `TRONGRID_API_KEY` via the secrets tool.
+### 3. Shared helper
 
-## 3. Frontend — Circle bid flow (`src/pages/Circle.tsx` + `PaymentMethodSelector.tsx`)
+New `src/lib/sparkTradeMoq.ts` exports:
+```ts
+computeMemberMoq({ landedCostZar, memberMinBuyinZar, globalMinItem }) 
+  → { memberMoqUnits, membersNeeded, effectiveMinItem }
+```
+`memberMoqUnits = ceil(effectiveMinItem / landedCostZar)`, `membersNeeded = ceil(factoryMoq / memberMoqUnits)`.
 
-- Add `usdt` option to `PaymentMethod` with TRC20 badge ("Instant · Low fees").
-- When user selects USDT:
-  - Fetch live rate, compute `amount_usdt = round(fiat_amount / rate, 2)`.
-  - Persist `payment_method='usdt'`, `amount_usdt`, `payment_crypto_network='TRC20'`, `payment_deadline = now()+1h` on the bid.
-  - Show new `UsdtPayPanel` with: network, amount in USDT, platform address (copy button), QR code (use `qrcode.react` — already a peer of many shadcn projects; if not installed, add it), 1-hour countdown, "I've sent payment" → modal with txhash input → calls `usdt-verify-tx`.
-- On success, identical UX to confirmed EFT (banner, vault timer kicks in via existing logic).
+Plus a `useSparkTradeSettings()` hook that fetches both floors once and caches them (falls back to 400 / 2500).
 
-## 4. Currency display
+### 4. Approve & Publish form (`AdminProductValidation.tsx`)
 
-- Lightweight `useUsdtRate()` hook (TanStack Query, 10-min stale) used in:
-  - Circle tier cards: append `(≈$X–$Y USDT)` to ZAR ranges.
-  - Bid amount input: live "= $X.XX USDT" helper.
-  - "My bids" list: show USDT equivalent when `payment_method='usdt'` (uses stored `amount_usdt`, not live rate).
+- MOQ input relabelled **"Factory MOQ (units) — REQUIRED"**, no `|| 100` default; blocks publish if blank/0.
+- New input: **Member minimum buy-in (ZAR)** — optional, placeholder shows current global R400.
+- Live preview block (when landed_sea > 0) shows: 
+  `Each member buys min {memberMoqUnits} units (R{floor}). {membersNeeded} members needed to fill factory order of {factoryMoq}.`
+- Payload writes `moq_required` and `member_min_buyin_zar` (or null).
 
-## 5. Admin
+### 5. Edit Pricing dialog (`SparkTradeAdminDashboard.tsx` → `PricingEditor`)
 
-`AdminSettings.tsx` — new "Cryptocurrency" card:
-- USDT TRC20 receiving address input + QR preview
-- Fallback ZAR/USD rate input
-- `crypto_enabled` toggle (gates the UI option for members)
-- Read-only "Last verified balance" placeholder (v1: shown as "Check on TronScan ↗")
+- Factory MOQ field relabelled + required.
+- New "Member minimum buy-in (ZAR)" field.
+- Same live preview block underneath.
+- Save payload includes `member_min_buyin_zar` (nullable) → edge function `admin-update-opportunity-pricing` persists it.
 
-`AdminCircleTracker.tsx` / payouts:
-- New filter for `payment_method='usdt'`, show txhash with link to `https://tronscan.org/#/transaction/<hash>`.
-- On payout: admin can pick "Bank EFT" or "USDT". If USDT, requires member's `usdt_wallet_trc20`, prompts admin to send manually, then records `payout_crypto_txhash` + `payout_crypto_network`. Reuses existing `record_circle_payout` flow with extra params (small DB function update).
+### 6. Member group-buy card / dialog (`SparkTradeProductOpportunities.tsx`)
 
-## 6. Member profile (`Banking.tsx`)
+- Load opportunity fields `member_min_buyin_zar` + `landed_cost_sea_zar` (already selected).
+- Compute `memberMoqUnits` per product using the helper and the settings hook.
+- Card: replace `maxUnitsPerPerson`-based copy with `"Minimum {memberMoqUnits} units (R{floor})"` and `{members_needed}` denominators (use members_needed instead of hardcoded 10).
+- Dialog: `qty` starts at `memberMoqUnits`, `min={memberMoqUnits}`, error copy uses member MOQ.
+- Line total already = `qty × landedPerUnit` — unchanged.
 
-Add optional "USDT payout wallet (TRC20)" input below bank details, with format validation (Tron addresses start with `T`, 34 chars).
+### 7. Order-total floor at checkout
 
-## 7. Education + disclaimer
+Since checkout is currently one product at a time (no multi-item cart yet), enforce `totalCost >= min_order_total_zar` in the reserve dialog:
+- Disable "Complete & Pay" and show `"Add R{shortfall} more to reach the R2,500 minimum order."`
+- Message wording exactly as requested.
 
-Small collapsible `UsdtHelp` component embedded in the USDT pay panel and on the Banking page, containing the "What is USDT / How to get it / Recommended wallets / Compliance disclaimer" copy from your spec.
+(If/when a real multi-product cart lands, the same helper is already the source of truth.)
 
-## 8. Cron
+### 8. Blueprint MOQ label (`SparkTradeAIBlueprint.tsx`)
 
-Add a `*/5 * * * *` `pg_cron` job calling `usdt-auto-verify` (same pattern as existing `expire-unpaid-bids-15m`). Migration includes the schedule.
+Line 198 currently prints `MOQ: {p.moq}` from the AI blueprint. Replace with a member-facing MOQ using the same formula: `MOQ: {ceil(400 / unit_cost_zar)} units` when `p.unit_cost_zar > 0`, else fall back to the AI value. This aligns the blueprint with what a member actually has to buy.
 
-## 9. Out of scope for v1 (called out so we don't surprise you)
+---
 
-- Auto-sweep / treasury management
-- Other networks (Polygon, BEP20) — schema supports it but UI is TRC20-only
-- KYC/AML beyond what Lovable Cloud already enforces
-- Real-time balance readout in admin (manual TronScan link instead)
-- Webhooks from Coinbase Commerce / Binance Pay (manual verification only)
+### Files touched
 
-## Order of execution
+- **migration** — add 2 settings rows + `member_min_buyin_zar` column
+- `src/lib/sparkTradeMoq.ts` (new) — helper + settings hook
+- `src/pages/admin/AdminProductValidation.tsx` — MOQ required, new field, preview
+- `src/pages/SparkTradeAdminDashboard.tsx` — PricingEditor field + preview
+- `supabase/functions/admin-update-opportunity-pricing/index.ts` — persist `member_min_buyin_zar`
+- `src/pages/SparkTradeProductOpportunities.tsx` — member card + dialog + order floor
+- `src/pages/SparkTradeAIBlueprint.tsx` — blueprint MOQ line
 
-1. Migration (schema + cron stub disabled).
-2. Edge functions `usdt-rate` + `usdt-verify-tx`.
-3. Member bid flow + selector + QR panel.
-4. Currency display hook + tier cards.
-5. Admin settings + payout selector.
-6. Banking wallet field.
-7. Enable cron + `usdt-auto-verify`.
+### Verification (per your CONFIRM list)
 
-Approve and I'll start with the migration.
+- Approve form blocks publish without factory MOQ; shows live `member_moq_units` + `members_needed`.
+- Landed R18 · factory MOQ 10,000 · R400 floor → `ceil(400/18)=23 units/member`, `ceil(10000/23)=435 members`. (Your ballpark of ~22/~455 matches within rounding.)
+- Member card min = `memberMoqUnits`; checkout blocks under R2,500 with the exact shortfall copy.
+
+Reply **go** to build, or tell me what to tweak.
