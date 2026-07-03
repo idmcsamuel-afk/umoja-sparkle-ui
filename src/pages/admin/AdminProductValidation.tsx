@@ -233,7 +233,7 @@ export default function AdminProductValidation() {
     const f = forms[openForm];
     if (!f) return;
     const isEmpty = !f.alibaba_cost_zar && !f.weight_kg && !f.freight_override_zar && !f.supplier_name
-      && f.buffer_pct === String(DEFAULTS.buffer_pct) && f.commission_pct === String(DEFAULTS.commission_pct) && f.moq === "100";
+      && f.buffer_pct === String(DEFAULTS.buffer_pct) && f.commission_pct === String(DEFAULTS.commission_pct) && !f.moq && !f.member_min_buyin_zar;
     if (isEmpty) return;
     const t = setTimeout(() => {
       supabase.from("product_pricing_drafts" as any).upsert({
