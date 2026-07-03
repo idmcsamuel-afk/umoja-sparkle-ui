@@ -48,6 +48,7 @@ import Withdraw from "./pages/Withdraw.tsx";
 import Terms from "./pages/Terms.tsx";
 import Privacy from "./pages/Privacy.tsx";
 import BlogPost from "./pages/BlogPost.tsx";
+import ShareVideo from "./pages/ShareVideo.tsx";
 import AdminBlog from "./pages/admin/AdminBlog.tsx";
 import Community from "./pages/Community.tsx";
 import Trending from "./pages/Trending.tsx";
@@ -143,6 +144,7 @@ const App = () => (
               <Route path="/privacy" element={<Privacy />} />
               <Route path="/blog" element={<Blog />} />
               <Route path="/blog/:slug" element={<BlogPost />} />
+              <Route path="/s/:slug" element={<ShareVideo />} />
               <Route element={<MemberLayout />}>
                 <Route path="/dashboard" element={<ProtectedRoute><Dashboard /></ProtectedRoute>} />
                 <Route path="/community" element={<ProtectedRoute><Community /></ProtectedRoute>} />
