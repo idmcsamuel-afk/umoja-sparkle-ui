@@ -132,6 +132,9 @@ Deno.serve(async (req) => {
       air_available: body.air_available !== false,
     });
 
+    const memberMinRaw = body.member_min_buyin_zar;
+    const memberMinNum = memberMinRaw === "" || memberMinRaw == null ? null : Number(memberMinRaw);
+
     const updatePayload: Record<string, unknown> = {
       alibaba_cost_zar: Number(body.alibaba_cost_zar) || 0,
       weight_kg: Number(body.weight_kg) || 0,
@@ -139,6 +142,9 @@ Deno.serve(async (req) => {
       commission_pct: Number(body.commission_pct) || 0,
       suggested_selling_price_zar: Number(body.suggested_selling_price_zar) || 0,
       moq_required: body.moq_required != null ? Number(body.moq_required) : undefined,
+      member_min_buyin_zar: memberMinRaw !== undefined
+        ? (memberMinNum != null && !Number.isNaN(memberMinNum) ? memberMinNum : null)
+        : undefined,
       supplier_name: body.supplier_name ?? undefined,
       ...computed,
       updated_at: new Date().toISOString(),
