@@ -365,6 +365,7 @@ export default function AdminProductValidation() {
       margin_air_pct: r2(m.margin_air_pct),
       weight_kg: weight,
       moq_required: moq,
+      member_min_buyin_zar: memberMinBuyin,
       supplier_name: f.supplier_name || "china_supplier",
       supplier_country: "CN",
       marketplace: "amazon_sa",
