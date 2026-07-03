@@ -675,6 +675,22 @@ export default function SparkTradeProductOpportunities() {
                   </div>
                 </div>
 
+                {/* Order-total floor */}
+                {qty > 0 && totalCost < floors.minOrderTotalZar && (() => {
+                  const short = Math.ceil(floors.minOrderTotalZar - totalCost);
+                  return (
+                    <div className="rounded-lg border border-amber-500/40 bg-amber-500/5 p-3 text-sm">
+                      <p className="font-medium text-amber-700 dark:text-amber-400">
+                        Add R{short.toLocaleString("en-ZA")} more to reach the R{floors.minOrderTotalZar.toLocaleString("en-ZA")} minimum order.
+                      </p>
+                      <p className="text-xs text-muted-foreground mt-1">
+                        Increase quantity to unlock checkout.
+                      </p>
+                    </div>
+                  );
+                })()}
+
+
                 {/* Capital validation */}
                 {availableCapital !== null && (() => {
                   const hasEnough = totalCost <= availableCapital;
