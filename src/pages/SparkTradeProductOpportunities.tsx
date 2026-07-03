@@ -729,7 +729,7 @@ export default function SparkTradeProductOpportunities() {
                     <div className="rounded-lg border p-3 text-sm space-y-2">
                       <div className="flex items-center justify-between text-xs text-muted-foreground">
                         <span>Group progress</span>
-                        <span>Max {maxUnitsPerPerson(moq)} units / person</span>
+                        <span>Min {memberMoq.memberMoqUnits} / person · {memberMoq.membersNeeded || "—"} members needed</span>
                       </div>
                       <div className="flex items-center justify-between">
                         <span>After your order</span>
