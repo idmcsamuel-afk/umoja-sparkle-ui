@@ -393,9 +393,11 @@ function PricingEditor({
     buffer_pct: number;
     commission_pct: number;
     moq_required: number;
+    member_min_buyin_zar: number | null;
     suggested_selling_price_zar: number;
   }) => void;
 }) {
+  const floors = useSparkTradeFloors();
   const [alibaba, setAlibaba] = useState(0);
   const [weight, setWeight] = useState(0);
   const [freightSeaOverride, setFreightSeaOverride] = useState<string>("");
@@ -403,6 +405,7 @@ function PricingEditor({
   const [buffer, setBuffer] = useState(0);
   const [commission, setCommission] = useState(0);
   const [moq, setMoq] = useState(0);
+  const [memberMinBuyin, setMemberMinBuyin] = useState<string>("");
   const [sell, setSell] = useState(0);
 
   useEffect(() => {
