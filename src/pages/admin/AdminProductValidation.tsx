@@ -81,6 +81,7 @@ interface PriceForm {
   buffer_pct: string;
   commission_pct: string;
   moq: string;
+  member_min_buyin_zar: string;   // optional per-product override of global R400
   supplier_name: string;
   freight_override_zar: string;   // sea override (legacy key retained)
   freight_air_zar: string;        // air override (blank = air unavailable)
