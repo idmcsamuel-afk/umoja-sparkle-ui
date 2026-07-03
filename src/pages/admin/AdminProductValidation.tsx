@@ -151,6 +151,7 @@ export default function AdminProductValidation() {
   const [draftLoaded, setDraftLoaded] = useState<Record<string, boolean>>({});
   const [restoredNote, setRestoredNote] = useState<Record<string, boolean>>({});
   const [enriching, setEnriching] = useState<string | null>(null);
+  const floors = useSparkTradeFloors();
 
   const load = async () => {
     setLoading(true);
