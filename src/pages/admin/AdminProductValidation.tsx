@@ -216,7 +216,8 @@ export default function AdminProductValidation() {
           freight_air_zar: d.freight_air_zar ?? "",
           buffer_pct: d.buffer_pct ?? String(DEFAULTS.buffer_pct),
           commission_pct: d.commission_pct ?? String(DEFAULTS.commission_pct),
-          moq: d.moq ?? "100",
+          moq: d.moq ?? "",
+          member_min_buyin_zar: d.member_min_buyin_zar ?? "",
           supplier_name: d.supplier_name ?? "",
         };
         setForms((p) => ({ ...p, [openForm]: restored }));
