@@ -1049,13 +1049,13 @@ function OpportunityCard({
           <div className="flex items-center justify-between text-xs text-muted-foreground">
             <span>Members committed</span>
             <span className="font-medium text-foreground">
-              {members}/{SPOTLIGHT_MEMBER_TARGET}
+              {members}/{cardMoq.membersNeeded || SPOTLIGHT_MEMBER_TARGET}
             </span>
           </div>
           <div className="flex items-center justify-between text-xs text-muted-foreground">
             <span>Units</span>
             <span className="font-medium text-foreground">
-              {totalUnits}/{moq}
+              {totalUnits.toLocaleString()}/{moq.toLocaleString()}
             </span>
           </div>
           <div className="h-1.5 w-full rounded-full bg-muted overflow-hidden">
