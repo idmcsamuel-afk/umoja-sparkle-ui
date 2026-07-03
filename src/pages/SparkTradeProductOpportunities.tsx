@@ -252,7 +252,14 @@ export default function SparkTradeProductOpportunities() {
 
   const openReserve = (p: Opportunity) => {
     setActive(p);
-    setQty(p.moq_required ?? 1);
+    const seed = Number(p.landed_cost_sea_zar ?? p.unit_cost_zar ?? 0);
+    const seedMoq = computeMemberMoq({
+      landedCostZar: seed,
+      memberMinBuyinZar: p.member_min_buyin_zar,
+      factoryMoq: p.moq_required,
+      globalMinItem: floors.minItemBuyinZar,
+    }).memberMoqUnits;
+    setQty(seedMoq);
     setFreightMode("sea");
     setReserveOpen(true);
   };
@@ -265,6 +272,16 @@ export default function SparkTradeProductOpportunities() {
     if (freightMode === "air") return air > 0 ? air : (sea > 0 ? sea : fallback);
     return sea > 0 ? sea : fallback;
   }, [active, freightMode]);
+
+  const memberMoq = useMemo(() => {
+    if (!active) return { memberMoqUnits: 1, effectiveMinItem: floors.minItemBuyinZar, membersNeeded: 0 };
+    return computeMemberMoq({
+      landedCostZar: landedPerUnit,
+      memberMinBuyinZar: active.member_min_buyin_zar,
+      factoryMoq: active.moq_required,
+      globalMinItem: floors.minItemBuyinZar,
+    });
+  }, [active, landedPerUnit, floors.minItemBuyinZar]);
 
   const sellPerUnit = useMemo(
     () => (active ? Number(active.suggested_selling_price_zar ?? 0) : 0),
