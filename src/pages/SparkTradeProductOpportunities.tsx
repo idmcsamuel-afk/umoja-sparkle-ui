@@ -971,13 +971,20 @@ function OpportunityCard({
   commitment?: CommitmentStatus;
   onReserve: () => void;
 }) {
+  const floors = useSparkTradeFloors();
   const [errored, setErrored] = useState(false);
   const outOfStock = (p.stock_available ?? 0) <= 0;
   const moq = commitment?.moq_required || p.moq_required || 1;
   const totalUnits = commitment?.total_units ?? 0;
   const members = commitment?.members_committed ?? 0;
   const pct = commitment?.progress_percent ?? 0;
-  const maxPerPerson = maxUnitsPerPerson(moq);
+  const landedForCard = Number(p.landed_cost_sea_zar ?? p.unit_cost_zar ?? 0);
+  const cardMoq = computeMemberMoq({
+    landedCostZar: landedForCard,
+    memberMinBuyinZar: p.member_min_buyin_zar,
+    factoryMoq: p.moq_required,
+    globalMinItem: floors.minItemBuyinZar,
+  });
 
   return (
     <Card className="overflow-hidden flex flex-col transition-all hover:shadow-lg hover:-translate-y-0.5">
