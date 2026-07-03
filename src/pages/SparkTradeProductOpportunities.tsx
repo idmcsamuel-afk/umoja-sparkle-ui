@@ -30,6 +30,7 @@ import {
   Share2,
   RefreshCw,
 } from "lucide-react";
+import { computeMemberMoq, useSparkTradeFloors } from "@/lib/sparkTradeMoq";
 
 interface Opportunity {
   id: number;
