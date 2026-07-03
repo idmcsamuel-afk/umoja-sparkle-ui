@@ -585,7 +585,7 @@ export default function SparkTradeProductOpportunities() {
                   Reserve {active.product_name}
                 </DialogTitle>
                 <DialogDescription>
-                  {active.category} · MOQ {active.moq_required} units · {active.expected_margin_percentage}% margin
+                  {active.category} · Factory MOQ {active.moq_required?.toLocaleString()} units · {active.expected_margin_percentage}% margin
                 </DialogDescription>
               </DialogHeader>
               <div className="flex-1 overflow-y-auto px-6 py-4 space-y-4">
@@ -604,11 +604,11 @@ export default function SparkTradeProductOpportunities() {
               <div className="space-y-4">
                 <div>
                   <label className="text-sm font-medium">
-                    How many units? (Minimum: {active.moq_required})
+                    How many units? (Minimum {memberMoq.memberMoqUnits} units · R{memberMoq.effectiveMinItem})
                   </label>
                   <Input
                     type="number"
-                    min={active.moq_required ?? 1}
+                    min={memberMoq.memberMoqUnits}
                     max={active.stock_available ?? undefined}
                     value={qty}
                     onChange={(e) => setQty(Math.max(0, Number(e.target.value) || 0))}
@@ -619,9 +619,9 @@ export default function SparkTradeProductOpportunities() {
                       {active.stock_available} units available
                     </p>
                   )}
-                  {qty > 0 && qty < (active.moq_required ?? 1) && (
+                  {qty > 0 && qty < memberMoq.memberMoqUnits && (
                     <p className="mt-1 text-xs text-destructive">
-                      Below minimum order of {active.moq_required}
+                      Below minimum of {memberMoq.memberMoqUnits} units (R{memberMoq.effectiveMinItem})
                     </p>
                   )}
                 </div>
