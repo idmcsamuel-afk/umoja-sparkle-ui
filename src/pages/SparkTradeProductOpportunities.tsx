@@ -1074,7 +1074,7 @@ function OpportunityCard({
             <span className="inline-flex items-center gap-1">
               <Boxes className="h-3 w-3" /> {totalUnits}/{moq} ({Math.round(pct)}%)
             </span>
-            <span>Max {maxPerPerson} / person</span>
+            <span>Min {cardMoq.memberMoqUnits} / person (R{cardMoq.effectiveMinItem})</span>
           </div>
           {commitment?.status && (
             <Badge
