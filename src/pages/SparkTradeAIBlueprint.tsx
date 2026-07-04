@@ -53,6 +53,10 @@ type Blueprint = {
     additional_products: number;
     additional_profit_zar: number;
   };
+  tier_upgrade_nudge: null | {
+    message: string | null;
+    unspent_zar: number;
+  };
   estimated_first_stock: string;
   confidence_score: number;
 };
