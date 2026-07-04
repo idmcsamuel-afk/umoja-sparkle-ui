@@ -164,7 +164,7 @@ const App = () => (
                 <Route path="/spark-trade/onboarding/product-opportunities" element={<ProtectedRoute><SparkTradeProductOpportunities /></ProtectedRoute>} />
                 <Route path="/spark-trade/demand-meter" element={<ProtectedRoute><SparkTradeDemandMeter /></ProtectedRoute>} />
                 <Route path="/spark-trade/dashboard" element={<ProtectedRoute><SparkTradeDashboard /></ProtectedRoute>} />
-                <Route path="/spark-trade/admin" element={<ProtectedRoute><SparkTradeAdminDashboard /></ProtectedRoute>} />
+                <Route path="/spark-trade/admin" element={<AdminRoute><SparkTradeAdminDashboard /></AdminRoute>} />
                 <Route path="/drive" element={<ProtectedRoute><Drive /></ProtectedRoute>} />
                 <Route path="/drive/dashboard" element={<ProtectedRoute><DriveDashboard /></ProtectedRoute>} />
                 <Route path="/predictor" element={<ProtectedRoute><Predictor /></ProtectedRoute>} />
