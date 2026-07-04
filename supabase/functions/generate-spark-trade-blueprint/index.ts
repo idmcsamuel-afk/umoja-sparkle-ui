@@ -137,30 +137,9 @@ function buildBasket(
     spent = cheapest.investment;
   }
 
-  // SCALE UP: deploy remaining capital across picks (round-robin, best-margin first)
-  let remaining = capital - spent;
-  if (picks.length > 0) {
-    const minLanded = Math.min(...picks.map((p) => p.landed));
-    let guard = 0;
-    while (remaining >= minLanded && guard < 5000) {
-      let addedThisPass = false;
-      for (const p of picks) {
-        if (p.landed <= remaining) {
-          p.units += 1;
-          p.investment += p.landed;
-          remaining -= p.landed;
-          addedThisPass = true;
-          if (remaining < minLanded) break;
-        }
-      }
-      if (!addedThisPass) break;
-      guard += 1;
-    }
-  }
+  // Keep the MINIMUM-VIABLE basket — do NOT force-spend remaining capital.
+  // Leftover capital is surfaced as a tier-upgrade nudge downstream.
 
-  for (const p of picks) {
-    p.membersNeeded = p.factoryMoq > 0 ? Math.ceil(p.factoryMoq / p.units) : 0;
-  }
 
   const items: BasketItem[] = picks.map((s) => ({
     opportunity_id: s.o.id,
