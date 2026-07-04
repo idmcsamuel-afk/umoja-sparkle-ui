@@ -246,8 +246,14 @@ export default function SparkTradeMembership() {
                   const bcPrice = formatTierPrice("buyers_club", localCcy);
                   const sfPrice = formatTierPrice("storefront", localCcy);
                   const fulPrice = formatTierPrice("fulfilled", "ZAR");
-                  const ctaFor = (tier: Tier, label: string, price: string | null) =>
-                    current?.tier === tier ? "Active" : price ? `${label} — ${price}` : label;
+                  const ctaFor = (tier: Tier, label: string, price: string | null) => {
+                    if (current?.tier === tier) return "Active";
+                    const { chargeZar, isUpgrade } = computeChargeZar(tier);
+                    if (isUpgrade) {
+                      return `${label} — pay only R${chargeZar} difference`;
+                    }
+                    return price ? `${label} — ${price}` : label;
+                  };
                   return (
                     <>
                       {showTier("buyers_club") && (
