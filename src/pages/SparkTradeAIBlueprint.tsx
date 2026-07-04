@@ -3,6 +3,7 @@ import { useNavigate } from "react-router-dom";
 import { Loader2, Sparkles, RefreshCw, TrendingUp, Wallet, BarChart3, Clock } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
+import { useMemberTier } from "@/lib/sparkTradeMoq";
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
 import { toast } from "sonner";
@@ -28,6 +29,7 @@ type Blueprint = {
 export default function SparkTradeAIBlueprint() {
   const nav = useNavigate();
   const { user, loading } = useAuth();
+  const { productLimit } = useMemberTier();
   const [generating, setGenerating] = useState(false);
   const [blueprint, setBlueprint] = useState<Blueprint | null>(null);
   const [error, setError] = useState<string | null>(null);
