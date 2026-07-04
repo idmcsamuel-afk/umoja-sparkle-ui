@@ -370,10 +370,12 @@ function Metric({
   icon: Icon,
   label,
   value,
+  sub,
 }: {
   icon: any;
   label: string;
   value: string;
+  sub?: string;
 }) {
   return (
     <div className="rounded-2xl border border-border bg-background p-4">
@@ -382,6 +384,7 @@ function Metric({
         <p className="text-xs">{label}</p>
       </div>
       <p className="font-display text-base font-bold text-foreground">{value}</p>
+      {sub && <p className="text-[10px] text-muted-foreground mt-0.5">*{sub}</p>}
     </div>
   );
 }
