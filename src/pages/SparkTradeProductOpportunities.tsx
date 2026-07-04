@@ -84,7 +84,7 @@ function SparkTradeProductOpportunities() {
   const { user, loading: authLoading } = useAuth();
   const navigate = useNavigate();
   const floors = useSparkTradeFloors();
-  const { tier, bufferPct } = useMemberTier();
+  const { tier, bufferPct, productLimit } = useMemberTier();
   const { count } = useSparkTradeCart();
   const [cartOpen, setCartOpen] = useState(false);
 
@@ -192,13 +192,12 @@ function SparkTradeProductOpportunities() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  const visible = useMemo(
-    () =>
-      category === "All"
-        ? items
-        : items.filter((p) => (p.category ?? "").toLowerCase() === category.toLowerCase()),
-    [items, category],
-  );
+  const visible = useMemo(() => {
+    const gated = items.slice(0, productLimit);
+    return category === "All"
+      ? gated
+      : gated.filter((p) => (p.category ?? "").toLowerCase() === category.toLowerCase());
+  }, [items, category, productLimit]);
 
   if (authLoading || !user) {
     return (
@@ -248,6 +247,8 @@ function SparkTradeProductOpportunities() {
             <span className="font-semibold">{tierLabel(tier)}</span>
             <span className="text-muted-foreground">·</span>
             <span className="font-semibold text-primary">{bufferPct}% buffer</span>
+            <span className="text-muted-foreground">·</span>
+            <span className="font-semibold">{productLimit} products</span>
           </div>
           {availableCapital !== null && (
             <div className="inline-flex items-center gap-2 rounded-full border bg-card px-4 py-1.5 text-xs">

@@ -62,23 +62,42 @@ export function useSparkTradeFloors(): SparkTradeFloors {
 
 export type BuffTier = "buyers_club" | "pro" | "fulfilled";
 
+/** Normalize any stored tier string to a canonical tier.
+ *  Real DB values (members.spark_trade_subscription_tier):
+ *  "buyers-club", "spark-trade-pro", "fulfilled_by_umoja".
+ *  Legacy (members.buyers_club_tier): "gold", "pro", "fulfilled", "basic". */
+export function normalizeTier(raw?: string | null): BuffTier {
+  const t = String(raw ?? "").toLowerCase().replace(/[\s_-]+/g, "");
+  if (t.includes("fulfilled")) return "fulfilled";
+  if (t.includes("pro")) return "pro";
+  // buyersclub, basic, gold, empty, null → standard
+  return "buyers_club";
+}
+
 export function bufferPctForTier(tier?: string | null): number {
-  const t = String(tier ?? "").toLowerCase();
+  const t = normalizeTier(tier);
   if (t === "pro") return 5;
   if (t === "fulfilled") return 0;
-  // basic, buyers_club, gold, empty, null → standard 10%
   return 10;
 }
 
 export function tierLabel(tier?: string | null): string {
-  const t = String(tier ?? "").toLowerCase();
+  const t = normalizeTier(tier);
   if (t === "pro") return "Pro Trader";
   if (t === "fulfilled") return "Fulfilled by UMOJA";
   return "Buyers Club";
 }
 
+/** Max products visible in catalog/blueprint per tier. */
+export function productLimitForTier(tier?: string | null): number {
+  const t = normalizeTier(tier);
+  if (t === "fulfilled") return 20;
+  if (t === "pro") return 10;
+  return 6;
+}
+
 let tierCache: Record<string, string | null> = {};
-export function useMemberTier(): { tier: string | null; bufferPct: number; loaded: boolean } {
+export function useMemberTier(): { tier: string | null; bufferPct: number; productLimit: number; loaded: boolean } {
   const { user } = useAuth();
   const [tier, setTier] = useState<string | null>(user ? tierCache[user.id] ?? null : null);
   const [loaded, setLoaded] = useState<boolean>(!user || tierCache[user.id] !== undefined);
@@ -90,17 +109,23 @@ export function useMemberTier(): { tier: string | null; bufferPct: number; loade
     (async () => {
       const { data } = await supabase
         .from("members")
-        .select("buyers_club_tier")
+        .select("spark_trade_subscription_tier, spark_trade_subscription_payment_status, buyers_club_tier, buyers_club_status")
         .eq("id", user.id)
         .maybeSingle();
-      const t = ((data as any)?.buyers_club_tier as string | null) ?? null;
+      const row = data as any;
+      // Primary source: paid Spark Trade subscription tier.
+      const stTier = (row?.spark_trade_subscription_tier as string | null) ?? null;
+      const stPaid = String(row?.spark_trade_subscription_payment_status ?? "").toLowerCase() === "paid";
+      // Fallback: legacy buyers_club_tier.
+      const legacy = (row?.buyers_club_tier as string | null) ?? null;
+      const t = stTier && stPaid ? stTier : legacy;
       tierCache[user.id] = t;
       if (alive) { setTier(t); setLoaded(true); }
     })();
     return () => { alive = false; };
   }, [user?.id]);
 
-  return { tier, bufferPct: bufferPctForTier(tier), loaded };
+  return { tier, bufferPct: bufferPctForTier(tier), productLimit: productLimitForTier(tier), loaded };
 }
 
 export interface TierLandedInput {
