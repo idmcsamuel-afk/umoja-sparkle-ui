@@ -22,19 +22,29 @@ const TIER_LABEL: Record<TierKey, string> = {
   "fulfilled-by-umoja": "Fulfilled by Umoja",
 };
 
-type Product = {
+type BasketItem = {
+  opportunity_id?: string;
   name: string;
-  moq?: number;
-  unit_cost_zar?: number;
-  suggested_selling_price_zar?: number;
+  image_url?: string | null;
+  member_moq_units?: number;
+  landed_cost_per_unit_zar?: number;
+  selling_price_zar?: number;
+  investment_zar?: number;
+  potential_profit_zar?: number;
 };
 
 type Blueprint = {
   recommended_business_name?: string;
-  recommended_products?: Product[];
-  estimated_startup_capital?: number;
-  estimated_monthly_revenue?: number;
-  estimated_gross_margin?: string | number;
+  tier_label?: string;
+  capital_zar?: number;
+  basket?: {
+    items?: BasketItem[];
+    total_investment_zar?: number;
+    potential_gross_profit_zar?: number;
+    blended_margin_pct?: number;
+    product_count?: number;
+  };
+  estimated_first_stock?: string;
 };
 
 type Store = {
@@ -42,7 +52,7 @@ type Store = {
   store_template?: string;
   banner_color?: string;
   accent_color?: string;
-  featured_products?: Product[];
+  featured_products?: any[];
 };
 
 export default function SparkTradeOnboardingSummary() {
@@ -69,7 +79,7 @@ export default function SparkTradeOnboardingSummary() {
         const [{ data: bp }, { data: st }, { data: sub }] = await Promise.all([
           supabase
             .from("spark_trade_blueprints" as any)
-            .select("blueprint_json, recommended_business_name, recommended_products")
+            .select("blueprint_json, recommended_business_name")
             .eq("member_id", user.id)
             .order("created_at", { ascending: false })
             .limit(1)
@@ -87,15 +97,14 @@ export default function SparkTradeOnboardingSummary() {
         ]);
 
         if (bp) {
-          const json = (bp as any).blueprint_json ?? {};
+          const json = ((bp as any).blueprint_json ?? {}) as Blueprint;
           setBlueprint({
             recommended_business_name:
               json.recommended_business_name ?? (bp as any).recommended_business_name,
-            recommended_products:
-              json.recommended_products ?? (bp as any).recommended_products ?? [],
-            estimated_startup_capital: json.estimated_startup_capital,
-            estimated_monthly_revenue: json.estimated_monthly_revenue,
-            estimated_gross_margin: json.estimated_gross_margin,
+            tier_label: json.tier_label,
+            capital_zar: json.capital_zar,
+            basket: json.basket,
+            estimated_first_stock: json.estimated_first_stock,
           });
         }
         if (st) setStore(st as Store);
@@ -106,6 +115,7 @@ export default function SparkTradeOnboardingSummary() {
     })();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [user]);
+
 
   // Pull email from members table (fallback to auth email)
   useEffect(() => {
