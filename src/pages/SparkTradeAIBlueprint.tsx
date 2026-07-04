@@ -1,47 +1,95 @@
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { Loader2, Sparkles, RefreshCw, TrendingUp, Wallet, BarChart3, Clock } from "lucide-react";
+import {
+  Loader2,
+  Sparkles,
+  RefreshCw,
+  TrendingUp,
+  Wallet,
+  BarChart3,
+  Clock,
+  ArrowUpRight,
+} from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
-import { useMemberTier } from "@/lib/sparkTradeMoq";
+import { useMemberTier, fmtZar } from "@/lib/sparkTradeMoq";
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
 import { toast } from "sonner";
 
-type Product = {
+const CAPITAL_BANDS = [2500, 5000, 10000, 20000];
+const MIN_CAPITAL = 2500;
+
+type BasketItem = {
+  opportunity_id: string;
   name: string;
-  moq: number;
-  unit_cost_zar: number;
-  suggested_selling_price_zar?: number;
+  image_url: string | null;
+  member_moq_units: number;
+  landed_cost_per_unit_zar: number;
+  selling_price_zar: number;
+  investment_zar: number;
+  potential_profit_zar: number;
+  margin_pct: number;
 };
 
 type Blueprint = {
+  version: number;
   recommended_business_name: string;
-  recommended_products: Product[];
-  estimated_startup_capital: number;
-  estimated_monthly_revenue: number;
-  estimated_gross_margin: string | number;
-  overall_moq_fill_percentage: number;
-  estimated_launch_timeline_days: number;
+  tier_label: string;
+  product_limit: number;
+  capital_zar: number;
+  basket: {
+    items: BasketItem[];
+    total_investment_zar: number;
+    potential_gross_profit_zar: number;
+    blended_margin_pct: number;
+    product_count: number;
+  };
+  next_band: null | {
+    capital_zar: number;
+    product_count: number;
+    total_investment_zar: number;
+    potential_gross_profit_zar: number;
+    additional_products: number;
+    additional_profit_zar: number;
+  };
+  estimated_first_stock: string;
   confidence_score: number;
 };
 
 export default function SparkTradeAIBlueprint() {
   const nav = useNavigate();
   const { user, loading } = useAuth();
-  const { productLimit } = useMemberTier();
+  const { tier, bufferPct } = useMemberTier();
+  const [capital, setCapital] = useState<number | null>(null);
+  const [capitalPicked, setCapitalPicked] = useState(false);
   const [generating, setGenerating] = useState(false);
   const [blueprint, setBlueprint] = useState<Blueprint | null>(null);
   const [error, setError] = useState<string | null>(null);
 
-  // Call the edge function via direct fetch so the user's access token is
-  // explicitly attached (supabase.functions.invoke was not forwarding it).
+  // Preload existing capital & most recent blueprint (only used if capital matches)
+  useEffect(() => {
+    if (!user) return;
+    let alive = true;
+    (async () => {
+      const { data } = await supabase
+        .from("members")
+        .select("spark_trade_capital")
+        .eq("id", user.id)
+        .maybeSingle();
+      if (!alive) return;
+      const cap = Number((data as any)?.spark_trade_capital) || 0;
+      if (cap >= MIN_CAPITAL) setCapital(cap);
+    })();
+    return () => {
+      alive = false;
+    };
+  }, [user]);
+
   const callBlueprintFn = async (payload: Record<string, unknown>) => {
     const { data: sess } = await supabase.auth.getSession();
     const accessToken = sess?.session?.access_token;
-    if (!accessToken) {
-      throw new Error("Your session expired. Please sign in again.");
-    }
+    if (!accessToken) throw new Error("Your session expired. Please sign in again.");
     const url = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/generate-spark-trade-blueprint`;
     const res = await fetch(url, {
       method: "POST",
@@ -53,71 +101,39 @@ export default function SparkTradeAIBlueprint() {
       body: JSON.stringify(payload),
     });
     const body = await res.json().catch(() => null);
-    if (!res.ok) {
-      throw new Error(body?.error ?? `Blueprint generation failed (HTTP ${res.status})`);
-    }
-    if (!body) throw new Error("No blueprint returned");
+    if (!res.ok) throw new Error(body?.error ?? `Blueprint failed (HTTP ${res.status})`);
     return body as Blueprint;
   };
 
-  const generate = async () => {
-    if (!user) {
-      setError("You need to sign in to generate your blueprint.");
+  const generate = async (cap: number) => {
+    if (!user) return;
+    if (cap < MIN_CAPITAL) {
+      setError(`Minimum starting capital is ${fmtZar(MIN_CAPITAL)}.`);
       return;
     }
     setGenerating(true);
     setError(null);
     try {
-      const { data: existing } = await supabase
-        .from("spark_trade_blueprints" as any)
-        .select("blueprint_json")
-        .eq("member_id", user.id)
-        .order("created_at", { ascending: false })
-        .limit(1)
-        .maybeSingle();
-
-      if (existing && (existing as any).blueprint_json) {
-        setBlueprint((existing as any).blueprint_json as Blueprint);
-        setGenerating(false);
-        return;
-      }
-
-      const data = await callBlueprintFn({ memberId: user.id });
+      const data = await callBlueprintFn({ memberId: user.id, capital: cap });
       setBlueprint(data);
     } catch (err: any) {
       console.error("[AIBlueprint] generate failed", err);
-      setError(err?.message ?? "Failed to generate blueprint. Please try again.");
+      setError(err?.message ?? "Failed to generate blueprint.");
     } finally {
       setGenerating(false);
     }
   };
 
-  const regenerate = async () => {
-    if (!user) return;
-    setGenerating(true);
-    setError(null);
-    try {
-      const data = await callBlueprintFn({ memberId: user.id, force: true });
-      setBlueprint(data);
-      toast.success("Blueprint regenerated");
-    } catch (err: any) {
-      console.error("[AIBlueprint] regenerate failed", err);
-      setError(err?.message ?? "Failed to regenerate blueprint. Please try again.");
-    } finally {
-      setGenerating(false);
-    }
+  const pickCapital = (v: number) => {
+    setCapital(v);
+    setCapitalPicked(true);
+    setBlueprint(null);
+    generate(v);
   };
 
-  useEffect(() => {
-    if (loading) return;
-    if (!user) {
-      setError("You need to sign in to generate your blueprint.");
-      return;
-    }
-    if (!blueprint && !generating) generate();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [user, loading]);
-
+  const regenerate = () => {
+    if (capital) generate(capital);
+  };
 
   if (loading) {
     return (
@@ -126,6 +142,8 @@ export default function SparkTradeAIBlueprint() {
       </div>
     );
   }
+
+  const showCapitalPicker = !blueprint && !generating;
 
   return (
     <div className="min-h-screen bg-gradient-to-b from-background to-muted/20 px-4 py-8 md:py-12">
@@ -149,22 +167,73 @@ export default function SparkTradeAIBlueprint() {
             Your AI Business Blueprint
           </h1>
           <p className="mt-2 text-center text-base text-muted-foreground">
-            Personalised plan based on your goals & preferences
+            Personalised, capital-driven — real numbers, no promises.
           </p>
+
+          {showCapitalPicker && (
+            <div className="mt-8">
+              <p className="text-sm font-semibold mb-3 text-foreground">
+                How much are you starting with?
+              </p>
+              <p className="text-xs text-muted-foreground mb-4">
+                Minimum {fmtZar(MIN_CAPITAL)}. Pick the band closest to your available capital —
+                your basket is built to fit it.
+              </p>
+              <div className="grid grid-cols-2 gap-2">
+                {CAPITAL_BANDS.map((b) => {
+                  const selected = capital === b;
+                  return (
+                    <button
+                      key={b}
+                      onClick={() => pickCapital(b)}
+                      className={`rounded-2xl border p-4 text-left transition ${
+                        selected
+                          ? "border-primary bg-primary/10"
+                          : "border-border bg-background hover:border-primary/40"
+                      }`}
+                    >
+                      <p className="font-display text-lg font-bold">
+                        {b >= 20000 ? "R20,000+" : fmtZar(b)}
+                      </p>
+                      <p className="text-[11px] text-muted-foreground mt-1">
+                        {b === MIN_CAPITAL ? "Starter" : b === 5000 ? "Comfortable" : b === 10000 ? "Growth" : "Scale"}
+                      </p>
+                    </button>
+                  );
+                })}
+              </div>
+              {capital && !capitalPicked && (
+                <div className="mt-4">
+                  <Button
+                    onClick={() => pickCapital(capital)}
+                    className="w-full h-12 rounded-2xl bg-gradient-primary text-primary-foreground font-bold shadow-glow"
+                  >
+                    Continue with {fmtZar(capital)}
+                  </Button>
+                  <p className="text-[11px] text-muted-foreground mt-2 text-center">
+                    Previously saved capital — pick a band to change.
+                  </p>
+                </div>
+              )}
+              {error && (
+                <p className="mt-3 text-xs text-destructive text-center">{error}</p>
+              )}
+            </div>
+          )}
 
           {generating && (
             <div className="mt-10 flex flex-col items-center text-center gap-3">
               <Loader2 className="h-8 w-8 animate-spin text-primary" />
               <p className="text-sm text-muted-foreground">
-                Generating your blueprint... this takes 5–10 seconds.
+                Building your basket for {fmtZar(capital ?? 0)}…
               </p>
             </div>
           )}
 
-          {error && !generating && (
+          {error && !generating && !showCapitalPicker && (
             <div className="mt-8 rounded-2xl border border-destructive/30 bg-destructive/5 p-4 text-center">
               <p className="text-sm text-destructive mb-3">{error}</p>
-              <Button variant="outline" onClick={generate} className="rounded-xl">
+              <Button variant="outline" onClick={regenerate} className="rounded-xl">
                 <RefreshCw className="h-4 w-4 mr-2" /> Try again
               </Button>
             </div>
@@ -172,54 +241,124 @@ export default function SparkTradeAIBlueprint() {
 
           {blueprint && !generating && (
             <div className="mt-8 space-y-6">
-              {/* Business Name */}
+              {/* Header */}
               <div className="rounded-2xl bg-primary/5 border border-primary/20 p-5">
                 <p className="text-xs uppercase tracking-wider text-primary mb-1">
-                  Recommended Business
+                  Your plan · {blueprint.tier_label}
                 </p>
                 <h2 className="font-display text-xl font-bold text-foreground">
                   {blueprint.recommended_business_name}
                 </h2>
                 <p className="text-xs text-muted-foreground mt-1">
-                  Confidence: {blueprint.confidence_score}%
+                  Starting capital: {fmtZar(blueprint.capital_zar)} · up to{" "}
+                  {blueprint.product_limit} products on your tier · Confidence{" "}
+                  {blueprint.confidence_score}%
                 </p>
               </div>
 
-              {/* Products */}
+              {/* Basket */}
               <div>
-                <h3 className="font-semibold mb-3 text-foreground">Recommended Products</h3>
+                <div className="flex items-baseline justify-between mb-3">
+                  <h3 className="font-semibold text-foreground">
+                    Recommended basket ({blueprint.basket.product_count})
+                  </h3>
+                  <button
+                    onClick={() => {
+                      setBlueprint(null);
+                      setCapitalPicked(false);
+                    }}
+                    className="text-xs text-primary hover:underline"
+                  >
+                    Change capital
+                  </button>
+                </div>
                 <div className="space-y-2">
-                  {blueprint.recommended_products.slice(0, productLimit).map((p, i) => (
+                  {blueprint.basket.items.map((p) => (
                     <div
-                      key={i}
-                      className="rounded-xl border border-border bg-background p-3 flex justify-between items-center"
+                      key={p.opportunity_id}
+                      className="rounded-xl border border-border bg-background p-3 flex gap-3 items-center"
                     >
-                      <div>
-                        <p className="font-medium text-sm">{p.name}</p>
-                        <p className="text-xs text-muted-foreground">
-                          MOQ: {(() => {
-                            const c = Number(p.unit_cost_zar) || 0;
-                            return c > 0 ? `${Math.max(1, Math.ceil(400 / c))} units` : `${p.moq} units`;
-                          })()} · Cost: R{p.unit_cost_zar}
+                      {p.image_url ? (
+                        <img
+                          src={p.image_url}
+                          alt={p.name}
+                          className="h-12 w-12 rounded-lg object-cover flex-shrink-0"
+                        />
+                      ) : (
+                        <div className="h-12 w-12 rounded-lg bg-muted flex-shrink-0" />
+                      )}
+                      <div className="flex-1 min-w-0">
+                        <p className="font-medium text-sm truncate">{p.name}</p>
+                        <p className="text-[11px] text-muted-foreground">
+                          {p.member_moq_units} units × {fmtZar(p.landed_cost_per_unit_zar)} ={" "}
+                          {fmtZar(p.investment_zar)} · sell {fmtZar(p.selling_price_zar)}
                         </p>
                       </div>
-                      {p.suggested_selling_price_zar && (
+                      <div className="text-right">
+                        <p className="text-xs text-muted-foreground">Potential</p>
                         <p className="text-sm font-semibold text-accent">
-                          R{p.suggested_selling_price_zar}
+                          +{fmtZar(p.potential_profit_zar)}
                         </p>
-                      )}
+                      </div>
                     </div>
                   ))}
                 </div>
               </div>
 
-              {/* Metrics */}
+              {/* Honest Metrics */}
               <div className="grid grid-cols-2 gap-3">
-                <Metric icon={Wallet} label="Startup Capital" value={`R${blueprint.estimated_startup_capital.toLocaleString()}`} />
-                <Metric icon={TrendingUp} label="Monthly Revenue" value={`R${blueprint.estimated_monthly_revenue.toLocaleString()}`} />
-                <Metric icon={BarChart3} label="Gross Margin" value={`${blueprint.estimated_gross_margin}${typeof blueprint.estimated_gross_margin === "number" ? "%" : ""}`} />
-                <Metric icon={Clock} label="Launch Timeline" value={`${blueprint.estimated_launch_timeline_days} days`} />
+                <Metric
+                  icon={Wallet}
+                  label="Total Investment"
+                  value={fmtZar(blueprint.basket.total_investment_zar)}
+                />
+                <Metric
+                  icon={TrendingUp}
+                  label="Potential Gross Profit"
+                  value={`+${fmtZar(blueprint.basket.potential_gross_profit_zar)}`}
+                  sub="if all stock sells"
+                />
+                <Metric
+                  icon={BarChart3}
+                  label="Blended Margin"
+                  value={`${blueprint.basket.blended_margin_pct}%`}
+                />
+                <Metric
+                  icon={Clock}
+                  label="First Stock"
+                  value={blueprint.estimated_first_stock}
+                />
               </div>
+
+              <p className="text-[11px] text-muted-foreground text-center">
+                Numbers above are your real basket cost and *potential* profit if every unit sells
+                at the listed price. Not guaranteed income.
+              </p>
+
+              {/* Upsell — next band */}
+              {blueprint.next_band && blueprint.next_band.additional_products > 0 && (
+                <button
+                  onClick={() => pickCapital(blueprint.next_band!.capital_zar)}
+                  className="w-full text-left rounded-2xl border border-accent/30 bg-accent/5 p-4 hover:bg-accent/10 transition"
+                >
+                  <div className="flex items-start gap-3">
+                    <ArrowUpRight className="h-5 w-5 text-accent flex-shrink-0 mt-0.5" />
+                    <div className="flex-1">
+                      <p className="text-sm font-semibold text-foreground">
+                        Unlock more with more capital
+                      </p>
+                      <p className="text-xs text-muted-foreground mt-1">
+                        With {fmtZar(blueprint.capital_zar)} you can start with{" "}
+                        {blueprint.basket.product_count} products (potential profit{" "}
+                        +{fmtZar(blueprint.basket.potential_gross_profit_zar)} on this batch).
+                        Step up to {fmtZar(blueprint.next_band.capital_zar)} to unlock{" "}
+                        {blueprint.next_band.additional_products} more products — potential profit
+                        +{fmtZar(blueprint.next_band.potential_gross_profit_zar)} on that batch.
+                      </p>
+                    </div>
+                  </div>
+                </button>
+              )}
 
               <div className="flex gap-2">
                 <Button
@@ -237,6 +376,10 @@ export default function SparkTradeAIBlueprint() {
                   <RefreshCw className="h-4 w-4" />
                 </Button>
               </div>
+
+              <p className="text-[10px] text-muted-foreground text-center">
+                Tier applied: {blueprint.tier_label} · pricing includes your tier's landed rate.
+              </p>
             </div>
           )}
         </div>
@@ -249,10 +392,12 @@ function Metric({
   icon: Icon,
   label,
   value,
+  sub,
 }: {
   icon: any;
   label: string;
   value: string;
+  sub?: string;
 }) {
   return (
     <div className="rounded-2xl border border-border bg-background p-4">
@@ -261,6 +406,7 @@ function Metric({
         <p className="text-xs">{label}</p>
       </div>
       <p className="font-display text-lg font-bold text-foreground">{value}</p>
+      {sub && <p className="text-[10px] text-muted-foreground mt-0.5">*{sub}</p>}
     </div>
   );
 }
