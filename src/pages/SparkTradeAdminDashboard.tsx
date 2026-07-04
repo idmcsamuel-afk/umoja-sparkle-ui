@@ -124,13 +124,24 @@ export default function SparkTradeAdminDashboard() {
         {loading ? (
           <div className="grid h-64 place-items-center"><Loader2 className="h-8 w-8 animate-spin text-primary" /></div>
         ) : (
-          <Tabs defaultValue="opportunities" className="mt-6">
+          <Tabs defaultValue="live" className="mt-6">
             <TabsList>
+              <TabsTrigger value="live">Live Products ({opportunities.filter(o => o.is_spotlight).length})</TabsTrigger>
               <TabsTrigger value="opportunities">Opportunities ({opportunities.length})</TabsTrigger>
               <TabsTrigger value="approvals">Approvals ({pendingApprovals.length})</TabsTrigger>
               <TabsTrigger value="reservations">Reservations ({reservations.length})</TabsTrigger>
               <TabsTrigger value="analytics">Analytics</TabsTrigger>
             </TabsList>
+
+            <TabsContent value="live" className="mt-4">
+              <LiveProductsTable
+                opportunities={opportunities}
+                onEditPricing={(o) => setEditingPricing({ ...o })}
+                onEditListing={(o) => setEditingListing({ ...o })}
+                onChanged={load}
+              />
+            </TabsContent>
+
 
             <TabsContent value="opportunities" className="mt-4">
               <div className="flex justify-end mb-3">
