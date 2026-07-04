@@ -339,7 +339,22 @@ export default function SparkTradeAIBlueprint() {
                 at the listed price. Not guaranteed income.
               </p>
 
-              {/* Upsell — next band */}
+              {/* Tier upgrade nudge — capital exceeds what tier cap can absorb */}
+              {blueprint.tier_upgrade_nudge?.message && (
+                <div className="rounded-2xl border border-primary/40 bg-primary/5 p-4">
+                  <p className="text-sm font-semibold text-foreground">Upgrade to deploy more capital</p>
+                  <p className="text-xs text-muted-foreground mt-1">
+                    {blueprint.tier_upgrade_nudge.message}
+                  </p>
+                  {blueprint.tier_upgrade_nudge.unspent_zar > 0 && (
+                    <p className="text-[11px] text-muted-foreground mt-1">
+                      Unspent on your current tier: {fmtZar(blueprint.tier_upgrade_nudge.unspent_zar)}
+                    </p>
+                  )}
+                </div>
+              )}
+
+              {/* Upsell — next capital band */}
               {blueprint.next_band && blueprint.next_band.additional_products > 0 && (
                 <button
                   onClick={() => pickCapital(blueprint.next_band!.capital_zar)}
@@ -363,6 +378,7 @@ export default function SparkTradeAIBlueprint() {
                   </div>
                 </button>
               )}
+
 
               <div className="flex gap-2">
                 <Button
