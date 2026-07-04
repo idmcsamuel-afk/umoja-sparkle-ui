@@ -84,7 +84,7 @@ function SparkTradeProductOpportunities() {
   const { user, loading: authLoading } = useAuth();
   const navigate = useNavigate();
   const floors = useSparkTradeFloors();
-  const { tier, bufferPct } = useMemberTier();
+  const { tier, bufferPct, productLimit } = useMemberTier();
   const { count } = useSparkTradeCart();
   const [cartOpen, setCartOpen] = useState(false);
 
@@ -192,13 +192,12 @@ function SparkTradeProductOpportunities() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  const visible = useMemo(
-    () =>
-      category === "All"
-        ? items
-        : items.filter((p) => (p.category ?? "").toLowerCase() === category.toLowerCase()),
-    [items, category],
-  );
+  const visible = useMemo(() => {
+    const gated = items.slice(0, productLimit);
+    return category === "All"
+      ? gated
+      : gated.filter((p) => (p.category ?? "").toLowerCase() === category.toLowerCase());
+  }, [items, category, productLimit]);
 
   if (authLoading || !user) {
     return (
