@@ -84,7 +84,6 @@ function buildBasket(
   productLimit: number,
   globalMinItem: number,
 ) {
-  // Score each product for THIS tier
   const scored = opps
     .map((o) => {
       const alibaba = Number(o.alibaba_cost_zar) || 0;
@@ -93,30 +92,29 @@ function buildBasket(
       if (landed <= 0) landed = Number(o.landed_cost_sea_zar) || 0;
       const sell = Number(o.suggested_selling_price_zar) || 0;
       const perUnitProfit = sell > 0 && landed > 0 ? sell - landed : 0;
-      const marginPct = sell > 0 && landed > 0 ? (perUnitProfit / sell) * 100 : 0;
+      // Gross margin % = (sell - cost) / sell * 100 — always <=100
+      const marginPct = sell > 0 && perUnitProfit > 0 ? (perUnitProfit / sell) * 100 : 0;
       const floor =
         Number(o.member_min_buyin_zar) > 0
           ? Number(o.member_min_buyin_zar)
           : globalMinItem;
       const memberMoqUnits = landed > 0 ? Math.max(1, Math.ceil(floor / landed)) : 1;
-      const investment = landed * memberMoqUnits;
-      const potentialProfit = perUnitProfit * memberMoqUnits;
       const factoryMoq = Number(o.moq_required) || 0;
       const membersNeeded = factoryMoq > 0 ? Math.ceil(factoryMoq / memberMoqUnits) : 0;
       return {
         o,
         landed,
         sell,
+        perUnitProfit,
         marginPct,
-        memberMoqUnits,
-        investment,
-        potentialProfit,
+        minUnits: memberMoqUnits,
+        units: memberMoqUnits,
+        investment: landed * memberMoqUnits,
         factoryMoq,
         membersNeeded,
       };
     })
-    .filter((s) => s.landed > 0 && s.sell > 0 && s.marginPct > 0)
-    // Prioritize: best margin, then lowest members-needed (most fillable)
+    .filter((s) => s.landed > 0 && s.sell > 0 && s.perUnitProfit > 0)
     .sort((a, b) => {
       if (b.marginPct !== a.marginPct) return b.marginPct - a.marginPct;
       const an = a.membersNeeded || 9999;
@@ -124,7 +122,6 @@ function buildBasket(
       return an - bn;
     });
 
-  // Greedy fit within capital, up to productLimit
   const picks: typeof scored = [];
   let spent = 0;
   for (const s of scored) {
@@ -134,11 +131,35 @@ function buildBasket(
       spent += s.investment;
     }
   }
-  // If nothing fits (extreme edge), add the single cheapest so UI has something
   if (picks.length === 0 && scored.length > 0) {
     const cheapest = [...scored].sort((a, b) => a.investment - b.investment)[0];
     picks.push(cheapest);
     spent = cheapest.investment;
+  }
+
+  // SCALE UP: deploy remaining capital across picks (round-robin, best-margin first)
+  let remaining = capital - spent;
+  if (picks.length > 0) {
+    const minLanded = Math.min(...picks.map((p) => p.landed));
+    let guard = 0;
+    while (remaining >= minLanded && guard < 5000) {
+      let addedThisPass = false;
+      for (const p of picks) {
+        if (p.landed <= remaining) {
+          p.units += 1;
+          p.investment += p.landed;
+          remaining -= p.landed;
+          addedThisPass = true;
+          if (remaining < minLanded) break;
+        }
+      }
+      if (!addedThisPass) break;
+      guard += 1;
+    }
+  }
+
+  for (const p of picks) {
+    p.membersNeeded = p.factoryMoq > 0 ? Math.ceil(p.factoryMoq / p.units) : 0;
   }
 
   const items: BasketItem[] = picks.map((s) => ({
@@ -146,29 +167,35 @@ function buildBasket(
     name: s.o.product_name,
     category: s.o.category,
     image_url: s.o.product_image_url,
-    member_moq_units: s.memberMoqUnits,
+    member_moq_units: s.units,
     landed_cost_per_unit_zar: Math.round(s.landed),
     selling_price_zar: Math.round(s.sell),
     investment_zar: Math.round(s.investment),
-    potential_profit_zar: Math.round(s.potentialProfit),
+    potential_profit_zar: Math.round(s.perUnitProfit * s.units),
     margin_pct: Math.round(s.marginPct),
     factory_moq: s.factoryMoq,
     members_needed: s.membersNeeded,
   }));
 
   const totalInvestment = items.reduce((n, i) => n + i.investment_zar, 0);
+  const totalRevenue = picks.reduce((n, s) => n + s.sell * s.units, 0);
   const totalPotentialProfit = items.reduce((n, i) => n + i.potential_profit_zar, 0);
   const blendedMarginPct =
-    totalInvestment > 0
-      ? Math.round((totalPotentialProfit / totalInvestment) * 100)
+    totalRevenue > 0
+      ? Math.max(0, Math.min(100, Math.round((totalPotentialProfit / totalRevenue) * 100)))
       : 0;
+  const unspent = Math.max(0, capital - totalInvestment);
+  const tierCapReached = picks.length >= productLimit && unspent > capital * 0.15;
 
   return {
     items,
     total_investment_zar: totalInvestment,
+    total_revenue_if_sold_zar: Math.round(totalRevenue),
     potential_gross_profit_zar: totalPotentialProfit,
     blended_margin_pct: blendedMarginPct,
     product_count: items.length,
+    unspent_zar: Math.round(unspent),
+    tier_cap_reached: tierCapReached,
   };
 }
 
