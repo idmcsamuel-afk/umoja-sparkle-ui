@@ -107,30 +107,49 @@ export default function SparkTradeDashboard() {
                 <p className="text-muted-foreground">You don't have a blueprint yet.</p>
                 <Button className="mt-4" onClick={() => navigate("/spark-trade/onboarding/income-goal")}>Start onboarding</Button>
               </Card>
-            ) : (
-              <Card className="p-6">
-                <h2 className="font-display text-2xl">{blueprint.recommended_business_name}</h2>
-                <div className="mt-4 grid grid-cols-2 md:grid-cols-4 gap-3">
-                  <Stat label="Startup capital" value={fmtMoney(Number(blueprint.estimated_startup_capital ?? 0), config)} />
-                  <Stat label="Monthly revenue" value={fmtMoney(Number(blueprint.estimated_monthly_revenue ?? 0), config)} />
-                  <Stat label="Gross margin" value={`${blueprint.estimated_gross_margin ?? 0}%`} />
-                  <Stat label="Confidence" value={`${blueprint.confidence_score ?? 0}%`} />
-                </div>
-                <div className="mt-6">
-                  <h3 className="font-semibold mb-2">Recommended products</h3>
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                    {(blueprint.recommended_products as any[] ?? []).map((p: any, i: number) => (
-                      <Card key={i} className="p-4">
-                        <p className="font-medium">{p.name || p.product_name}</p>
-                        <p className="text-sm text-muted-foreground mt-1">MOQ: {p.moq || p.moq_required} • Margin: {p.margin || p.margin_pct}%</p>
-                      </Card>
-                    ))}
+            ) : (() => {
+              const bpJson = (blueprint.blueprint_json ?? {}) as any;
+              const basket = bpJson.basket ?? {};
+              const items: any[] = basket.items ?? (blueprint.recommended_products as any[]) ?? [];
+              return (
+                <Card className="p-6">
+                  <h2 className="font-display text-2xl">{blueprint.recommended_business_name}</h2>
+                  {bpJson.tier_label && (
+                    <p className="text-xs text-muted-foreground mt-1">
+                      {bpJson.tier_label}
+                      {bpJson.capital_zar != null && <> · capital {fmtMoney(bpJson.capital_zar, config)}</>}
+                      {basket.product_count != null && <> · {basket.product_count} products</>}
+                    </p>
+                  )}
+                  <div className="mt-4 grid grid-cols-2 md:grid-cols-4 gap-3">
+                    <Stat label="Total Investment" value={fmtMoney(Number(basket.total_investment_zar ?? 0), config)} />
+                    <Stat label="Potential Gross Profit" value={`+${fmtMoney(Number(basket.potential_gross_profit_zar ?? 0), config)}`} />
+                    <Stat label="Blended Margin" value={`${basket.blended_margin_pct ?? 0}%`} />
+                    <Stat label="First Stock" value={bpJson.estimated_first_stock ?? "~4-6 weeks"} />
                   </div>
-                </div>
-                <Button variant="outline" className="mt-6" onClick={() => navigate("/spark-trade/onboarding/ai-blueprint")}>Regenerate Blueprint</Button>
-              </Card>
-            )}
+                  <p className="mt-2 text-[11px] text-muted-foreground">
+                    Real basket cost and *potential* profit if every unit sells. Not guaranteed income.
+                  </p>
+                  <div className="mt-6">
+                    <h3 className="font-semibold mb-2">Recommended products</h3>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                      {items.map((p: any, i: number) => (
+                        <Card key={i} className="p-4">
+                          <p className="font-medium">{p.name || p.product_name}</p>
+                          <p className="text-sm text-muted-foreground mt-1">
+                            {p.member_moq_units ? `${p.member_moq_units} units` : `MOQ ${p.moq || p.moq_required || "—"}`}
+                            {p.margin_pct != null || p.margin != null ? ` • ${p.margin_pct ?? p.margin}% margin` : ""}
+                          </p>
+                        </Card>
+                      ))}
+                    </div>
+                  </div>
+                  <Button variant="outline" className="mt-6" onClick={() => navigate("/spark-trade/onboarding/ai-blueprint")}>Regenerate Blueprint</Button>
+                </Card>
+              );
+            })()}
           </TabsContent>
+
 
           <TabsContent value="store" className="mt-6">
             {!store ? (
