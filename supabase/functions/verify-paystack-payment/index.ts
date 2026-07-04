@@ -738,6 +738,7 @@ Deno.serve(async (req) => {
       ? (metaPaymentType.includes("group_brand") ? "GBI"
         : metaPaymentType.includes("spark_trade_subscription") || metaPaymentType === "spark_trade_membership" ? "STSUB"
         : metaPaymentType.includes("marketplace") ? "MKT"
+        : metaPaymentType.includes("spark_trade_cart") ? "STCART"
         : metaPaymentType.includes("spark_trade_reservation") || metaPaymentType.includes("inventory_reservation") ? "STRES"
         : metaPaymentType.includes("circle") ? "CIRCLE"
         : metaPaymentType.includes("propert") || metaPaymentType.includes("reit") ? "PROP"
@@ -765,6 +766,36 @@ Deno.serve(async (req) => {
         const units = Number(clientMeta.units_reserved ?? clientMeta.units);
         if (!oppId || !units) result = { kind: "spark_trade_reservation", applied: false, reason: "missing_opportunity_or_units" };
         else result = await applyToSparkTradeReservation(u.user.id, reference, amountZar, oppId, units);
+      }
+      else if (kind === "STCART") {
+        const rawItems = Array.isArray(clientMeta.items) ? clientMeta.items : [];
+        if (!rawItems.length) {
+          result = { kind: "spark_trade_cart_reservation", applied: false, reason: "no_items" };
+        } else {
+          const perItem: any[] = [];
+          let anyApplied = false;
+          for (const it of rawItems) {
+            const oppId = Number(it?.opportunity_id);
+            const units = Number(it?.units);
+            const line = Number(it?.line_total ?? (Number(it?.unit_price ?? 0) * units));
+            if (!oppId || !units) {
+              perItem.push({ opportunity_id: oppId, applied: false, reason: "missing_fields" });
+              continue;
+            }
+            // Per-item unique ref so each row is idempotent.
+            const itemRef = `${reference}-${oppId}`;
+            const r = await applyToSparkTradeReservation(u.user.id, itemRef, line, oppId, units);
+            if (r?.applied) anyApplied = true;
+            perItem.push({ opportunity_id: oppId, units, line_total: line, ...r });
+          }
+          result = {
+            kind: "spark_trade_cart_reservation",
+            applied: anyApplied,
+            total_zar: amountZar,
+            item_count: rawItems.length,
+            items: perItem,
+          };
+        }
       }
       else if (kind === "GBI") {
         const gbId = String(clientMeta.group_brand_id ?? "");

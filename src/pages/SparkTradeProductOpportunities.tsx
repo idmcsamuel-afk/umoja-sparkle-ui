@@ -8,13 +8,14 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogFooter,
-  DialogDescription,
-} from "@/components/ui/dialog";
+  Sheet,
+  SheetContent,
+  SheetHeader,
+  SheetTitle,
+  SheetTrigger,
+  SheetFooter,
+  SheetDescription,
+} from "@/components/ui/sheet";
 import { toast } from "sonner";
 import {
   Loader2,
@@ -22,40 +23,42 @@ import {
   ArrowRight,
   TrendingUp,
   Sparkles,
-  Boxes,
   ShoppingCart,
-  CheckCircle2,
-  Truck,
-  Calendar,
-  Share2,
+  Plus,
+  Minus,
+  Trash2,
+  Crown,
   RefreshCw,
+  CheckCircle2,
 } from "lucide-react";
-import { computeMemberMoq, useSparkTradeFloors } from "@/lib/sparkTradeMoq";
+import {
+  computeMemberMoq,
+  computeTierLanded,
+  useSparkTradeFloors,
+  useMemberTier,
+  tierLabel,
+  fmtZar,
+} from "@/lib/sparkTradeMoq";
+import {
+  SparkTradeCartProvider,
+  useSparkTradeCart,
+  landedForCartItem,
+  moqForCartItem,
+  type CartOpportunity,
+} from "@/lib/sparkTradeCart";
 
-interface Opportunity {
-  id: number;
-  product_name: string;
-  category: string | null;
-  moq_required: number;
-  unit_cost_zar: number;
-  suggested_selling_price_zar: number;
+interface Opportunity extends CartOpportunity {
   expected_margin_percentage: number;
-  product_image_url: string | null;
-  stock_available: number | null;
   trending_direction: string | null;
   supplier_country: string | null;
   is_spotlight?: boolean | null;
   spotlight_rank?: number | null;
   spotlight_title?: string | null;
-  // Dual freight
-  landed_cost_sea_zar?: number | null;
-  landed_cost_air_zar?: number | null;
   gross_margin_sea_zar?: number | null;
-  margin_sea_pct?: number | null;
   gross_margin_air_zar?: number | null;
+  margin_sea_pct?: number | null;
   margin_air_pct?: number | null;
-  air_available?: boolean | null;
-  member_min_buyin_zar?: number | null;
+  unit_cost_zar?: number | null;
 }
 
 interface CommitmentStatus {
@@ -66,86 +69,34 @@ interface CommitmentStatus {
   status: string | null;
 }
 
-const SPOTLIGHT_MEMBER_TARGET = 10;
-const maxUnitsPerPerson = (moq: number) =>
-  Math.max(1, Math.ceil((moq || SPOTLIGHT_MEMBER_TARGET) / SPOTLIGHT_MEMBER_TARGET));
-
 const CATEGORIES = ["All", "Electronics", "Fashion", "Home", "Food", "Services", "Tech"] as const;
 type CategoryFilter = (typeof CATEGORIES)[number];
 
-const fmtZar = (n: number) =>
-  `R${Math.round(Number(n) || 0).toLocaleString("en-ZA")}`;
+export default function SparkTradeProductOpportunitiesWrapper() {
+  return (
+    <SparkTradeCartProvider>
+      <SparkTradeProductOpportunities />
+    </SparkTradeCartProvider>
+  );
+}
 
-export default function SparkTradeProductOpportunities() {
+function SparkTradeProductOpportunities() {
   const { user, loading: authLoading } = useAuth();
   const navigate = useNavigate();
-  const { pay, ready: paystackReady } = usePaystack();
   const floors = useSparkTradeFloors();
+  const { tier, bufferPct } = useMemberTier();
+  const { count } = useSparkTradeCart();
+  const [cartOpen, setCartOpen] = useState(false);
 
   const [items, setItems] = useState<Opportunity[]>([]);
   const [loading, setLoading] = useState(true);
   const [category, setCategory] = useState<CategoryFilter>("All");
-  const [email, setEmail] = useState<string | null>(null);
   const [availableCapital, setAvailableCapital] = useState<number | null>(null);
   const [commitments, setCommitments] = useState<Record<number, CommitmentStatus>>({});
-
-  const [reserveOpen, setReserveOpen] = useState(false);
-  const [active, setActive] = useState<Opportunity | null>(null);
-  const [qty, setQty] = useState<number>(0);
-  const [freightMode, setFreightMode] = useState<"sea" | "air">("sea");
-  const [paying, setPaying] = useState(false);
-
-  // Address state
-  const [addr, setAddr] = useState({
-    address_line1: "",
-    address_line2: "",
-    city: "",
-    province: "",
-    postal_code: "",
-  });
-  const [touched, setTouched] = useState<Record<string, boolean>>({});
-  const [savedAddr, setSavedAddr] = useState<typeof addr | null>(null);
-  const [useSaved, setUseSaved] = useState(true);
-
-  // Order confirmation state
-  const [confirmOpen, setConfirmOpen] = useState(false);
-  const [confirmation, setConfirmation] = useState<{
-    productName: string;
-    qty: number;
-    waybillNumber: string | null;
-    trackingUrl: string | null;
-    orderDate: Date;
-    expectedDelivery: { from: Date; to: Date };
-  } | null>(null);
 
   useEffect(() => {
     if (!authLoading && !user) navigate("/login");
   }, [authLoading, user, navigate]);
-
-  useEffect(() => {
-    if (!user) return;
-    (async () => {
-      const { data: m } = await supabase
-        .from("members")
-        .select("email, address_line1, address_line2, city, province, postal_code")
-        .eq("id", user.id)
-        .maybeSingle();
-      const mm = m as any;
-      setEmail((mm?.email as string) ?? user.email ?? null);
-      if (mm && (mm.address_line1 || mm.city || mm.postal_code)) {
-        const s = {
-          address_line1: mm.address_line1 ?? "",
-          address_line2: mm.address_line2 ?? "",
-          city: mm.city ?? "",
-          province: mm.province ?? "",
-          postal_code: mm.postal_code ?? "",
-        };
-        setSavedAddr(s);
-        setAddr(s);
-      }
-    })();
-  }, [user]);
-
 
   const supaBase = import.meta.env.VITE_SUPABASE_URL as string;
   const anonKey = import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY as string;
@@ -179,7 +130,7 @@ export default function SparkTradeProductOpportunities() {
             apikey: anonKey,
             Authorization: `Bearer ${sess.session?.access_token ?? anonKey}`,
           },
-        }
+        },
       );
       if (!res.ok) return null;
       const j = await res.json();
@@ -199,9 +150,7 @@ export default function SparkTradeProductOpportunities() {
   const refreshAll = async () => {
     await fetchCapital();
     if (items.length) {
-      const entries = await Promise.all(
-        items.map(async (r) => [r.id, await fetchCommitment(r.id)] as const)
-      );
+      const entries = await Promise.all(items.map(async (r) => [r.id, await fetchCommitment(r.id)] as const));
       const map: Record<number, CommitmentStatus> = {};
       for (const [id, s] of entries) if (s) map[id] = s;
       setCommitments(map);
@@ -211,6 +160,7 @@ export default function SparkTradeProductOpportunities() {
   useEffect(() => {
     if (!user) return;
     fetchCapital();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [user]);
 
   useEffect(() => {
@@ -219,7 +169,7 @@ export default function SparkTradeProductOpportunities() {
       const { data, error } = await supabase
         .from("spark_trade_opportunities" as any)
         .select(
-          "id, product_name, category, moq_required, unit_cost_zar, suggested_selling_price_zar, expected_margin_percentage, product_image_url, stock_available, trending_direction, supplier_country, is_spotlight, spotlight_rank, spotlight_title, landed_cost_sea_zar, landed_cost_air_zar, gross_margin_sea_zar, margin_sea_pct, gross_margin_air_zar, margin_air_pct, air_available, member_min_buyin_zar",
+          "id, product_name, category, moq_required, unit_cost_zar, suggested_selling_price_zar, expected_margin_percentage, product_image_url, stock_available, trending_direction, supplier_country, is_spotlight, spotlight_rank, spotlight_title, landed_cost_sea_zar, landed_cost_air_zar, gross_margin_sea_zar, margin_sea_pct, gross_margin_air_zar, margin_air_pct, air_available, member_min_buyin_zar, alibaba_cost_zar, freight_sea_zar, freight_air_zar",
         )
         .eq("is_spotlight", true)
         .order("spotlight_rank", { ascending: true, nullsFirst: false })
@@ -250,247 +200,6 @@ export default function SparkTradeProductOpportunities() {
     [items, category],
   );
 
-  const openReserve = (p: Opportunity) => {
-    setActive(p);
-    const seed = Number(p.landed_cost_sea_zar ?? p.unit_cost_zar ?? 0);
-    const seedMoq = computeMemberMoq({
-      landedCostZar: seed,
-      memberMinBuyinZar: p.member_min_buyin_zar,
-      factoryMoq: p.moq_required,
-      globalMinItem: floors.minItemBuyinZar,
-    }).memberMoqUnits;
-    setQty(seedMoq);
-    setFreightMode("sea");
-    setReserveOpen(true);
-  };
-
-  const landedPerUnit = useMemo(() => {
-    if (!active) return 0;
-    const sea = Number(active.landed_cost_sea_zar ?? 0);
-    const air = Number(active.landed_cost_air_zar ?? 0);
-    const fallback = Number(active.unit_cost_zar ?? 0);
-    if (freightMode === "air") return air > 0 ? air : (sea > 0 ? sea : fallback);
-    return sea > 0 ? sea : fallback;
-  }, [active, freightMode]);
-
-  const memberMoq = useMemo(() => {
-    if (!active) return { memberMoqUnits: 1, effectiveMinItem: floors.minItemBuyinZar, membersNeeded: 0 };
-    return computeMemberMoq({
-      landedCostZar: landedPerUnit,
-      memberMinBuyinZar: active.member_min_buyin_zar,
-      factoryMoq: active.moq_required,
-      globalMinItem: floors.minItemBuyinZar,
-    });
-  }, [active, landedPerUnit, floors.minItemBuyinZar]);
-
-  const sellPerUnit = useMemo(
-    () => (active ? Number(active.suggested_selling_price_zar ?? 0) : 0),
-    [active],
-  );
-
-  const totalCost = useMemo(() => landedPerUnit * (qty || 0), [landedPerUnit, qty]);
-
-  const profitPerUnit = useMemo(() => {
-    if (!active) return 0;
-    const seaP = Number(active.gross_margin_sea_zar ?? 0);
-    const airP = Number(active.gross_margin_air_zar ?? 0);
-    if (freightMode === "air" && airP) return airP;
-    if (seaP) return seaP;
-    return Math.max(0, sellPerUnit - landedPerUnit);
-  }, [active, freightMode, sellPerUnit, landedPerUnit]);
-
-
-  const totalProfit = useMemo(() => profitPerUnit * (qty || 0), [profitPerUnit, qty]);
-
-  const requiredAddrFields = ["address_line1", "city", "province", "postal_code"] as const;
-  const addrErrors = useMemo(() => {
-    const e: Record<string, string> = {};
-    for (const f of requiredAddrFields) {
-      if (!String((addr as any)[f] ?? "").trim()) e[f] = "Required";
-    }
-    return e;
-  }, [addr]);
-  const addrValid = Object.keys(addrErrors).length === 0;
-
-
-  const onPay = async () => {
-    if (!active || !user) return;
-    const payerEmail = email || user.email;
-    if (!payerEmail) {
-      toast.error("Add an email to your account before paying");
-      return;
-    }
-    if (!paystackReady) {
-      toast.error("Payment gateway loading… try again in a moment");
-      return;
-    }
-    if (qty < memberMoq.memberMoqUnits) {
-      toast.error(`Minimum order is ${memberMoq.memberMoqUnits} units (R${memberMoq.effectiveMinItem})`);
-      return;
-    }
-    if (totalCost < floors.minOrderTotalZar) {
-      const short = Math.ceil(floors.minOrderTotalZar - totalCost);
-      toast.error(`Add R${short.toLocaleString("en-ZA")} more to reach the R${floors.minOrderTotalZar.toLocaleString("en-ZA")} minimum order.`);
-      return;
-    }
-    if (active.stock_available != null && qty > active.stock_available) {
-      toast.error(`Only ${active.stock_available} units available`);
-      return;
-    }
-
-    if (!addrValid) {
-      setTouched({ address_line1: true, city: true, province: true, postal_code: true });
-      toast.error("Please complete the delivery address");
-      return;
-    }
-
-    // Persist address to members table (best-effort)
-    try {
-      await supabase
-        .from("members")
-        .update({
-          address_line1: addr.address_line1,
-          address_line2: addr.address_line2 || null,
-          city: addr.city,
-          province: addr.province,
-          postal_code: addr.postal_code,
-        } as any)
-        .eq("id", user.id);
-    } catch (e) {
-      console.warn("[address save] failed", e);
-    }
-
-    setPaying(true);
-    const memberCode = (user.id || "U").replace(/-/g, "").slice(0, 10).toUpperCase();
-    const reference = buildReference("ST", `OPP${active.id}`, memberCode);
-
-    const result = await pay({
-      email: payerEmail,
-      amountZar: totalCost,
-      currency: "ZAR",
-      reference,
-      metadata: {
-        payment_type: "spark_trade_reservation",
-        member_id: user.id,
-        opportunity_id: active.id,
-        product_name: active.product_name,
-        category: active.category,
-        units: qty,
-        unit_price: landedPerUnit,
-        selling_price: sellPerUnit,
-        freight_mode: freightMode,
-        delivery_address: { ...addr },
-      },
-    });
-    setPaying(false);
-
-
-    if (!result.ok) {
-      if (result.error && result.error !== "cancelled") {
-        toast.error("Payment did not complete", { description: result.error });
-      }
-      return;
-    }
-
-    toast.success(`✅ Reserved ${qty} units of ${active.product_name}`);
-
-    // Refresh commitment status 3x with 2s delay so progress bar updates live
-    const oppId = active.id;
-    (async () => {
-      for (let i = 0; i < 3; i++) {
-        await new Promise((r) => setTimeout(r, 2000));
-        const s = await fetchCommitment(oppId);
-        if (s) {
-          setCommitments((prev) => ({ ...prev, [oppId]: s }));
-          if (s.status === "READY_TO_ORDER") {
-            toast.success("🎉 Order launching soon! Check back for fulfillment updates.");
-          }
-        }
-      }
-      await fetchCapital();
-    })();
-
-    // Fetch shipment + reservation rows to populate confirmation
-    const productName = active.product_name;
-    const orderedQty = qty;
-    let waybillNumber: string | null = null;
-    let trackingUrl: string | null = null;
-    let orderDate: Date = new Date();
-    try {
-      // Poll up to ~6s for the webhook to create rows
-      for (let i = 0; i < 6; i++) {
-        const { data: resv } = await supabase
-          .from("spark_trade_inventory_reservations" as any)
-          .select("id, paid_at, created_at")
-          .eq("paystack_reference", reference)
-          .maybeSingle();
-        const r = resv as any;
-        if (r?.id) {
-          orderDate = new Date(r.paid_at ?? r.created_at ?? Date.now());
-          const { data: ship } = await supabase
-            .from("fulfillment_shipments" as any)
-            .select("waybill_number, tracking_url")
-            .eq("reservation_id", r.id)
-            .maybeSingle();
-          const s = ship as any;
-          if (s) {
-            waybillNumber = s.waybill_number ?? null;
-            trackingUrl = s.tracking_url ?? null;
-          }
-          break;
-        }
-        await new Promise((res) => setTimeout(res, 1000));
-      }
-    } catch (e) {
-      console.warn("[confirmation fetch] failed", e);
-    }
-
-    const addBusinessDays = (d: Date, days: number) => {
-      const out = new Date(d);
-      let added = 0;
-      while (added < days) {
-        out.setDate(out.getDate() + 1);
-        const day = out.getDay();
-        if (day !== 0 && day !== 6) added++;
-      }
-      return out;
-    };
-
-    setConfirmation({
-      productName,
-      qty: orderedQty,
-      waybillNumber,
-      trackingUrl,
-      orderDate,
-      expectedDelivery: {
-        from: addBusinessDays(orderDate, 3),
-        to: addBusinessDays(orderDate, 5),
-      },
-    });
-    setReserveOpen(false);
-    setActive(null);
-    setConfirmOpen(true);
-  };
-
-  const closeConfirmation = () => {
-    setConfirmOpen(false);
-    setConfirmation(null);
-  };
-
-  const shareOnWhatsApp = () => {
-    if (!confirmation) return;
-    const lines = [
-      `🎉 Order Confirmed on Umoja Spark Trade!`,
-      `Product: ${confirmation.productName}`,
-      `Quantity: ${confirmation.qty}`,
-      confirmation.waybillNumber ? `Waybill: ${confirmation.waybillNumber}` : null,
-      confirmation.trackingUrl ? `Track: ${confirmation.trackingUrl}` : null,
-    ].filter(Boolean) as string[];
-    const url = `https://wa.me/?text=${encodeURIComponent(lines.join("\n"))}`;
-    window.open(url, "_blank", "noopener,noreferrer");
-  };
-
-
   if (authLoading || !user) {
     return (
       <div className="grid min-h-screen place-items-center">
@@ -502,18 +211,47 @@ export default function SparkTradeProductOpportunities() {
   return (
     <div className="min-h-screen bg-background px-4 py-8 md:py-12">
       <div className="mx-auto max-w-6xl">
-        <div className="flex items-center gap-2 text-xs uppercase tracking-[0.22em] text-primary">
-          <Sparkles className="h-3.5 w-3.5" />
-          AI-curated inventory
+        <div className="flex items-start justify-between gap-4 flex-wrap">
+          <div>
+            <div className="flex items-center gap-2 text-xs uppercase tracking-[0.22em] text-primary">
+              <Sparkles className="h-3.5 w-3.5" />
+              AI-curated inventory
+            </div>
+            <h1 className="mt-2 font-display text-3xl md:text-4xl">Browse Products</h1>
+            <p className="mt-2 text-muted-foreground max-w-2xl">
+              Vetted high-margin opportunities. Add multiple products to your cart — one payment covers the whole order.
+            </p>
+          </div>
+          <Sheet open={cartOpen} onOpenChange={setCartOpen}>
+            <SheetTrigger asChild>
+              <Button size="lg" className="relative gap-2">
+                <ShoppingCart className="h-4 w-4" /> Cart
+                {count > 0 && (
+                  <span className="ml-1 grid h-5 min-w-[20px] place-items-center rounded-full bg-primary-foreground text-primary text-[11px] font-bold px-1.5">
+                    {count}
+                  </span>
+                )}
+              </Button>
+            </SheetTrigger>
+            <CartSheet
+              onClose={() => setCartOpen(false)}
+              availableCapital={availableCapital}
+              onSuccess={refreshAll}
+            />
+          </Sheet>
         </div>
-        <h1 className="mt-2 font-display text-3xl md:text-4xl">Browse Products</h1>
-        <p className="mt-2 text-muted-foreground max-w-2xl">
-          Vetted high-margin opportunities. Pick a category, choose a product, set your quantity — we handle the buy.
-        </p>
+
         <div className="mt-4 flex flex-wrap items-center gap-2">
+          <div className="inline-flex items-center gap-2 rounded-full border bg-card px-3 py-1.5 text-xs">
+            <Crown className="h-3.5 w-3.5 text-primary" />
+            <span className="text-muted-foreground">Your tier:</span>
+            <span className="font-semibold">{tierLabel(tier)}</span>
+            <span className="text-muted-foreground">·</span>
+            <span className="font-semibold text-primary">{bufferPct}% buffer</span>
+          </div>
           {availableCapital !== null && (
-            <div className="inline-flex items-center gap-2 rounded-full border bg-card px-4 py-2 text-sm">
-              <Sparkles className="h-4 w-4 text-primary" />
+            <div className="inline-flex items-center gap-2 rounded-full border bg-card px-4 py-1.5 text-xs">
+              <Sparkles className="h-3.5 w-3.5 text-primary" />
               <span className="text-muted-foreground">Available capital:</span>
               <span className="font-semibold">{fmtZar(availableCapital)}</span>
             </div>
@@ -562,7 +300,9 @@ export default function SparkTradeProductOpportunities() {
                 key={p.id}
                 p={p}
                 commitment={commitments[p.id]}
-                onReserve={() => openReserve(p)}
+                bufferPct={bufferPct}
+                minItemBuyin={floors.minItemBuyinZar}
+                onOpenCart={() => setCartOpen(true)}
               />
             ))}
           </div>
@@ -574,417 +314,100 @@ export default function SparkTradeProductOpportunities() {
           </Button>
         </div>
       </div>
-
-      <Dialog open={reserveOpen} onOpenChange={(o) => !paying && setReserveOpen(o)}>
-        <DialogContent className="max-h-[90vh] p-0 gap-0 flex flex-col overflow-hidden">
-          {active && (
-            <>
-              <DialogHeader className="px-6 pt-6 pb-3 border-b shrink-0">
-                <DialogTitle className="flex items-center gap-2">
-                  <ShoppingCart className="h-5 w-5 text-primary" />
-                  Reserve {active.product_name}
-                </DialogTitle>
-                <DialogDescription>
-                  {active.category} · Factory MOQ {active.moq_required?.toLocaleString()} units · {active.expected_margin_percentage}% margin
-                </DialogDescription>
-              </DialogHeader>
-              <div className="flex-1 overflow-y-auto px-6 py-4 space-y-4">
-
-
-              {active.product_image_url && (
-                <div className="rounded-lg overflow-hidden bg-muted h-40">
-                  <img
-                    src={active.product_image_url}
-                    alt={active.product_name}
-                    className="h-full w-full object-cover"
-                  />
-                </div>
-              )}
-
-              <div className="space-y-4">
-                <div>
-                  <label className="text-sm font-medium">
-                    How many units? (Minimum {memberMoq.memberMoqUnits} units · R{memberMoq.effectiveMinItem})
-                  </label>
-                  <Input
-                    type="number"
-                    min={memberMoq.memberMoqUnits}
-                    max={active.stock_available ?? undefined}
-                    value={qty}
-                    onChange={(e) => setQty(Math.max(0, Number(e.target.value) || 0))}
-                    className="mt-1.5"
-                  />
-                  {active.stock_available != null && (
-                    <p className="mt-1 text-xs text-muted-foreground">
-                      {active.stock_available} units available
-                    </p>
-                  )}
-                  {qty > 0 && qty < memberMoq.memberMoqUnits && (
-                    <p className="mt-1 text-xs text-destructive">
-                      Below minimum of {memberMoq.memberMoqUnits} units (R{memberMoq.effectiveMinItem})
-                    </p>
-                  )}
-                </div>
-
-                {(() => {
-                  const airOn = !!active.air_available && Number(active.landed_cost_air_zar ?? 0) > 0;
-                  return airOn ? (
-                    <div className="flex gap-2">
-                      <button
-                        type="button"
-                        onClick={() => setFreightMode("sea")}
-                        className={`flex-1 rounded-md border px-3 py-2 text-xs font-medium ${freightMode === "sea" ? "border-primary bg-primary/10 text-primary" : "border-border text-muted-foreground"}`}
-                      >
-                        Sea · 4–6 weeks
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => setFreightMode("air")}
-                        className={`flex-1 rounded-md border px-3 py-2 text-xs font-medium ${freightMode === "air" ? "border-primary bg-primary/10 text-primary" : "border-border text-muted-foreground"}`}
-                      >
-                        Air · 5–10 days
-                      </button>
-                    </div>
-                  ) : null;
-                })()}
-
-                <div className="rounded-lg bg-muted p-4 space-y-2 text-sm">
-                  <div className="flex justify-between">
-                    <span className="text-muted-foreground">Your cost / unit ({freightMode === "air" ? "air" : "sea"})</span>
-                    <span className="font-medium">{fmtZar(landedPerUnit)}</span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span className="text-muted-foreground">Sell at / unit</span>
-                    <span className="font-medium">{fmtZar(sellPerUnit)}</span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span className="text-muted-foreground">Quantity</span>
-                    <span className="font-medium">{qty.toLocaleString()}</span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span className="text-muted-foreground">Profit / unit</span>
-                    <span className="font-medium text-green-600">{fmtZar(profitPerUnit)}</span>
-                  </div>
-                  <div className="border-t pt-2 flex justify-between">
-                    <span className="font-semibold">Total cost (you pay)</span>
-                    <span className="font-bold text-lg">{fmtZar(totalCost)}</span>
-                  </div>
-                  <div className="flex justify-between text-green-600">
-                    <span className="font-semibold">Est. total profit</span>
-                    <span className="font-bold">{fmtZar(totalProfit)}</span>
-                  </div>
-                </div>
-
-                {/* Order-total floor */}
-                {qty > 0 && totalCost < floors.minOrderTotalZar && (() => {
-                  const short = Math.ceil(floors.minOrderTotalZar - totalCost);
-                  return (
-                    <div className="rounded-lg border border-amber-500/40 bg-amber-500/5 p-3 text-sm">
-                      <p className="font-medium text-amber-700 dark:text-amber-400">
-                        Add R{short.toLocaleString("en-ZA")} more to reach the R{floors.minOrderTotalZar.toLocaleString("en-ZA")} minimum order.
-                      </p>
-                      <p className="text-xs text-muted-foreground mt-1">
-                        Increase quantity to unlock checkout.
-                      </p>
-                    </div>
-                  );
-                })()}
-
-
-                {/* Capital validation */}
-                {availableCapital !== null && (() => {
-                  const hasEnough = totalCost <= availableCapital;
-                  return (
-                    <div
-                      className={`rounded-lg border p-3 text-sm ${
-                        hasEnough
-                          ? "border-green-600/30 bg-green-600/5"
-                          : "border-destructive/40 bg-destructive/5"
-                      }`}
-                    >
-                      <div className="flex items-center justify-between">
-                        <span className="text-muted-foreground">You have</span>
-                        <span className="font-semibold">{fmtZar(availableCapital)}</span>
-                      </div>
-                      <div className="flex items-center justify-between mt-1">
-                        <span className="text-muted-foreground">This costs</span>
-                        <span className="font-semibold">{fmtZar(totalCost)}</span>
-                      </div>
-                      <div className={`mt-2 font-medium ${hasEnough ? "text-green-600" : "text-destructive"}`}>
-                        {hasEnough
-                          ? `✅ OK — ${fmtZar(availableCapital - totalCost)} remaining after`
-                          : `❌ Short ${fmtZar(totalCost - availableCapital)}. Top up to continue.`}
-                      </div>
-                    </div>
-                  );
-                })()}
-
-                {/* Group buy progress preview */}
-                {commitments[active.id] && (() => {
-                  const c = commitments[active.id];
-                  const moq = c.moq_required || active.moq_required || 1;
-                  const afterUnits = c.total_units + (qty || 0);
-                  const afterPct = Math.min(100, Math.round((afterUnits / moq) * 100));
-                  return (
-                    <div className="rounded-lg border p-3 text-sm space-y-2">
-                      <div className="flex items-center justify-between text-xs text-muted-foreground">
-                        <span>Group progress</span>
-                        <span>Min {memberMoq.memberMoqUnits} / person · {memberMoq.membersNeeded || "—"} members needed</span>
-                      </div>
-                      <div className="flex items-center justify-between">
-                        <span>After your order</span>
-                        <span className="font-semibold">
-                          {afterUnits}/{moq} units · {afterPct}%
-                        </span>
-                      </div>
-                      <div className="h-2 w-full rounded-full bg-muted overflow-hidden">
-                        <div
-                          className="h-full bg-primary transition-all"
-                          style={{ width: `${afterPct}%` }}
-                        />
-                      </div>
-                    </div>
-                  );
-                })()}
-
-                {/* Delivery Address */}
-                <div className="space-y-3">
-                  <div className="flex items-center justify-between">
-                    <h4 className="text-sm font-semibold">Delivery Address</h4>
-                    {savedAddr && (
-                      <label className="flex items-center gap-2 text-xs text-muted-foreground cursor-pointer">
-                        <input
-                          type="checkbox"
-                          checked={useSaved}
-                          onChange={(e) => {
-                            setUseSaved(e.target.checked);
-                            if (e.target.checked && savedAddr) setAddr(savedAddr);
-                          }}
-                        />
-                        Use saved address
-                      </label>
-                    )}
-                  </div>
-
-                  {(["address_line1", "address_line2"] as const).map((f) => {
-                    const required = f === "address_line1";
-                    const label = f === "address_line1" ? "Address Line 1" : "Address Line 2";
-                    const err = touched[f] && addrErrors[f];
-                    return (
-                      <div key={f}>
-                        <label className="text-xs font-medium">
-                          {label}{required && <span className="text-destructive"> *</span>}
-                        </label>
-                        <Input
-                          value={(addr as any)[f]}
-                          onChange={(e) => setAddr((a) => ({ ...a, [f]: e.target.value }))}
-                          onBlur={() => setTouched((t) => ({ ...t, [f]: true }))}
-                          className={`mt-1 ${err ? "border-destructive" : ""}`}
-                          placeholder={f === "address_line2" ? "Apt, suite, etc. (optional)" : ""}
-                        />
-                        {err && <p className="mt-1 text-xs text-destructive">{err}</p>}
-                      </div>
-                    );
-                  })}
-
-                  <div className="grid grid-cols-2 gap-3">
-                    <div>
-                      <label className="text-xs font-medium">
-                        City<span className="text-destructive"> *</span>
-                      </label>
-                      <Input
-                        value={addr.city}
-                        onChange={(e) => setAddr((a) => ({ ...a, city: e.target.value }))}
-                        onBlur={() => setTouched((t) => ({ ...t, city: true }))}
-                        className={`mt-1 ${touched.city && addrErrors.city ? "border-destructive" : ""}`}
-                      />
-                    </div>
-                    <div>
-                      <label className="text-xs font-medium">
-                        Postal Code<span className="text-destructive"> *</span>
-                      </label>
-                      <Input
-                        value={addr.postal_code}
-                        onChange={(e) => setAddr((a) => ({ ...a, postal_code: e.target.value }))}
-                        onBlur={() => setTouched((t) => ({ ...t, postal_code: true }))}
-                        className={`mt-1 ${touched.postal_code && addrErrors.postal_code ? "border-destructive" : ""}`}
-                      />
-                    </div>
-                  </div>
-
-                  <div>
-                    <label className="text-xs font-medium">
-                      Province<span className="text-destructive"> *</span>
-                    </label>
-                    <select
-                      value={addr.province}
-                      onChange={(e) => setAddr((a) => ({ ...a, province: e.target.value }))}
-                      onBlur={() => setTouched((t) => ({ ...t, province: true }))}
-                      className={`mt-1 flex h-10 w-full rounded-md border bg-background px-3 py-2 text-sm ${touched.province && addrErrors.province ? "border-destructive" : "border-input"}`}
-                    >
-                      <option value="">Select a province</option>
-                      {[
-                        "Eastern Cape",
-                        "Free State",
-                        "Gauteng",
-                        "KwaZulu-Natal",
-                        "Limpopo",
-                        "Mpumalanga",
-                        "Northern Cape",
-                        "North West",
-                        "Western Cape",
-                      ].map((p) => (
-                        <option key={p} value={p}>{p}</option>
-                      ))}
-                    </select>
-                  </div>
-                </div>
-              </div>
-
-              </div>
-
-              <DialogFooter className="shrink-0 border-t bg-background px-6 py-4 gap-2 sm:gap-2">
-                <Button variant="outline" disabled={paying} onClick={() => setReserveOpen(false)}>
-                  Cancel
-                </Button>
-                <Button
-                  onClick={onPay}
-                  disabled={
-                    paying ||
-                    !addrValid ||
-                    qty < memberMoq.memberMoqUnits ||
-                    totalCost < floors.minOrderTotalZar ||
-                    (active.stock_available != null && qty > active.stock_available) ||
-                    (availableCapital !== null && totalCost > availableCapital)
-                  }
-                >
-                  {paying ? (
-                    <>
-                      <Loader2 className="mr-2 h-4 w-4 animate-spin" /> Processing…
-                    </>
-                  ) : (
-                    <>Complete &amp; Pay {fmtZar(totalCost)}</>
-                  )}
-                </Button>
-              </DialogFooter>
-            </>
-          )}
-        </DialogContent>
-      </Dialog>
-
-      <Dialog open={confirmOpen} onOpenChange={(o) => !o && closeConfirmation()}>
-        <DialogContent className="max-h-[90vh] p-0 gap-0 flex flex-col overflow-hidden">
-          {confirmation && (
-            <>
-              <div className="flex-1 overflow-y-auto px-6 pt-8 pb-4">
-                <div className="flex flex-col items-center text-center">
-                  <div className="h-16 w-16 rounded-full bg-green-100 dark:bg-green-900/30 grid place-items-center">
-                    <CheckCircle2 className="h-9 w-9 text-green-600" />
-                  </div>
-                  <h2 className="mt-4 text-2xl font-display">Order Confirmed!</h2>
-                  <p className="mt-1 text-sm text-muted-foreground">
-                    {confirmation.qty} × {confirmation.productName}
-                  </p>
-                </div>
-
-                <div className="mt-6 space-y-3 text-sm">
-                  <div className="rounded-lg border p-4 space-y-3">
-                    <div className="flex items-start gap-3">
-                      <Truck className="h-4 w-4 mt-0.5 text-primary shrink-0" />
-                      <div className="flex-1">
-                        <div className="text-xs text-muted-foreground">Waybill</div>
-                        <div className="font-mono font-medium break-all">
-                          {confirmation.waybillNumber ?? "Generating…"}
-                        </div>
-                        {confirmation.trackingUrl && (
-                          <a
-                            href={confirmation.trackingUrl}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            className="mt-1 inline-block text-primary text-xs underline underline-offset-2 break-all"
-                          >
-                            Track shipment →
-                          </a>
-                        )}
-                      </div>
-                    </div>
-
-                    <div className="flex items-start gap-3 border-t pt-3">
-                      <Calendar className="h-4 w-4 mt-0.5 text-primary shrink-0" />
-                      <div className="flex-1">
-                        <div className="text-xs text-muted-foreground">Order date</div>
-                        <div className="font-medium">
-                          {confirmation.orderDate.toLocaleDateString("en-ZA", {
-                            day: "numeric",
-                            month: "short",
-                            year: "numeric",
-                          })}
-                        </div>
-                      </div>
-                    </div>
-
-                    <div className="flex items-start gap-3 border-t pt-3">
-                      <Package className="h-4 w-4 mt-0.5 text-primary shrink-0" />
-                      <div className="flex-1">
-                        <div className="text-xs text-muted-foreground">Expected delivery</div>
-                        <div className="font-medium">
-                          {confirmation.expectedDelivery.from.toLocaleDateString("en-ZA", {
-                            day: "numeric",
-                            month: "short",
-                          })}{" "}
-                          –{" "}
-                          {confirmation.expectedDelivery.to.toLocaleDateString("en-ZA", {
-                            day: "numeric",
-                            month: "short",
-                          })}
-                        </div>
-                        <div className="text-xs text-muted-foreground mt-0.5">
-                          3–5 business days
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              </div>
-
-              <DialogFooter className="shrink-0 border-t bg-background px-6 py-4 gap-2 sm:gap-2">
-                <Button variant="outline" onClick={shareOnWhatsApp}>
-                  <Share2 className="mr-2 h-4 w-4" /> Share on WhatsApp
-                </Button>
-                <Button onClick={closeConfirmation}>Continue Shopping</Button>
-              </DialogFooter>
-            </>
-          )}
-        </DialogContent>
-      </Dialog>
-
     </div>
   );
 }
 
+/* ============================================================
+   Opportunity card — shows tier-adjusted landed & profit, has
+   qty stepper and "Add to cart" button.
+   ============================================================ */
 function OpportunityCard({
   p,
   commitment,
-  onReserve,
+  bufferPct,
+  minItemBuyin,
+  onOpenCart,
 }: {
   p: Opportunity;
   commitment?: CommitmentStatus;
-  onReserve: () => void;
+  bufferPct: number;
+  minItemBuyin: number;
+  onOpenCart: () => void;
 }) {
-  const floors = useSparkTradeFloors();
+  const { addItem, has, items } = useSparkTradeCart();
   const [errored, setErrored] = useState(false);
+  const [freightMode, setFreightMode] = useState<"sea" | "air">("sea");
+  const airOn = !!p.air_available && Number(p.landed_cost_air_zar ?? 0) > 0;
+
+  const tierLanded = useMemo(() => {
+    const freight = freightMode === "air" ? p.freight_air_zar : p.freight_sea_zar;
+    const fallback = freightMode === "air"
+      ? (p.landed_cost_air_zar ?? p.landed_cost_sea_zar)
+      : p.landed_cost_sea_zar;
+    return computeTierLanded({
+      alibabaCostZar: p.alibaba_cost_zar,
+      freightZar: freight,
+      bufferPct,
+      fallbackLandedZar: fallback,
+    });
+  }, [p, freightMode, bufferPct]);
+
+  const moq = useMemo(() =>
+    computeMemberMoq({
+      landedCostZar: tierLanded.landedCostZar,
+      memberMinBuyinZar: p.member_min_buyin_zar,
+      factoryMoq: p.moq_required,
+      globalMinItem: minItemBuyin,
+    }),
+  [tierLanded.landedCostZar, p.member_min_buyin_zar, p.moq_required, minItemBuyin]);
+
+  const [qty, setQty] = useState<number>(moq.memberMoqUnits);
+  useEffect(() => { setQty(moq.memberMoqUnits); }, [moq.memberMoqUnits]);
+
+  const sell = Number(p.suggested_selling_price_zar ?? 0);
+  const profitPerUnit = Math.max(0, sell - tierLanded.landedCostZar);
+  const lineTotal = tierLanded.landedCostZar * qty;
   const outOfStock = (p.stock_available ?? 0) <= 0;
-  const moq = commitment?.moq_required || p.moq_required || 1;
+  const alreadyInCart = has(p.id);
+
+  const factoryMoq = commitment?.moq_required || p.moq_required || 1;
   const totalUnits = commitment?.total_units ?? 0;
   const members = commitment?.members_committed ?? 0;
   const pct = commitment?.progress_percent ?? 0;
-  const landedForCard = Number(p.landed_cost_sea_zar ?? p.unit_cost_zar ?? 0);
-  const cardMoq = computeMemberMoq({
-    landedCostZar: landedForCard,
-    memberMinBuyinZar: p.member_min_buyin_zar,
-    factoryMoq: p.moq_required,
-    globalMinItem: floors.minItemBuyinZar,
-  });
+
+  const handleAdd = () => {
+    if (qty < moq.memberMoqUnits) {
+      toast.error(`Minimum ${moq.memberMoqUnits} units for this product`);
+      return;
+    }
+    if (p.stock_available != null && qty > p.stock_available) {
+      toast.error(`Only ${p.stock_available} units available`);
+      return;
+    }
+    addItem(
+      {
+        id: p.id,
+        product_name: p.product_name,
+        category: p.category,
+        product_image_url: p.product_image_url,
+        moq_required: p.moq_required,
+        suggested_selling_price_zar: p.suggested_selling_price_zar,
+        alibaba_cost_zar: p.alibaba_cost_zar,
+        freight_sea_zar: p.freight_sea_zar,
+        freight_air_zar: p.freight_air_zar,
+        landed_cost_sea_zar: p.landed_cost_sea_zar,
+        landed_cost_air_zar: p.landed_cost_air_zar,
+        air_available: p.air_available,
+        stock_available: p.stock_available,
+        member_min_buyin_zar: p.member_min_buyin_zar,
+      },
+      qty,
+      freightMode,
+    );
+    toast.success(`Added ${qty} × ${p.product_name} to cart`);
+    onOpenCart();
+  };
 
   return (
     <Card className="overflow-hidden flex flex-col transition-all hover:shadow-lg hover:-translate-y-0.5">
@@ -1013,96 +436,462 @@ function OpportunityCard({
           </Badge>
         )}
       </div>
-      <div className="p-4 flex-1 flex flex-col gap-2">
+      <div className="p-4 flex-1 flex flex-col gap-3">
         <h3 className="font-semibold line-clamp-2 min-h-[3rem]">{p.product_name}</h3>
-        <div className="flex items-baseline justify-between">
-          <span className="text-lg font-bold">{fmtZar(p.suggested_selling_price_zar)}</span>
-        </div>
 
-        {/* Freight/margin options */}
-        <div className="mt-1 space-y-1 rounded-md bg-muted/40 px-2 py-2 text-xs">
-          {(() => {
-            const seaMargin = Number(p.gross_margin_sea_zar ?? 0);
-            const seaPct = Number(p.margin_sea_pct ?? p.expected_margin_percentage ?? 0);
-            const airAvail = p.air_available !== false && Number(p.gross_margin_air_zar ?? 0) > 0;
-            const airMargin = Number(p.gross_margin_air_zar ?? 0);
-            const airPct = Number(p.margin_air_pct ?? 0);
-            return (
-              <>
-                <div className="flex items-center justify-between gap-2">
-                  <span>🚢 <span className="text-muted-foreground">Sea:</span> you make <span className="font-semibold text-green-600">{fmtZar(seaMargin)}</span> ({seaPct.toFixed(0)}%)</span>
-                  <span className="text-muted-foreground">~4–6 wks</span>
-                </div>
-                {airAvail && (
-                  <div className="flex items-center justify-between gap-2">
-                    <span>✈️ <span className="text-muted-foreground">Air:</span> you make <span className="font-semibold text-green-600">{fmtZar(airMargin)}</span> ({airPct.toFixed(0)}%)</span>
-                    <span className="text-muted-foreground">~5–10 days</span>
-                  </div>
-                )}
-              </>
-            );
-          })()}
-        </div>
-
-        {/* Commitment block */}
-        <div className="mt-1 space-y-1.5">
-          <div className="flex items-center justify-between text-xs text-muted-foreground">
-            <span>Members committed</span>
-            <span className="font-medium text-foreground">
-              {members}/{cardMoq.membersNeeded || SPOTLIGHT_MEMBER_TARGET}
-            </span>
+        {airOn && (
+          <div className="flex gap-2">
+            <button
+              type="button"
+              onClick={() => setFreightMode("sea")}
+              className={`flex-1 rounded-md border px-2 py-1 text-[11px] font-medium ${freightMode === "sea" ? "border-primary bg-primary/10 text-primary" : "border-border text-muted-foreground"}`}
+            >
+              🚢 Sea · 4–6 wks
+            </button>
+            <button
+              type="button"
+              onClick={() => setFreightMode("air")}
+              className={`flex-1 rounded-md border px-2 py-1 text-[11px] font-medium ${freightMode === "air" ? "border-primary bg-primary/10 text-primary" : "border-border text-muted-foreground"}`}
+            >
+              ✈️ Air · 5–10 days
+            </button>
           </div>
-          <div className="flex items-center justify-between text-xs text-muted-foreground">
-            <span>Units</span>
-            <span className="font-medium text-foreground">
-              {totalUnits.toLocaleString()}/{moq.toLocaleString()}
-            </span>
+        )}
+
+        <div className="rounded-md bg-muted/40 p-3 space-y-1 text-xs">
+          <div className="flex justify-between">
+            <span className="text-muted-foreground">Your cost / unit</span>
+            <span className="font-semibold">{fmtZar(tierLanded.landedCostZar)}</span>
+          </div>
+          <div className="flex justify-between">
+            <span className="text-muted-foreground">Sell at / unit</span>
+            <span className="font-semibold">{fmtZar(sell)}</span>
+          </div>
+          <div className="flex justify-between">
+            <span className="text-muted-foreground">Profit / unit</span>
+            <span className="font-semibold text-green-600">{fmtZar(profitPerUnit)}</span>
+          </div>
+        </div>
+
+        {/* Group progress */}
+        <div className="space-y-1.5">
+          <div className="flex items-center justify-between text-[11px] text-muted-foreground">
+            <span>Group progress</span>
+            <span>{totalUnits.toLocaleString()}/{factoryMoq.toLocaleString()} units ({Math.round(pct)}%)</span>
           </div>
           <div className="h-1.5 w-full rounded-full bg-muted overflow-hidden">
             <div
               className={`h-full transition-all ${
-                commitment?.status === "READY_TO_ORDER"
-                  ? "bg-green-500"
-                  : commitment?.status === "IN_PROGRESS"
-                  ? "bg-green-600"
-                  : "bg-muted-foreground/40"
+                commitment?.status === "READY_TO_ORDER" ? "bg-green-500" : "bg-primary"
               }`}
               style={{ width: `${pct}%` }}
             />
           </div>
           <div className="flex items-center justify-between text-[11px] text-muted-foreground">
-            <span className="inline-flex items-center gap-1">
-              <Boxes className="h-3 w-3" /> {totalUnits}/{moq} ({Math.round(pct)}%)
-            </span>
-            <span>Min {cardMoq.memberMoqUnits} / person (R{cardMoq.effectiveMinItem})</span>
+            <span>{members} members in</span>
+            <span>Min {moq.memberMoqUnits}/person · ~{moq.membersNeeded || "—"} needed</span>
           </div>
-          {commitment?.status && (
-            <Badge
-              variant="secondary"
-              className={
-                commitment.status === "READY_TO_ORDER"
-                  ? "bg-green-600 text-white hover:bg-green-600"
-                  : commitment.status === "IN_PROGRESS"
-                  ? "bg-yellow-500 text-black hover:bg-yellow-500"
-                  : "bg-blue-500 text-white hover:bg-blue-500"
-              }
-            >
-              {commitment.status}
-            </Badge>
-          )}
         </div>
 
+        {/* Qty stepper */}
+        <div className="flex items-center justify-between gap-2">
+          <span className="text-xs text-muted-foreground">Your quantity</span>
+          <div className="flex items-center gap-1">
+            <Button
+              size="icon"
+              variant="outline"
+              className="h-8 w-8"
+              onClick={() => setQty((q) => Math.max(moq.memberMoqUnits, q - 1))}
+              disabled={qty <= moq.memberMoqUnits}
+            >
+              <Minus className="h-3.5 w-3.5" />
+            </Button>
+            <Input
+              type="number"
+              className="h-8 w-20 text-center"
+              value={qty}
+              min={moq.memberMoqUnits}
+              onChange={(e) => setQty(Math.max(moq.memberMoqUnits, Number(e.target.value) || moq.memberMoqUnits))}
+            />
+            <Button
+              size="icon"
+              variant="outline"
+              className="h-8 w-8"
+              onClick={() => setQty((q) => q + 1)}
+            >
+              <Plus className="h-3.5 w-3.5" />
+            </Button>
+          </div>
+        </div>
+        <div className="flex items-center justify-between text-xs">
+          <span className="text-muted-foreground">Line total</span>
+          <span className="font-bold text-base">{fmtZar(lineTotal)}</span>
+        </div>
 
-
-        <div className="text-xs">
+        <div className="text-[11px]">
           <span className={outOfStock ? "text-destructive font-medium" : "text-green-600 font-medium"}>
             {outOfStock ? "Out of stock" : `${p.stock_available} in stock`}
           </span>
         </div>
-        <Button size="sm" className="mt-2" disabled={outOfStock} onClick={onReserve}>
-          {outOfStock ? "Sold out" : "Reserve Now"}
+        <Button size="sm" disabled={outOfStock} onClick={handleAdd} variant={alreadyInCart ? "outline" : "default"}>
+          {outOfStock ? "Sold out" : alreadyInCart ? "Update in cart" : (<><ShoppingCart className="mr-1.5 h-3.5 w-3.5" /> Add to cart</>)}
         </Button>
       </div>
     </Card>
+  );
+}
+
+/* ============================================================
+   Cart sheet — items list, address, checkout
+   ============================================================ */
+function CartSheet({
+  onClose,
+  availableCapital,
+  onSuccess,
+}: {
+  onClose: () => void;
+  availableCapital: number | null;
+  onSuccess: () => void;
+}) {
+  const { user } = useAuth();
+  const floors = useSparkTradeFloors();
+  const { tier, bufferPct } = useMemberTier();
+  const { items, updateQty, remove, setFreightMode, clear } = useSparkTradeCart();
+  const { pay, ready: paystackReady } = usePaystack();
+
+  const [email, setEmail] = useState<string | null>(null);
+  const [addr, setAddr] = useState({
+    address_line1: "",
+    address_line2: "",
+    city: "",
+    province: "",
+    postal_code: "",
+  });
+  const [touched, setTouched] = useState<Record<string, boolean>>({});
+  const [paying, setPaying] = useState(false);
+  const [success, setSuccess] = useState<{ total: number; itemCount: number } | null>(null);
+
+  useEffect(() => {
+    if (!user) return;
+    (async () => {
+      const { data: m } = await supabase
+        .from("members")
+        .select("email, address_line1, address_line2, city, province, postal_code")
+        .eq("id", user.id)
+        .maybeSingle();
+      const mm = m as any;
+      setEmail((mm?.email as string) ?? user.email ?? null);
+      if (mm && (mm.address_line1 || mm.city || mm.postal_code)) {
+        setAddr({
+          address_line1: mm.address_line1 ?? "",
+          address_line2: mm.address_line2 ?? "",
+          city: mm.city ?? "",
+          province: mm.province ?? "",
+          postal_code: mm.postal_code ?? "",
+        });
+      }
+    })();
+  }, [user]);
+
+  const lines = useMemo(() => {
+    return items.map((it) => {
+      const tl = landedForCartItem(it, bufferPct);
+      const m = moqForCartItem(it, bufferPct, floors.minItemBuyinZar);
+      const lineTotal = tl.landedCostZar * it.qty;
+      const sell = Number(it.opportunity.suggested_selling_price_zar ?? 0);
+      const profit = Math.max(0, sell - tl.landedCostZar) * it.qty;
+      const belowFloor = it.qty < m.memberMoqUnits;
+      return { it, tl, m, lineTotal, profit, belowFloor };
+    });
+  }, [items, bufferPct, floors.minItemBuyinZar]);
+
+  const cartTotal = useMemo(() => lines.reduce((s, l) => s + l.lineTotal, 0), [lines]);
+  const cartProfit = useMemo(() => lines.reduce((s, l) => s + l.profit, 0), [lines]);
+  const shortfall = Math.max(0, floors.minOrderTotalZar - cartTotal);
+  const anyBelowFloor = lines.some((l) => l.belowFloor);
+  const anyOverStock = items.some((it) => it.opportunity.stock_available != null && it.qty > (it.opportunity.stock_available ?? 0));
+
+  const requiredAddr = ["address_line1", "city", "province", "postal_code"] as const;
+  const addrErrors = useMemo(() => {
+    const e: Record<string, string> = {};
+    for (const f of requiredAddr) {
+      if (!String((addr as any)[f] ?? "").trim()) e[f] = "Required";
+    }
+    return e;
+  }, [addr]);
+  const addrValid = Object.keys(addrErrors).length === 0;
+
+  const canCheckout =
+    items.length > 0 &&
+    cartTotal >= floors.minOrderTotalZar &&
+    !anyBelowFloor &&
+    !anyOverStock &&
+    addrValid &&
+    paystackReady &&
+    !paying &&
+    (availableCapital === null || cartTotal <= availableCapital);
+
+  const onCheckout = async () => {
+    if (!user) return;
+    const payerEmail = email || user.email;
+    if (!payerEmail) return toast.error("Add an email to your account before paying");
+    if (!canCheckout) return;
+
+    // Persist address (best-effort)
+    try {
+      await supabase.from("members").update({
+        address_line1: addr.address_line1,
+        address_line2: addr.address_line2 || null,
+        city: addr.city,
+        province: addr.province,
+        postal_code: addr.postal_code,
+      } as any).eq("id", user.id);
+    } catch (e) { console.warn("[address save] failed", e); }
+
+    setPaying(true);
+    const memberCode = (user.id || "U").replace(/-/g, "").slice(0, 10).toUpperCase();
+    const reference = buildReference("ST", "CART", memberCode);
+
+    const metaItems = lines.map((l) => ({
+      opportunity_id: l.it.opportunity.id,
+      product_name: l.it.opportunity.product_name,
+      units: l.it.qty,
+      unit_price: Math.round(l.tl.landedCostZar * 100) / 100,
+      line_total: Math.round(l.lineTotal * 100) / 100,
+      freight_mode: l.it.freightMode,
+    }));
+
+    const result = await pay({
+      email: payerEmail,
+      amountZar: cartTotal,
+      currency: "ZAR",
+      reference,
+      metadata: {
+        payment_type: "spark_trade_cart_reservation",
+        member_id: user.id,
+        buyer_tier: tier ?? "buyers_club",
+        buffer_pct: bufferPct,
+        cart_total_zar: cartTotal,
+        item_count: items.length,
+        items: metaItems,
+        delivery_address: { ...addr },
+      },
+    });
+    setPaying(false);
+
+    if (!result.ok) {
+      if (result.error && result.error !== "cancelled") {
+        toast.error("Payment did not complete", { description: result.error });
+      }
+      return;
+    }
+
+    toast.success(`✅ Order placed — ${fmtZar(cartTotal)}`);
+    const summary = { total: cartTotal, itemCount: items.length };
+    clear();
+    onSuccess();
+    setSuccess(summary);
+  };
+
+  return (
+    <SheetContent className="w-full sm:max-w-lg p-0 flex flex-col">
+      <SheetHeader className="px-6 pt-6 pb-4 border-b">
+        <SheetTitle className="flex items-center gap-2">
+          <ShoppingCart className="h-5 w-5 text-primary" />
+          Your Cart
+        </SheetTitle>
+        <SheetDescription>
+          {tierLabel(tier)} · {bufferPct}% buffer — prices reflect your tier.
+        </SheetDescription>
+      </SheetHeader>
+
+      {success ? (
+        <div className="flex-1 overflow-y-auto px-6 py-8 flex flex-col items-center text-center gap-3">
+          <div className="h-16 w-16 rounded-full bg-green-100 dark:bg-green-900/30 grid place-items-center">
+            <CheckCircle2 className="h-9 w-9 text-green-600" />
+          </div>
+          <h2 className="text-2xl font-display">Order Confirmed!</h2>
+          <p className="text-sm text-muted-foreground">
+            {success.itemCount} product{success.itemCount === 1 ? "" : "s"} · {fmtZar(success.total)}
+          </p>
+          <p className="text-xs text-muted-foreground max-w-sm">
+            Each product's units count toward its own factory MOQ. Track progress from your dashboard.
+          </p>
+          <div className="mt-4 flex flex-col gap-2 w-full">
+            <Button onClick={() => { setSuccess(null); onClose(); }}>Continue Shopping</Button>
+          </div>
+        </div>
+      ) : items.length === 0 ? (
+        <div className="flex-1 grid place-items-center px-6 py-8 text-center">
+          <div>
+            <ShoppingCart className="mx-auto h-10 w-10 text-muted-foreground" />
+            <p className="mt-3 text-sm text-muted-foreground">Your cart is empty. Add products to build an order of at least {fmtZar(floors.minOrderTotalZar)}.</p>
+          </div>
+        </div>
+      ) : (
+        <>
+          <div className="flex-1 overflow-y-auto px-6 py-4 space-y-4">
+            {lines.map((l) => {
+              const o = l.it.opportunity;
+              const airOn = !!o.air_available && Number(o.landed_cost_air_zar ?? 0) > 0;
+              return (
+                <div key={o.id} className="rounded-lg border p-3 space-y-2">
+                  <div className="flex gap-3">
+                    {o.product_image_url ? (
+                      <img src={o.product_image_url} alt={o.product_name} className="h-14 w-14 rounded object-cover shrink-0" />
+                    ) : (
+                      <div className="h-14 w-14 rounded bg-muted grid place-items-center shrink-0">
+                        <Package className="h-5 w-5 text-muted-foreground" />
+                      </div>
+                    )}
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-start justify-between gap-2">
+                        <p className="text-sm font-medium line-clamp-2">{o.product_name}</p>
+                        <button
+                          onClick={() => remove(o.id)}
+                          className="text-muted-foreground hover:text-destructive shrink-0"
+                          aria-label="Remove"
+                        >
+                          <Trash2 className="h-4 w-4" />
+                        </button>
+                      </div>
+                      <p className="text-[11px] text-muted-foreground mt-0.5">
+                        {fmtZar(l.tl.landedCostZar)}/unit · min {l.m.memberMoqUnits}
+                      </p>
+                    </div>
+                  </div>
+
+                  {airOn && (
+                    <div className="flex gap-1">
+                      <button
+                        onClick={() => setFreightMode(o.id, "sea")}
+                        className={`flex-1 rounded-md border px-2 py-1 text-[11px] font-medium ${l.it.freightMode === "sea" ? "border-primary bg-primary/10 text-primary" : "border-border text-muted-foreground"}`}
+                      >🚢 Sea</button>
+                      <button
+                        onClick={() => setFreightMode(o.id, "air")}
+                        className={`flex-1 rounded-md border px-2 py-1 text-[11px] font-medium ${l.it.freightMode === "air" ? "border-primary bg-primary/10 text-primary" : "border-border text-muted-foreground"}`}
+                      >✈️ Air</button>
+                    </div>
+                  )}
+
+                  <div className="flex items-center justify-between gap-2">
+                    <div className="flex items-center gap-1">
+                      <Button size="icon" variant="outline" className="h-7 w-7"
+                        onClick={() => updateQty(o.id, l.it.qty - 1)}
+                        disabled={l.it.qty <= l.m.memberMoqUnits}>
+                        <Minus className="h-3 w-3" />
+                      </Button>
+                      <Input
+                        type="number"
+                        value={l.it.qty}
+                        min={l.m.memberMoqUnits}
+                        onChange={(e) => updateQty(o.id, Math.max(l.m.memberMoqUnits, Number(e.target.value) || l.m.memberMoqUnits))}
+                        className="h-7 w-16 text-center text-sm"
+                      />
+                      <Button size="icon" variant="outline" className="h-7 w-7" onClick={() => updateQty(o.id, l.it.qty + 1)}>
+                        <Plus className="h-3 w-3" />
+                      </Button>
+                    </div>
+                    <span className="text-sm font-semibold">{fmtZar(l.lineTotal)}</span>
+                  </div>
+
+                  {l.belowFloor && (
+                    <p className="text-[11px] text-destructive">
+                      Below per-item minimum of {l.m.memberMoqUnits} units.
+                    </p>
+                  )}
+                </div>
+              );
+            })}
+
+            <div className="rounded-lg bg-muted p-3 space-y-1.5 text-sm">
+              <div className="flex justify-between">
+                <span className="text-muted-foreground">Cart total</span>
+                <span className="font-bold">{fmtZar(cartTotal)}</span>
+              </div>
+              <div className="flex justify-between text-green-600">
+                <span>Estimated profit</span>
+                <span className="font-semibold">{fmtZar(cartProfit)}</span>
+              </div>
+            </div>
+
+            {cartTotal < floors.minOrderTotalZar && (
+              <div className="rounded-lg border border-amber-500/40 bg-amber-500/5 p-3 text-sm">
+                <p className="font-medium text-amber-700 dark:text-amber-400">
+                  Add {fmtZar(shortfall)} more to reach the {fmtZar(floors.minOrderTotalZar)} minimum order.
+                </p>
+                <p className="text-xs text-muted-foreground mt-1">
+                  Add another product or increase any item's quantity.
+                </p>
+              </div>
+            )}
+
+            {availableCapital !== null && cartTotal > availableCapital && (
+              <div className="rounded-lg border border-destructive/40 bg-destructive/5 p-3 text-sm text-destructive font-medium">
+                Short {fmtZar(cartTotal - availableCapital)} in available capital.
+              </div>
+            )}
+
+            {/* Address */}
+            <div className="space-y-2">
+              <h4 className="text-sm font-semibold">Delivery Address</h4>
+              <Input
+                placeholder="Address line 1 *"
+                value={addr.address_line1}
+                onChange={(e) => setAddr((a) => ({ ...a, address_line1: e.target.value }))}
+                onBlur={() => setTouched((t) => ({ ...t, address_line1: true }))}
+                className={touched.address_line1 && addrErrors.address_line1 ? "border-destructive" : ""}
+              />
+              <Input
+                placeholder="Address line 2 (optional)"
+                value={addr.address_line2}
+                onChange={(e) => setAddr((a) => ({ ...a, address_line2: e.target.value }))}
+              />
+              <div className="grid grid-cols-2 gap-2">
+                <Input
+                  placeholder="City *"
+                  value={addr.city}
+                  onChange={(e) => setAddr((a) => ({ ...a, city: e.target.value }))}
+                  onBlur={() => setTouched((t) => ({ ...t, city: true }))}
+                  className={touched.city && addrErrors.city ? "border-destructive" : ""}
+                />
+                <Input
+                  placeholder="Postal code *"
+                  value={addr.postal_code}
+                  onChange={(e) => setAddr((a) => ({ ...a, postal_code: e.target.value }))}
+                  onBlur={() => setTouched((t) => ({ ...t, postal_code: true }))}
+                  className={touched.postal_code && addrErrors.postal_code ? "border-destructive" : ""}
+                />
+              </div>
+              <select
+                value={addr.province}
+                onChange={(e) => setAddr((a) => ({ ...a, province: e.target.value }))}
+                onBlur={() => setTouched((t) => ({ ...t, province: true }))}
+                className={`flex h-10 w-full rounded-md border bg-background px-3 py-2 text-sm ${touched.province && addrErrors.province ? "border-destructive" : "border-input"}`}
+              >
+                <option value="">Select a province *</option>
+                {["Eastern Cape","Free State","Gauteng","KwaZulu-Natal","Limpopo","Mpumalanga","Northern Cape","North West","Western Cape"].map((p) => (
+                  <option key={p} value={p}>{p}</option>
+                ))}
+              </select>
+            </div>
+          </div>
+
+          <SheetFooter className="shrink-0 border-t bg-background px-6 py-4 flex-col sm:flex-col gap-2 sm:gap-2">
+            <Button
+              onClick={onCheckout}
+              disabled={!canCheckout}
+              className="w-full"
+              size="lg"
+            >
+              {paying ? <><Loader2 className="mr-2 h-4 w-4 animate-spin" /> Processing…</> : <>Checkout · Pay {fmtZar(cartTotal)}</>}
+            </Button>
+            <Button variant="ghost" size="sm" onClick={clear} disabled={paying}>
+              Clear cart
+            </Button>
+          </SheetFooter>
+        </>
+      )}
+    </SheetContent>
   );
 }
