@@ -189,7 +189,7 @@ export default function SparkTradeAIBlueprint() {
               <div>
                 <h3 className="font-semibold mb-3 text-foreground">Recommended Products</h3>
                 <div className="space-y-2">
-                  {blueprint.recommended_products.map((p, i) => (
+                  {blueprint.recommended_products.slice(0, productLimit).map((p, i) => (
                     <div
                       key={i}
                       className="rounded-xl border border-border bg-background p-3 flex justify-between items-center"
