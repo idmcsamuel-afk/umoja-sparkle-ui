@@ -313,8 +313,20 @@ Deno.serve(async (req) => {
     const bizType = m.spark_trade_business_type || "micro-wholesale";
     const businessName = `${String(bizType).split(/\s+/)[0] || "Umoja"} Trader`;
 
+    const tierUpgradeNudge = currentBasket.tier_cap_reached
+      ? {
+          message:
+            tier === "buyers_club"
+              ? `You have R${capitalInput.toLocaleString()} but Buyers Club caps at 6 products. Upgrade to Pro (10) or Fulfilled by UMOJA (20) to spread capital across more products.`
+              : tier === "pro"
+              ? `You have R${capitalInput.toLocaleString()} but Pro caps at 10 products. Upgrade to Fulfilled by UMOJA (20) to spread capital across more products.`
+              : null,
+          unspent_zar: currentBasket.unspent_zar,
+        }
+      : null;
+
     const blueprint = {
-      version: 2,
+      version: 3,
       recommended_business_name: businessName,
       tier,
       tier_label: tierLabel(tier),
@@ -322,12 +334,16 @@ Deno.serve(async (req) => {
       capital_zar: capitalInput,
       basket: currentBasket,
       next_band: nextBandInfo,
+      tier_upgrade_nudge: tierUpgradeNudge,
       estimated_first_stock: "~4-6 weeks (sea)",
       confidence_score: currentBasket.product_count >= Math.min(3, productLimit) ? 90 : 70,
       income_goal_zar: Number(m.spark_trade_income_goal) || 0,
     };
 
-    // Cache (best-effort, ignore errors — schema flexible via blueprint_json)
+    // Supersede any prior blueprints for this member so downstream flows always
+    // see the freshly-generated one.
+    await admin.from("spark_trade_blueprints").delete().eq("member_id", memberId);
+
     await admin.from("spark_trade_blueprints").insert({
       member_id: memberId,
       income_goal: blueprint.income_goal_zar || null,
@@ -340,6 +356,7 @@ Deno.serve(async (req) => {
       confidence_score: blueprint.confidence_score,
       blueprint_json: blueprint,
     });
+
 
     return new Response(JSON.stringify(blueprint), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
