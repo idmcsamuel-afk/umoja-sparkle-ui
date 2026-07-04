@@ -54,8 +54,21 @@ type Blueprint = {
     additional_profit_zar: number;
   };
   tier_upgrade_nudge: null | {
-    message: string | null;
-    unspent_zar: number;
+    current_tier_label: string;
+    current_product_limit: number;
+    next_tier: string;
+    next_tier_label: string;
+    next_tier_product_limit: number;
+    next_tier_route_key: string;
+    capital_remaining_zar: number;
+    additional_products: number;
+    next_tier_basket: {
+      product_count: number;
+      total_investment_zar: number;
+      potential_gross_profit_zar: number;
+      blended_margin_pct: number;
+    };
+    message: string;
   };
   estimated_first_stock: string;
   confidence_score: number;
