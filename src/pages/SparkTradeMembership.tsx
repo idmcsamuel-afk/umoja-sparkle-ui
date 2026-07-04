@@ -88,6 +88,20 @@ export default function SparkTradeMembership() {
     return true;
   };
 
+  const tierRankLocal: Record<Tier, number> = { buyers_club: 1, storefront: 2, fulfilled_by_umoja: 3 };
+
+  /** Compute the amount to charge for switching to `tier`.
+   *  If the member already has an ACTIVE PAID lower tier, charge only the delta.
+   *  Otherwise charge the full new-tier price. Never negative. */
+  const computeChargeZar = (tier: Tier): { chargeZar: number; fullZar: number; isUpgrade: boolean } => {
+    const fullZar = calculateTierPrice(tierKeyMap[tier], "ZAR") ?? 0;
+    const hasActivePaid = !!current && current.status === "active";
+    const isUpgrade = hasActivePaid && tierRankLocal[tier] > tierRankLocal[current!.tier];
+    if (!isUpgrade) return { chargeZar: fullZar, fullZar, isUpgrade: false };
+    const currentZar = calculateTierPrice(tierKeyMap[current!.tier], "ZAR") ?? 0;
+    return { chargeZar: Math.max(0, fullZar - currentZar), fullZar, isUpgrade: true };
+  };
+
   const upgrade = async (tier: Tier) => {
     if (!user) return;
     if (!user.email) {
@@ -102,9 +116,12 @@ export default function SparkTradeMembership() {
 
     // Always charge in ZAR — Paystack merchant only supports ZAR.
     const localCcy = config.currency_code;
-    const tierKey = tierKeyMap[tier];
-    const amountZar = calculateTierPrice(tierKey, "ZAR");
-    const amountLocal = calculateTierPrice(tierKey, localCcy) ?? amountZar ?? 0;
+    const { chargeZar, isUpgrade } = computeChargeZar(tier);
+    const amountZar = chargeZar;
+    // Scale local-currency amount from the ZAR charge so upgrades reflect the delta.
+    const fullLocal = calculateTierPrice(tierKeyMap[tier], localCcy) ?? amountZar;
+    const fullZar = calculateTierPrice(tierKeyMap[tier], "ZAR") ?? amountZar;
+    const amountLocal = fullZar > 0 ? Math.round((amountZar / fullZar) * fullLocal) : amountZar;
     if (amountZar == null || amountZar <= 0) {
       setBusyTier(null);
       toast.error("Could not determine price");
@@ -114,7 +131,9 @@ export default function SparkTradeMembership() {
     const memberCode = (user.id || "U").replace(/-/g, "").slice(0, 10).toUpperCase();
     const reference = buildReference("ST", tier.toUpperCase(), memberCode);
 
-    if (localCcy !== "ZAR") {
+    if (isUpgrade) {
+      toast.message(`Upgrade credit applied — charging only the R${amountZar} difference`);
+    } else if (localCcy !== "ZAR") {
       toast.message(`Charging R${amountZar} ZAR for ${formatCurrency(amountLocal, localCcy)} of service`);
     }
 
@@ -130,6 +149,8 @@ export default function SparkTradeMembership() {
         product: "spark_trade",
         amount_local_currency: amountLocal,
         local_currency_code: localCcy,
+        is_upgrade: isUpgrade,
+        previous_tier: isUpgrade ? current?.tier : null,
       },
     });
 
@@ -225,8 +246,14 @@ export default function SparkTradeMembership() {
                   const bcPrice = formatTierPrice("buyers_club", localCcy);
                   const sfPrice = formatTierPrice("storefront", localCcy);
                   const fulPrice = formatTierPrice("fulfilled", "ZAR");
-                  const ctaFor = (tier: Tier, label: string, price: string | null) =>
-                    current?.tier === tier ? "Active" : price ? `${label} — ${price}` : label;
+                  const ctaFor = (tier: Tier, label: string, price: string | null) => {
+                    if (current?.tier === tier) return "Active";
+                    const { chargeZar, isUpgrade } = computeChargeZar(tier);
+                    if (isUpgrade) {
+                      return `${label} — pay only R${chargeZar} difference`;
+                    }
+                    return price ? `${label} — ${price}` : label;
+                  };
                   return (
                     <>
                       {showTier("buyers_club") && (
