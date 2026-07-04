@@ -54,8 +54,21 @@ type Blueprint = {
     additional_profit_zar: number;
   };
   tier_upgrade_nudge: null | {
-    message: string | null;
-    unspent_zar: number;
+    current_tier_label: string;
+    current_product_limit: number;
+    next_tier: string;
+    next_tier_label: string;
+    next_tier_product_limit: number;
+    next_tier_route_key: string;
+    capital_remaining_zar: number;
+    additional_products: number;
+    next_tier_basket: {
+      product_count: number;
+      total_investment_zar: number;
+      potential_gross_profit_zar: number;
+      blended_margin_pct: number;
+    };
+    message: string;
   };
   estimated_first_stock: string;
   confidence_score: number;
@@ -339,20 +352,61 @@ export default function SparkTradeAIBlueprint() {
                 at the listed price. Not guaranteed income.
               </p>
 
-              {/* Tier upgrade nudge — capital exceeds what tier cap can absorb */}
-              {blueprint.tier_upgrade_nudge?.message && (
-                <div className="rounded-2xl border border-primary/40 bg-primary/5 p-4">
-                  <p className="text-sm font-semibold text-foreground">Upgrade to deploy more capital</p>
-                  <p className="text-xs text-muted-foreground mt-1">
-                    {blueprint.tier_upgrade_nudge.message}
-                  </p>
-                  {blueprint.tier_upgrade_nudge.unspent_zar > 0 && (
-                    <p className="text-[11px] text-muted-foreground mt-1">
-                      Unspent on your current tier: {fmtZar(blueprint.tier_upgrade_nudge.unspent_zar)}
+              {/* Tier upgrade nudge — capital remaining that current tier can't deploy */}
+              {blueprint.tier_upgrade_nudge && (
+                <div className="rounded-2xl border-2 border-primary/50 bg-primary/5 p-5 space-y-3">
+                  <div>
+                    <p className="text-[11px] uppercase tracking-wider text-primary font-semibold">
+                      R{blueprint.tier_upgrade_nudge.capital_remaining_zar.toLocaleString()} unused
                     </p>
-                  )}
+                    <p className="text-base font-bold text-foreground mt-1">
+                      Put your full capital to work
+                    </p>
+                    <p className="text-xs text-muted-foreground mt-1">
+                      {blueprint.tier_upgrade_nudge.message}
+                    </p>
+                  </div>
+                  <div className="rounded-xl border border-border bg-background p-3">
+                    <p className="text-[11px] uppercase tracking-wider text-muted-foreground mb-2">
+                      On {blueprint.tier_upgrade_nudge.next_tier_label}
+                    </p>
+                    <div className="grid grid-cols-3 gap-2 text-center">
+                      <div>
+                        <p className="text-sm font-bold">
+                          {blueprint.tier_upgrade_nudge.next_tier_basket.product_count}
+                        </p>
+                        <p className="text-[10px] text-muted-foreground">products</p>
+                      </div>
+                      <div>
+                        <p className="text-sm font-bold">
+                          {fmtZar(blueprint.tier_upgrade_nudge.next_tier_basket.total_investment_zar)}
+                        </p>
+                        <p className="text-[10px] text-muted-foreground">deployed</p>
+                      </div>
+                      <div>
+                        <p className="text-sm font-bold text-accent">
+                          +{fmtZar(blueprint.tier_upgrade_nudge.next_tier_basket.potential_gross_profit_zar)}
+                        </p>
+                        <p className="text-[10px] text-muted-foreground">potential*</p>
+                      </div>
+                    </div>
+                  </div>
+                  <Button
+                    onClick={() =>
+                      nav(
+                        `/spark-trade/membership?upgrade=${blueprint.tier_upgrade_nudge!.next_tier_route_key}`,
+                      )
+                    }
+                    className="w-full h-11 rounded-xl bg-gradient-primary text-primary-foreground font-semibold shadow-glow"
+                  >
+                    Upgrade to {blueprint.tier_upgrade_nudge.next_tier_label} →
+                  </Button>
+                  <p className="text-[10px] text-muted-foreground text-center">
+                    *if all stock sells at the listed price. Not guaranteed income.
+                  </p>
                 </div>
               )}
+
 
               {/* Upsell — next capital band */}
               {blueprint.next_band && blueprint.next_band.additional_products > 0 && (

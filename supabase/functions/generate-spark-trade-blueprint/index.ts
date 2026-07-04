@@ -137,30 +137,9 @@ function buildBasket(
     spent = cheapest.investment;
   }
 
-  // SCALE UP: deploy remaining capital across picks (round-robin, best-margin first)
-  let remaining = capital - spent;
-  if (picks.length > 0) {
-    const minLanded = Math.min(...picks.map((p) => p.landed));
-    let guard = 0;
-    while (remaining >= minLanded && guard < 5000) {
-      let addedThisPass = false;
-      for (const p of picks) {
-        if (p.landed <= remaining) {
-          p.units += 1;
-          p.investment += p.landed;
-          remaining -= p.landed;
-          addedThisPass = true;
-          if (remaining < minLanded) break;
-        }
-      }
-      if (!addedThisPass) break;
-      guard += 1;
-    }
-  }
+  // Keep the MINIMUM-VIABLE basket — do NOT force-spend remaining capital.
+  // Leftover capital is surfaced as a tier-upgrade nudge downstream.
 
-  for (const p of picks) {
-    p.membersNeeded = p.factoryMoq > 0 ? Math.ceil(p.factoryMoq / p.units) : 0;
-  }
 
   const items: BasketItem[] = picks.map((s) => ({
     opportunity_id: s.o.id,
@@ -313,17 +292,74 @@ Deno.serve(async (req) => {
     const bizType = m.spark_trade_business_type || "micro-wholesale";
     const businessName = `${String(bizType).split(/\s+/)[0] || "Umoja"} Trader`;
 
-    const tierUpgradeNudge = currentBasket.tier_cap_reached
-      ? {
-          message:
-            tier === "buyers_club"
-              ? `You have R${capitalInput.toLocaleString()} but Buyers Club caps at 6 products. Upgrade to Pro (10) or Fulfilled by UMOJA (20) to spread capital across more products.`
-              : tier === "pro"
-              ? `You have R${capitalInput.toLocaleString()} but Pro caps at 10 products. Upgrade to Fulfilled by UMOJA (20) to spread capital across more products.`
-              : null,
-          unspent_zar: currentBasket.unspent_zar,
-        }
-      : null;
+    // Tier-upgrade nudge — leftover capital is the hook, next tier's basket is the preview.
+    const NEXT_TIER: Record<string, "pro" | "fulfilled" | null> = {
+      buyers_club: "pro",
+      pro: "fulfilled",
+      fulfilled: null,
+    };
+    const TIER_ROUTE_KEY: Record<string, string> = {
+      pro: "spark-trade-pro",
+      fulfilled: "fulfilled-by-umoja",
+    };
+    const nextTier = NEXT_TIER[tier];
+    const MIN_MEANINGFUL_REMAINING = 1000;
+    let tierUpgradeNudge:
+      | null
+      | {
+          current_tier_label: string;
+          current_product_limit: number;
+          next_tier: string;
+          next_tier_label: string;
+          next_tier_product_limit: number;
+          next_tier_route_key: string;
+          capital_remaining_zar: number;
+          additional_products: number;
+          next_tier_basket: {
+            product_count: number;
+            total_investment_zar: number;
+            potential_gross_profit_zar: number;
+            blended_margin_pct: number;
+          };
+          message: string;
+        } = null;
+
+    if (nextTier && currentBasket.unspent_zar >= MIN_MEANINGFUL_REMAINING) {
+      const nextBuffer = bufferPctForTier(nextTier);
+      const nextLimit = productLimitForTier(nextTier);
+      const nextBasket = buildBasket(
+        catalog as Opp[],
+        capitalInput,
+        nextBuffer,
+        nextLimit,
+        globalMinItem,
+      );
+      const additional = Math.max(0, nextBasket.product_count - currentBasket.product_count);
+      tierUpgradeNudge = {
+        current_tier_label: tierLabel(tier),
+        current_product_limit: productLimit,
+        next_tier: nextTier,
+        next_tier_label: tierLabel(nextTier),
+        next_tier_product_limit: nextLimit,
+        next_tier_route_key: TIER_ROUTE_KEY[nextTier],
+        capital_remaining_zar: currentBasket.unspent_zar,
+        additional_products: additional,
+        next_tier_basket: {
+          product_count: nextBasket.product_count,
+          total_investment_zar: nextBasket.total_investment_zar,
+          potential_gross_profit_zar: nextBasket.potential_gross_profit_zar,
+          blended_margin_pct: nextBasket.blended_margin_pct,
+        },
+        message: `You have R${currentBasket.unspent_zar.toLocaleString()} unused. ${tierLabel(
+          tier,
+        )} fits ${productLimit} products — upgrade to ${tierLabel(
+          nextTier,
+        )} to deploy it across ${nextLimit} products${
+          additional > 0 ? ` (unlock ${additional} more)` : ""
+        } and put your full capital to work.`,
+      };
+    }
+
 
     const blueprint = {
       version: 3,
