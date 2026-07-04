@@ -195,7 +195,14 @@ export default function SparkTradeOnboardingSummary() {
     );
   }
 
-  const products = store?.featured_products ?? blueprint?.recommended_products ?? [];
+  const basket = blueprint?.basket;
+  const basketItems = basket?.items ?? [];
+  const products =
+    (store?.featured_products as any[] | undefined) ??
+    basketItems.map((i) => ({
+      name: i.name,
+      suggested_selling_price_zar: i.selling_price_zar,
+    }));
 
   return (
     <div className="min-h-screen bg-gradient-to-b from-background to-muted/20 px-4 py-8 md:py-12">
@@ -232,29 +239,62 @@ export default function SparkTradeOnboardingSummary() {
         </section>
 
         {/* Blueprint preview */}
-        {blueprint && (
+        {blueprint && basket && (
           <section className="rounded-3xl border border-border bg-card shadow-sm p-6 mb-6">
-            <h2 className="font-display text-lg font-bold mb-3 text-foreground flex items-center gap-2">
+            <h2 className="font-display text-lg font-bold mb-1 text-foreground flex items-center gap-2">
               <Sparkles className="h-4 w-4 text-primary" /> Business Blueprint
             </h2>
             {blueprint.recommended_business_name && (
-              <p className="text-base font-semibold text-foreground mb-3">
+              <p className="text-base font-semibold text-foreground mb-1">
                 {blueprint.recommended_business_name}
               </p>
             )}
+            {blueprint.tier_label && (
+              <p className="text-xs text-muted-foreground mb-3">
+                {blueprint.tier_label}
+                {blueprint.capital_zar != null && (
+                  <> · capital R{blueprint.capital_zar.toLocaleString()}</>
+                )}
+                {basket.product_count != null && (
+                  <> · {basket.product_count} products</>
+                )}
+              </p>
+            )}
             <div className="grid grid-cols-2 gap-3">
-              {blueprint.estimated_startup_capital != null && (
-                <Metric icon={Wallet} label="Startup capital" value={`R${blueprint.estimated_startup_capital.toLocaleString()}`} />
+              {basket.total_investment_zar != null && (
+                <Metric
+                  icon={Wallet}
+                  label="Total Investment"
+                  value={`R${basket.total_investment_zar.toLocaleString()}`}
+                />
               )}
-              {blueprint.estimated_monthly_revenue != null && (
-                <Metric icon={TrendingUp} label="Monthly revenue" value={`R${blueprint.estimated_monthly_revenue.toLocaleString()}`} />
+              {basket.potential_gross_profit_zar != null && (
+                <Metric
+                  icon={TrendingUp}
+                  label="Potential Gross Profit"
+                  value={`+R${basket.potential_gross_profit_zar.toLocaleString()}`}
+                  sub="if all stock sells"
+                />
               )}
-              {blueprint.estimated_gross_margin != null && (
-                <Metric icon={Check} label="Gross margin" value={`${blueprint.estimated_gross_margin}${typeof blueprint.estimated_gross_margin === "number" ? "%" : ""}`} />
+              {basket.blended_margin_pct != null && (
+                <Metric
+                  icon={Check}
+                  label="Blended Margin"
+                  value={`${basket.blended_margin_pct}%`}
+                />
               )}
+              <Metric
+                icon={Check}
+                label="First Stock"
+                value={blueprint.estimated_first_stock ?? "~4-6 weeks (sea)"}
+              />
             </div>
+            <p className="text-[11px] text-muted-foreground mt-3">
+              Real basket cost and *potential* profit if every unit sells at the listed price. Not guaranteed income.
+            </p>
           </section>
         )}
+
 
         {/* Store preview */}
         {store && (
