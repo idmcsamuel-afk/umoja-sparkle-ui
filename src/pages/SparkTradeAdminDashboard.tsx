@@ -9,9 +9,11 @@ import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
-import { Loader2, Plus, Check, X, Pencil, Trash2, Upload, ImageIcon, ImagePlus, Calculator } from "lucide-react";
+import { Loader2, Plus, Check, X, Pencil, Trash2, Upload, ImageIcon, ImagePlus, Calculator, AlertTriangle, Search, EyeOff } from "lucide-react";
 import { toast } from "sonner";
 import { computeMemberMoq, useSparkTradeFloors } from "@/lib/sparkTradeMoq";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Switch } from "@/components/ui/switch";
 
 const PRODUCT_IMAGE_BUCKET = "spark_trade_product_images";
 
@@ -122,13 +124,24 @@ export default function SparkTradeAdminDashboard() {
         {loading ? (
           <div className="grid h-64 place-items-center"><Loader2 className="h-8 w-8 animate-spin text-primary" /></div>
         ) : (
-          <Tabs defaultValue="opportunities" className="mt-6">
+          <Tabs defaultValue="live" className="mt-6">
             <TabsList>
+              <TabsTrigger value="live">Live Products ({opportunities.filter(o => o.is_spotlight).length})</TabsTrigger>
               <TabsTrigger value="opportunities">Opportunities ({opportunities.length})</TabsTrigger>
               <TabsTrigger value="approvals">Approvals ({pendingApprovals.length})</TabsTrigger>
               <TabsTrigger value="reservations">Reservations ({reservations.length})</TabsTrigger>
               <TabsTrigger value="analytics">Analytics</TabsTrigger>
             </TabsList>
+
+            <TabsContent value="live" className="mt-4">
+              <LiveProductsTable
+                opportunities={opportunities}
+                onEditPricing={(o) => setEditingPricing({ ...o })}
+                onEditListing={(o) => setEditingListing({ ...o })}
+                onChanged={load}
+              />
+            </TabsContent>
+
 
             <TabsContent value="opportunities" className="mt-4">
               <div className="flex justify-end mb-3">
@@ -666,3 +679,174 @@ function ImageUploader({ value, onChange }: { value: string; onChange: (url: str
     </div>
   );
 }
+
+// ---------- Live Products Table ----------
+function LiveProductsTable({
+  opportunities, onEditPricing, onEditListing, onChanged,
+}: {
+  opportunities: Opp[];
+  onEditPricing: (o: Opp) => void;
+  onEditListing: (o: Opp) => void;
+  onChanged: () => void;
+}) {
+  const floors = useSparkTradeFloors();
+  const [search, setSearch] = useState("");
+  const [category, setCategory] = useState<string>("all");
+  const [moqFilter, setMoqFilter] = useState(false);
+  const [unpublishing, setUnpublishing] = useState<string | null>(null);
+
+  const live = opportunities.filter((o) => o.is_spotlight);
+
+  const categories = Array.from(new Set(live.map((o) => o.category).filter(Boolean))) as string[];
+
+  const filtered = live
+    .filter((o) => (search ? (o.product_name ?? "").toLowerCase().includes(search.toLowerCase()) : true))
+    .filter((o) => (category === "all" ? true : o.category === category))
+    .filter((o) => (moqFilter ? !o.moq_required || Number(o.moq_required) <= 1 : true))
+    .sort((a, b) => (a.spotlight_rank ?? 9999) - (b.spotlight_rank ?? 9999));
+
+  const computeLanded = (o: Opp) => {
+    const alibaba = Number(o.alibaba_cost_zar ?? 0);
+    const buffer = Number(o.buffer_pct ?? 0);
+    const commission = Number(o.commission_pct ?? 0);
+    const weight = Number(o.weight_kg ?? 0);
+    const adjusted = alibaba * (1 + buffer / 100);
+    const freightSea = o.freight_is_override
+      ? Number(o.freight_sea_zar ?? o.freight_cost_zar ?? 0)
+      : (weight / 167) * 8800;
+    const commissionSea = (adjusted + freightSea) * (commission / 100);
+    const landedSea = adjusted + freightSea + commissionSea;
+    return landedSea || Number(o.unit_cost_zar ?? 0);
+  };
+
+  const unpublish = async (o: Opp) => {
+    if (!confirm(`Pull "${o.product_name}" off the storefront?`)) return;
+    setUnpublishing(o.id);
+    const { error } = await supabase.from("spark_trade_opportunities" as any)
+      .update({ is_spotlight: false }).eq("id", o.id);
+    setUnpublishing(null);
+    if (error) toast.error(error.message);
+    else { toast.success("Unpublished"); onChanged(); }
+  };
+
+  const missingMoqCount = live.filter((o) => !o.moq_required || Number(o.moq_required) <= 1).length;
+
+  return (
+    <div className="space-y-3">
+      <div className="flex flex-wrap items-center gap-3">
+        <div className="text-sm font-medium">{live.length} products live</div>
+        {missingMoqCount > 0 && (
+          <Badge variant="destructive" className="gap-1">
+            <AlertTriangle className="h-3 w-3" /> {missingMoqCount} missing factory MOQ
+          </Badge>
+        )}
+        <div className="relative flex-1 min-w-[220px] max-w-sm">
+          <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
+          <Input placeholder="Search product name" value={search} onChange={(e) => setSearch(e.target.value)} className="pl-8" />
+        </div>
+        <Select value={category} onValueChange={setCategory}>
+          <SelectTrigger className="w-[180px]"><SelectValue placeholder="Category" /></SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">All categories</SelectItem>
+            {categories.map((c) => <SelectItem key={c} value={c}>{c}</SelectItem>)}
+          </SelectContent>
+        </Select>
+        <label className="flex items-center gap-2 text-sm">
+          <Switch checked={moqFilter} onCheckedChange={setMoqFilter} />
+          MOQ not set
+        </label>
+      </div>
+
+      <Card className="overflow-x-auto">
+        <Table>
+          <TableHeader><TableRow>
+            <TableHead>#</TableHead>
+            <TableHead>Product</TableHead>
+            <TableHead>Category</TableHead>
+            <TableHead>Factory MOQ</TableHead>
+            <TableHead>Member min buy-in</TableHead>
+            <TableHead>Landed (sea)</TableHead>
+            <TableHead>Sell</TableHead>
+            <TableHead>Margin</TableHead>
+            <TableHead>Member units</TableHead>
+            <TableHead>Members needed</TableHead>
+            <TableHead>Status</TableHead>
+            <TableHead className="text-right">Actions</TableHead>
+          </TableRow></TableHeader>
+          <TableBody>
+            {filtered.map((o) => {
+              const landed = computeLanded(o);
+              const sell = Number(o.suggested_selling_price_zar ?? 0);
+              const marginPct = sell > 0 ? ((sell - landed) / sell) * 100 : 0;
+              const moqMissing = !o.moq_required || Number(o.moq_required) <= 1;
+              const moqCalc = computeMemberMoq({
+                landedCostZar: landed,
+                memberMinBuyinZar: o.member_min_buyin_zar != null ? Number(o.member_min_buyin_zar) : null,
+                factoryMoq: Number(o.moq_required ?? 0),
+                globalMinItem: floors.minItemBuyinZar,
+              });
+              const canCompute = landed > 0 && !moqMissing;
+              return (
+                <TableRow key={o.id} className={moqMissing ? "bg-destructive/5" : ""}>
+                  <TableCell className="text-xs text-muted-foreground">{o.spotlight_rank ?? "—"}</TableCell>
+                  <TableCell>
+                    <div className="flex items-center gap-2">
+                      {o.product_image_url ? (
+                        <img src={o.product_image_url} alt="" className="h-9 w-9 rounded object-cover border" />
+                      ) : (
+                        <div className="h-9 w-9 rounded border bg-muted grid place-items-center"><ImageIcon className="h-4 w-4 text-muted-foreground" /></div>
+                      )}
+                      <div className="font-medium max-w-[220px] truncate" title={o.product_name}>{o.product_name}</div>
+                    </div>
+                  </TableCell>
+                  <TableCell className="text-xs">{o.category ?? "—"}</TableCell>
+                  <TableCell>
+                    {moqMissing ? (
+                      <Badge variant="destructive" className="gap-1"><AlertTriangle className="h-3 w-3" /> not set</Badge>
+                    ) : (
+                      Number(o.moq_required).toLocaleString()
+                    )}
+                  </TableCell>
+                  <TableCell className="text-xs">
+                    {o.member_min_buyin_zar != null
+                      ? `R${Number(o.member_min_buyin_zar).toLocaleString()}`
+                      : <span className="text-muted-foreground">default R{floors.minItemBuyinZar}</span>}
+                  </TableCell>
+                  <TableCell className="text-xs">R{landed.toFixed(2)}</TableCell>
+                  <TableCell className="text-xs">R{sell.toFixed(2)}</TableCell>
+                  <TableCell className={`text-xs ${marginPct > 0 ? "text-emerald-600" : "text-destructive"}`}>{marginPct.toFixed(0)}%</TableCell>
+                  <TableCell className="text-xs">{canCompute ? moqCalc.memberMoqUnits : "—"}</TableCell>
+                  <TableCell className="text-xs">{canCompute ? moqCalc.membersNeeded.toLocaleString() : "—"}</TableCell>
+                  <TableCell>
+                    <Badge variant={o.is_approved_for_ai_recommendation ? "default" : "secondary"} className="text-[10px]">
+                      {o.group_buy_status ?? "open"}
+                    </Badge>
+                  </TableCell>
+                  <TableCell className="text-right">
+                    <div className="flex gap-1 justify-end flex-wrap">
+                      <Button size="sm" variant={moqMissing ? "default" : "outline"} onClick={() => onEditPricing(o)} title="Edit pricing & MOQ">
+                        <Calculator className="h-3 w-3 mr-1" /> {moqMissing ? "Set MOQ" : "Edit"}
+                      </Button>
+                      <Button size="sm" variant="outline" onClick={() => onEditListing(o)} title="Edit listing">
+                        <ImagePlus className="h-3 w-3" />
+                      </Button>
+                      <Button size="sm" variant="ghost" onClick={() => unpublish(o)} disabled={unpublishing === o.id} title="Unpublish">
+                        {unpublishing === o.id ? <Loader2 className="h-3 w-3 animate-spin" /> : <EyeOff className="h-3 w-3" />}
+                      </Button>
+                    </div>
+                  </TableCell>
+                </TableRow>
+              );
+            })}
+            {filtered.length === 0 && (
+              <TableRow><TableCell colSpan={12} className="p-8 text-center text-sm text-muted-foreground">
+                {live.length === 0 ? "No live products. Publish opportunities to the storefront to see them here." : "No products match your filters."}
+              </TableCell></TableRow>
+            )}
+          </TableBody>
+        </Table>
+      </Card>
+    </div>
+  );
+}
+
