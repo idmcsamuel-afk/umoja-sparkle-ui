@@ -247,6 +247,8 @@ function SparkTradeProductOpportunities() {
             <span className="font-semibold">{tierLabel(tier)}</span>
             <span className="text-muted-foreground">·</span>
             <span className="font-semibold text-primary">{bufferPct}% buffer</span>
+            <span className="text-muted-foreground">·</span>
+            <span className="font-semibold">{productLimit} products</span>
           </div>
           {availableCapital !== null && (
             <div className="inline-flex items-center gap-2 rounded-full border bg-card px-4 py-1.5 text-xs">
