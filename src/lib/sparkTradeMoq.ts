@@ -1,8 +1,10 @@
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
+import { useAuth } from "@/hooks/useAuth";
 
 export const DEFAULT_MIN_ITEM_BUYIN_ZAR = 400;
 export const DEFAULT_MIN_ORDER_TOTAL_ZAR = 2500;
+export const COMMISSION_PCT = 8; // never changes
 
 export interface SparkTradeFloors {
   minItemBuyinZar: number;
@@ -49,6 +51,95 @@ export function useSparkTradeFloors(): SparkTradeFloors {
     fetchFloors().then(setState).catch(() => {});
   }, []);
   return state;
+}
+
+/* ============================================================
+   TIER-BASED BUFFER PRICING
+   Higher tier → smaller buffer → lower landed cost → bigger profit.
+   The 8% commission RATE is unchanged; it still applies to the
+   tier-adjusted (alibaba+buffer)+freight base.
+   ============================================================ */
+
+export type BuffTier = "buyers_club" | "pro" | "fulfilled";
+
+export function bufferPctForTier(tier?: string | null): number {
+  const t = String(tier ?? "").toLowerCase();
+  if (t === "pro") return 5;
+  if (t === "fulfilled") return 0;
+  // basic, buyers_club, gold, empty, null → standard 10%
+  return 10;
+}
+
+export function tierLabel(tier?: string | null): string {
+  const t = String(tier ?? "").toLowerCase();
+  if (t === "pro") return "Pro Trader";
+  if (t === "fulfilled") return "Fulfilled by UMOJA";
+  return "Buyers Club";
+}
+
+let tierCache: Record<string, string | null> = {};
+export function useMemberTier(): { tier: string | null; bufferPct: number; loaded: boolean } {
+  const { user } = useAuth();
+  const [tier, setTier] = useState<string | null>(user ? tierCache[user.id] ?? null : null);
+  const [loaded, setLoaded] = useState<boolean>(!user || tierCache[user.id] !== undefined);
+
+  useEffect(() => {
+    if (!user) { setTier(null); setLoaded(true); return; }
+    if (tierCache[user.id] !== undefined) { setTier(tierCache[user.id]); setLoaded(true); return; }
+    let alive = true;
+    (async () => {
+      const { data } = await supabase
+        .from("members")
+        .select("buyers_club_tier")
+        .eq("id", user.id)
+        .maybeSingle();
+      const t = ((data as any)?.buyers_club_tier as string | null) ?? null;
+      tierCache[user.id] = t;
+      if (alive) { setTier(t); setLoaded(true); }
+    })();
+    return () => { alive = false; };
+  }, [user?.id]);
+
+  return { tier, bufferPct: bufferPctForTier(tier), loaded };
+}
+
+export interface TierLandedInput {
+  alibabaCostZar: number | null | undefined;
+  freightZar: number | null | undefined;
+  bufferPct: number;
+  /** Fallback landed cost if alibaba/freight breakdown is missing (legacy rows). Assumed to already include the standard 10% buffer. */
+  fallbackLandedZar?: number | null;
+}
+
+export interface TierLanded {
+  adjustedCost: number;
+  freight: number;
+  commissionZar: number;
+  landedCostZar: number;
+  usedFallback: boolean;
+}
+
+export function computeTierLanded(input: TierLandedInput): TierLanded {
+  const alibaba = Number(input.alibabaCostZar ?? 0);
+  const freight = Number(input.freightZar ?? 0);
+  const buffer = Number(input.bufferPct ?? 10);
+
+  if (alibaba > 0) {
+    const adjustedCost = alibaba * (1 + buffer / 100);
+    const base = adjustedCost + freight;
+    const commissionZar = base * (COMMISSION_PCT / 100);
+    const landedCostZar = base + commissionZar;
+    return { adjustedCost, freight, commissionZar, landedCostZar, usedFallback: false };
+  }
+  // Legacy fallback: can't recompute per-tier without alibaba breakdown.
+  const fallback = Number(input.fallbackLandedZar ?? 0);
+  return {
+    adjustedCost: 0,
+    freight,
+    commissionZar: 0,
+    landedCostZar: fallback,
+    usedFallback: true,
+  };
 }
 
 export interface ComputeMoqInput {
