@@ -224,19 +224,20 @@ export default function Withdraw() {
       toast({ title: "Withdrawal failed", description: error.message, variant: "destructive" });
       return;
     }
-    const r = data as { ok: boolean; reason?: string; reference?: string; net?: number };
+    const r = data as { ok: boolean; reason?: string; reference?: string; net?: number; message?: string; withdrawable?: number };
     if (!r?.ok) {
       const reasons: Record<string, string> = {
         kyc_required: "Complete KYC to withdraw.",
         account_too_new: "Your account must be 7+ days old.",
         below_minimum: `Minimum withdrawal is ${MIN_SPARKS} sparks.`,
-        insufficient_withdrawable: "Insufficient withdrawable balance.",
+        insufficient_withdrawable: r.message ?? `You can only withdraw ${r.withdrawable ?? 0} sparks right now. Referral sparks require KYC-verified referrals and a qualifying own contribution.`,
+        pending_request_exists: r.message ?? "You already have a pending withdrawal. Wait for it to be processed before submitting another.",
         daily_cap_reached: "Daily withdrawal cap reached. Try again tomorrow.",
         no_wallet: "No wallet found.",
       };
       toast({
         title: "Withdrawal blocked",
-        description: reasons[r?.reason ?? ""] ?? r?.reason ?? "Unknown error",
+        description: reasons[r?.reason ?? ""] ?? r?.message ?? r?.reason ?? "Unknown error",
         variant: "destructive",
       });
       return;
