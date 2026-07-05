@@ -3845,6 +3845,7 @@ export type Database = {
           spark_trade_paystack_reference: string | null
           spark_trade_purchased_from: string | null
           spark_trade_referral_count: number | null
+          spark_trade_sales_channels: string[]
           spark_trade_service_area: string | null
           spark_trade_stock_preference: string | null
           spark_trade_subscription_paid_at: string | null
@@ -3949,6 +3950,7 @@ export type Database = {
           spark_trade_paystack_reference?: string | null
           spark_trade_purchased_from?: string | null
           spark_trade_referral_count?: number | null
+          spark_trade_sales_channels?: string[]
           spark_trade_service_area?: string | null
           spark_trade_stock_preference?: string | null
           spark_trade_subscription_paid_at?: string | null
@@ -4053,6 +4055,7 @@ export type Database = {
           spark_trade_paystack_reference?: string | null
           spark_trade_purchased_from?: string | null
           spark_trade_referral_count?: number | null
+          spark_trade_sales_channels?: string[]
           spark_trade_service_area?: string | null
           spark_trade_stock_preference?: string | null
           spark_trade_subscription_paid_at?: string | null

@@ -67,6 +67,35 @@ const READINESS_ITEMS = [
 
 type ReadinessKey = (typeof READINESS_ITEMS)[number]["key"];
 
+// Universal channels shown to every market
+const UNIVERSAL_CHANNELS: { key: string; label: string; hint?: string }[] = [
+  { key: "umoja_storefront", label: "My UMOJA Storefront", hint: "Recommended" },
+  { key: "instagram_facebook", label: "Instagram / Facebook" },
+  { key: "whatsapp_status", label: "WhatsApp / Status" },
+  { key: "local_physical", label: "Local / physical" },
+  { key: "own_website", label: "Own website" },
+  { key: "other", label: "Other" },
+];
+
+// Marketplace channels per market — add a new entry here to launch a new country
+const MARKETPLACE_CHANNELS_BY_MARKET: Record<string, { key: string; label: string }[]> = {
+  ZA: [
+    { key: "takealot", label: "Takealot" },
+    { key: "amazon_sa", label: "Amazon" },
+    { key: "makro", label: "Makro" },
+  ],
+  NG: [
+    { key: "jumia", label: "Jumia" },
+    { key: "jiji", label: "Jiji" },
+    { key: "konga", label: "Konga" },
+  ],
+};
+
+function getChannelsForMarket(country: string) {
+  const marketplaces = MARKETPLACE_CHANNELS_BY_MARKET[country] ?? MARKETPLACE_CHANNELS_BY_MARKET.ZA;
+  return { universal: UNIVERSAL_CHANNELS, marketplaces };
+}
+
 export default function SparkTradeSubscriptionRecommendation() {
   const nav = useNavigate();
   const { user, loading } = useAuth();
