@@ -214,7 +214,13 @@ export default function StorefrontPublic() {
           <div className="mt-4 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
             {products.map((p) => (
               <article key={p.id} className="rounded-3xl border border-border bg-gradient-card p-4 flex flex-col">
-                <div className="aspect-square rounded-2xl bg-secondary/40 grid place-items-center text-3xl">📦</div>
+                <div className="aspect-square rounded-2xl bg-secondary/40 overflow-hidden grid place-items-center text-3xl">
+                  {p.image_url ? (
+                    <img src={p.image_url} alt={p.product_name ?? "Product"} loading="lazy" className="h-full w-full object-cover" />
+                  ) : (
+                    <span>📦</span>
+                  )}
+                </div>
                 <h3 className="mt-3 font-medium line-clamp-2">{p.product_name ?? "Product"}</h3>
                 <p className="text-xs text-muted-foreground">{p.category ?? "—"}</p>
                 {typeof p.sale_price === "number" && p.sale_price > 0 && (
