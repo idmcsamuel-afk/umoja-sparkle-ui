@@ -162,7 +162,8 @@ export default function SparkTradeOnboarding() {
                 />
                 {slug && (
                   <p className="text-[11px] text-muted-foreground">
-                    URL: <span className="text-accent">https://sparktrade.com/store/{slug}</span>
+                    Live URL: <span className="text-accent">umojarise.com/shop/{(member?.referral_code || slug).toLowerCase()}</span>
+
                   </p>
                 )}
               </div>
