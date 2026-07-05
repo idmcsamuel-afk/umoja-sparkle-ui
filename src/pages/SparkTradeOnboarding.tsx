@@ -19,7 +19,7 @@ type Tier = "buyers_club" | "storefront" | "fulfilled_by_umoja";
 
 export default function SparkTradeOnboarding() {
   const nav = useNavigate();
-  const { user } = useAuth();
+  const { user, member } = useAuth();
   const { config } = useMyCountry();
   const [step, setStep] = useState(1);
   const [tier, setTier] = useState<Tier | null>(null);
@@ -118,7 +118,7 @@ export default function SparkTradeOnboarding() {
   };
 
   const copyUrl = () => {
-    const url = `https://sparktrade.com/store/${slug}`;
+    const url = `${window.location.origin}/shop/${(member?.referral_code || slug).toLowerCase()}`;
     navigator.clipboard.writeText(url);
     toast.success("Copied to clipboard");
   };
@@ -162,7 +162,8 @@ export default function SparkTradeOnboarding() {
                 />
                 {slug && (
                   <p className="text-[11px] text-muted-foreground">
-                    URL: <span className="text-accent">https://sparktrade.com/store/{slug}</span>
+                    Live URL: <span className="text-accent">umojarise.com/shop/{(member?.referral_code || slug).toLowerCase()}</span>
+
                   </p>
                 )}
               </div>
@@ -279,7 +280,7 @@ export default function SparkTradeOnboarding() {
               </div>
               <h1 className="font-display text-2xl">Your Spark Trade Storefront is Ready 🎉</h1>
               <p className="text-sm text-muted-foreground break-all">
-                Storefront URL: <span className="text-accent">https://sparktrade.com/store/{slug}</span>
+                Storefront URL: <span className="text-accent">umojarise.com/shop/{(member?.referral_code || slug).toLowerCase()}</span>
               </p>
               <div className="rounded-2xl glass p-4 text-left text-sm space-y-2">
                 <p className="uppercase tracking-wider text-[10px] text-accent">Next steps</p>

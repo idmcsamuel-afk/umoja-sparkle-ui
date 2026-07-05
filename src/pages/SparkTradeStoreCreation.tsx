@@ -448,8 +448,9 @@ export default function SparkTradeStoreCreation() {
                   </div>
                 )}
                 <p className="mt-2 text-xs text-muted-foreground">
-                  URL: <span className="font-mono">sparktrade.com/store/{slug}</span>
+                  Live URL: <span className="font-mono">umojarise.com/shop/{(member?.referral_code || "your-code").toLowerCase()}</span>
                 </p>
+
                 {errors.storeName && (
                   <p className="text-destructive text-xs mt-1">{errors.storeName}</p>
                 )}
@@ -571,7 +572,7 @@ export default function SparkTradeStoreCreation() {
               <p className="text-xs uppercase tracking-wider text-muted-foreground mb-2">
                 Live preview
               </p>
-              <StorePreviewCard store={store} slug={slug} />
+              <StorePreviewCard store={store} slug={(member?.referral_code || slug).toLowerCase()} />
             </div>
           </div>
         </div>
@@ -632,8 +633,9 @@ function StorePreviewCard({ store, slug }: { store: StoreState; slug: string }) 
         )}
       </div>
       <div className="px-4 py-2 text-[10px] text-gray-500 font-mono border-b border-gray-100">
-        sparktrade.com/store/{slug}
+        umojarise.com/shop/{slug}
       </div>
+
       <div className="p-4 space-y-2">
         <h4 className="font-semibold text-sm text-gray-900">Featured Products</h4>
         {store.featuredProducts.length === 0 && (
