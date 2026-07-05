@@ -51,8 +51,9 @@ export default function SparkTradeMembership() {
 
   const targetRef = useRef<HTMLDivElement | null>(null);
   useEffect(() => {
-    if (!loading && targetTier && targetRef.current) {
-      targetRef.current.scrollIntoView({ behavior: "smooth", block: "center" });
+    if (!loading && targetTier) {
+      const el = document.querySelector(`[data-tier="${targetTier}"]`);
+      if (el) el.scrollIntoView({ behavior: "smooth", block: "center" });
     }
   }, [loading, targetTier]);
 
