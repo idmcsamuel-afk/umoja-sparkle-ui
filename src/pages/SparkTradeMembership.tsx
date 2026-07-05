@@ -262,6 +262,26 @@ export default function SparkTradeMembership() {
                   </p>
                 </div>
               )}
+
+              {/* Explicit upgrade prompt when arriving via ?upgrade=<tier> */}
+              {targetTier && current && current.status === "active" && (() => {
+                const { chargeZar, isUpgrade } = computeChargeZar(targetTier);
+                if (!isUpgrade) return null;
+                const curZar = calculateTierPrice(tierKeyMap[current.tier], "ZAR") ?? 0;
+                return (
+                  <div className="mt-4 rounded-2xl border border-accent/60 bg-gradient-primary/10 p-4 shadow-gold">
+                    <p className="text-[10px] uppercase tracking-[0.22em] text-accent">Upgrade credit applied</p>
+                    <p className="mt-1 text-sm text-foreground/90">
+                      You're on <strong>{tierLabel[current.tier]}</strong> (R{curZar}). Upgrade to{" "}
+                      <strong>{tierLabel[targetTier]}</strong> — pay only the <strong>R{chargeZar} difference</strong>.
+                    </p>
+                    <p className="mt-1 text-[11px] text-muted-foreground">
+                      Your next payment date stays the same. At renewal you'll pay the full {tierLabel[targetTier]} price.
+                    </p>
+                  </div>
+                );
+              })()}
+
               {current && currentRank < 3 && (
                 <p className="mt-6 text-sm font-medium text-foreground/90">Upgrade to a higher tier:</p>
               )}
