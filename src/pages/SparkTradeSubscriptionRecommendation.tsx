@@ -59,13 +59,11 @@ function getRecommendedTier(incomeGoal: number, country: string): TierKey {
 }
 
 const READINESS_ITEMS = [
-  { key: "businessRegistered", label: "Business Registered", help: "Formal registration (CIPC, CAC, etc.)" },
-  { key: "supplierContacts", label: "Supplier Contacts Ready", help: "Reached out to 2+ suppliers" },
   { key: "capitalConfirmed", label: "Capital Confirmed", help: "Your capital is available for first order" },
-  { key: "shippingPlan", label: "Shipping Plan Set", help: "Know how you'll receive & deliver products" },
 ] as const;
 
 type ReadinessKey = (typeof READINESS_ITEMS)[number]["key"];
+
 
 // Universal channels shown to every market
 const UNIVERSAL_CHANNELS: { key: string; label: string; hint?: string }[] = [
