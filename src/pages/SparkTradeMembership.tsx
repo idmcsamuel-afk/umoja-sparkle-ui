@@ -57,6 +57,19 @@ export default function SparkTradeMembership() {
     }
   }, [loading, targetTier]);
 
+  // Normalize any historical DB tier slug (spark_trade_pro, pro, gold, basic, …) to
+  // the internal Tier union used across this page. Without this, an unknown slug
+  // makes `tierRank[current.tier]` undefined and hides every tier card, leaving
+  // the member with no Upgrade button — only "Cancel this membership".
+  const normalizeDbTier = (raw: string | null | undefined): Tier | null => {
+    if (!raw) return null;
+    const t = String(raw).toLowerCase().replace(/[\s-]/g, "_");
+    if (t.includes("fulfilled")) return "fulfilled_by_umoja";
+    if (t.includes("pro") || t.includes("storefront")) return "storefront";
+    if (t.includes("buyers") || t === "basic" || t === "gold" || t === "club") return "buyers_club";
+    return null;
+  };
+
   useEffect(() => {
     if (!user) return;
     (async () => {
@@ -66,7 +79,13 @@ export default function SparkTradeMembership() {
         .eq("user_id", user.id)
         .eq("product", "spark_trade")
         .maybeSingle();
-      setCurrent(data as unknown as Membership | null);
+      const row = data as unknown as (Membership & { tier: string }) | null;
+      if (row) {
+        const norm = normalizeDbTier(row.tier);
+        setCurrent(norm ? { ...row, tier: norm } : null);
+      } else {
+        setCurrent(null);
+      }
       setLoading(false);
     })();
   }, [user]);
