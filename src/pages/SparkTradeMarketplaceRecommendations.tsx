@@ -22,7 +22,7 @@ interface MarketplaceCard {
 const MARKETPLACES: Record<string, MarketplaceCard[]> = {
   ZA: [
     { id: "takealot", name: "Takealot.com", country: "ZA", url: "https://www.takealot.com/sell", description: "South Africa's #1 ecommerce platform" },
-    { id: "amazon_sa", name: "Amazon.co.za", country: "ZA", url: "https://sell.amazon.co.za", description: "Amazon's South African marketplace" },
+    { id: "amazon_sa", name: "Amazon.co.za", country: "ZA", url: "https://sell.amazon.com", description: "Amazon's global seller portal (South Africa supported)" },
     { id: "makro", name: "Makro Marketplace", country: "ZA", url: "https://www.makro.co.za/sellers", description: "Massmart / Walmart-owned wholesale" },
   ],
   NG: [
