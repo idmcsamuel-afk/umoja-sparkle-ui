@@ -118,7 +118,7 @@ export default function SparkTradeOnboarding() {
   };
 
   const copyUrl = () => {
-    const url = `https://sparktrade.com/store/${slug}`;
+    const url = `${window.location.origin}/shop/${(member?.referral_code || slug).toLowerCase()}`;
     navigator.clipboard.writeText(url);
     toast.success("Copied to clipboard");
   };
