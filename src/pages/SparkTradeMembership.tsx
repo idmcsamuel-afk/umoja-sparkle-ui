@@ -221,7 +221,7 @@ export default function SparkTradeMembership() {
   const isSA = config.country_code === "ZA";
   const tierLabel: Record<Tier, string> = {
     buyers_club: "Buyers Club",
-    storefront: "Storefront + Buyers Club",
+    storefront: "Pro Trader",
     fulfilled_by_umoja: "Fulfilled by UMOJA",
   };
 
