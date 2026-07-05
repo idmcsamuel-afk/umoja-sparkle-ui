@@ -633,8 +633,9 @@ function StorePreviewCard({ store, slug }: { store: StoreState; slug: string }) 
         )}
       </div>
       <div className="px-4 py-2 text-[10px] text-gray-500 font-mono border-b border-gray-100">
-        sparktrade.com/store/{slug}
+        umojarise.com/shop/{slug}
       </div>
+
       <div className="p-4 space-y-2">
         <h4 className="font-semibold text-sm text-gray-900">Featured Products</h4>
         {store.featuredProducts.length === 0 && (
