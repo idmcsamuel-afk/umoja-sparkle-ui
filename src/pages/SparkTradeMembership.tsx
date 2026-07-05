@@ -405,7 +405,7 @@ export default function SparkTradeMembership() {
                           <p className="text-xs text-muted-foreground">Available in South Africa only</p>
                           <p className="text-[11px] text-muted-foreground mt-1">Coming to {config.country_name ?? "your country"} soon</p>
                         </div>
-                      ))}
+                      )}</div>)}
                     </>
                   );
                 })()}
