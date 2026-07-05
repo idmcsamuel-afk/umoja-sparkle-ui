@@ -329,9 +329,9 @@ export default function SparkTradeMembership() {
                         busy={busyTier === "buyers_club"}
                         onClick={() => upgrade("buyers_club")}
                       />
-                      )}
+                      </div>)}
 
-                      {showTier("storefront") && (
+                      {showTier("storefront") && (<div data-tier="storefront">
                       <TierCard
                         icon={<Store className="h-5 w-5" />}
                         title="Storefront + Buyers Club"
