@@ -311,6 +311,9 @@ export default function SparkTradeMembership() {
                   return (
                     <>
                       {showTier("buyers_club") && (
+                      <div ref={targetTier === "buyers_club" ? targetRef : undefined}>
+                      </div>)}
+                      {showTier("buyers_club") && (
                       <TierCard
                         icon={<Sparkles className="h-5 w-5" />}
                         title="Buyers Club"
