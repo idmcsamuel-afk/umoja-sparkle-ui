@@ -324,6 +324,76 @@ export default function SparkTradeSubscriptionRecommendation() {
           </div>
         </div>
 
+        {/* SECTION C — Your sales channels (market-aware) */}
+        <div className="rounded-3xl border border-border bg-card shadow-sm p-6 md:p-8 mb-6">
+          <h2 className="font-display text-lg font-bold mb-1 text-foreground">
+            Your sales channels
+          </h2>
+          <p className="text-sm text-muted-foreground mb-4">
+            Where will you sell? Pick all that apply — sellers using multiple channels move stock faster.
+          </p>
+
+          <div className="mb-5">
+            <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-2">
+              Everywhere
+            </p>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+              {universalChannels.map((c) => (
+                <label
+                  key={c.key}
+                  className={`flex items-center gap-3 rounded-xl border p-3 cursor-pointer transition ${
+                    salesChannels.includes(c.key)
+                      ? "border-primary bg-primary/5"
+                      : "border-border hover:bg-muted/30"
+                  }`}
+                >
+                  <Checkbox
+                    checked={salesChannels.includes(c.key)}
+                    onCheckedChange={() => toggleChannel(c.key)}
+                  />
+                  <span className="text-sm flex-1 text-foreground">{c.label}</span>
+                  {c.hint && (
+                    <span className="text-[10px] uppercase tracking-wider text-primary font-semibold">
+                      {c.hint}
+                    </span>
+                  )}
+                </label>
+              ))}
+            </div>
+          </div>
+
+          <div>
+            <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-2">
+              {country === "NG" ? "Nigeria marketplaces" : "South Africa marketplaces"}
+            </p>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+              {marketChannels.map((c) => (
+                <label
+                  key={c.key}
+                  className={`flex items-center gap-3 rounded-xl border p-3 cursor-pointer transition ${
+                    salesChannels.includes(c.key)
+                      ? "border-primary bg-primary/5"
+                      : "border-border hover:bg-muted/30"
+                  }`}
+                >
+                  <Checkbox
+                    checked={salesChannels.includes(c.key)}
+                    onCheckedChange={() => toggleChannel(c.key)}
+                  />
+                  <span className="text-sm text-foreground">{c.label}</span>
+                </label>
+              ))}
+            </div>
+          </div>
+
+          {salesChannels.length === 1 && (
+            <p className="mt-3 text-xs text-muted-foreground italic">
+              💡 Add one more channel — multi-channel sellers move stock ~2× faster.
+            </p>
+          )}
+        </div>
+
+
         <Button
           onClick={handleContinue}
           disabled={submitting}
