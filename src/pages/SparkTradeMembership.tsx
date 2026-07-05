@@ -83,8 +83,18 @@ export default function SparkTradeMembership() {
     amountLocal: number,
     localCurrency: string,
   ) => {
-    const nextPayment = new Date();
-    nextPayment.setMonth(nextPayment.getMonth() + 1);
+    // On upgrade (existing active paid tier), preserve billing cycle:
+    //   keep the original membership_start_date AND next_payment_date.
+    // On a fresh subscription, start a new cycle: now → now+1 month.
+    const isMidCycleUpgrade =
+      !!current && current.status === "active" && !!current.next_payment_date;
+    const startDate = isMidCycleUpgrade
+      ? current!.membership_start_date
+      : new Date().toISOString();
+    const nextPayment = isMidCycleUpgrade
+      ? current!.next_payment_date!
+      : (() => { const d = new Date(); d.setMonth(d.getMonth() + 1); return d.toISOString(); })();
+
     const { error } = await supabase
       .from("product_memberships" as any)
       .upsert({
@@ -92,8 +102,8 @@ export default function SparkTradeMembership() {
         product: "spark_trade",
         tier,
         status: "active",
-        membership_start_date: new Date().toISOString(),
-        next_payment_date: nextPayment.toISOString(),
+        membership_start_date: startDate,
+        next_payment_date: nextPayment,
         paystack_reference: reference,
         payment_status: "success",
         amount_paid_zar: amountZar,
@@ -106,8 +116,8 @@ export default function SparkTradeMembership() {
     }
     setCurrent({
       tier, status: "active",
-      membership_start_date: new Date().toISOString(),
-      next_payment_date: nextPayment.toISOString(),
+      membership_start_date: startDate,
+      next_payment_date: nextPayment,
     });
     return true;
   };
