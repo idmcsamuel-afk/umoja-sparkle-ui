@@ -221,7 +221,7 @@ export default function SparkTradeMembership() {
   const isSA = config.country_code === "ZA";
   const tierLabel: Record<Tier, string> = {
     buyers_club: "Buyers Club",
-    storefront: "Storefront + Buyers Club",
+    storefront: "Pro Trader",
     fulfilled_by_umoja: "Fulfilled by UMOJA",
   };
 
@@ -334,7 +334,7 @@ export default function SparkTradeMembership() {
                       {showTier("storefront") && (<div data-tier="storefront">
                       <TierCard
                         icon={<Store className="h-5 w-5" />}
-                        title="Storefront + Buyers Club"
+                        title="Pro Trader"
                         badge="All countries"
                         highlight
                         priceLines={priceLinesFor("storefront", localCcy)}
@@ -364,7 +364,7 @@ export default function SparkTradeMembership() {
                             `Profit: ${formatCurrency(profit, config.currency_code)} (${margin}% margin)`,
                           ];
                         })()}
-                        cta={ctaFor("storefront", "Upgrade to Storefront", sfPrice)}
+                        cta={ctaFor("storefront", "Upgrade to Pro Trader", sfPrice)}
                         disabled={current?.tier === "storefront"}
                         busy={busyTier === "storefront"}
                         onClick={() => upgrade("storefront")}
@@ -374,7 +374,7 @@ export default function SparkTradeMembership() {
                       {showTier("fulfilled_by_umoja") && (<div data-tier="fulfilled_by_umoja">{isSA ? (
                         <TierCard
                           icon={<Truck className="h-5 w-5" />}
-                          title="Fulfilled by UMOJA + Storefront + Club"
+                          title="Fulfilled by UMOJA + Pro Trader + Club"
                           badge="South Africa only"
                           priceLines={priceLinesFor("fulfilled", "ZAR")}
                           features={[
