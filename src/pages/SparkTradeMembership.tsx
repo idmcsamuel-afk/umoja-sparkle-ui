@@ -374,7 +374,7 @@ export default function SparkTradeMembership() {
                       {showTier("fulfilled_by_umoja") && (<div data-tier="fulfilled_by_umoja">{isSA ? (
                         <TierCard
                           icon={<Truck className="h-5 w-5" />}
-                          title="Fulfilled by UMOJA + Storefront + Club"
+                          title="Fulfilled by UMOJA + Pro Trader + Club"
                           badge="South Africa only"
                           priceLines={priceLinesFor("fulfilled", "ZAR")}
                           features={[
