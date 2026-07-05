@@ -135,6 +135,13 @@ export default function SparkTradeSubscriptionRecommendation() {
   const recommended = getRecommendedTier(incomeGoal, country);
   const tiers: TierKey[] = ["buyers-club", "spark-trade-pro", "fulfilled-by-umoja"];
   const visibleTiers = tiers.filter((t) => pricing[t] !== null);
+  const { universal: universalChannels, marketplaces: marketChannels } = getChannelsForMarket(country);
+
+  const toggleChannel = (key: string) => {
+    setSalesChannels((prev) =>
+      prev.includes(key) ? prev.filter((k) => k !== key) : [...prev, key]
+    );
+  };
 
   const readinessPct = useMemo(
     () =>
