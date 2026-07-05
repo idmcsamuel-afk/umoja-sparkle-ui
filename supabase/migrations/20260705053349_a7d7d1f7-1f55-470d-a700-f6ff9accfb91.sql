@@ -1,0 +1,1 @@
+ALTER TABLE public.members ADD COLUMN IF NOT EXISTS spark_trade_sales_channels text[] NOT NULL DEFAULT '{}'::text[];

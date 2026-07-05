@@ -67,6 +67,35 @@ const READINESS_ITEMS = [
 
 type ReadinessKey = (typeof READINESS_ITEMS)[number]["key"];
 
+// Universal channels shown to every market
+const UNIVERSAL_CHANNELS: { key: string; label: string; hint?: string }[] = [
+  { key: "umoja_storefront", label: "My UMOJA Storefront", hint: "Recommended" },
+  { key: "instagram_facebook", label: "Instagram / Facebook" },
+  { key: "whatsapp_status", label: "WhatsApp / Status" },
+  { key: "local_physical", label: "Local / physical" },
+  { key: "own_website", label: "Own website" },
+  { key: "other", label: "Other" },
+];
+
+// Marketplace channels per market — add a new entry here to launch a new country
+const MARKETPLACE_CHANNELS_BY_MARKET: Record<string, { key: string; label: string }[]> = {
+  ZA: [
+    { key: "takealot", label: "Takealot" },
+    { key: "amazon_sa", label: "Amazon" },
+    { key: "makro", label: "Makro" },
+  ],
+  NG: [
+    { key: "jumia", label: "Jumia" },
+    { key: "jiji", label: "Jiji" },
+    { key: "konga", label: "Konga" },
+  ],
+};
+
+function getChannelsForMarket(country: string) {
+  const marketplaces = MARKETPLACE_CHANNELS_BY_MARKET[country] ?? MARKETPLACE_CHANNELS_BY_MARKET.ZA;
+  return { universal: UNIVERSAL_CHANNELS, marketplaces };
+}
+
 export default function SparkTradeSubscriptionRecommendation() {
   const nav = useNavigate();
   const { user, loading } = useAuth();
@@ -79,6 +108,7 @@ export default function SparkTradeSubscriptionRecommendation() {
     capitalConfirmed: false,
     shippingPlan: false,
   });
+  const [salesChannels, setSalesChannels] = useState<string[]>(["umoja_storefront"]);
   const [showAllTiers, setShowAllTiers] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [selectedTier, setSelectedTier] = useState<TierKey | null>(null);
@@ -88,12 +118,14 @@ export default function SparkTradeSubscriptionRecommendation() {
     (async () => {
       const { data } = await supabase
         .from("members")
-        .select("spark_trade_income_goal, spark_trade_capital")
+        .select("spark_trade_income_goal, spark_trade_capital, spark_trade_sales_channels")
         .eq("id", user.id)
         .maybeSingle();
       if (data) {
         setIncomeGoal((data as any).spark_trade_income_goal ?? 10000);
         setCapital((data as any).spark_trade_capital ?? null);
+        const saved = (data as any).spark_trade_sales_channels as string[] | null;
+        if (saved && saved.length > 0) setSalesChannels(saved);
       }
     })();
   }, [user]);
@@ -103,6 +135,13 @@ export default function SparkTradeSubscriptionRecommendation() {
   const recommended = getRecommendedTier(incomeGoal, country);
   const tiers: TierKey[] = ["buyers-club", "spark-trade-pro", "fulfilled-by-umoja"];
   const visibleTiers = tiers.filter((t) => pricing[t] !== null);
+  const { universal: universalChannels, marketplaces: marketChannels } = getChannelsForMarket(country);
+
+  const toggleChannel = (key: string) => {
+    setSalesChannels((prev) =>
+      prev.includes(key) ? prev.filter((k) => k !== key) : [...prev, key]
+    );
+  };
 
   const readinessPct = useMemo(
     () =>
@@ -124,6 +163,11 @@ export default function SparkTradeSubscriptionRecommendation() {
           { member_id: user.id, tier, status: "pending" },
           { onConflict: "member_id" }
         );
+      // Persist selected sales channels on the member record
+      await supabase
+        .from("members")
+        .update({ spark_trade_sales_channels: salesChannels } as any)
+        .eq("id", user.id);
       nav("/spark-trade/onboarding/summary", { state: { tier } });
     } catch (err: any) {
       console.error("[Subscription] save tier failed", err);
@@ -279,6 +323,76 @@ export default function SparkTradeSubscriptionRecommendation() {
             ))}
           </div>
         </div>
+
+        {/* SECTION C — Your sales channels (market-aware) */}
+        <div className="rounded-3xl border border-border bg-card shadow-sm p-6 md:p-8 mb-6">
+          <h2 className="font-display text-lg font-bold mb-1 text-foreground">
+            Your sales channels
+          </h2>
+          <p className="text-sm text-muted-foreground mb-4">
+            Where will you sell? Pick all that apply — sellers using multiple channels move stock faster.
+          </p>
+
+          <div className="mb-5">
+            <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-2">
+              Everywhere
+            </p>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+              {universalChannels.map((c) => (
+                <label
+                  key={c.key}
+                  className={`flex items-center gap-3 rounded-xl border p-3 cursor-pointer transition ${
+                    salesChannels.includes(c.key)
+                      ? "border-primary bg-primary/5"
+                      : "border-border hover:bg-muted/30"
+                  }`}
+                >
+                  <Checkbox
+                    checked={salesChannels.includes(c.key)}
+                    onCheckedChange={() => toggleChannel(c.key)}
+                  />
+                  <span className="text-sm flex-1 text-foreground">{c.label}</span>
+                  {c.hint && (
+                    <span className="text-[10px] uppercase tracking-wider text-primary font-semibold">
+                      {c.hint}
+                    </span>
+                  )}
+                </label>
+              ))}
+            </div>
+          </div>
+
+          <div>
+            <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-2">
+              {country === "NG" ? "Nigeria marketplaces" : "South Africa marketplaces"}
+            </p>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+              {marketChannels.map((c) => (
+                <label
+                  key={c.key}
+                  className={`flex items-center gap-3 rounded-xl border p-3 cursor-pointer transition ${
+                    salesChannels.includes(c.key)
+                      ? "border-primary bg-primary/5"
+                      : "border-border hover:bg-muted/30"
+                  }`}
+                >
+                  <Checkbox
+                    checked={salesChannels.includes(c.key)}
+                    onCheckedChange={() => toggleChannel(c.key)}
+                  />
+                  <span className="text-sm text-foreground">{c.label}</span>
+                </label>
+              ))}
+            </div>
+          </div>
+
+          {salesChannels.length === 1 && (
+            <p className="mt-3 text-xs text-muted-foreground italic">
+              💡 Add one more channel — multi-channel sellers move stock ~2× faster.
+            </p>
+          )}
+        </div>
+
 
         <Button
           onClick={handleContinue}
