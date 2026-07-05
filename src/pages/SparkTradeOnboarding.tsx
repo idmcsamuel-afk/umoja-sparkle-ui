@@ -19,7 +19,7 @@ type Tier = "buyers_club" | "storefront" | "fulfilled_by_umoja";
 
 export default function SparkTradeOnboarding() {
   const nav = useNavigate();
-  const { user } = useAuth();
+  const { user, member } = useAuth();
   const { config } = useMyCountry();
   const [step, setStep] = useState(1);
   const [tier, setTier] = useState<Tier | null>(null);
