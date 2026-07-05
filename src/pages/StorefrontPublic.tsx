@@ -59,8 +59,9 @@ export default function StorefrontPublic() {
     if (!code) return;
     (async () => {
       setLoading(true);
+      // NOTE: do NOT select kyc_photo_url — that image is private (POPIA / biometric).
       const { data: m } = await supabase.from("members")
-        .select("id, full_name, email, phone, kyc_photo_url, buyers_club_tier, has_buyers_club_access, created_at")
+        .select("id, full_name, email, phone, buyers_club_tier, has_buyers_club_access, created_at")
         .ilike("referral_code", code).maybeSingle();
       if (!m) { setLoading(false); return; }
       setMember(m as Member);
@@ -72,15 +73,34 @@ export default function StorefrontPublic() {
       // Increment view count (fire and forget)
       void supabase.rpc("increment_storefront_view" as any, { _owner: m.id });
 
-      // Products from spark trade joins
-      const { data: joins } = await supabase.from("spark_trade_joins")
-        .select("shortlist_id").eq("member_id", m.id);
-      const ids = (joins ?? []).map((j: any) => j.shortlist_id);
-      if (ids.length) {
-        const { data: prods } = await supabase.from("spark_trade_shortlist")
-          .select("id, product_name, category, sale_price")
-          .in("id", ids).eq("is_demo", false);
-        setProducts((prods ?? []) as Product[]);
+      // Real products = the opportunities this member has actually reserved.
+      const { data: reservations } = await supabase
+        .from("spark_trade_inventory_reservations" as any)
+        .select("opportunity_id, reservation_status")
+        .eq("member_id", m.id);
+      const oppIds = Array.from(
+        new Set(
+          ((reservations as any[]) ?? [])
+            .filter((r) => r.reservation_status !== "cancelled")
+            .map((r) => Number(r.opportunity_id))
+            .filter((n) => Number.isFinite(n))
+        )
+      );
+      if (oppIds.length) {
+        const { data: opps } = await supabase
+          .from("spark_trade_opportunities")
+          .select("id, product_name, category, suggested_selling_price_zar, product_image_url")
+          .in("id", oppIds as any);
+        const list: Product[] = ((opps as any[]) ?? []).map((o) => ({
+          id: Number(o.id),
+          product_name: o.product_name ?? null,
+          category: o.category ?? null,
+          sale_price: o.suggested_selling_price_zar != null ? Number(o.suggested_selling_price_zar) : null,
+          image_url: o.product_image_url ?? null,
+        }));
+        setProducts(list);
+      } else {
+        setProducts([]);
       }
 
       // Reviews
@@ -97,15 +117,10 @@ export default function StorefrontPublic() {
       }
       setReviews(list);
 
-      // Signed URL for photo if available
-      if (m.kyc_photo_url) {
-        const { data: u } = await supabase.storage.from("kyc-photos").createSignedUrl(m.kyc_photo_url, 3600);
-        setSignedPhoto(u?.signedUrl ?? null);
-      }
-
       setLoading(false);
     })();
   }, [code]);
+
 
   const accent = sf?.accent_color || "#C9A84C";
   const avgRating = useMemo(() => reviews.length ? reviews.reduce((s, r) => s + r.rating, 0) / reviews.length : 0, [reviews]);
