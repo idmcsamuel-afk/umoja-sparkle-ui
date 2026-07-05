@@ -59,13 +59,11 @@ function getRecommendedTier(incomeGoal: number, country: string): TierKey {
 }
 
 const READINESS_ITEMS = [
-  { key: "businessRegistered", label: "Business Registered", help: "Formal registration (CIPC, CAC, etc.)" },
-  { key: "supplierContacts", label: "Supplier Contacts Ready", help: "Reached out to 2+ suppliers" },
   { key: "capitalConfirmed", label: "Capital Confirmed", help: "Your capital is available for first order" },
-  { key: "shippingPlan", label: "Shipping Plan Set", help: "Know how you'll receive & deliver products" },
 ] as const;
 
 type ReadinessKey = (typeof READINESS_ITEMS)[number]["key"];
+
 
 // Universal channels shown to every market
 const UNIVERSAL_CHANNELS: { key: string; label: string; hint?: string }[] = [
@@ -103,11 +101,10 @@ export default function SparkTradeSubscriptionRecommendation() {
   const [incomeGoal, setIncomeGoal] = useState<number>(10000);
   const [capital, setCapital] = useState<number | null>(null);
   const [checks, setChecks] = useState<Record<ReadinessKey, boolean>>({
-    businessRegistered: false,
-    supplierContacts: false,
     capitalConfirmed: false,
-    shippingPlan: false,
   });
+  const [understood, setUnderstood] = useState(false);
+
   const [salesChannels, setSalesChannels] = useState<string[]>(["umoja_storefront"]);
   const [showAllTiers, setShowAllTiers] = useState(false);
   const [submitting, setSubmitting] = useState(false);
@@ -143,13 +140,17 @@ export default function SparkTradeSubscriptionRecommendation() {
     );
   };
 
-  const readinessPct = useMemo(
-    () =>
-      Math.round(
-        (Object.values(checks).filter(Boolean).length / READINESS_ITEMS.length) * 100
-      ),
-    [checks]
-  );
+  const readinessConditions = useMemo(() => {
+    return [
+      { label: "Capital Confirmed", done: checks.capitalConfirmed },
+      { label: "Storefront live", done: true },
+      { label: "Sales channel picked", done: salesChannels.length >= 1 },
+      { label: "You understand how it works", done: understood },
+    ];
+  }, [checks.capitalConfirmed, salesChannels.length, understood]);
+  const readinessDone = readinessConditions.filter((c) => c.done).length;
+  const readinessPct = Math.round((readinessDone / readinessConditions.length) * 100);
+
 
   const handleContinue = async () => {
     if (!user) return;
@@ -292,7 +293,7 @@ export default function SparkTradeSubscriptionRecommendation() {
                 {readinessPct}% complete
               </span>
               <span className="text-muted-foreground">
-                {Object.values(checks).filter(Boolean).length} of {READINESS_ITEMS.length}
+                {readinessDone} of {readinessConditions.length}
               </span>
             </div>
             <Progress value={readinessPct} className="h-2 mt-2" />
@@ -321,8 +322,24 @@ export default function SparkTradeSubscriptionRecommendation() {
                 </div>
               </label>
             ))}
+
+            <label className="flex items-start gap-3 rounded-xl border border-border p-3 cursor-pointer hover:bg-muted/30">
+              <Checkbox
+                checked={understood}
+                onCheckedChange={(v) => setUnderstood(!!v)}
+                className="mt-0.5"
+              />
+              <div className="flex-1">
+                <p className="font-semibold text-sm text-foreground">I understand how it works</p>
+                <p className="text-xs text-muted-foreground">
+                  Stock ships once the group fills (~4–6 weeks). Profit is potential if stock
+                  sells — not guaranteed. UMOJA sources & ships; you focus on selling.
+                </p>
+              </div>
+            </label>
           </div>
         </div>
+
 
         {/* SECTION C — Your sales channels (market-aware) */}
         <div className="rounded-3xl border border-border bg-card shadow-sm p-6 md:p-8 mb-6">
