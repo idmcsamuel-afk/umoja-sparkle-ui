@@ -293,10 +293,21 @@ export default function StorefrontPublic() {
       </div>
 
       {/* Footer */}
-      <div className="mx-auto max-w-3xl px-4 mt-16 text-center text-xs text-muted-foreground">
-        <p>Powered by <Link to="/" className="text-accent hover:underline">UMOJA Rise</Link></p>
-        <p className="mt-1">Want your own shop? <Link to="/spark" className="text-accent hover:underline">Join Gold tier →</Link></p>
+      <div className="mx-auto max-w-3xl px-4 mt-16">
+        <div className="rounded-3xl border border-border bg-gradient-card p-5 flex flex-col sm:flex-row items-center gap-4 text-center sm:text-left">
+          <Logo showWord={false} />
+          <div className="flex-1">
+            <p className="text-sm font-semibold">Powered by UMOJA <span className="text-accent">Spark Trade</span></p>
+            <p className="text-xs text-muted-foreground mt-1">
+              Every Spark Trade store is run by a verified UMOJA member and backed by our group-buying network.
+            </p>
+          </div>
+          <Link to="/spark" className="text-xs font-semibold text-accent hover:underline whitespace-nowrap">
+            Open your store →
+          </Link>
+        </div>
       </div>
+
 
       {/* Sticky share bar (mobile) / inline (desktop) */}
       <div className="fixed bottom-0 inset-x-0 sm:static sm:max-w-3xl sm:mx-auto sm:mt-6 z-40 border-t sm:border border-border bg-background/95 backdrop-blur sm:rounded-2xl sm:bg-gradient-card">
