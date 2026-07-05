@@ -140,13 +140,17 @@ export default function SparkTradeSubscriptionRecommendation() {
     );
   };
 
-  const readinessPct = useMemo(
-    () =>
-      Math.round(
-        (Object.values(checks).filter(Boolean).length / READINESS_ITEMS.length) * 100
-      ),
-    [checks]
-  );
+  const readinessConditions = useMemo(() => {
+    return [
+      { label: "Capital Confirmed", done: checks.capitalConfirmed },
+      { label: "Storefront live", done: true },
+      { label: "Sales channel picked", done: salesChannels.length >= 1 },
+      { label: "You understand how it works", done: understood },
+    ];
+  }, [checks.capitalConfirmed, salesChannels.length, understood]);
+  const readinessDone = readinessConditions.filter((c) => c.done).length;
+  const readinessPct = Math.round((readinessDone / readinessConditions.length) * 100);
+
 
   const handleContinue = async () => {
     if (!user) return;
