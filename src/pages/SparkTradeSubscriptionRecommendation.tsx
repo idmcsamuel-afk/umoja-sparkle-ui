@@ -108,6 +108,7 @@ export default function SparkTradeSubscriptionRecommendation() {
     capitalConfirmed: false,
     shippingPlan: false,
   });
+  const [salesChannels, setSalesChannels] = useState<string[]>(["umoja_storefront"]);
   const [showAllTiers, setShowAllTiers] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [selectedTier, setSelectedTier] = useState<TierKey | null>(null);
