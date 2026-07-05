@@ -184,15 +184,12 @@ export default function StorefrontPublic() {
       {/* Profile */}
       <div className="mx-auto max-w-4xl px-4 -mt-16 text-center">
         <div className="inline-block">
-          <div className="h-28 w-28 sm:h-32 sm:w-32 rounded-full border-4 border-background overflow-hidden bg-secondary mx-auto"
-               style={{ boxShadow: `0 0 0 3px ${accent}` }}>
-            {signedPhoto ? (
-              <img src={signedPhoto} alt={member.full_name} className="h-full w-full object-cover" />
-            ) : (
-              <div className="grid h-full w-full place-items-center text-2xl font-display">
-                {member.full_name.charAt(0)}
-              </div>
-            )}
+          {/* PRIVACY: never render KYC selfie here. Public avatar = store initial on brand color. */}
+          <div
+            className="h-28 w-28 sm:h-32 sm:w-32 rounded-full border-4 border-background overflow-hidden mx-auto grid place-items-center font-display text-4xl"
+            style={{ boxShadow: `0 0 0 3px ${accent}`, backgroundColor: `${accent}22`, color: accent }}
+          >
+            {(sf.display_name || member.full_name || "?").charAt(0).toUpperCase()}
           </div>
         </div>
         <h1 className="font-display text-3xl mt-4">{sf.display_name || member.full_name}</h1>
