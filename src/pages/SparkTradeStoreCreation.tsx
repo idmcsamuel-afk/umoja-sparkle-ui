@@ -572,7 +572,7 @@ export default function SparkTradeStoreCreation() {
               <p className="text-xs uppercase tracking-wider text-muted-foreground mb-2">
                 Live preview
               </p>
-              <StorePreviewCard store={store} slug={slug} />
+              <StorePreviewCard store={store} slug={(member?.referral_code || slug).toLowerCase()} />
             </div>
           </div>
         </div>
