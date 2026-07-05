@@ -224,7 +224,7 @@ export default function StorefrontPublic() {
                 <h3 className="mt-3 font-medium line-clamp-2">{p.product_name ?? "Product"}</h3>
                 <p className="text-xs text-muted-foreground">{p.category ?? "—"}</p>
                 {typeof p.sale_price === "number" && p.sale_price > 0 && (
-                  <p className="mt-1 font-display text-lg" style={{ color: accent }}>R{p.sale_price.toFixed(2)}</p>
+                  <p className="mt-1 font-display text-2xl font-bold text-foreground tracking-tight">R{p.sale_price.toFixed(2)}</p>
                 )}
                 <Button onClick={() => contactWhatsapp(p.product_name ?? undefined)}
                   className="mt-auto rounded-2xl"
