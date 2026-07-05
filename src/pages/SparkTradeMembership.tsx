@@ -31,6 +31,30 @@ export default function SparkTradeMembership() {
   const [current, setCurrent] = useState<Membership | null>(null);
   const [loading, setLoading] = useState(true);
   const [busyTier, setBusyTier] = useState<Tier | null>(null);
+  const [searchParams] = useSearchParams();
+
+  // Normalize ?upgrade=<key> from blueprint nudge & elsewhere to internal Tier keys.
+  const targetTier: Tier | null = useMemo(() => {
+    const raw = (searchParams.get("upgrade") || "").toLowerCase();
+    const map: Record<string, Tier> = {
+      "buyers_club": "buyers_club",
+      "buyers-club": "buyers_club",
+      "pro": "storefront",
+      "storefront": "storefront",
+      "spark-trade-pro": "storefront",
+      "fulfilled": "fulfilled_by_umoja",
+      "fulfilled_by_umoja": "fulfilled_by_umoja",
+      "fulfilled-by-umoja": "fulfilled_by_umoja",
+    };
+    return map[raw] ?? null;
+  }, [searchParams]);
+
+  const targetRef = useRef<HTMLDivElement | null>(null);
+  useEffect(() => {
+    if (!loading && targetTier && targetRef.current) {
+      targetRef.current.scrollIntoView({ behavior: "smooth", block: "center" });
+    }
+  }, [loading, targetTier]);
 
   useEffect(() => {
     if (!user) return;
