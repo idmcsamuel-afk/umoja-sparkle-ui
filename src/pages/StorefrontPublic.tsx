@@ -21,16 +21,16 @@ interface Member {
   full_name: string;
   email: string | null;
   phone: string | null;
-  kyc_photo_url: string | null;
   buyers_club_tier: string | null;
   has_buyers_club_access: boolean;
   created_at: string;
 }
 interface Product {
-  id: string;
+  id: number;
   product_name: string | null;
   category: string | null;
   sale_price: number | null;
+  image_url: string | null;
 }
 interface Review {
   id: string;
