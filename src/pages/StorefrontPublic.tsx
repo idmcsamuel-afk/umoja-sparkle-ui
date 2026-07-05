@@ -53,7 +53,7 @@ export default function StorefrontPublic() {
   const [rating, setRating] = useState(5);
   const [text, setText] = useState("");
   const [submitting, setSubmitting] = useState(false);
-  const [signedPhoto, setSignedPhoto] = useState<string | null>(null);
+  
 
   useEffect(() => {
     if (!code) return;
