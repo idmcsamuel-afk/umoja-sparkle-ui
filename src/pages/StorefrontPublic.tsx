@@ -21,16 +21,16 @@ interface Member {
   full_name: string;
   email: string | null;
   phone: string | null;
-  kyc_photo_url: string | null;
   buyers_club_tier: string | null;
   has_buyers_club_access: boolean;
   created_at: string;
 }
 interface Product {
-  id: string;
+  id: number;
   product_name: string | null;
   category: string | null;
   sale_price: number | null;
+  image_url: string | null;
 }
 interface Review {
   id: string;
@@ -53,14 +53,15 @@ export default function StorefrontPublic() {
   const [rating, setRating] = useState(5);
   const [text, setText] = useState("");
   const [submitting, setSubmitting] = useState(false);
-  const [signedPhoto, setSignedPhoto] = useState<string | null>(null);
+  
 
   useEffect(() => {
     if (!code) return;
     (async () => {
       setLoading(true);
+      // NOTE: do NOT select kyc_photo_url — that image is private (POPIA / biometric).
       const { data: m } = await supabase.from("members")
-        .select("id, full_name, email, phone, kyc_photo_url, buyers_club_tier, has_buyers_club_access, created_at")
+        .select("id, full_name, email, phone, buyers_club_tier, has_buyers_club_access, created_at")
         .ilike("referral_code", code).maybeSingle();
       if (!m) { setLoading(false); return; }
       setMember(m as Member);
@@ -72,15 +73,34 @@ export default function StorefrontPublic() {
       // Increment view count (fire and forget)
       void supabase.rpc("increment_storefront_view" as any, { _owner: m.id });
 
-      // Products from spark trade joins
-      const { data: joins } = await supabase.from("spark_trade_joins")
-        .select("shortlist_id").eq("member_id", m.id);
-      const ids = (joins ?? []).map((j: any) => j.shortlist_id);
-      if (ids.length) {
-        const { data: prods } = await supabase.from("spark_trade_shortlist")
-          .select("id, product_name, category, sale_price")
-          .in("id", ids).eq("is_demo", false);
-        setProducts((prods ?? []) as Product[]);
+      // Real products = the opportunities this member has actually reserved.
+      const { data: reservations } = await supabase
+        .from("spark_trade_inventory_reservations" as any)
+        .select("opportunity_id, reservation_status")
+        .eq("member_id", m.id);
+      const oppIds = Array.from(
+        new Set(
+          ((reservations as any[]) ?? [])
+            .filter((r) => r.reservation_status !== "cancelled")
+            .map((r) => Number(r.opportunity_id))
+            .filter((n) => Number.isFinite(n))
+        )
+      );
+      if (oppIds.length) {
+        const { data: opps } = await supabase
+          .from("spark_trade_opportunities")
+          .select("id, product_name, category, suggested_selling_price_zar, product_image_url")
+          .in("id", oppIds as any);
+        const list: Product[] = ((opps as any[]) ?? []).map((o) => ({
+          id: Number(o.id),
+          product_name: o.product_name ?? null,
+          category: o.category ?? null,
+          sale_price: o.suggested_selling_price_zar != null ? Number(o.suggested_selling_price_zar) : null,
+          image_url: o.product_image_url ?? null,
+        }));
+        setProducts(list);
+      } else {
+        setProducts([]);
       }
 
       // Reviews
@@ -97,15 +117,10 @@ export default function StorefrontPublic() {
       }
       setReviews(list);
 
-      // Signed URL for photo if available
-      if (m.kyc_photo_url) {
-        const { data: u } = await supabase.storage.from("kyc-photos").createSignedUrl(m.kyc_photo_url, 3600);
-        setSignedPhoto(u?.signedUrl ?? null);
-      }
-
       setLoading(false);
     })();
   }, [code]);
+
 
   const accent = sf?.accent_color || "#C9A84C";
   const avgRating = useMemo(() => reviews.length ? reviews.reduce((s, r) => s + r.rating, 0) / reviews.length : 0, [reviews]);
@@ -169,15 +184,12 @@ export default function StorefrontPublic() {
       {/* Profile */}
       <div className="mx-auto max-w-4xl px-4 -mt-16 text-center">
         <div className="inline-block">
-          <div className="h-28 w-28 sm:h-32 sm:w-32 rounded-full border-4 border-background overflow-hidden bg-secondary mx-auto"
-               style={{ boxShadow: `0 0 0 3px ${accent}` }}>
-            {signedPhoto ? (
-              <img src={signedPhoto} alt={member.full_name} className="h-full w-full object-cover" />
-            ) : (
-              <div className="grid h-full w-full place-items-center text-2xl font-display">
-                {member.full_name.charAt(0)}
-              </div>
-            )}
+          {/* PRIVACY: never render KYC selfie here. Public avatar = store initial on brand color. */}
+          <div
+            className="h-28 w-28 sm:h-32 sm:w-32 rounded-full border-4 border-background overflow-hidden mx-auto grid place-items-center font-display text-4xl"
+            style={{ boxShadow: `0 0 0 3px ${accent}`, backgroundColor: `${accent}22`, color: accent }}
+          >
+            {(sf.display_name || member.full_name || "?").charAt(0).toUpperCase()}
           </div>
         </div>
         <h1 className="font-display text-3xl mt-4">{sf.display_name || member.full_name}</h1>
@@ -202,7 +214,13 @@ export default function StorefrontPublic() {
           <div className="mt-4 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
             {products.map((p) => (
               <article key={p.id} className="rounded-3xl border border-border bg-gradient-card p-4 flex flex-col">
-                <div className="aspect-square rounded-2xl bg-secondary/40 grid place-items-center text-3xl">📦</div>
+                <div className="aspect-square rounded-2xl bg-secondary/40 overflow-hidden grid place-items-center text-3xl">
+                  {p.image_url ? (
+                    <img src={p.image_url} alt={p.product_name ?? "Product"} loading="lazy" className="h-full w-full object-cover" />
+                  ) : (
+                    <span>📦</span>
+                  )}
+                </div>
                 <h3 className="mt-3 font-medium line-clamp-2">{p.product_name ?? "Product"}</h3>
                 <p className="text-xs text-muted-foreground">{p.category ?? "—"}</p>
                 {typeof p.sale_price === "number" && p.sale_price > 0 && (
