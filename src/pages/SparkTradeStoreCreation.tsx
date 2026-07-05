@@ -333,7 +333,29 @@ export default function SparkTradeStoreCreation() {
           { onConflict: "member_id" }
         );
       if (error) throw error;
-      toast.success("Storefront saved");
+
+      // Also publish to the public `storefronts` table that /shop/:code reads.
+      // Without this, the live URL 404s ("Shop not found").
+      const { error: sfError } = await supabase
+        .from("storefronts")
+        .upsert(
+          {
+            member_id: user.id,
+            display_name: name,
+            bio: store.tagline.trim() || null,
+            accent_color: store.accentColor || "#C9A84C",
+            is_active: true,
+          },
+          { onConflict: "member_id" }
+        );
+      if (sfError) {
+        console.error("[StoreCreation] storefront publish failed", sfError);
+        // Non-fatal: the spark_trade_stores row is saved. Surface a soft warning.
+        toast.warning("Store saved, but public page couldn't be published. Try again.");
+      } else {
+        toast.success("Storefront saved and published");
+      }
+      nav("/spark-trade/onboarding/subscription-recommendation");
       nav("/spark-trade/onboarding/subscription-recommendation");
     } catch (err: any) {
       console.error("[StoreCreation] save failed", err);
