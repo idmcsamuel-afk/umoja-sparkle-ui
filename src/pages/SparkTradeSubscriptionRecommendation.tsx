@@ -101,11 +101,10 @@ export default function SparkTradeSubscriptionRecommendation() {
   const [incomeGoal, setIncomeGoal] = useState<number>(10000);
   const [capital, setCapital] = useState<number | null>(null);
   const [checks, setChecks] = useState<Record<ReadinessKey, boolean>>({
-    businessRegistered: false,
-    supplierContacts: false,
     capitalConfirmed: false,
-    shippingPlan: false,
   });
+  const [understood, setUnderstood] = useState(false);
+
   const [salesChannels, setSalesChannels] = useState<string[]>(["umoja_storefront"]);
   const [showAllTiers, setShowAllTiers] = useState(false);
   const [submitting, setSubmitting] = useState(false);
