@@ -163,6 +163,11 @@ export default function SparkTradeSubscriptionRecommendation() {
           { member_id: user.id, tier, status: "pending" },
           { onConflict: "member_id" }
         );
+      // Persist selected sales channels on the member record
+      await supabase
+        .from("members")
+        .update({ spark_trade_sales_channels: salesChannels } as any)
+        .eq("id", user.id);
       nav("/spark-trade/onboarding/summary", { state: { tier } });
     } catch (err: any) {
       console.error("[Subscription] save tier failed", err);
