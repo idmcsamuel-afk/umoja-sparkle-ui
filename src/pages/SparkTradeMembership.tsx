@@ -311,7 +311,7 @@ export default function SparkTradeMembership() {
                   };
                   return (
                     <>
-                      {showTier("buyers_club") && (
+                      {showTier("buyers_club") && (<div data-tier="buyers_club">
                       <TierCard
                         icon={<Sparkles className="h-5 w-5" />}
                         title="Buyers Club"
