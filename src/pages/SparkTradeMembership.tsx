@@ -369,9 +369,9 @@ export default function SparkTradeMembership() {
                         busy={busyTier === "storefront"}
                         onClick={() => upgrade("storefront")}
                       />
-                      )}
+                      </div>)}
 
-                      {showTier("fulfilled_by_umoja") && (isSA ? (
+                      {showTier("fulfilled_by_umoja") && (<div data-tier="fulfilled_by_umoja">{isSA ? (
                         <TierCard
                           icon={<Truck className="h-5 w-5" />}
                           title="Fulfilled by UMOJA + Storefront + Club"
