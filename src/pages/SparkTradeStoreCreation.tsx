@@ -448,8 +448,9 @@ export default function SparkTradeStoreCreation() {
                   </div>
                 )}
                 <p className="mt-2 text-xs text-muted-foreground">
-                  URL: <span className="font-mono">sparktrade.com/store/{slug}</span>
+                  Live URL: <span className="font-mono">umojarise.com/shop/{(member?.referral_code || "your-code").toLowerCase()}</span>
                 </p>
+
                 {errors.storeName && (
                   <p className="text-destructive text-xs mt-1">{errors.storeName}</p>
                 )}
