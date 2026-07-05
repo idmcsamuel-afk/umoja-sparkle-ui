@@ -293,7 +293,7 @@ export default function SparkTradeSubscriptionRecommendation() {
                 {readinessPct}% complete
               </span>
               <span className="text-muted-foreground">
-                {Object.values(checks).filter(Boolean).length} of {READINESS_ITEMS.length}
+                {readinessDone} of {readinessConditions.length}
               </span>
             </div>
             <Progress value={readinessPct} className="h-2 mt-2" />
@@ -322,8 +322,24 @@ export default function SparkTradeSubscriptionRecommendation() {
                 </div>
               </label>
             ))}
+
+            <label className="flex items-start gap-3 rounded-xl border border-border p-3 cursor-pointer hover:bg-muted/30">
+              <Checkbox
+                checked={understood}
+                onCheckedChange={(v) => setUnderstood(!!v)}
+                className="mt-0.5"
+              />
+              <div className="flex-1">
+                <p className="font-semibold text-sm text-foreground">I understand how it works</p>
+                <p className="text-xs text-muted-foreground">
+                  Stock ships once the group fills (~4–6 weeks). Profit is potential if stock
+                  sells — not guaranteed. UMOJA sources & ships; you focus on selling.
+                </p>
+              </div>
+            </label>
           </div>
         </div>
+
 
         {/* SECTION C — Your sales channels (market-aware) */}
         <div className="rounded-3xl border border-border bg-card shadow-sm p-6 md:p-8 mb-6">
