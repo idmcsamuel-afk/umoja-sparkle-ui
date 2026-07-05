@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Loader2, Star, MessageCircle, Mail, Share2, Copy, Facebook, Twitter } from "lucide-react";
 import { toast } from "sonner";
+import { Logo } from "@/components/umoja/Logo";
 
 interface Storefront {
   member_id: string;
