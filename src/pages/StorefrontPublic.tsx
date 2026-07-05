@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Loader2, Star, MessageCircle, Mail, Share2, Copy, Facebook, Twitter } from "lucide-react";
 import { toast } from "sonner";
+import { Logo } from "@/components/umoja/Logo";
 
 interface Storefront {
   member_id: string;
@@ -176,8 +177,23 @@ export default function StorefrontPublic() {
 
   return (
     <div className="min-h-screen bg-background pb-24 sm:pb-10">
+      {/* Unified UMOJA Spark Trade brand header — present on every member storefront.
+          TODO(paid-upgrade): allow custom-domain plans to hide/replace this bar. */}
+      <div className="w-full border-b border-border/60 bg-background/95 backdrop-blur sticky top-0 z-30">
+        <div className="mx-auto max-w-5xl px-4 py-2 flex items-center justify-between">
+          <Link to="/" className="flex items-center gap-2 group">
+            <Logo showWord={false} className="scale-90" />
+            <span className="text-[11px] uppercase tracking-[0.18em] font-semibold text-muted-foreground group-hover:text-foreground transition-smooth">
+              UMOJA <span className="text-accent">Spark Trade</span>
+            </span>
+          </Link>
+          <span className="hidden sm:inline text-[10px] uppercase tracking-wider text-muted-foreground">Verified member store</span>
+        </div>
+      </div>
+
       {/* Banner */}
       <div className="w-full aspect-[4/1] sm:aspect-[5/1] bg-gradient-to-br from-primary/30 to-accent/20 overflow-hidden">
+
         {sf.banner_url && <img src={sf.banner_url} alt="" className="h-full w-full object-cover" />}
       </div>
 
@@ -224,7 +240,7 @@ export default function StorefrontPublic() {
                 <h3 className="mt-3 font-medium line-clamp-2">{p.product_name ?? "Product"}</h3>
                 <p className="text-xs text-muted-foreground">{p.category ?? "—"}</p>
                 {typeof p.sale_price === "number" && p.sale_price > 0 && (
-                  <p className="mt-1 font-display text-lg" style={{ color: accent }}>R{p.sale_price.toFixed(2)}</p>
+                  <p className="mt-1 font-display text-2xl font-bold text-foreground tracking-tight">R{p.sale_price.toFixed(2)}</p>
                 )}
                 <Button onClick={() => contactWhatsapp(p.product_name ?? undefined)}
                   className="mt-auto rounded-2xl"
@@ -277,10 +293,21 @@ export default function StorefrontPublic() {
       </div>
 
       {/* Footer */}
-      <div className="mx-auto max-w-3xl px-4 mt-16 text-center text-xs text-muted-foreground">
-        <p>Powered by <Link to="/" className="text-accent hover:underline">UMOJA Rise</Link></p>
-        <p className="mt-1">Want your own shop? <Link to="/spark" className="text-accent hover:underline">Join Gold tier →</Link></p>
+      <div className="mx-auto max-w-3xl px-4 mt-16">
+        <div className="rounded-3xl border border-border bg-gradient-card p-5 flex flex-col sm:flex-row items-center gap-4 text-center sm:text-left">
+          <Logo showWord={false} />
+          <div className="flex-1">
+            <p className="text-sm font-semibold">Powered by UMOJA <span className="text-accent">Spark Trade</span></p>
+            <p className="text-xs text-muted-foreground mt-1">
+              Every Spark Trade store is run by a verified UMOJA member and backed by our group-buying network.
+            </p>
+          </div>
+          <Link to="/spark" className="text-xs font-semibold text-accent hover:underline whitespace-nowrap">
+            Open your store →
+          </Link>
+        </div>
       </div>
+
 
       {/* Sticky share bar (mobile) / inline (desktop) */}
       <div className="fixed bottom-0 inset-x-0 sm:static sm:max-w-3xl sm:mx-auto sm:mt-6 z-40 border-t sm:border border-border bg-background/95 backdrop-blur sm:rounded-2xl sm:bg-gradient-card">
