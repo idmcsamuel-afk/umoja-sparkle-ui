@@ -61,13 +61,48 @@ export default function SparkTradeDashboard() {
         supabase.from("spark_trade_blueprints" as any).select("*").eq("member_id", user.id).maybeSingle(),
         supabase.from("spark_trade_stores" as any).select("*").eq("member_id", user.id).maybeSingle(),
         supabase.from("spark_trade_inventory_reservations" as any)
-          .select("*, spark_trade_opportunities(product_name, expected_order_date, expected_arrival_date)")
+          .select("*, spark_trade_opportunities(product_name, moq_required, air_available, expected_order_date, expected_arrival_date)")
           .eq("member_id", user.id)
           .order("created_at", { ascending: false }),
       ]);
       setBlueprint((bp as any).data);
       setStore((st as any).data);
-      setReservations(((res as any).data as any[]) ?? []);
+      const rows = ((res as any).data as any[]) ?? [];
+      setReservations(rows);
+
+      // Build fill map: aggregate ALL reservations across the opportunities this member holds
+      const oppIds = Array.from(new Set(rows.map((r) => r.opportunity_id))).filter(Boolean);
+      if (oppIds.length) {
+        const { data: allRes } = await supabase
+          .from("spark_trade_inventory_reservations" as any)
+          .select("opportunity_id, units_reserved, reservation_status, reserved_at, created_at")
+          .in("opportunity_id", oppIds as any)
+          .order("reserved_at", { ascending: true, nullsFirst: true });
+        const byOpp: Record<string, { moq: number; reserved: number; airAvailable: boolean; filledAt: string | null }> = {};
+        for (const r of rows) {
+          const opp = r.spark_trade_opportunities || {};
+          byOpp[String(r.opportunity_id)] = {
+            moq: Number(opp.moq_required ?? 0) || 0,
+            reserved: 0,
+            airAvailable: !!opp.air_available,
+            filledAt: null,
+          };
+        }
+        for (const a of (allRes as any[]) ?? []) {
+          const key = String(a.opportunity_id);
+          const entry = byOpp[key];
+          if (!entry) continue;
+          if (a.reservation_status === "cancelled") continue;
+          const prev = entry.reserved;
+          entry.reserved = prev + (Number(a.units_reserved) || 0);
+          if (!entry.filledAt && entry.moq > 0 && prev < entry.moq && entry.reserved >= entry.moq) {
+            entry.filledAt = a.reserved_at || a.created_at || null;
+          }
+        }
+        setFillByOpp(byOpp);
+      } else {
+        setFillByOpp({});
+      }
       setLoading(false);
     })();
   }, [user]);
