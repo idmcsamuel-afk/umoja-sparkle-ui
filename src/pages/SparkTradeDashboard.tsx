@@ -25,6 +25,7 @@ export default function SparkTradeDashboard() {
   const [blueprint, setBlueprint] = useState<any>(null);
   const [store, setStore] = useState<any>(null);
   const [reservations, setReservations] = useState<any[]>([]);
+  const [fillByOpp, setFillByOpp] = useState<Record<string, { moq: number; reserved: number; airAvailable: boolean; filledAt: string | null }>>({});
   const [memberProfile, setMemberProfile] = useState<any>(null);
 
   useEffect(() => {
