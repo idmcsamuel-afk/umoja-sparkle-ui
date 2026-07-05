@@ -176,8 +176,23 @@ export default function StorefrontPublic() {
 
   return (
     <div className="min-h-screen bg-background pb-24 sm:pb-10">
+      {/* Unified UMOJA Spark Trade brand header — present on every member storefront.
+          TODO(paid-upgrade): allow custom-domain plans to hide/replace this bar. */}
+      <div className="w-full border-b border-border/60 bg-background/95 backdrop-blur sticky top-0 z-30">
+        <div className="mx-auto max-w-5xl px-4 py-2 flex items-center justify-between">
+          <Link to="/" className="flex items-center gap-2 group">
+            <Logo showWord={false} className="scale-90" />
+            <span className="text-[11px] uppercase tracking-[0.18em] font-semibold text-muted-foreground group-hover:text-foreground transition-smooth">
+              UMOJA <span className="text-accent">Spark Trade</span>
+            </span>
+          </Link>
+          <span className="hidden sm:inline text-[10px] uppercase tracking-wider text-muted-foreground">Verified member store</span>
+        </div>
+      </div>
+
       {/* Banner */}
       <div className="w-full aspect-[4/1] sm:aspect-[5/1] bg-gradient-to-br from-primary/30 to-accent/20 overflow-hidden">
+
         {sf.banner_url && <img src={sf.banner_url} alt="" className="h-full w-full object-cover" />}
       </div>
 
