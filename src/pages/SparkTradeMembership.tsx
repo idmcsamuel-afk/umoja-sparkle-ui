@@ -364,7 +364,7 @@ export default function SparkTradeMembership() {
                             `Profit: ${formatCurrency(profit, config.currency_code)} (${margin}% margin)`,
                           ];
                         })()}
-                        cta={ctaFor("storefront", "Upgrade to Storefront", sfPrice)}
+                        cta={ctaFor("storefront", "Upgrade to Pro Trader", sfPrice)}
                         disabled={current?.tier === "storefront"}
                         busy={busyTier === "storefront"}
                         onClick={() => upgrade("storefront")}
