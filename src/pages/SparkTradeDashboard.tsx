@@ -25,6 +25,7 @@ export default function SparkTradeDashboard() {
   const [blueprint, setBlueprint] = useState<any>(null);
   const [store, setStore] = useState<any>(null);
   const [reservations, setReservations] = useState<any[]>([]);
+  const [fillByOpp, setFillByOpp] = useState<Record<string, { moq: number; reserved: number; airAvailable: boolean; filledAt: string | null }>>({});
   const [memberProfile, setMemberProfile] = useState<any>(null);
 
   useEffect(() => {
@@ -60,13 +61,48 @@ export default function SparkTradeDashboard() {
         supabase.from("spark_trade_blueprints" as any).select("*").eq("member_id", user.id).maybeSingle(),
         supabase.from("spark_trade_stores" as any).select("*").eq("member_id", user.id).maybeSingle(),
         supabase.from("spark_trade_inventory_reservations" as any)
-          .select("*, spark_trade_opportunities(product_name, expected_order_date, expected_arrival_date)")
+          .select("*, spark_trade_opportunities(product_name, moq_required, air_available, expected_order_date, expected_arrival_date)")
           .eq("member_id", user.id)
           .order("created_at", { ascending: false }),
       ]);
       setBlueprint((bp as any).data);
       setStore((st as any).data);
-      setReservations(((res as any).data as any[]) ?? []);
+      const rows = ((res as any).data as any[]) ?? [];
+      setReservations(rows);
+
+      // Build fill map: aggregate ALL reservations across the opportunities this member holds
+      const oppIds = Array.from(new Set(rows.map((r) => r.opportunity_id))).filter(Boolean);
+      if (oppIds.length) {
+        const { data: allRes } = await supabase
+          .from("spark_trade_inventory_reservations" as any)
+          .select("opportunity_id, units_reserved, reservation_status, reserved_at, created_at")
+          .in("opportunity_id", oppIds as any)
+          .order("reserved_at", { ascending: true, nullsFirst: true });
+        const byOpp: Record<string, { moq: number; reserved: number; airAvailable: boolean; filledAt: string | null }> = {};
+        for (const r of rows) {
+          const opp = r.spark_trade_opportunities || {};
+          byOpp[String(r.opportunity_id)] = {
+            moq: Number(opp.moq_required ?? 0) || 0,
+            reserved: 0,
+            airAvailable: !!opp.air_available,
+            filledAt: null,
+          };
+        }
+        for (const a of (allRes as any[]) ?? []) {
+          const key = String(a.opportunity_id);
+          const entry = byOpp[key];
+          if (!entry) continue;
+          if (a.reservation_status === "cancelled") continue;
+          const prev = entry.reserved;
+          entry.reserved = prev + (Number(a.units_reserved) || 0);
+          if (!entry.filledAt && entry.moq > 0 && prev < entry.moq && entry.reserved >= entry.moq) {
+            entry.filledAt = a.reserved_at || a.created_at || null;
+          }
+        }
+        setFillByOpp(byOpp);
+      } else {
+        setFillByOpp({});
+      }
       setLoading(false);
     })();
   }, [user]);
@@ -181,34 +217,80 @@ export default function SparkTradeDashboard() {
             {reservations.length === 0 ? (
               <Card className="p-8 text-center text-muted-foreground">No reservations yet.</Card>
             ) : (
-              <Card className="overflow-x-auto">
-                <Table>
-                  <TableHeader>
-                    <TableRow>
-                      <TableHead>Product</TableHead>
-                      <TableHead>Units</TableHead>
-                      <TableHead>Capital</TableHead>
-                      <TableHead>Status</TableHead>
-                      <TableHead>Order date</TableHead>
-                      <TableHead>Arrival</TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {reservations.map((r) => (
-                      <TableRow key={r.id}>
-                        <TableCell className="font-medium">{r.spark_trade_opportunities?.product_name ?? `#${r.opportunity_id}`}</TableCell>
-                        <TableCell>{r.units_reserved}</TableCell>
-                        <TableCell>{fmtMoney(Number(r.total_capital_allocated), config)}</TableCell>
-                        <TableCell><Badge variant={r.reservation_status === "received" ? "default" : "secondary"}>{r.reservation_status}</Badge></TableCell>
-                        <TableCell>{r.spark_trade_opportunities?.expected_order_date ? new Date(r.spark_trade_opportunities.expected_order_date).toLocaleDateString() : "—"}</TableCell>
-                        <TableCell>{r.spark_trade_opportunities?.expected_arrival_date ? new Date(r.spark_trade_opportunities.expected_arrival_date).toLocaleDateString() : "—"}</TableCell>
-                      </TableRow>
-                    ))}
-                  </TableBody>
-                </Table>
-              </Card>
+              <div className="space-y-3">
+                {reservations.map((r) => {
+                  const fill = fillByOpp[String(r.opportunity_id)] ?? { moq: 0, reserved: 0, airAvailable: false, filledAt: null };
+                  const filled = fill.moq > 0 && fill.reserved >= fill.moq;
+                  const pct = fill.moq > 0 ? Math.min(100, Math.round((fill.reserved / fill.moq) * 100)) : 0;
+                  const placedAt = r.created_at ? new Date(r.created_at) : null;
+                  // Arrival estimate: 5 weeks (sea) or 10 days (air) from filled_at
+                  const useAir = fill.airAvailable; // per-reservation air flag not tracked; opp-level flag as best signal
+                  const filledDate = fill.filledAt ? new Date(fill.filledAt) : null;
+                  const arrival = filledDate
+                    ? new Date(filledDate.getTime() + (useAir ? 10 : 35) * 86400000)
+                    : null;
+                  return (
+                    <Card key={r.id} className="p-4">
+                      <div className="flex flex-wrap items-start justify-between gap-3">
+                        <div className="min-w-0">
+                          <p className="font-medium">{r.spark_trade_opportunities?.product_name ?? `#${r.opportunity_id}`}</p>
+                          <p className="text-xs text-muted-foreground mt-0.5">
+                            {r.units_reserved} units · {fmtMoney(Number(r.total_capital_allocated), config)}
+                          </p>
+                          <p className="text-xs text-muted-foreground mt-0.5">
+                            Order placed: {placedAt ? placedAt.toLocaleDateString() : "—"}
+                          </p>
+                        </div>
+                        <Badge variant={r.reservation_status === "received" ? "default" : "secondary"}>
+                          {r.reservation_status}
+                        </Badge>
+                      </div>
+
+                      {fill.moq > 0 && (
+                        <div className="mt-3">
+                          <div className="flex justify-between text-xs mb-1">
+                            <span className="font-medium">
+                              {filled ? "Group order filled" : "Group order filling"}
+                            </span>
+                            <span className="text-muted-foreground">
+                              {fill.reserved.toLocaleString()} / {fill.moq.toLocaleString()} units ({pct}%)
+                            </span>
+                          </div>
+                          <div className="h-2 w-full overflow-hidden rounded-full bg-secondary">
+                            <div
+                              className={`h-full ${filled ? "bg-green-500" : "bg-primary"} transition-all`}
+                              style={{ width: `${pct}%` }}
+                            />
+                          </div>
+                        </div>
+                      )}
+
+                      <div className="mt-3 rounded-lg bg-muted/40 px-3 py-2 text-xs">
+                        {!filled ? (
+                          <>
+                            <p className="font-medium">Ships once the group order fills</p>
+                            <p className="text-muted-foreground mt-0.5">
+                              Estimated 4–6 weeks after fill (sea freight). Invite others to help fill this order faster.
+                            </p>
+                          </>
+                        ) : (
+                          <>
+                            <p className="font-medium">
+                              Group order filled on {filledDate!.toLocaleDateString()} — sourcing started.
+                            </p>
+                            <p className="text-muted-foreground mt-0.5">
+                              Estimated arrival {arrival!.toLocaleDateString()} ({useAir ? "~1–2 weeks air" : "~5 weeks sea"}).
+                            </p>
+                          </>
+                        )}
+                      </div>
+                    </Card>
+                  );
+                })}
+              </div>
             )}
           </TabsContent>
+
 
           <TabsContent value="opportunities" className="mt-6">
             <SparkTradeProductOpportunities />
