@@ -1,5 +1,5 @@
-import { useEffect, useState } from "react";
-import { Link, useNavigate } from "react-router-dom";
+import { useEffect, useMemo, useRef, useState } from "react";
+import { Link, useNavigate, useSearchParams } from "react-router-dom";
 import { ArrowLeft, Check, Loader2, Sparkles, Store, Truck } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
@@ -31,6 +31,31 @@ export default function SparkTradeMembership() {
   const [current, setCurrent] = useState<Membership | null>(null);
   const [loading, setLoading] = useState(true);
   const [busyTier, setBusyTier] = useState<Tier | null>(null);
+  const [searchParams] = useSearchParams();
+
+  // Normalize ?upgrade=<key> from blueprint nudge & elsewhere to internal Tier keys.
+  const targetTier: Tier | null = useMemo(() => {
+    const raw = (searchParams.get("upgrade") || "").toLowerCase();
+    const map: Record<string, Tier> = {
+      "buyers_club": "buyers_club",
+      "buyers-club": "buyers_club",
+      "pro": "storefront",
+      "storefront": "storefront",
+      "spark-trade-pro": "storefront",
+      "fulfilled": "fulfilled_by_umoja",
+      "fulfilled_by_umoja": "fulfilled_by_umoja",
+      "fulfilled-by-umoja": "fulfilled_by_umoja",
+    };
+    return map[raw] ?? null;
+  }, [searchParams]);
+
+  const targetRef = useRef<HTMLDivElement | null>(null);
+  useEffect(() => {
+    if (!loading && targetTier) {
+      const el = document.querySelector(`[data-tier="${targetTier}"]`);
+      if (el) el.scrollIntoView({ behavior: "smooth", block: "center" });
+    }
+  }, [loading, targetTier]);
 
   useEffect(() => {
     if (!user) return;
@@ -59,8 +84,18 @@ export default function SparkTradeMembership() {
     amountLocal: number,
     localCurrency: string,
   ) => {
-    const nextPayment = new Date();
-    nextPayment.setMonth(nextPayment.getMonth() + 1);
+    // On upgrade (existing active paid tier), preserve billing cycle:
+    //   keep the original membership_start_date AND next_payment_date.
+    // On a fresh subscription, start a new cycle: now → now+1 month.
+    const isMidCycleUpgrade =
+      !!current && current.status === "active" && !!current.next_payment_date;
+    const startDate = isMidCycleUpgrade
+      ? current!.membership_start_date
+      : new Date().toISOString();
+    const nextPayment = isMidCycleUpgrade
+      ? current!.next_payment_date!
+      : (() => { const d = new Date(); d.setMonth(d.getMonth() + 1); return d.toISOString(); })();
+
     const { error } = await supabase
       .from("product_memberships" as any)
       .upsert({
@@ -68,8 +103,8 @@ export default function SparkTradeMembership() {
         product: "spark_trade",
         tier,
         status: "active",
-        membership_start_date: new Date().toISOString(),
-        next_payment_date: nextPayment.toISOString(),
+        membership_start_date: startDate,
+        next_payment_date: nextPayment,
         paystack_reference: reference,
         payment_status: "success",
         amount_paid_zar: amountZar,
@@ -82,8 +117,8 @@ export default function SparkTradeMembership() {
     }
     setCurrent({
       tier, status: "active",
-      membership_start_date: new Date().toISOString(),
-      next_payment_date: nextPayment.toISOString(),
+      membership_start_date: startDate,
+      next_payment_date: nextPayment,
     });
     return true;
   };
@@ -228,6 +263,26 @@ export default function SparkTradeMembership() {
                   </p>
                 </div>
               )}
+
+              {/* Explicit upgrade prompt when arriving via ?upgrade=<tier> */}
+              {targetTier && current && current.status === "active" && (() => {
+                const { chargeZar, isUpgrade } = computeChargeZar(targetTier);
+                if (!isUpgrade) return null;
+                const curZar = calculateTierPrice(tierKeyMap[current.tier], "ZAR") ?? 0;
+                return (
+                  <div className="mt-4 rounded-2xl border border-accent/60 bg-gradient-primary/10 p-4 shadow-gold">
+                    <p className="text-[10px] uppercase tracking-[0.22em] text-accent">Upgrade credit applied</p>
+                    <p className="mt-1 text-sm text-foreground/90">
+                      You're on <strong>{tierLabel[current.tier]}</strong> (R{curZar}). Upgrade to{" "}
+                      <strong>{tierLabel[targetTier]}</strong> — pay only the <strong>R{chargeZar} difference</strong>.
+                    </p>
+                    <p className="mt-1 text-[11px] text-muted-foreground">
+                      Your next payment date stays the same. At renewal you'll pay the full {tierLabel[targetTier]} price.
+                    </p>
+                  </div>
+                );
+              })()}
+
               {current && currentRank < 3 && (
                 <p className="mt-6 text-sm font-medium text-foreground/90">Upgrade to a higher tier:</p>
               )}
@@ -256,7 +311,7 @@ export default function SparkTradeMembership() {
                   };
                   return (
                     <>
-                      {showTier("buyers_club") && (
+                      {showTier("buyers_club") && (<div data-tier="buyers_club">
                       <TierCard
                         icon={<Sparkles className="h-5 w-5" />}
                         title="Buyers Club"
@@ -274,9 +329,9 @@ export default function SparkTradeMembership() {
                         busy={busyTier === "buyers_club"}
                         onClick={() => upgrade("buyers_club")}
                       />
-                      )}
+                      </div>)}
 
-                      {showTier("storefront") && (
+                      {showTier("storefront") && (<div data-tier="storefront">
                       <TierCard
                         icon={<Store className="h-5 w-5" />}
                         title="Storefront + Buyers Club"
@@ -314,9 +369,9 @@ export default function SparkTradeMembership() {
                         busy={busyTier === "storefront"}
                         onClick={() => upgrade("storefront")}
                       />
-                      )}
+                      </div>)}
 
-                      {showTier("fulfilled_by_umoja") && (isSA ? (
+                      {showTier("fulfilled_by_umoja") && (<div data-tier="fulfilled_by_umoja">{isSA ? (
                         <TierCard
                           icon={<Truck className="h-5 w-5" />}
                           title="Fulfilled by UMOJA + Storefront + Club"
@@ -350,7 +405,7 @@ export default function SparkTradeMembership() {
                           <p className="text-xs text-muted-foreground">Available in South Africa only</p>
                           <p className="text-[11px] text-muted-foreground mt-1">Coming to {config.country_name ?? "your country"} soon</p>
                         </div>
-                      ))}
+                      )}</div>)}
                     </>
                   );
                 })()}
