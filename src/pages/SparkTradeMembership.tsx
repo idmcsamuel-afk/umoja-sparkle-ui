@@ -334,7 +334,7 @@ export default function SparkTradeMembership() {
                       {showTier("storefront") && (<div data-tier="storefront">
                       <TierCard
                         icon={<Store className="h-5 w-5" />}
-                        title="Storefront + Buyers Club"
+                        title="Pro Trader"
                         badge="All countries"
                         highlight
                         priceLines={priceLinesFor("storefront", localCcy)}
