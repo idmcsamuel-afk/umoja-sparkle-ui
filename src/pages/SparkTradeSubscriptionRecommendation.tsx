@@ -118,12 +118,14 @@ export default function SparkTradeSubscriptionRecommendation() {
     (async () => {
       const { data } = await supabase
         .from("members")
-        .select("spark_trade_income_goal, spark_trade_capital")
+        .select("spark_trade_income_goal, spark_trade_capital, spark_trade_sales_channels")
         .eq("id", user.id)
         .maybeSingle();
       if (data) {
         setIncomeGoal((data as any).spark_trade_income_goal ?? 10000);
         setCapital((data as any).spark_trade_capital ?? null);
+        const saved = (data as any).spark_trade_sales_channels as string[] | null;
+        if (saved && saved.length > 0) setSalesChannels(saved);
       }
     })();
   }, [user]);
