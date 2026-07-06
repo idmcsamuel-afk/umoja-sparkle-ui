@@ -185,28 +185,34 @@ export default function AdminNotifications() {
 
     setBusy(true);
 
-    // For "all members" use the dedicated bulk endpoint (simpler, more reliable).
+    // For "all members" use the dedicated bulk endpoint (batched, dedup by campaign=subject).
     if (audience === "all") {
       const { data: preview, error: previewErr } = await supabase.functions.invoke("send-bulk-email", {
-        body: { preview: true },
+        body: { preview: true, subject, campaign_id: subject, batch_size: batchSize },
       });
-      if (previewErr || !preview?.count) {
+      if (previewErr || !preview || preview.error) {
         setBusy(false);
         return toast.error("Could not load recipients: " + (previewErr?.message ?? preview?.error ?? "no members found"));
       }
-      if (!confirm(`This email will be sent to ${preview.count} member${preview.count === 1 ? "" : "s"}.\n\nProceed?`)) {
+      const nextN = preview.next_batch_size as number;
+      if (nextN === 0) {
         setBusy(false);
-        return;
+        return toast.info(`All ${preview.total} recipients already received this campaign.`);
       }
+      const msg = `Send next batch: ${nextN} email${nextN === 1 ? "" : "s"}\n\n` +
+        `Progress: ${preview.already_sent} of ${preview.total} sent · ${preview.remaining} remaining\n` +
+        `Throttle: ~${Math.round(60000 / Math.max(throttleMs, 1))}/min\n\n` +
+        `Campaign key (subject): "${subject}"\nProceed?`;
+      if (!confirm(msg)) { setBusy(false); return; }
       const { data, error } = await supabase.functions.invoke("send-bulk-email", {
-        body: { subject, body, preview: false },
+        body: { subject, body, campaign_id: subject, batch_size: batchSize, throttle_ms: throttleMs },
       });
       setBusy(false);
       if (error || !data || data.error) return toast.error("Send failed: " + (error?.message ?? data?.error));
-      toast.success(`Sent to ${data.sent}/${data.total}${data.failed ? ` · ${data.failed} failed` : ""}`);
+      toast.success(`Sent ${data.sent}/${data.batch_size}${data.failed ? ` · ${data.failed} failed` : ""} · ${data.remaining} remaining`);
       if (data.failed > 0) console.warn("[bulk] failed emails:", data.failedEmails);
-      clearDraft();
       loadLogs();
+      loadCampaignProgress();
       return;
     }
 
