@@ -109,7 +109,7 @@ export default function SparkTradeBusinessPreference() {
     !!prefs.marketplaceExperience &&
     prefs.purchasedFrom.length > 0 &&
     prefs.capital !== null &&
-    prefs.capital >= 1000;
+    prefs.capital >= 2500;
 
   const togglePurchasedFrom = (value: string) => {
     setPrefs((prev) => {
