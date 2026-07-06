@@ -135,6 +135,7 @@ const App = () => (
             <RouteTitle />
             <Routes>
               <Route path="/" element={<Landing />} />
+              <Route path="/.lovable/oauth/consent" element={<OAuthConsent />} />
               <Route path="/login" element={<Login />} />
               <Route path="/signup" element={<Signup />} />
               <Route path="/forgot-password" element={<ForgotPassword />} />
