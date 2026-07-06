@@ -109,7 +109,7 @@ export default function SparkTradeBusinessPreference() {
     !!prefs.marketplaceExperience &&
     prefs.purchasedFrom.length > 0 &&
     prefs.capital !== null &&
-    prefs.capital >= 1000;
+    prefs.capital >= 2500;
 
   const togglePurchasedFrom = (value: string) => {
     setPrefs((prev) => {
@@ -128,7 +128,7 @@ export default function SparkTradeBusinessPreference() {
     if (!prefs.stockPreference) e.stockPreference = "Required";
     if (!prefs.marketplaceExperience) e.marketplaceExperience = "Required";
     if (prefs.purchasedFrom.length === 0) e.purchasedFrom = "Select at least one";
-    if (prefs.capital === null || prefs.capital < 1000) e.capital = "Minimum capital required is R1,000";
+    if (prefs.capital === null || prefs.capital < 2500) e.capital = "Minimum capital required is R2,500";
     setErrors(e);
     if (Object.keys(e).length > 0 || !user) return;
 
@@ -310,7 +310,7 @@ export default function SparkTradeBusinessPreference() {
               <Label className="text-sm font-semibold">Capital Available (ZAR)</Label>
               <Input
                 type="number"
-                min={1000}
+                min={2500}
                 placeholder="e.g., 2500"
                 value={prefs.capital ?? ""}
                 onChange={(e) =>
@@ -322,7 +322,7 @@ export default function SparkTradeBusinessPreference() {
                 className="mt-2 h-11 rounded-xl"
               />
               <p className="text-xs text-muted-foreground mt-1">
-                Initial capital available for first inventory (min R1,000)
+                Initial capital available for first inventory (min R2,500)
               </p>
               {errors.capital && (
                 <p className="text-destructive text-xs mt-1">{errors.capital}</p>

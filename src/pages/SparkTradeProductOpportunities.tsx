@@ -38,6 +38,8 @@ import {
   useMemberTier,
   tierLabel,
   fmtZar,
+  normalizeTier,
+  productLimitForTier,
 } from "@/lib/sparkTradeMoq";
 import {
   SparkTradeCartProvider,
@@ -262,7 +264,38 @@ function SparkTradeProductOpportunities() {
           </Button>
         </div>
 
-        {/* Category buttons */}
+        {(() => {
+          const currentTier = normalizeTier(tier);
+          const total = items.length;
+          const shown = Math.min(total, productLimit);
+          if (currentTier === "fulfilled" || total <= productLimit) return null;
+          const nextTier: "pro" | "fulfilled" = currentTier === "pro" ? "fulfilled" : "pro";
+          const nextLimit = productLimitForTier(nextTier);
+          const nextLabel = nextTier === "fulfilled" ? "Fulfilled by UMOJA" : "Pro Trader";
+          const diff = nextTier === "fulfilled" ? 1000 : 500;
+          const more = Math.min(total, nextLimit) - shown;
+          return (
+            <div className="mt-4 rounded-2xl border border-primary/40 bg-gradient-to-r from-primary/10 via-primary/5 to-transparent p-4 flex flex-col sm:flex-row sm:items-center gap-3 justify-between">
+              <div className="flex items-start gap-3">
+                <div className="grid h-10 w-10 shrink-0 place-items-center rounded-xl bg-primary/15 text-primary">
+                  <Crown className="h-5 w-5" />
+                </div>
+                <div className="text-sm">
+                  <p className="font-semibold">
+                    You're seeing {shown} of {total} products on {tierLabel(tier)}.
+                  </p>
+                  <p className="text-muted-foreground text-xs mt-0.5">
+                    Upgrade to {nextLabel} to unlock {more} more product{more === 1 ? "" : "s"} — pay only the R{diff.toLocaleString()} difference.
+                  </p>
+                </div>
+              </div>
+              <Button size="sm" onClick={() => navigate("/spark-trade/membership")} className="shrink-0">
+                Upgrade to {nextLabel} <ArrowRight className="ml-1.5 h-3.5 w-3.5" />
+              </Button>
+            </div>
+          );
+        })()}
+
         <div className="mt-6 flex flex-wrap gap-2">
           {CATEGORIES.map((c) => {
             const active = c === category;
