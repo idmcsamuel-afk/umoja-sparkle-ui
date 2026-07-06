@@ -64,6 +64,7 @@ import AdminDashboard from "./pages/admin/AdminDashboard";
 import AdminMembers from "./pages/admin/AdminMembers";
 import AdminCircles from "./pages/admin/AdminCircles";
 import AdminSparkTrade from "./pages/admin/AdminSparkTrade";
+import AdminSparkTradeOrders from "./pages/admin/AdminSparkTradeOrders";
 import AdminDrive from "./pages/admin/AdminDrive";
 import AdminPredictor from "./pages/admin/AdminPredictor";
 import AdminKycReview from "./pages/admin/AdminKycReview";
@@ -210,6 +211,7 @@ const App = () => (
                 <Route path="members" element={<AdminMembers />} />
                 <Route path="circles" element={<AdminCircles />} />
                 <Route path="spark-trade" element={<AdminSparkTrade />} />
+                <Route path="spark-trade-orders" element={<AdminSparkTradeOrders />} />
                 <Route path="drive" element={<AdminDrive />} />
                 <Route path="predictor" element={<AdminPredictor />} />
                 <Route path="kyc-review" element={<AdminKycReview />} />
