@@ -366,12 +366,67 @@ export default function AdminNotifications() {
           )}
         </div>
 
+        {audience === "all" && (
+          <div className="rounded-2xl border border-border bg-background/40 p-4 space-y-3">
+            <div className="flex items-center justify-between">
+              <div className="text-sm font-medium">Batched sending (domain warm-up)</div>
+              <Button size="sm" variant="ghost" onClick={loadCampaignProgress} className="rounded-xl h-7 text-xs" disabled={progressLoading || !subject.trim()}>
+                <RefreshCw className={`h-3 w-3 ${progressLoading ? "animate-spin" : ""}`} /> Refresh
+              </Button>
+            </div>
+            <div className="grid sm:grid-cols-2 gap-3">
+              <div>
+                <Label className="text-xs uppercase tracking-wider text-muted-foreground">Batch size</Label>
+                <Input type="number" min={1} max={500} value={batchSize}
+                  onChange={(e) => setBatchSize(Math.max(1, Math.min(500, Number(e.target.value) || 1)))}
+                  className="mt-1 rounded-2xl" />
+              </div>
+              <div>
+                <Label className="text-xs uppercase tracking-wider text-muted-foreground">
+                  Delay between emails (ms)
+                </Label>
+                <Input type="number" min={0} max={10000} step={100} value={throttleMs}
+                  onChange={(e) => setThrottleMs(Math.max(0, Math.min(10000, Number(e.target.value) || 0)))}
+                  className="mt-1 rounded-2xl" />
+                <p className="text-[10px] text-muted-foreground mt-1">
+                  ≈ {throttleMs > 0 ? Math.round(60000 / throttleMs) : "∞"} emails/min
+                </p>
+              </div>
+            </div>
+            {subject.trim() ? (
+              campaignProgress ? (
+                <div className="rounded-xl bg-primary/5 border border-primary/20 p-3 text-sm">
+                  <div className="font-medium">
+                    Sent {campaignProgress.already_sent} of {campaignProgress.total} — {campaignProgress.remaining} remaining
+                  </div>
+                  <div className="text-xs text-muted-foreground mt-1">
+                    Next batch will send to {campaignProgress.next_batch_size} recipient{campaignProgress.next_batch_size === 1 ? "" : "s"} who haven't received this campaign yet.
+                    Campaign is tracked by subject: <code className="text-[11px]">"{subject}"</code>
+                  </div>
+                  {campaignProgress.total > 0 && (
+                    <div className="mt-2 h-1.5 rounded-full bg-muted overflow-hidden">
+                      <div className="h-full bg-primary transition-all" style={{ width: `${Math.round((campaignProgress.already_sent / campaignProgress.total) * 100)}%` }} />
+                    </div>
+                  )}
+                </div>
+              ) : (
+                <div className="text-xs text-muted-foreground">{progressLoading ? "Loading progress…" : "No progress data yet."}</div>
+              )
+            ) : (
+              <div className="text-xs text-muted-foreground">Enter a subject to see progress. Dedup key = subject line.</div>
+            )}
+          </div>
+        )}
+
         <div className="flex flex-wrap gap-2">
           <Button variant="outline" onClick={sendTest} disabled={busy} className="rounded-2xl">
             {busy ? <Loader2 className="h-4 w-4 animate-spin" /> : <Mail className="h-4 w-4" />} Send Test to Myself
           </Button>
           <Button onClick={sendBlast} disabled={busy} className="rounded-2xl bg-gradient-gold text-amber-950">
-            {busy ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />} Send to Recipients
+            {busy ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />}
+            {audience === "all" && campaignProgress
+              ? ` Send next batch (${campaignProgress.next_batch_size})`
+              : " Send to Recipients"}
           </Button>
         </div>
       </section>
