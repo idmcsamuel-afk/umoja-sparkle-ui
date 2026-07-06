@@ -734,16 +734,20 @@ Deno.serve(async (req) => {
       console.warn("[verify] metadata member_id mismatch", { metaMemberId, authUser: u.user.id });
     }
 
-    const kind = metaPaymentType
-      ? (metaPaymentType.includes("group_brand") ? "GBI"
-        : metaPaymentType.includes("spark_trade_subscription") || metaPaymentType === "spark_trade_membership" ? "STSUB"
-        : metaPaymentType.includes("marketplace") ? "MKT"
-        : metaPaymentType.includes("spark_trade_cart") ? "STCART"
-        : metaPaymentType.includes("spark_trade_reservation") || metaPaymentType.includes("inventory_reservation") ? "STRES"
-        : metaPaymentType.includes("circle") ? "CIRCLE"
-        : metaPaymentType.includes("propert") || metaPaymentType.includes("reit") ? "PROP"
-        : metaPaymentType.includes("buyers") || metaPaymentType.includes("club") ? "BC"
-        : metaPaymentType.includes("drive") ? "DRIVE"
+    // BuySparks sends `purpose: "spark_purchase"` (not payment_type). Treat it as a payment_type-equivalent hint.
+    const metaPurpose: string | undefined = (clientMeta.purpose ?? "").toString().toLowerCase() || undefined;
+    const typeHint = metaPaymentType || metaPurpose;
+    const kind = typeHint
+      ? (typeHint.includes("group_brand") ? "GBI"
+        : typeHint.includes("spark_purchase") ? "SPARKBUY"
+        : typeHint.includes("spark_trade_subscription") || typeHint === "spark_trade_membership" ? "STSUB"
+        : typeHint.includes("marketplace") ? "MKT"
+        : typeHint.includes("spark_trade_cart") ? "STCART"
+        : typeHint.includes("spark_trade_reservation") || typeHint.includes("inventory_reservation") ? "STRES"
+        : typeHint.includes("circle") ? "CIRCLE"
+        : typeHint.includes("propert") || typeHint.includes("reit") ? "PROP"
+        : typeHint.includes("buyers") || typeHint.includes("club") ? "BC"
+        : typeHint.includes("drive") ? "DRIVE"
         : prefix)
       : prefix;
 
