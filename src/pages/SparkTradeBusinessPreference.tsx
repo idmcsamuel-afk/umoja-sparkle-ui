@@ -310,7 +310,7 @@ export default function SparkTradeBusinessPreference() {
               <Label className="text-sm font-semibold">Capital Available (ZAR)</Label>
               <Input
                 type="number"
-                min={1000}
+                min={2500}
                 placeholder="e.g., 2500"
                 value={prefs.capital ?? ""}
                 onChange={(e) =>
@@ -322,7 +322,7 @@ export default function SparkTradeBusinessPreference() {
                 className="mt-2 h-11 rounded-xl"
               />
               <p className="text-xs text-muted-foreground mt-1">
-                Initial capital available for first inventory (min R1,000)
+                Initial capital available for first inventory (min R2,500)
               </p>
               {errors.capital && (
                 <p className="text-destructive text-xs mt-1">{errors.capital}</p>
