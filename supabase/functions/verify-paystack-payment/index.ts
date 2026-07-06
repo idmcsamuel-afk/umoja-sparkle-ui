@@ -808,6 +808,27 @@ Deno.serve(async (req) => {
         else result = await applyToGroupBrandInvestment(u.user.id, reference, amountZar, gbId, stake);
       }
       else if (kind === "MKT") result = await applyToMarketplacePurchase(u.user.id, reference, amountZar, clientMeta);
+      else if (kind === "SPARKBUY") {
+        const sparks = Number(clientMeta.sparks ?? 0);
+        const bonus = Number(clientMeta.bonus ?? 0);
+        const tier = String(clientMeta.tier ?? "");
+        if (!sparks || sparks <= 0) {
+          result = { kind: "spark_purchase", applied: false, reason: "missing_sparks" };
+        } else {
+          const { data: rpcData, error: rpcErr } = await sb.rpc("credit_spark_purchase_srv", {
+            _member: u.user.id,
+            _sparks: sparks,
+            _bonus: bonus,
+            _amount_paid: amountZar,
+            _reference: reference,
+            _email: tx?.customer?.email ?? "",
+            _phone: "",
+            _tier: tier,
+          });
+          if (rpcErr) result = { kind: "spark_purchase", applied: false, error: rpcErr.message };
+          else result = { kind: "spark_purchase", applied: true, ...(rpcData as any) };
+        }
+      }
       else result = { kind: "unknown", applied: false, reason: `unknown_prefix:${prefix}` };
     } catch (e) {
       const msg = e instanceof Error ? e.message : String(e);
