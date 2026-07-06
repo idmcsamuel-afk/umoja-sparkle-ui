@@ -7808,6 +7808,19 @@ export type Database = {
           volume_score: number
         }[]
       }
+      credit_spark_purchase_srv: {
+        Args: {
+          _amount_paid: number
+          _bonus: number
+          _email: string
+          _member: string
+          _phone: string
+          _reference: string
+          _sparks: number
+          _tier: string
+        }
+        Returns: Json
+      }
       expire_unpaid_bids: { Args: never; Returns: number }
       flame_graphics_count_week: { Args: never; Returns: number }
       flame_video_count_week: { Args: never; Returns: number }
