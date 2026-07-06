@@ -217,7 +217,7 @@ Deno.serve(async (req) => {
       try {
         const unsubUrl = `${unsubBase}?email=${encodeURIComponent(m.email)}`;
         const personalizedSubject = personalize(subject, m.full_name);
-        const personalizedBody = personalize(String(body), m.full_name).replace(/\n/g, "<br>");
+        const personalizedBody = markdownToEmailHtml(personalize(String(body), m.full_name));
         const html = wrap(personalizedSubject, personalizedBody, unsubUrl);
         const r = await fetch("https://api.resend.com/emails", {
           method: "POST",
