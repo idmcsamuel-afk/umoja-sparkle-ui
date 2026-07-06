@@ -38,6 +38,8 @@ import {
   useMemberTier,
   tierLabel,
   fmtZar,
+  normalizeTier,
+  productLimitForTier,
 } from "@/lib/sparkTradeMoq";
 import {
   SparkTradeCartProvider,
