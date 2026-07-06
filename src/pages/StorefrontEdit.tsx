@@ -16,6 +16,7 @@ export default function StorefrontEdit() {
   const [saving, setSaving] = useState(false);
   const [uploading, setUploading] = useState(false);
   const [member, setMember] = useState<{ full_name: string; referral_code: string | null; buyers_club_tier: string | null; has_buyers_club_access: boolean } | null>(null);
+  const [hasSparkTrade, setHasSparkTrade] = useState(false);
   const [form, setForm] = useState({
     display_name: "",
     bio: "",
@@ -31,6 +32,15 @@ export default function StorefrontEdit() {
         .select("full_name, referral_code, buyers_club_tier, has_buyers_club_access")
         .eq("id", user.id).maybeSingle();
       setMember(m as any);
+      const { data: pm } = await supabase.from("product_memberships" as any)
+        .select("tier, status, payment_status")
+        .eq("user_id", user.id)
+        .eq("product", "spark_trade")
+        .maybeSingle();
+      const pmRow = pm as { tier?: string; status?: string; payment_status?: string } | null;
+      const stActive = !!pmRow && pmRow.status === "active" &&
+        (pmRow.payment_status === "success" || pmRow.payment_status === "paid");
+      setHasSparkTrade(stActive);
       const { data: sf } = await supabase.from("storefronts")
         .select("*").eq("member_id", user.id).maybeSingle();
       if (sf) {
