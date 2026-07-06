@@ -10,6 +10,7 @@ import { ProtectedRoute } from "@/components/umoja/ProtectedRoute";
 import { RouteTitle } from "@/components/umoja/RouteTitle";
 import { AdminRoute } from "@/components/umoja/AdminRoute";
 import Landing from "./pages/Landing.tsx";
+import OAuthConsent from "./pages/OAuthConsent.tsx";
 import Dashboard from "./pages/Dashboard.tsx";
 import Login from "./pages/Login.tsx";
 import Signup from "./pages/Signup.tsx";
@@ -135,6 +136,7 @@ const App = () => (
             <RouteTitle />
             <Routes>
               <Route path="/" element={<Landing />} />
+              <Route path="/.lovable/oauth/consent" element={<OAuthConsent />} />
               <Route path="/login" element={<Login />} />
               <Route path="/signup" element={<Signup />} />
               <Route path="/forgot-password" element={<ForgotPassword />} />

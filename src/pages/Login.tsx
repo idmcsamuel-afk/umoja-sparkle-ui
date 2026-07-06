@@ -16,10 +16,14 @@ const schema = z.object({
   password: z.string().min(6, "At least 6 characters").max(100),
 });
 
+const isSafeRelative = (p: string) => p.startsWith("/") && !p.startsWith("//");
+
 const Login = () => {
   const nav = useNavigate();
   const location = useLocation();
-  const from = (location.state as { from?: string } | null)?.from ?? "/dashboard";
+  const nextParam = new URLSearchParams(location.search).get("next");
+  const stateFrom = (location.state as { from?: string } | null)?.from;
+  const from = (nextParam && isSafeRelative(nextParam) ? nextParam : null) ?? stateFrom ?? "/dashboard";
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [busy, setBusy] = useState(false);
