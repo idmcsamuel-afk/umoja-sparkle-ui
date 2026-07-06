@@ -39,7 +39,7 @@ async function isAdmin(req: Request): Promise<boolean> {
   } catch { return false; }
 }
 
-function wrap(subject: string, bodyHtml: string) {
+function wrap(subject: string, bodyHtml: string, unsubUrl: string) {
   return `<!doctype html><html><body style="margin:0;padding:24px;background:#f3f1ec;font-family:Arial,sans-serif;color:#1c1c1c;">
     <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="max-width:560px;margin:0 auto;background:#fff;border-radius:18px;overflow:hidden;box-shadow:0 8px 24px rgba(8,43,33,0.08);">
       <tr><td style="background:linear-gradient(135deg,#0f3d2e 0%,#082b21 100%);padding:24px 28px;">
@@ -50,8 +50,11 @@ function wrap(subject: string, bodyHtml: string) {
         <h1 style="margin:0 0 14px;font-size:22px;color:#0f3d2e;">${subject}</h1>
         <div style="font-size:15px;line-height:1.55;">${bodyHtml}</div>
       </td></tr>
-      <tr><td style="padding:20px 28px;border-top:1px solid #eee;color:#888;font-size:12px;">
-        <strong style="color:#0f3d2e;">UMOJA</strong> — <a href="https://umojarise.com" style="color:#0f3d2e;">umojarise.com</a>
+      <tr><td style="padding:20px 28px;border-top:1px solid #eee;color:#888;font-size:12px;line-height:1.6;">
+        <strong style="color:#0f3d2e;">UMOJA</strong> — <a href="https://umojarise.com" style="color:#0f3d2e;">umojarise.com</a><br>
+        You're receiving this because you're a member of UMOJA.<br>
+        <a href="${unsubUrl}" style="color:#0f3d2e;">Unsubscribe from marketing emails</a> ·
+        <a href="mailto:unsubscribe@umojarise.com?subject=unsubscribe" style="color:#0f3d2e;">Email opt-out</a>
       </td></tr>
     </table></body></html>`;
 }
@@ -61,8 +64,14 @@ async function fetchValidMembers() {
     .select("id, email, full_name")
     .not("email", "is", null).neq("email", "");
   if (error) throw error;
-  return (data ?? []).filter((m: any) => typeof m.email === "string" && EMAIL_REGEX.test(m.email));
+  const valid = (data ?? []).filter((m: any) => typeof m.email === "string" && EMAIL_REGEX.test(m.email));
+
+  // Filter out unsubscribed emails
+  const { data: unsubs } = await sb.from("email_unsubscribes").select("email");
+  const blocked = new Set((unsubs ?? []).map((u: any) => String(u.email).toLowerCase()));
+  return valid.filter((m: any) => !blocked.has(String(m.email).toLowerCase()));
 }
+
 
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response("ok", { headers: corsHeaders });
@@ -88,18 +97,32 @@ Deno.serve(async (req) => {
     if (!RESEND_API_KEY) throw new Error("RESEND_API_KEY not configured");
 
     const members = await fetchValidMembers();
-    const html = wrap(subject, String(body).replace(/\n/g, "<br>"));
-    console.log(`[Bulk Email] Sending to ${members.length} members`);
+    const unsubBase = `${SUPABASE_URL}/functions/v1/email-unsubscribe`;
+    console.log(`[Bulk Email] Sending to ${members.length} members (unsubscribed excluded)`);
 
     let sent = 0, failed = 0;
     const failedEmails: string[] = [];
 
     for (const m of members) {
       try {
+        const unsubUrl = `${unsubBase}?email=${encodeURIComponent(m.email)}`;
+        const html = wrap(subject, String(body).replace(/\n/g, "<br>"), unsubUrl);
         const r = await fetch("https://api.resend.com/emails", {
           method: "POST",
           headers: { Authorization: `Bearer ${RESEND_API_KEY}`, "Content-Type": "application/json" },
-          body: JSON.stringify({ from: FROM, to: [m.email], reply_to: REPLY_TO, subject, html }),
+          body: JSON.stringify({
+            from: FROM,
+            to: [m.email],
+            reply_to: REPLY_TO,
+            subject,
+            html,
+            headers: {
+              "List-Unsubscribe": `<${unsubUrl}>, <mailto:unsubscribe@umojarise.com?subject=unsubscribe%20${encodeURIComponent(m.email)}>`,
+              "List-Unsubscribe-Post": "List-Unsubscribe=One-Click",
+              "List-Id": "UMOJA Marketing <marketing.umojarise.com>",
+              "Precedence": "bulk",
+            },
+          }),
         });
         const out = await r.json();
         if (!r.ok) throw new Error(out?.message || `Resend ${r.status}`);
@@ -108,6 +131,7 @@ Deno.serve(async (req) => {
           template: "custom", subject, status: "sent", resend_id: out?.id ?? null,
         });
         sent++;
+
       } catch (e) {
         const msg = e instanceof Error ? e.message : String(e);
         console.error(`[Bulk Email] Failed ${m.email}:`, msg);
