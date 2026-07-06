@@ -73,6 +73,73 @@ function personalize(text: string, fullName: string | null | undefined) {
     .replace(/\{\{\s*name\s*\}\}/gi, name);
 }
 
+// Escape HTML in plain-text body before we add our own tags.
+function escapeHtml(s: string) {
+  return s
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#39;");
+}
+
+// Convert lightweight markdown-ish body into email-safe HTML.
+// Supports: **bold**, *italic*, bullet lines (•, -, *), auto-links (http/https, mailto:),
+// and paragraph breaks on blank lines.
+function markdownToEmailHtml(raw: string): string {
+  const src = raw.replace(/\r\n?/g, "\n");
+  const blocks = src.split(/\n{2,}/);
+  const htmlBlocks: string[] = [];
+
+  for (const blockRaw of blocks) {
+    const block = blockRaw.replace(/^\n+|\n+$/g, "");
+    if (!block) continue;
+
+    const lines = block.split("\n");
+    const isBullet = (l: string) => /^\s*(?:[•\-\*]|\d+[.)])\s+/.test(l);
+
+    if (lines.every(isBullet)) {
+      const items = lines.map((l) => {
+        const text = l.replace(/^\s*(?:[•\-\*]|\d+[.)])\s+/, "");
+        return `<li style="margin:0 0 6px;">${inline(text)}</li>`;
+      }).join("");
+      htmlBlocks.push(
+        `<ul style="margin:0 0 14px;padding-left:20px;">${items}</ul>`,
+      );
+      continue;
+    }
+
+    // Mixed / plain paragraph — join lines with <br>.
+    const paragraph = lines.map((l) => inline(l)).join("<br>");
+    htmlBlocks.push(
+      `<p style="margin:0 0 14px;">${paragraph}</p>`,
+    );
+  }
+
+  return htmlBlocks.join("");
+
+  function inline(line: string) {
+    let s = escapeHtml(line);
+    // Auto-link URLs (basic).
+    s = s.replace(
+      /\b(https?:\/\/[^\s<>()]+[^\s<>().,;:!?])/g,
+      '<a href="$1" style="color:#0f3d2e;text-decoration:underline;">$1</a>',
+    );
+    // mailto:
+    s = s.replace(
+      /\b(mailto:[^\s<>()]+)/g,
+      '<a href="$1" style="color:#0f3d2e;">$1</a>',
+    );
+    // **bold**
+    s = s.replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>');
+    // __bold__
+    s = s.replace(/__(.+?)__/g, '<strong>$1</strong>');
+    // *italic* (avoid matching lone * used as bullet — bullets already stripped)
+    s = s.replace(/(^|[^*])\*(?!\s)([^*\n]+?)\*(?!\*)/g, '$1<em>$2</em>');
+    return s;
+  }
+}
+
 async function fetchValidMembers() {
   const { data, error } = await sb.from("members")
     .select("id, email, full_name")
@@ -150,7 +217,7 @@ Deno.serve(async (req) => {
       try {
         const unsubUrl = `${unsubBase}?email=${encodeURIComponent(m.email)}`;
         const personalizedSubject = personalize(subject, m.full_name);
-        const personalizedBody = personalize(String(body), m.full_name).replace(/\n/g, "<br>");
+        const personalizedBody = markdownToEmailHtml(personalize(String(body), m.full_name));
         const html = wrap(personalizedSubject, personalizedBody, unsubUrl);
         const r = await fetch("https://api.resend.com/emails", {
           method: "POST",
