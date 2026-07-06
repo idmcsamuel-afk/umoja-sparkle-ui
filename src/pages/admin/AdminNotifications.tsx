@@ -52,6 +52,10 @@ export default function AdminNotifications() {
   const [bypassPrefs, setBypassPrefs] = useState(false);
   const [audienceCount, setAudienceCount] = useState<number | null>(null);
   const [countLoading, setCountLoading] = useState(false);
+  const [batchSize, setBatchSize] = useState(100);
+  const [throttleMs, setThrottleMs] = useState(600);
+  const [campaignProgress, setCampaignProgress] = useState<{ total: number; already_sent: number; remaining: number; next_batch_size: number } | null>(null);
+  const [progressLoading, setProgressLoading] = useState(false);
 
   // Load draft on mount
   useEffect(() => {
