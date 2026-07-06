@@ -128,7 +128,7 @@ export default function SparkTradeBusinessPreference() {
     if (!prefs.stockPreference) e.stockPreference = "Required";
     if (!prefs.marketplaceExperience) e.marketplaceExperience = "Required";
     if (prefs.purchasedFrom.length === 0) e.purchasedFrom = "Select at least one";
-    if (prefs.capital === null || prefs.capital < 1000) e.capital = "Minimum capital required is R1,000";
+    if (prefs.capital === null || prefs.capital < 2500) e.capital = "Minimum capital required is R2,500";
     setErrors(e);
     if (Object.keys(e).length > 0 || !user) return;
 
