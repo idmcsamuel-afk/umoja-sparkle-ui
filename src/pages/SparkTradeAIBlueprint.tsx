@@ -290,22 +290,27 @@ export default function SparkTradeAIBlueprint() {
                   </button>
                 </div>
                 <div className="space-y-2">
-                  {blueprint.basket.items.map((p) => (
+                  {blueprint.basket.items.map((p, i) => (
                     <div
                       key={p.opportunity_id}
                       className="rounded-xl border border-border bg-background p-3 flex gap-3 items-center"
                     >
-                      {p.image_url ? (
-                        <img
-                          src={p.image_url}
-                          alt={p.name}
-                          className="h-12 w-12 rounded-lg object-cover flex-shrink-0"
-                        />
-                      ) : (
-                        <div className="h-12 w-12 rounded-lg bg-muted flex-shrink-0" />
-                      )}
+                      <div className="relative h-12 w-12 rounded-lg overflow-hidden bg-muted flex-shrink-0">
+                        {p.image_url && (
+                          <img
+                            src={p.image_url}
+                            alt="Curated product"
+                            aria-hidden="true"
+                            className="h-full w-full object-cover"
+                            style={{ filter: "blur(10px)", transform: "scale(1.15)" }}
+                          />
+                        )}
+                        <div className="absolute inset-0 grid place-items-center bg-background/40 text-[10px] font-semibold uppercase tracking-wider text-foreground/70">
+                          #{i + 1}
+                        </div>
+                      </div>
                       <div className="flex-1 min-w-0">
-                        <p className="font-medium text-sm truncate">{p.name}</p>
+                        <p className="font-medium text-sm truncate">Curated Product {i + 1}</p>
                         <p className="text-[11px] text-muted-foreground">
                           {p.member_moq_units} units × {fmtZar(p.landed_cost_per_unit_zar)} ={" "}
                           {fmtZar(p.investment_zar)} · sell {fmtZar(p.selling_price_zar)}
@@ -320,6 +325,9 @@ export default function SparkTradeAIBlueprint() {
                     </div>
                   ))}
                 </div>
+                <p className="mt-2 text-[11px] text-muted-foreground text-center italic">
+                  Exact product names & images revealed after you start.
+                </p>
               </div>
 
               {/* Honest Metrics */}
