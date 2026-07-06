@@ -52,6 +52,10 @@ export default function AdminNotifications() {
   const [bypassPrefs, setBypassPrefs] = useState(false);
   const [audienceCount, setAudienceCount] = useState<number | null>(null);
   const [countLoading, setCountLoading] = useState(false);
+  const [batchSize, setBatchSize] = useState(100);
+  const [throttleMs, setThrottleMs] = useState(600);
+  const [campaignProgress, setCampaignProgress] = useState<{ total: number; already_sent: number; remaining: number; next_batch_size: number } | null>(null);
+  const [progressLoading, setProgressLoading] = useState(false);
 
   // Load draft on mount
   useEffect(() => {
@@ -136,6 +140,25 @@ export default function AdminNotifications() {
     return () => { cancelled = true; clearTimeout(t); setCountLoading(false); };
   }, [audience, tier, memberIds, bypassPrefs]);
 
+  // Live batch/campaign progress preview (only meaningful for "all" audience).
+  const loadCampaignProgress = async () => {
+    if (audience !== "all" || !subject.trim()) { setCampaignProgress(null); return; }
+    setProgressLoading(true);
+    const { data, error } = await supabase.functions.invoke("send-bulk-email", {
+      body: { preview: true, subject, campaign_id: subject, batch_size: batchSize },
+    });
+    setProgressLoading(false);
+    if (error || !data || data.error) { setCampaignProgress(null); return; }
+    setCampaignProgress({
+      total: data.total, already_sent: data.already_sent,
+      remaining: data.remaining, next_batch_size: data.next_batch_size,
+    });
+  };
+  useEffect(() => {
+    const t = setTimeout(loadCampaignProgress, 400);
+    return () => clearTimeout(t);
+  }, [audience, subject, batchSize]);
+
 
   const sendTest = async () => {
     if (!user?.email) return toast.error("No email on your account");
@@ -162,28 +185,34 @@ export default function AdminNotifications() {
 
     setBusy(true);
 
-    // For "all members" use the dedicated bulk endpoint (simpler, more reliable).
+    // For "all members" use the dedicated bulk endpoint (batched, dedup by campaign=subject).
     if (audience === "all") {
       const { data: preview, error: previewErr } = await supabase.functions.invoke("send-bulk-email", {
-        body: { preview: true },
+        body: { preview: true, subject, campaign_id: subject, batch_size: batchSize },
       });
-      if (previewErr || !preview?.count) {
+      if (previewErr || !preview || preview.error) {
         setBusy(false);
         return toast.error("Could not load recipients: " + (previewErr?.message ?? preview?.error ?? "no members found"));
       }
-      if (!confirm(`This email will be sent to ${preview.count} member${preview.count === 1 ? "" : "s"}.\n\nProceed?`)) {
+      const nextN = preview.next_batch_size as number;
+      if (nextN === 0) {
         setBusy(false);
-        return;
+        return toast.info(`All ${preview.total} recipients already received this campaign.`);
       }
+      const msg = `Send next batch: ${nextN} email${nextN === 1 ? "" : "s"}\n\n` +
+        `Progress: ${preview.already_sent} of ${preview.total} sent · ${preview.remaining} remaining\n` +
+        `Throttle: ~${Math.round(60000 / Math.max(throttleMs, 1))}/min\n\n` +
+        `Campaign key (subject): "${subject}"\nProceed?`;
+      if (!confirm(msg)) { setBusy(false); return; }
       const { data, error } = await supabase.functions.invoke("send-bulk-email", {
-        body: { subject, body, preview: false },
+        body: { subject, body, campaign_id: subject, batch_size: batchSize, throttle_ms: throttleMs },
       });
       setBusy(false);
       if (error || !data || data.error) return toast.error("Send failed: " + (error?.message ?? data?.error));
-      toast.success(`Sent to ${data.sent}/${data.total}${data.failed ? ` · ${data.failed} failed` : ""}`);
+      toast.success(`Sent ${data.sent}/${data.batch_size}${data.failed ? ` · ${data.failed} failed` : ""} · ${data.remaining} remaining`);
       if (data.failed > 0) console.warn("[bulk] failed emails:", data.failedEmails);
-      clearDraft();
       loadLogs();
+      loadCampaignProgress();
       return;
     }
 
@@ -337,12 +366,67 @@ export default function AdminNotifications() {
           )}
         </div>
 
+        {audience === "all" && (
+          <div className="rounded-2xl border border-border bg-background/40 p-4 space-y-3">
+            <div className="flex items-center justify-between">
+              <div className="text-sm font-medium">Batched sending (domain warm-up)</div>
+              <Button size="sm" variant="ghost" onClick={loadCampaignProgress} className="rounded-xl h-7 text-xs" disabled={progressLoading || !subject.trim()}>
+                <RefreshCw className={`h-3 w-3 ${progressLoading ? "animate-spin" : ""}`} /> Refresh
+              </Button>
+            </div>
+            <div className="grid sm:grid-cols-2 gap-3">
+              <div>
+                <Label className="text-xs uppercase tracking-wider text-muted-foreground">Batch size</Label>
+                <Input type="number" min={1} max={500} value={batchSize}
+                  onChange={(e) => setBatchSize(Math.max(1, Math.min(500, Number(e.target.value) || 1)))}
+                  className="mt-1 rounded-2xl" />
+              </div>
+              <div>
+                <Label className="text-xs uppercase tracking-wider text-muted-foreground">
+                  Delay between emails (ms)
+                </Label>
+                <Input type="number" min={0} max={10000} step={100} value={throttleMs}
+                  onChange={(e) => setThrottleMs(Math.max(0, Math.min(10000, Number(e.target.value) || 0)))}
+                  className="mt-1 rounded-2xl" />
+                <p className="text-[10px] text-muted-foreground mt-1">
+                  ≈ {throttleMs > 0 ? Math.round(60000 / throttleMs) : "∞"} emails/min
+                </p>
+              </div>
+            </div>
+            {subject.trim() ? (
+              campaignProgress ? (
+                <div className="rounded-xl bg-primary/5 border border-primary/20 p-3 text-sm">
+                  <div className="font-medium">
+                    Sent {campaignProgress.already_sent} of {campaignProgress.total} — {campaignProgress.remaining} remaining
+                  </div>
+                  <div className="text-xs text-muted-foreground mt-1">
+                    Next batch will send to {campaignProgress.next_batch_size} recipient{campaignProgress.next_batch_size === 1 ? "" : "s"} who haven't received this campaign yet.
+                    Campaign is tracked by subject: <code className="text-[11px]">"{subject}"</code>
+                  </div>
+                  {campaignProgress.total > 0 && (
+                    <div className="mt-2 h-1.5 rounded-full bg-muted overflow-hidden">
+                      <div className="h-full bg-primary transition-all" style={{ width: `${Math.round((campaignProgress.already_sent / campaignProgress.total) * 100)}%` }} />
+                    </div>
+                  )}
+                </div>
+              ) : (
+                <div className="text-xs text-muted-foreground">{progressLoading ? "Loading progress…" : "No progress data yet."}</div>
+              )
+            ) : (
+              <div className="text-xs text-muted-foreground">Enter a subject to see progress. Dedup key = subject line.</div>
+            )}
+          </div>
+        )}
+
         <div className="flex flex-wrap gap-2">
           <Button variant="outline" onClick={sendTest} disabled={busy} className="rounded-2xl">
             {busy ? <Loader2 className="h-4 w-4 animate-spin" /> : <Mail className="h-4 w-4" />} Send Test to Myself
           </Button>
           <Button onClick={sendBlast} disabled={busy} className="rounded-2xl bg-gradient-gold text-amber-950">
-            {busy ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />} Send to Recipients
+            {busy ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />}
+            {audience === "all" && campaignProgress
+              ? ` Send next batch (${campaignProgress.next_batch_size})`
+              : " Send to Recipients"}
           </Button>
         </div>
       </section>
