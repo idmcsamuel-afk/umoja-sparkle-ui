@@ -140,6 +140,25 @@ export default function AdminNotifications() {
     return () => { cancelled = true; clearTimeout(t); setCountLoading(false); };
   }, [audience, tier, memberIds, bypassPrefs]);
 
+  // Live batch/campaign progress preview (only meaningful for "all" audience).
+  const loadCampaignProgress = async () => {
+    if (audience !== "all" || !subject.trim()) { setCampaignProgress(null); return; }
+    setProgressLoading(true);
+    const { data, error } = await supabase.functions.invoke("send-bulk-email", {
+      body: { preview: true, subject, campaign_id: subject, batch_size: batchSize },
+    });
+    setProgressLoading(false);
+    if (error || !data || data.error) { setCampaignProgress(null); return; }
+    setCampaignProgress({
+      total: data.total, already_sent: data.already_sent,
+      remaining: data.remaining, next_batch_size: data.next_batch_size,
+    });
+  };
+  useEffect(() => {
+    const t = setTimeout(loadCampaignProgress, 400);
+    return () => clearTimeout(t);
+  }, [audience, subject, batchSize]);
+
 
   const sendTest = async () => {
     if (!user?.email) return toast.error("No email on your account");
