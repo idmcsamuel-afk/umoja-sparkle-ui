@@ -63,7 +63,8 @@ export default function StorefrontEdit() {
   }
 
   const isGold = member?.has_buyers_club_access && (member?.buyers_club_tier?.toLowerCase() === "gold");
-  if (!isGold) {
+  const canEdit = isGold || hasSparkTrade;
+  if (!canEdit) {
     return (
       <div className="mx-auto max-w-2xl p-6">
         <Link to="/dashboard" className="inline-flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground"><ArrowLeft className="h-4 w-4" /> Back</Link>
