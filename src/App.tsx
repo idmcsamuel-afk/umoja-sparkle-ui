@@ -211,6 +211,7 @@ const App = () => (
                 <Route path="members" element={<AdminMembers />} />
                 <Route path="circles" element={<AdminCircles />} />
                 <Route path="spark-trade" element={<AdminSparkTrade />} />
+                <Route path="spark-trade-orders" element={<AdminSparkTradeOrders />} />
                 <Route path="drive" element={<AdminDrive />} />
                 <Route path="predictor" element={<AdminPredictor />} />
                 <Route path="kyc-review" element={<AdminKycReview />} />
