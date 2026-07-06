@@ -2243,6 +2243,30 @@ export type Database = {
           },
         ]
       }
+      email_unsubscribes: {
+        Row: {
+          email: string
+          id: string
+          reason: string | null
+          token: string
+          unsubscribed_at: string
+        }
+        Insert: {
+          email: string
+          id?: string
+          reason?: string | null
+          token?: string
+          unsubscribed_at?: string
+        }
+        Update: {
+          email?: string
+          id?: string
+          reason?: string | null
+          token?: string
+          unsubscribed_at?: string
+        }
+        Relationships: []
+      }
       finzite_scores: {
         Row: {
           avg_net_margin: number | null
