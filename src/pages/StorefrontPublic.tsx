@@ -382,12 +382,12 @@ export default function StorefrontPublic() {
             <h2 className="font-display text-2xl sm:text-3xl tracking-tight">The collection</h2>
             <p className="text-sm text-muted-foreground mt-1">
               {products.length > 0
-                ? `${products.length} product${products.length === 1 ? "" : "s"} · group-bought pricing`
+                ? `${products.length} product${products.length === 1 ? "" : "s"} available`
                 : "New drops loading"}
             </p>
           </div>
           <div className="hidden sm:flex items-center gap-1 text-xs text-muted-foreground">
-            <Package className="h-3.5 w-3.5" /> Ships via group order
+            <Package className="h-3.5 w-3.5" /> Delivered nationwide
           </div>
         </div>
 
