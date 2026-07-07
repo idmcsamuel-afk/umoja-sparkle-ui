@@ -548,6 +548,20 @@ export default function AdminProductValidation() {
                           <Input type="number" step="0.01" min="0" value={f.member_min_buyin_zar} onChange={(e) => setFormField(r.id, "member_min_buyin_zar", e.target.value)} placeholder={`Blank = global R${floors.minItemBuyinZar}`} />
                         </div>
                         <div className="md:col-span-2"><Label className="text-xs">Supplier / manufacturer</Label><Input value={f.supplier_name} onChange={(e) => setFormField(r.id, "supplier_name", e.target.value)} placeholder="optional" /></div>
+                        <div className="md:col-span-3">
+                          <Label className="text-xs">SA selling price (ZAR) {r.price_zar == null ? "*" : "— override"}</Label>
+                          <Input
+                            type="number" step="0.01" min="0"
+                            value={f.sa_selling_price_zar}
+                            onChange={(e) => setFormField(r.id, "sa_selling_price_zar", e.target.value)}
+                            placeholder={r.price_zar != null ? `Blank = source R${Number(r.price_zar).toFixed(2)}` : "Required — target SA retail price"}
+                          />
+                          <p className="text-[11px] text-muted-foreground mt-1">
+                            {r.price_zar != null
+                              ? "Blank = use the source SA price above. Override to set a different Browse price."
+                              : "This is a non-SA source (sourcing opportunity) — enter the SA retail price you'll list at."}
+                          </p>
+                        </div>
                       </div>
                       <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                         <div>
