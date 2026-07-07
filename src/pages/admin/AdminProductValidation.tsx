@@ -43,16 +43,18 @@ interface ProductRow {
 }
 
 type StatusFilter = "all" | "pending_review" | "approved_to_queue";
-type MarketFilter = "all" | "amazon_us" | "amazon_sa" | "walmart_us";
+type MarketFilter = "all" | "amazon_us" | "amazon_sa" | "walmart_us" | "takealot_sa";
 
 const PAGE_SIZE = 5;
 const MARKET_LABEL: Record<string, string> = {
   amazon_us: "Amazon US",
   amazon_sa: "Amazon SA",
   walmart_us: "Walmart US",
+  takealot_sa: "Takealot SA",
   amazon_uk: "Amazon UK",
   amazon_de: "Amazon DE",
 };
+const SA_MARKETS = new Set(["amazon_sa", "takealot_sa"]);
 
 const DEFAULTS = { buffer_pct: 10, commission_pct: 8, freight_rate_per_cbm: 8800, kg_per_cbm: 167 };
 
