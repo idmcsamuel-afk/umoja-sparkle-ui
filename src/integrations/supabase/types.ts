@@ -7718,6 +7718,15 @@ export type Database = {
           tx_type: string
         }[]
       }
+      admin_promote_bid_to_vault: {
+        Args: { _bid_id: string }
+        Returns: {
+          bid_id: string
+          new_status: string
+          vault_end: string
+          vault_start: string
+        }[]
+      }
       admin_recalc_all_fraud_scores: { Args: never; Returns: number }
       admin_record_kyc_reminder: { Args: { _member: string }; Returns: Json }
       admin_referral_overview: { Args: never; Returns: Json }
