@@ -510,23 +510,23 @@ export default function AdminProductValidation() {
                         {r.buybox_price != null && (
                           <>
                             <span className="text-muted-foreground ml-3">Buy-box:</span>{" "}
-                            {r.buybox_currency === "ZAR" || r.marketplace === "amazon_sa" ? "R" : "$"}{Number(r.buybox_price).toFixed(2)}
+                            {r.buybox_currency === "ZAR" || isSA ? "R" : "$"}{Number(r.buybox_price).toFixed(2)}
                           </>
                         )}
                       </p>
                       {r.product_url && (
                         <Button asChild size="sm" variant="outline">
-                          <a href={r.product_url} target="_blank" rel="noopener noreferrer"><ExternalLink className="h-3.5 w-3.5 mr-1" /> View on {market === "walmart_us" ? "Walmart" : "Amazon"}</a>
+                          <a href={r.product_url} target="_blank" rel="noopener noreferrer"><ExternalLink className="h-3.5 w-3.5 mr-1" /> View on {MARKET_LABEL[market]?.split(" ")[0] ?? "source"}</a>
                         </Button>
                       )}
                     </div>
                   </div>
 
-                  {!isSA && status === "pending_review" && (
-                    <p className="text-xs text-blue-600 dark:text-blue-400">Demand signal only — needs SA selling price to publish.</p>
+                  {!isSA && status === "pending_review" && r.price_zar == null && (
+                    <p className="text-xs text-blue-600 dark:text-blue-400">Non-SA source — enter an SA selling price in the form to publish as a sourcing opportunity.</p>
                   )}
 
-                  {isSA && openForm === r.id && (
+                  {openForm === r.id && (
                     <div className="rounded border p-3 space-y-3 bg-muted/30">
                       <div className="flex items-center justify-between gap-2 flex-wrap">
                         <p className="text-sm font-medium">Pricing & margin (Alibaba → landed cost)</p>
