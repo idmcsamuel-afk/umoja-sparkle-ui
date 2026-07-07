@@ -353,7 +353,7 @@ export default function AdminProductValidation() {
       product_name: r.title,
       category: r.category,
       product_image_url: r.image_url,
-      suggested_selling_price_zar: Number(r.price_zar),
+      suggested_selling_price_zar: saPrice,
       unit_cost_zar: r2(m.landed_cost_zar),
       alibaba_cost_zar: alibaba,
       buffer_pct: buffer,
