@@ -435,7 +435,7 @@ export default function StorefrontPublic() {
                       <span className="font-display text-3xl font-bold tracking-tight text-foreground">
                         R{Math.round(p.sale_price).toLocaleString("en-ZA")}
                       </span>
-                      <span className="text-xs text-muted-foreground">incl. group delivery</span>
+                      <span className="text-xs text-muted-foreground">incl. delivery</span>
                     </div>
                   ) : (
                     <p className="text-sm text-muted-foreground">Contact for pricing</p>
