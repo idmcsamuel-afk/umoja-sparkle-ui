@@ -97,22 +97,22 @@ export function StorePolicies({ storeName, ownerName, ownerEmail, ownerPhone, ac
 
   return (
     <>
-      <div className="mx-auto max-w-6xl px-4 mt-10">
-        <div className="border-t border-border/60 pt-6 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+      <div className="mx-auto max-w-6xl px-4 mt-8">
+        <div className="border-t border-neutral-800 pt-6 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
           <nav aria-label="Store policies" className="flex flex-wrap gap-x-5 gap-y-2 text-xs">
             {links.map((l) => (
               <button
                 key={l.key}
                 type="button"
                 onClick={() => setOpen(l.key)}
-                className="inline-flex items-center gap-1.5 text-muted-foreground hover:text-foreground transition-smooth"
+                className="inline-flex items-center gap-1.5 text-neutral-400 hover:text-white transition-smooth"
               >
                 {l.icon}
                 {l.label}
               </button>
             ))}
           </nav>
-          <p className="text-[11px] text-muted-foreground">
+          <p className="text-[11px] text-neutral-500">
             © {year} {storeName}. Operated by {ownerName} on UMOJA Spark Trade.
           </p>
         </div>
