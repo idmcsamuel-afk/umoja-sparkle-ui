@@ -43,6 +43,7 @@ interface ParsedProduct {
   seller_count: number;
   rating: number | null;
   scraped_at: string;
+  search_rank: number;
 }
 
 async function fetchViaUnlocker(url: string): Promise<string> {
