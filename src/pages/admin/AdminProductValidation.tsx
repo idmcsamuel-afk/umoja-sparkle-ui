@@ -638,18 +638,15 @@ export default function AdminProductValidation() {
                   )}
 
                   <div className="flex flex-wrap gap-2">
-                    {isSA ? (
-                      openForm !== r.id && status !== "approved_to_queue" && (
-                        <Button size="sm" className="bg-green-600 hover:bg-green-700 text-white" onClick={() => setOpenForm(r.id)}>
-                          <Check className="h-4 w-4 mr-1" /> Approve & Price
-                        </Button>
-                      )
-                    ) : (
-                      status !== "demand_validated" && status !== "approved_to_queue" && (
-                        <Button size="sm" variant="secondary" onClick={() => updateStatusOnly(r.id, "demand_validated")} disabled={saving===r.id}>
-                          📊 Mark as demand signal
-                        </Button>
-                      )
+                    {openForm !== r.id && status !== "approved_to_queue" && (
+                      <Button size="sm" className="bg-green-600 hover:bg-green-700 text-white" onClick={() => setOpenForm(r.id)}>
+                        <Check className="h-4 w-4 mr-1" /> Approve & Price
+                      </Button>
+                    )}
+                    {!isSA && status !== "demand_validated" && status !== "approved_to_queue" && openForm !== r.id && (
+                      <Button size="sm" variant="secondary" onClick={() => updateStatusOnly(r.id, "demand_validated")} disabled={saving===r.id}>
+                        📊 Mark as demand signal
+                      </Button>
                     )}
                     {status !== "rejected" && (
                       <Button variant="destructive" size="sm" onClick={() => updateStatusOnly(r.id, "rejected")} disabled={saving===r.id}>
