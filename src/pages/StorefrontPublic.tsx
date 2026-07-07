@@ -304,7 +304,7 @@ export default function StorefrontPublic() {
                 {storeName}
               </h1>
               <p className="mt-3 max-w-xl text-sm sm:text-base text-foreground/85">
-                {sf.bio?.trim() || "Quality products, group-bought and delivered."}
+                {sf.bio?.trim() || "Quality products, delivered to your door."}
               </p>
               <div className="mt-5 flex flex-wrap gap-3">
                 <a
