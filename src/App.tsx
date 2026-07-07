@@ -244,6 +244,7 @@ const App = () => (
                 <Route path="supplier-dashboard" element={<AdminSupplierDashboard />} />
                 <Route path="automation-test" element={<AdminAutomationTest />} />
                 <Route path="product-validation" element={<AdminProductValidation />} />
+                <Route path="member-inspector" element={<AdminMemberInspector />} />
               </Route>
 
               <Route path="*" element={<NotFound />} />
