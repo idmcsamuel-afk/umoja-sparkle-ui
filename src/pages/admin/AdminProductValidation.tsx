@@ -159,18 +159,25 @@ export default function AdminProductValidation() {
   const load = async () => {
     setLoading(true);
     const since = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString();
-    const { data, error } = await supabase
+    let q = supabase
       .from("products" as any)
       .select("*")
-      .gte("created_at", since)
+      .gte("created_at", since);
+    if (marketFilter !== "all") q = q.eq("marketplace", marketFilter);
+    // Order by review_count desc (Amazon/Walmart), then created_at desc so rows without
+    // review_count (Takealot) still appear.
+    const { data, error } = await q
       .order("review_count", { ascending: false, nullsFirst: false })
-      .limit(500);
+      .order("created_at", { ascending: false })
+      .limit(2000);
     if (error) toast({ title: "Load failed", description: error.message, variant: "destructive" });
     setRows(((data ?? []) as unknown) as ProductRow[]);
     setLoading(false);
   };
 
-  useEffect(() => { load(); }, []);
+  useEffect(() => { load(); }, [marketFilter]);
+
+  
   useEffect(() => { setPage(1); }, [statusFilter, marketFilter, showImageless]);
 
   const hasImage = (r: ProductRow) => typeof r.image_url === "string" && /^https?:\/\//i.test(r.image_url);
