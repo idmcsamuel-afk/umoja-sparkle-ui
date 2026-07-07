@@ -88,6 +88,7 @@ interface PriceForm {
   supplier_name: string;
   freight_override_zar: string;   // sea override (legacy key retained)
   freight_air_zar: string;        // air override (blank = air unavailable)
+  sa_selling_price_zar: string;   // required for US/Walmart rows (no price_zar); optional override for SA rows
 }
 
 function computeMargins(input: {
