@@ -366,7 +366,7 @@ export default function StorefrontPublic() {
           </div>
           <div className="flex items-center justify-center sm:justify-start gap-2 text-xs sm:text-sm">
             <Truck className="h-4 w-4 text-accent shrink-0" />
-            <span><span className="font-semibold">Group delivery</span><span className="hidden sm:inline text-muted-foreground"> · 4–6 weeks</span></span>
+            <span><span className="font-semibold">Delivery to your door</span><span className="hidden sm:inline text-muted-foreground"> · nationwide</span></span>
           </div>
           <div className="flex items-center justify-center sm:justify-start gap-2 text-xs sm:text-sm">
             <Sparkles className="h-4 w-4 text-accent shrink-0" />
