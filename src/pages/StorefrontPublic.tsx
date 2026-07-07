@@ -222,7 +222,7 @@ export default function StorefrontPublic() {
     }));
 
   return (
-    <div className="min-h-screen bg-background pb-28 sm:pb-10">
+    <div className="min-h-screen bg-[#FAFAF8] text-neutral-900 pb-28 sm:pb-10">
       <Helmet>
         <title>{metaTitle}</title>
         <meta name="description" content={metaDesc} />
@@ -241,17 +241,17 @@ export default function StorefrontPublic() {
         )}
       </Helmet>
 
-      {/* UMOJA brand strip */}
-      <div className="w-full border-b border-border/60 bg-background/95 backdrop-blur sticky top-0 z-30">
-        <div className="mx-auto max-w-6xl px-4 py-2 flex items-center justify-between">
+      {/* UMOJA brand strip — dark brand frame */}
+      <div className="w-full border-b border-neutral-800 bg-neutral-950 text-white sticky top-0 z-30">
+        <div className="mx-auto max-w-6xl px-4 py-2.5 flex items-center justify-between">
           <Link to="/" className="flex items-center gap-2 group focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent rounded-md">
             <Logo showWord={false} className="scale-90" />
-            <span className="text-[11px] uppercase tracking-[0.18em] font-semibold text-muted-foreground group-hover:text-foreground transition-smooth">
-              UMOJA <span className="text-accent">Spark Trade</span>
+            <span className="text-[11px] uppercase tracking-[0.18em] font-semibold text-neutral-400 group-hover:text-white transition-smooth">
+              UMOJA <span style={{ color: "#C9A84C" }}>Spark Trade</span>
             </span>
           </Link>
-          <span className="hidden sm:inline-flex items-center gap-1.5 text-[10px] uppercase tracking-wider text-muted-foreground">
-            <ShieldCheck className="h-3.5 w-3.5 text-accent" /> Verified member store
+          <span className="hidden sm:inline-flex items-center gap-1.5 text-[10px] uppercase tracking-wider text-neutral-400">
+            <ShieldCheck className="h-3.5 w-3.5" style={{ color: "#C9A84C" }} /> Verified member store
           </span>
         </div>
       </div>
@@ -261,7 +261,7 @@ export default function StorefrontPublic() {
         className="relative w-full overflow-hidden"
         aria-label={`${storeName} featured products`}
       >
-        <div className="relative h-[62vh] min-h-[420px] max-h-[720px] sm:h-[70vh] w-full bg-secondary">
+        <div className="relative h-[62vh] min-h-[420px] max-h-[720px] sm:h-[70vh] w-full bg-neutral-900">
           {/* Slides */}
           {heroProducts.length > 0 ? (
             heroProducts.map((p, i) => (
@@ -285,11 +285,11 @@ export default function StorefrontPublic() {
             />
           )}
 
-          {/* Overlay gradient */}
-          <div className="absolute inset-0 bg-gradient-to-t from-background via-background/70 to-background/10" aria-hidden />
+          {/* Overlay gradient — always dark so hero text is readable on light page */}
+          <div className="absolute inset-0 bg-gradient-to-t from-black via-black/60 to-black/10" aria-hidden />
 
           {/* Text overlay */}
-          <div className="absolute inset-x-0 bottom-0 px-5 pb-8 sm:pb-14">
+          <div className="absolute inset-x-0 bottom-0 px-5 pb-8 sm:pb-14 text-white">
             <div className="mx-auto max-w-6xl">
               <span
                 className="inline-flex items-center gap-1.5 text-[10px] uppercase tracking-[0.22em] font-semibold rounded-full px-3 py-1 backdrop-blur"
@@ -298,24 +298,24 @@ export default function StorefrontPublic() {
                 <Sparkles className="h-3 w-3" /> Spark Trade Store
               </span>
               <h1
-                className="mt-3 font-display text-4xl sm:text-6xl leading-[1.02] tracking-tight max-w-3xl"
+                className="mt-3 font-display text-4xl sm:text-6xl leading-[1.02] tracking-tight max-w-3xl text-white"
                 style={{ textShadow: "0 2px 24px rgba(0,0,0,0.55)" }}
               >
                 {storeName}
               </h1>
-              <p className="mt-3 max-w-xl text-sm sm:text-base text-foreground/85">
+              <p className="mt-3 max-w-xl text-sm sm:text-base text-white/85">
                 {sf.bio?.trim() || "Quality products, delivered to your door."}
               </p>
               <div className="mt-5 flex flex-wrap gap-3">
                 <a
                   href="#products"
-                  className="inline-flex h-12 items-center gap-2 rounded-2xl px-5 text-sm font-semibold shadow-lg transition-transform hover:scale-[1.02] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-offset-background"
+                  className="inline-flex h-12 items-center gap-2 rounded-2xl px-5 text-sm font-semibold shadow-lg transition-transform hover:scale-[1.02] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-offset-black"
                   style={{ backgroundColor: accent, color: "#1a1100" }}
                 >
                   <ShoppingBag className="h-4 w-4" /> Shop the collection
                 </a>
-                <div className="inline-flex items-center gap-1.5 rounded-2xl bg-background/60 backdrop-blur px-3 py-2 text-[11px] uppercase tracking-wider text-muted-foreground border border-border/60">
-                  <ShieldCheck className="h-3.5 w-3.5 text-accent" /> Secure via Paystack
+                <div className="inline-flex items-center gap-1.5 rounded-2xl bg-black/40 backdrop-blur px-3 py-2 text-[11px] uppercase tracking-wider text-white/80 border border-white/20">
+                  <ShieldCheck className="h-3.5 w-3.5" style={{ color: accent }} /> Secure via Paystack
                 </div>
               </div>
             </div>
@@ -327,14 +327,14 @@ export default function StorefrontPublic() {
               <button
                 aria-label="Previous product"
                 onClick={() => setHeroIdx((i) => (i - 1 + heroProducts.length) % heroProducts.length)}
-                className="absolute left-3 top-1/2 -translate-y-1/2 grid h-10 w-10 place-items-center rounded-full bg-background/60 backdrop-blur border border-border/60 hover:bg-background/80 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent"
+                className="absolute left-3 top-1/2 -translate-y-1/2 grid h-10 w-10 place-items-center rounded-full bg-black/50 text-white backdrop-blur border border-white/20 hover:bg-black/70 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white"
               >
                 <ChevronLeft className="h-5 w-5" />
               </button>
               <button
                 aria-label="Next product"
                 onClick={() => setHeroIdx((i) => (i + 1) % heroProducts.length)}
-                className="absolute right-3 top-1/2 -translate-y-1/2 grid h-10 w-10 place-items-center rounded-full bg-background/60 backdrop-blur border border-border/60 hover:bg-background/80 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent"
+                className="absolute right-3 top-1/2 -translate-y-1/2 grid h-10 w-10 place-items-center rounded-full bg-black/50 text-white backdrop-blur border border-white/20 hover:bg-black/70 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white"
               >
                 <ChevronRight className="h-5 w-5" />
               </button>
@@ -358,19 +358,19 @@ export default function StorefrontPublic() {
       </section>
 
       {/* Trust bar */}
-      <section aria-label="Store guarantees" className="border-b border-border/60 bg-secondary/30">
+      <section aria-label="Store guarantees" className="border-b border-neutral-200 bg-white">
         <div className="mx-auto max-w-6xl px-4 py-4 grid grid-cols-3 gap-3 text-center sm:text-left">
-          <div className="flex items-center justify-center sm:justify-start gap-2 text-xs sm:text-sm">
-            <ShieldCheck className="h-4 w-4 text-accent shrink-0" />
-            <span><span className="font-semibold">Secure checkout</span><span className="hidden sm:inline text-muted-foreground"> · Paystack</span></span>
+          <div className="flex items-center justify-center sm:justify-start gap-2 text-xs sm:text-sm text-neutral-800">
+            <ShieldCheck className="h-4 w-4 shrink-0" style={{ color: accent }} />
+            <span><span className="font-semibold">Secure checkout</span><span className="hidden sm:inline text-neutral-500"> · Paystack</span></span>
           </div>
-          <div className="flex items-center justify-center sm:justify-start gap-2 text-xs sm:text-sm">
-            <Truck className="h-4 w-4 text-accent shrink-0" />
-            <span><span className="font-semibold">Delivery to your door</span><span className="hidden sm:inline text-muted-foreground"> · nationwide</span></span>
+          <div className="flex items-center justify-center sm:justify-start gap-2 text-xs sm:text-sm text-neutral-800">
+            <Truck className="h-4 w-4 shrink-0" style={{ color: accent }} />
+            <span><span className="font-semibold">Delivery to your door</span><span className="hidden sm:inline text-neutral-500"> · nationwide</span></span>
           </div>
-          <div className="flex items-center justify-center sm:justify-start gap-2 text-xs sm:text-sm">
-            <Sparkles className="h-4 w-4 text-accent shrink-0" />
-            <span><span className="font-semibold">Verified member</span><span className="hidden sm:inline text-muted-foreground"> · UMOJA</span></span>
+          <div className="flex items-center justify-center sm:justify-start gap-2 text-xs sm:text-sm text-neutral-800">
+            <Sparkles className="h-4 w-4 shrink-0" style={{ color: accent }} />
+            <span><span className="font-semibold">Verified member</span><span className="hidden sm:inline text-neutral-500"> · UMOJA</span></span>
           </div>
         </div>
       </section>
@@ -379,34 +379,34 @@ export default function StorefrontPublic() {
       <section id="products" className="mx-auto max-w-6xl px-4 mt-10 sm:mt-14 scroll-mt-20">
         <div className="flex items-end justify-between">
           <div>
-            <h2 className="font-display text-2xl sm:text-3xl tracking-tight">The collection</h2>
-            <p className="text-sm text-muted-foreground mt-1">
+            <h2 className="font-display text-2xl sm:text-3xl tracking-tight text-neutral-900">The collection</h2>
+            <p className="text-sm text-neutral-500 mt-1">
               {products.length > 0
                 ? `${products.length} product${products.length === 1 ? "" : "s"} available`
                 : "New drops loading"}
             </p>
           </div>
-          <div className="hidden sm:flex items-center gap-1 text-xs text-muted-foreground">
+          <div className="hidden sm:flex items-center gap-1 text-xs text-neutral-500">
             <Package className="h-3.5 w-3.5" /> Delivered nationwide
           </div>
         </div>
 
         {products.length === 0 ? (
-          <div className="mt-6 rounded-3xl border border-dashed border-border bg-gradient-card p-10 text-center">
+          <div className="mt-6 rounded-3xl border border-dashed border-neutral-300 bg-white p-10 text-center">
             <div className="mx-auto grid h-14 w-14 place-items-center rounded-2xl" style={{ backgroundColor: `${accent}22` }}>
               <Sparkles className="h-6 w-6" style={{ color: accent }} />
             </div>
-            <p className="mt-4 font-display text-lg">Coming soon</p>
-            <p className="mt-1 text-sm text-muted-foreground">New products are dropping shortly — check back or follow the store.</p>
+            <p className="mt-4 font-display text-lg text-neutral-900">Coming soon</p>
+            <p className="mt-1 text-sm text-neutral-500">New products are dropping shortly — check back or follow the store.</p>
           </div>
         ) : (
           <div className="mt-6 grid gap-4 sm:gap-5 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3">
             {products.map((p) => (
               <article
                 key={p.id}
-                className="group relative flex flex-col rounded-3xl border border-border bg-card overflow-hidden transition-all hover:border-accent/50 hover:shadow-xl"
+                className="group relative flex flex-col rounded-3xl border border-neutral-200 bg-white overflow-hidden transition-all hover:border-neutral-300 hover:shadow-xl"
               >
-                <div className="relative aspect-square bg-secondary/40 overflow-hidden">
+                <div className="relative aspect-square bg-neutral-100 overflow-hidden">
                   {p.image_url ? (
                     <img
                       src={p.image_url}
@@ -420,36 +420,35 @@ export default function StorefrontPublic() {
                   )}
                   {p.category && (
                     <span
-                      className="absolute top-3 left-3 text-[10px] uppercase tracking-wider rounded-full px-2.5 py-1 backdrop-blur bg-background/70 border border-border/60"
+                      className="absolute top-3 left-3 text-[10px] uppercase tracking-wider rounded-full px-2.5 py-1 backdrop-blur bg-white/85 border border-neutral-200 text-neutral-700"
                     >
                       {p.category}
                     </span>
                   )}
                 </div>
                 <div className="flex flex-col gap-3 p-4">
-                  <h3 className="font-display text-lg leading-tight line-clamp-2">
+                  <h3 className="font-display text-lg leading-tight line-clamp-2 text-[#1A1A1A]">
                     {p.product_name ?? "Product"}
                   </h3>
                   {typeof p.sale_price === "number" && p.sale_price > 0 ? (
                     <div className="flex items-baseline gap-2">
-                      <span className="font-display text-3xl font-bold tracking-tight text-foreground">
+                      <span className="font-display text-3xl font-bold tracking-tight text-[#1A1A1A]">
                         R{Math.round(p.sale_price).toLocaleString("en-ZA")}
                       </span>
-                      <span className="text-xs text-muted-foreground">incl. delivery</span>
+                      <span className="text-xs text-neutral-500">incl. delivery</span>
                     </div>
                   ) : (
-                    <p className="text-sm text-muted-foreground">Contact for pricing</p>
+                    <p className="text-sm text-neutral-500">Contact for pricing</p>
                   )}
                   <Button
                     onClick={() => contactWhatsapp(p.product_name ?? undefined)}
-                    className="mt-1 h-12 rounded-2xl text-sm font-semibold shadow-md transition-transform hover:scale-[1.01]"
-                    style={{ backgroundColor: accent, color: "#1a1100" }}
+                    className="mt-1 h-12 rounded-2xl text-sm font-semibold shadow-md transition-transform hover:scale-[1.01] bg-green-600 hover:bg-green-700 text-white"
                     aria-label={`Buy ${p.product_name ?? "product"} now`}
                   >
                     <ShoppingBag className="h-4 w-4 mr-1.5" /> Buy now
                   </Button>
-                  <p className="text-[11px] text-muted-foreground text-center">
-                    <ShieldCheck className="inline h-3 w-3 mr-1 text-accent" />
+                  <p className="text-[11px] text-neutral-500 text-center">
+                    <ShieldCheck className="inline h-3 w-3 mr-1" style={{ color: accent }} />
                     Secure checkout · WhatsApp confirmation
                   </p>
                 </div>
@@ -461,8 +460,8 @@ export default function StorefrontPublic() {
 
       {/* REVIEWS */}
       <section className="mx-auto max-w-4xl px-4 mt-14">
-        <h2 className="font-display text-2xl sm:text-3xl tracking-tight">Customer reviews</h2>
-        <div className="mt-4 flex items-center gap-4 rounded-3xl border border-border bg-card p-5">
+        <h2 className="font-display text-2xl sm:text-3xl tracking-tight text-neutral-900">Customer reviews</h2>
+        <div className="mt-4 flex items-center gap-4 rounded-3xl border border-neutral-200 bg-white p-5">
           <div className="text-5xl font-display" style={{ color: accent }}>{avgRating.toFixed(1)}</div>
           <div className="flex-1">
             <div className="flex">
@@ -470,10 +469,10 @@ export default function StorefrontPublic() {
                 <Star key={i} className="h-4 w-4" fill={i <= Math.round(avgRating) ? accent : "none"} stroke={accent} />
               ))}
             </div>
-            <p className="text-xs text-muted-foreground mt-1">{reviews.length} review{reviews.length === 1 ? "" : "s"}</p>
+            <p className="text-xs text-neutral-500 mt-1">{reviews.length} review{reviews.length === 1 ? "" : "s"}</p>
           </div>
           {user && user.id !== member.id && (
-            <Button onClick={() => setShowReview(true)} variant="outline" className="rounded-2xl">
+            <Button onClick={() => setShowReview(true)} variant="outline" className="rounded-2xl border-neutral-300 text-neutral-800 hover:bg-neutral-100">
               Write a review
             </Button>
           )}
@@ -481,67 +480,70 @@ export default function StorefrontPublic() {
 
         <div className="mt-5 space-y-3">
           {reviews.map((r) => (
-            <div key={r.id} className="rounded-2xl border border-border bg-card p-4">
+            <div key={r.id} className="rounded-2xl border border-neutral-200 bg-white p-4">
               <div className="flex items-center justify-between">
-                <p className="font-medium text-sm">{r.reviewer_name}</p>
-                <p className="text-xs text-muted-foreground">{new Date(r.created_at).toLocaleDateString()}</p>
+                <p className="font-medium text-sm text-neutral-900">{r.reviewer_name}</p>
+                <p className="text-xs text-neutral-500">{new Date(r.created_at).toLocaleDateString()}</p>
               </div>
               <div className="flex mt-1">
                 {[1, 2, 3, 4, 5].map((i) => (
                   <Star key={i} className="h-3.5 w-3.5" fill={i <= r.rating ? accent : "none"} stroke={accent} />
                 ))}
               </div>
-              <p className="mt-2 text-sm">{r.review_text}</p>
+              <p className="mt-2 text-sm text-neutral-800">{r.review_text}</p>
             </div>
           ))}
           {reviews.length === 0 && (
-            <p className="text-sm text-muted-foreground text-center py-6">Be the first to leave a review.</p>
+            <p className="text-sm text-neutral-500 text-center py-6">Be the first to leave a review.</p>
           )}
         </div>
       </section>
 
-      {/* Footer — powered by */}
-      <section className="mx-auto max-w-4xl px-4 mt-14">
-        <div className="rounded-3xl border border-border bg-gradient-card p-5 flex flex-col sm:flex-row items-center gap-4 text-center sm:text-left">
-          <Logo showWord={false} />
-          <div className="flex-1">
-            <p className="text-sm font-semibold">Powered by UMOJA <span className="text-accent">Spark Trade</span></p>
-            <p className="text-xs text-muted-foreground mt-1">
-              Every Spark Trade store is run by a verified UMOJA member and backed by our group-buying network.
-              Member since {new Date(member.created_at).toLocaleDateString(undefined, { month: "long", year: "numeric" })}.
-            </p>
+      {/* Dark brand footer frame */}
+      <div className="mt-14 bg-neutral-950 text-neutral-200">
+        <section className="mx-auto max-w-4xl px-4 pt-10">
+          <div className="rounded-3xl border border-neutral-800 bg-neutral-900 p-5 flex flex-col sm:flex-row items-center gap-4 text-center sm:text-left">
+            <Logo showWord={false} />
+            <div className="flex-1">
+              <p className="text-sm font-semibold text-white">Powered by UMOJA <span style={{ color: "#C9A84C" }}>Spark Trade</span></p>
+              <p className="text-xs text-neutral-400 mt-1">
+                Every Spark Trade store is run by a verified UMOJA member and backed by our group-buying network.
+                Member since {new Date(member.created_at).toLocaleDateString(undefined, { month: "long", year: "numeric" })}.
+              </p>
+            </div>
+            <Link to="/spark" className="text-xs font-semibold hover:underline whitespace-nowrap" style={{ color: "#C9A84C" }}>
+              Open your store →
+            </Link>
           </div>
-          <Link to="/spark" className="text-xs font-semibold text-accent hover:underline whitespace-nowrap">
-            Open your store →
-          </Link>
-        </div>
-      </section>
+        </section>
 
-      {/* Store policies footer */}
-      <StorePolicies
-        storeName={storeName}
-        ownerName={member.full_name}
-        ownerEmail={member.email}
-        ownerPhone={member.phone}
-        accent={accent}
-      />
+        {/* Store policies footer */}
+        <StorePolicies
+          storeName={storeName}
+          ownerName={member.full_name}
+          ownerEmail={member.email}
+          ownerPhone={member.phone}
+          accent={accent}
+        />
+        <div className="pb-10" />
+      </div>
 
       {/* Sticky share bar */}
-      <div className="fixed bottom-0 inset-x-0 sm:static sm:max-w-3xl sm:mx-auto sm:mt-6 z-40 border-t sm:border border-border bg-background/95 backdrop-blur sm:rounded-2xl sm:bg-gradient-card">
+      <div className="fixed bottom-0 inset-x-0 sm:static sm:max-w-3xl sm:mx-auto sm:mt-6 z-40 border-t sm:border border-neutral-200 bg-white/95 backdrop-blur sm:rounded-2xl">
         <div className="flex items-center justify-around sm:justify-center sm:gap-3 px-2 py-3">
           <a href={`https://wa.me/?text=${encodeURIComponent(`${shareText} ${shareUrl}`)}`} target="_blank" rel="noreferrer"
-             className="inline-flex items-center gap-1 rounded-2xl px-3 py-2 text-xs hover:bg-secondary">
-            <MessageCircle className="h-4 w-4 text-green-500" /> WhatsApp
+             className="inline-flex items-center gap-1 rounded-2xl px-3 py-2 text-xs text-neutral-800 hover:bg-neutral-100">
+            <MessageCircle className="h-4 w-4 text-green-600" /> WhatsApp
           </a>
           <a href={`https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(shareUrl)}`} target="_blank" rel="noreferrer"
-             className="inline-flex items-center gap-1 rounded-2xl px-3 py-2 text-xs hover:bg-secondary">
-            <Facebook className="h-4 w-4 text-blue-500" /> Facebook
+             className="inline-flex items-center gap-1 rounded-2xl px-3 py-2 text-xs text-neutral-800 hover:bg-neutral-100">
+            <Facebook className="h-4 w-4 text-blue-600" /> Facebook
           </a>
           <a href={`https://twitter.com/intent/tweet?text=${encodeURIComponent(shareText)}&url=${encodeURIComponent(shareUrl)}`} target="_blank" rel="noreferrer"
-             className="inline-flex items-center gap-1 rounded-2xl px-3 py-2 text-xs hover:bg-secondary">
+             className="inline-flex items-center gap-1 rounded-2xl px-3 py-2 text-xs text-neutral-800 hover:bg-neutral-100">
             <Twitter className="h-4 w-4 text-sky-500" /> Twitter
           </a>
-          <button onClick={copyLink} className="inline-flex items-center gap-1 rounded-2xl px-3 py-2 text-xs hover:bg-secondary">
+          <button onClick={copyLink} className="inline-flex items-center gap-1 rounded-2xl px-3 py-2 text-xs text-neutral-800 hover:bg-neutral-100">
             <Copy className="h-4 w-4" /> Copy
           </button>
         </div>
