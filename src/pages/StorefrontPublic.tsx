@@ -200,7 +200,7 @@ export default function StorefrontPublic() {
   const metaTitle = `${storeName} — ${categoryLabel} | UMOJA Spark Trade`;
   const metaDesc = (sf.bio && sf.bio.trim().length > 0)
     ? sf.bio.trim().slice(0, 155)
-    : `Shop ${categoryLabel} from ${storeName}, a verified UMOJA Spark Trade member store. Group-buy pricing, secure Paystack checkout.`;
+    : `Shop ${categoryLabel} from ${storeName}, a verified UMOJA Spark Trade member store. Secure Paystack checkout.`;
   const ogImage = activeHero?.image_url || sf.banner_url || undefined;
 
   const productJsonLd = products
