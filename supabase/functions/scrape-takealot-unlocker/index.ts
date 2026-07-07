@@ -109,6 +109,7 @@ function parseSearchJson(json: string, category: string): ParsedProduct[] {
       rating:
         typeof core.star_rating === "number" ? core.star_rating : null,
       scraped_at: now,
+      search_rank: out.length + 1,
     });
   }
   return out;
