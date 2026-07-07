@@ -11,6 +11,7 @@ import {
 } from "lucide-react";
 import { toast } from "sonner";
 import { Logo } from "@/components/umoja/Logo";
+import { StorePolicies } from "@/components/umoja/StorePolicies";
 
 interface Storefront {
   member_id: string;
@@ -199,7 +200,7 @@ export default function StorefrontPublic() {
   const metaTitle = `${storeName} — ${categoryLabel} | UMOJA Spark Trade`;
   const metaDesc = (sf.bio && sf.bio.trim().length > 0)
     ? sf.bio.trim().slice(0, 155)
-    : `Shop ${categoryLabel} from ${storeName}, a verified UMOJA Spark Trade member store. Group-buy pricing, secure Paystack checkout.`;
+    : `Shop ${categoryLabel} from ${storeName}, a verified UMOJA Spark Trade member store. Secure Paystack checkout.`;
   const ogImage = activeHero?.image_url || sf.banner_url || undefined;
 
   const productJsonLd = products
@@ -303,7 +304,7 @@ export default function StorefrontPublic() {
                 {storeName}
               </h1>
               <p className="mt-3 max-w-xl text-sm sm:text-base text-foreground/85">
-                {sf.bio?.trim() || "Quality products, group-bought and delivered."}
+                {sf.bio?.trim() || "Quality products, delivered to your door."}
               </p>
               <div className="mt-5 flex flex-wrap gap-3">
                 <a
@@ -365,7 +366,7 @@ export default function StorefrontPublic() {
           </div>
           <div className="flex items-center justify-center sm:justify-start gap-2 text-xs sm:text-sm">
             <Truck className="h-4 w-4 text-accent shrink-0" />
-            <span><span className="font-semibold">Group delivery</span><span className="hidden sm:inline text-muted-foreground"> · 4–6 weeks</span></span>
+            <span><span className="font-semibold">Delivery to your door</span><span className="hidden sm:inline text-muted-foreground"> · nationwide</span></span>
           </div>
           <div className="flex items-center justify-center sm:justify-start gap-2 text-xs sm:text-sm">
             <Sparkles className="h-4 w-4 text-accent shrink-0" />
@@ -381,12 +382,12 @@ export default function StorefrontPublic() {
             <h2 className="font-display text-2xl sm:text-3xl tracking-tight">The collection</h2>
             <p className="text-sm text-muted-foreground mt-1">
               {products.length > 0
-                ? `${products.length} product${products.length === 1 ? "" : "s"} · group-bought pricing`
+                ? `${products.length} product${products.length === 1 ? "" : "s"} available`
                 : "New drops loading"}
             </p>
           </div>
           <div className="hidden sm:flex items-center gap-1 text-xs text-muted-foreground">
-            <Package className="h-3.5 w-3.5" /> Ships via group order
+            <Package className="h-3.5 w-3.5" /> Delivered nationwide
           </div>
         </div>
 
@@ -434,7 +435,7 @@ export default function StorefrontPublic() {
                       <span className="font-display text-3xl font-bold tracking-tight text-foreground">
                         R{Math.round(p.sale_price).toLocaleString("en-ZA")}
                       </span>
-                      <span className="text-xs text-muted-foreground">incl. group delivery</span>
+                      <span className="text-xs text-muted-foreground">incl. delivery</span>
                     </div>
                   ) : (
                     <p className="text-sm text-muted-foreground">Contact for pricing</p>
@@ -515,6 +516,15 @@ export default function StorefrontPublic() {
           </Link>
         </div>
       </section>
+
+      {/* Store policies footer */}
+      <StorePolicies
+        storeName={storeName}
+        ownerName={member.full_name}
+        ownerEmail={member.email}
+        ownerPhone={member.phone}
+        accent={accent}
+      />
 
       {/* Sticky share bar */}
       <div className="fixed bottom-0 inset-x-0 sm:static sm:max-w-3xl sm:mx-auto sm:mt-6 z-40 border-t sm:border border-border bg-background/95 backdrop-blur sm:rounded-2xl sm:bg-gradient-card">
