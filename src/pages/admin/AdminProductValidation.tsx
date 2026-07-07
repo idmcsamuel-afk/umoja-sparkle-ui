@@ -419,8 +419,8 @@ export default function AdminProductValidation() {
     <div className="space-y-6">
       <div className="flex items-center justify-between flex-wrap gap-3">
         <div>
-          <h1 className="text-2xl font-semibold">Product Validation — Amazon (Live)</h1>
-          <p className="text-sm text-muted-foreground">Approve Amazon SA products with Alibaba cost + weight to publish to Browse. US/Walmart are demand signals only.</p>
+          <h1 className="text-2xl font-semibold">Product Validation — Marketplaces (Live)</h1>
+          <p className="text-sm text-muted-foreground">All marketplaces (Amazon US, Amazon SA, Walmart US, Takealot SA) are approvable — add Alibaba cost + weight (+ SA selling price for non-SA rows) to publish to Browse. Gaps in the SA market are sourcing opportunities.</p>
         </div>
         <Button variant="outline" size="sm" onClick={load}><RefreshCw className="h-4 w-4 mr-1" /> Refresh</Button>
       </div>
