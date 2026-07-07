@@ -6561,6 +6561,7 @@ export type Database = {
           image_url: string | null
           rating: number | null
           scraped_at: string
+          search_rank: number | null
           seller_count: number | null
           takealot_name: string
           takealot_price: number | null
@@ -6572,6 +6573,7 @@ export type Database = {
           image_url?: string | null
           rating?: number | null
           scraped_at?: string
+          search_rank?: number | null
           seller_count?: number | null
           takealot_name: string
           takealot_price?: number | null
@@ -6583,6 +6585,7 @@ export type Database = {
           image_url?: string | null
           rating?: number | null
           scraped_at?: string
+          search_rank?: number | null
           seller_count?: number | null
           takealot_name?: string
           takealot_price?: number | null

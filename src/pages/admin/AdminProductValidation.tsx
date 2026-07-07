@@ -71,7 +71,17 @@ function Stars({ value }: { value: number | null }) {
   );
 }
 
-function DemandBadge({ reviews }: { reviews: number | null }) {
+function DemandBadge({ reviews, marketplace, rank, rating }: { reviews: number | null; marketplace?: string | null; rank?: number | null; rating?: number | null }) {
+  // Takealot: no review counts from the API — use search rank + rating instead.
+  if (marketplace === "takealot_sa") {
+    if (rank == null) {
+      if (rating != null && rating >= 4) return <Badge className="bg-amber-500 text-white">MEDIUM DEMAND</Badge>;
+      return <Badge variant="outline">RANK N/A</Badge>;
+    }
+    if (rank <= 10) return <Badge className="bg-green-600 text-white">HIGH DEMAND · #{rank}</Badge>;
+    if (rank <= 25) return <Badge className="bg-amber-500 text-white">MEDIUM DEMAND · #{rank}</Badge>;
+    return <Badge className="bg-red-600 text-white">LOW DEMAND · #{rank}</Badge>;
+  }
   if (reviews == null) return <Badge variant="outline">NO REVIEWS</Badge>;
   if (reviews >= 5000) return <Badge className="bg-green-600 text-white">HIGH DEMAND</Badge>;
   if (reviews >= 1000) return <Badge className="bg-amber-500 text-white">MEDIUM DEMAND</Badge>;
