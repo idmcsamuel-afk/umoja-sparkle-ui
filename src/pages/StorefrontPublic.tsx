@@ -261,7 +261,7 @@ export default function StorefrontPublic() {
         className="relative w-full overflow-hidden"
         aria-label={`${storeName} featured products`}
       >
-        <div className="relative h-[62vh] min-h-[420px] max-h-[720px] sm:h-[70vh] w-full bg-secondary">
+        <div className="relative h-[62vh] min-h-[420px] max-h-[720px] sm:h-[70vh] w-full bg-neutral-900">
           {/* Slides */}
           {heroProducts.length > 0 ? (
             heroProducts.map((p, i) => (
