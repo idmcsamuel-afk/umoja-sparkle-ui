@@ -529,21 +529,21 @@ export default function StorefrontPublic() {
       </div>
 
       {/* Sticky share bar */}
-      <div className="fixed bottom-0 inset-x-0 sm:static sm:max-w-3xl sm:mx-auto sm:mt-6 z-40 border-t sm:border border-border bg-background/95 backdrop-blur sm:rounded-2xl sm:bg-gradient-card">
+      <div className="fixed bottom-0 inset-x-0 sm:static sm:max-w-3xl sm:mx-auto sm:mt-6 z-40 border-t sm:border border-neutral-200 bg-white/95 backdrop-blur sm:rounded-2xl">
         <div className="flex items-center justify-around sm:justify-center sm:gap-3 px-2 py-3">
           <a href={`https://wa.me/?text=${encodeURIComponent(`${shareText} ${shareUrl}`)}`} target="_blank" rel="noreferrer"
-             className="inline-flex items-center gap-1 rounded-2xl px-3 py-2 text-xs hover:bg-secondary">
-            <MessageCircle className="h-4 w-4 text-green-500" /> WhatsApp
+             className="inline-flex items-center gap-1 rounded-2xl px-3 py-2 text-xs text-neutral-800 hover:bg-neutral-100">
+            <MessageCircle className="h-4 w-4 text-green-600" /> WhatsApp
           </a>
           <a href={`https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(shareUrl)}`} target="_blank" rel="noreferrer"
-             className="inline-flex items-center gap-1 rounded-2xl px-3 py-2 text-xs hover:bg-secondary">
-            <Facebook className="h-4 w-4 text-blue-500" /> Facebook
+             className="inline-flex items-center gap-1 rounded-2xl px-3 py-2 text-xs text-neutral-800 hover:bg-neutral-100">
+            <Facebook className="h-4 w-4 text-blue-600" /> Facebook
           </a>
           <a href={`https://twitter.com/intent/tweet?text=${encodeURIComponent(shareText)}&url=${encodeURIComponent(shareUrl)}`} target="_blank" rel="noreferrer"
-             className="inline-flex items-center gap-1 rounded-2xl px-3 py-2 text-xs hover:bg-secondary">
+             className="inline-flex items-center gap-1 rounded-2xl px-3 py-2 text-xs text-neutral-800 hover:bg-neutral-100">
             <Twitter className="h-4 w-4 text-sky-500" /> Twitter
           </a>
-          <button onClick={copyLink} className="inline-flex items-center gap-1 rounded-2xl px-3 py-2 text-xs hover:bg-secondary">
+          <button onClick={copyLink} className="inline-flex items-center gap-1 rounded-2xl px-3 py-2 text-xs text-neutral-800 hover:bg-neutral-100">
             <Copy className="h-4 w-4" /> Copy
           </button>
         </div>
