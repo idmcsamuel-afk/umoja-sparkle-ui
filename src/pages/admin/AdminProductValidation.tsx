@@ -454,19 +454,23 @@ export default function AdminProductValidation() {
           {pageRows.map((r) => {
             const status = (r.validation_status ?? "pending_review") as ValidationStatus;
             const market = r.marketplace ?? "amazon_us";
-            const isSA = market === "amazon_sa";
+            const isSA = SA_MARKETS.has(market);
             const cardTone =
               status === "approved_to_queue" ? "border-green-500/40 bg-green-500/5"
               : status === "rejected" ? "border-destructive/40 bg-destructive/5"
               : status === "demand_validated" ? "border-blue-500/40 bg-blue-500/5" : "";
             const f = getForm(r.id);
-            const live = isSA && r.price_zar && parseFloat(f.alibaba_cost_zar) > 0 && parseFloat(f.weight_kg) > 0
+            const overrideSa = f.sa_selling_price_zar.trim() === "" ? null : parseFloat(f.sa_selling_price_zar);
+            const effectiveSa = overrideSa != null && !isNaN(overrideSa) && overrideSa > 0
+              ? overrideSa
+              : (r.price_zar != null ? Number(r.price_zar) : null);
+            const live = effectiveSa && parseFloat(f.alibaba_cost_zar) > 0 && parseFloat(f.weight_kg) > 0
               ? computeMargins({
                   alibaba_cost_zar: parseFloat(f.alibaba_cost_zar),
                   weight_kg: parseFloat(f.weight_kg),
                   buffer_pct: parseFloat(f.buffer_pct) || 0,
                   commission_pct: parseFloat(f.commission_pct) || 0,
-                  price_zar: Number(r.price_zar),
+                  price_zar: effectiveSa,
                   freight_sea_override: f.freight_override_zar.trim() === "" ? null : parseFloat(f.freight_override_zar),
                   freight_air_override: f.freight_air_zar.trim() === "" ? null : parseFloat(f.freight_air_zar),
                 })
