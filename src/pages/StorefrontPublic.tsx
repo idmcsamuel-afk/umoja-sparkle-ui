@@ -1,10 +1,14 @@
 import { useEffect, useMemo, useState } from "react";
 import { Link, useParams } from "react-router-dom";
+import { Helmet } from "react-helmet-async";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
-import { Loader2, Star, MessageCircle, Mail, Share2, Copy, Facebook, Twitter } from "lucide-react";
+import {
+  Loader2, Star, MessageCircle, Copy, Facebook, Twitter,
+  ShieldCheck, Truck, Package, ChevronLeft, ChevronRight, ShoppingBag, Sparkles,
+} from "lucide-react";
 import { toast } from "sonner";
 import { Logo } from "@/components/umoja/Logo";
 
@@ -54,13 +58,12 @@ export default function StorefrontPublic() {
   const [rating, setRating] = useState(5);
   const [text, setText] = useState("");
   const [submitting, setSubmitting] = useState(false);
-  
+  const [heroIdx, setHeroIdx] = useState(0);
 
   useEffect(() => {
     if (!code) return;
     (async () => {
       setLoading(true);
-      // NOTE: do NOT select kyc_photo_url — that image is private (POPIA / biometric).
       const { data: m } = await supabase.from("members")
         .select("id, full_name, email, phone, buyers_club_tier, has_buyers_club_access, created_at")
         .ilike("referral_code", code).maybeSingle();
@@ -71,10 +74,8 @@ export default function StorefrontPublic() {
         .select("*").eq("member_id", m.id).maybeSingle();
       setSf(s as Storefront | null);
 
-      // Increment view count (fire and forget)
       void supabase.rpc("increment_storefront_view" as any, { _owner: m.id });
 
-      // Real products = the opportunities this member has actually reserved.
       const { data: reservations } = await supabase
         .from("spark_trade_inventory_reservations" as any)
         .select("opportunity_id, reservation_status")
@@ -104,7 +105,6 @@ export default function StorefrontPublic() {
         setProducts([]);
       }
 
-      // Reviews
       const { data: rv } = await supabase.from("storefront_reviews")
         .select("id, reviewer_id, rating, review_text, created_at")
         .eq("storefront_owner_id", m.id).order("created_at", { ascending: false });
@@ -122,13 +122,33 @@ export default function StorefrontPublic() {
     })();
   }, [code]);
 
-
   const accent = sf?.accent_color || "#C9A84C";
   const avgRating = useMemo(() => reviews.length ? reviews.reduce((s, r) => s + r.rating, 0) / reviews.length : 0, [reviews]);
   const shareUrl = typeof window !== "undefined" ? window.location.href : "";
-  const shareText = `Check out ${sf?.display_name || member?.full_name}'s shop on UMOJA`;
+  const storeName = sf?.display_name || member?.full_name || "Shop";
+  const shareText = `Check out ${storeName} on UMOJA Spark Trade`;
 
-  if (loading) return <div className="grid min-h-screen place-items-center"><Loader2 className="h-6 w-6 animate-spin text-primary" /></div>;
+  const heroProducts = useMemo(
+    () => products.filter((p) => !!p.image_url).slice(0, 5),
+    [products]
+  );
+  const activeHero = heroProducts[heroIdx] ?? heroProducts[0];
+
+  // Auto-advance hero
+  useEffect(() => {
+    if (heroProducts.length < 2) return;
+    const prefersReduced = typeof window !== "undefined" &&
+      window.matchMedia?.("(prefers-reduced-motion: reduce)").matches;
+    if (prefersReduced) return;
+    const id = setInterval(() => {
+      setHeroIdx((i) => (i + 1) % heroProducts.length);
+    }, 5000);
+    return () => clearInterval(id);
+  }, [heroProducts.length]);
+
+  if (loading) {
+    return <div className="grid min-h-screen place-items-center"><Loader2 className="h-6 w-6 animate-spin text-primary" /></div>;
+  }
   if (!member || !sf || !sf.is_active) {
     return (
       <div className="mx-auto max-w-md p-6 text-center mt-20">
@@ -152,7 +172,6 @@ export default function StorefrontPublic() {
     if (error) return toast.error(error.message);
     toast.success("Thanks for your review!");
     setShowReview(false); setText(""); setRating(5);
-    // refresh
     const { data: rv } = await supabase.from("storefront_reviews")
       .select("id, reviewer_id, rating, review_text, created_at")
       .eq("storefront_owner_id", member.id).order("created_at", { ascending: false });
@@ -165,7 +184,7 @@ export default function StorefrontPublic() {
       else toast.error("No contact details available");
       return;
     }
-    const msg = `Hi ${member.full_name.split(" ")[0]}, I'm interested in ${productName ?? "your products"} from your UMOJA shop. Is it still available?`;
+    const msg = `Hi ${member.full_name.split(" ")[0]}, I'd like to buy ${productName ?? "your products"} from your UMOJA Spark Trade shop. Is it still available?`;
     const phone = member.phone.replace(/[^\d]/g, "");
     window.open(`https://wa.me/${phone}?text=${encodeURIComponent(msg)}`, "_blank");
   };
@@ -175,107 +194,293 @@ export default function StorefrontPublic() {
     toast.success("Link copied");
   };
 
+  // SEO
+  const categoryLabel = products[0]?.category || "quality imported products";
+  const metaTitle = `${storeName} — ${categoryLabel} | UMOJA Spark Trade`;
+  const metaDesc = (sf.bio && sf.bio.trim().length > 0)
+    ? sf.bio.trim().slice(0, 155)
+    : `Shop ${categoryLabel} from ${storeName}, a verified UMOJA Spark Trade member store. Group-buy pricing, secure Paystack checkout.`;
+  const ogImage = activeHero?.image_url || sf.banner_url || undefined;
+
+  const productJsonLd = products
+    .filter((p) => p.product_name && p.sale_price && p.sale_price > 0)
+    .map((p) => ({
+      "@context": "https://schema.org",
+      "@type": "Product",
+      name: p.product_name,
+      image: p.image_url ? [p.image_url] : undefined,
+      category: p.category ?? undefined,
+      brand: { "@type": "Brand", name: storeName },
+      offers: {
+        "@type": "Offer",
+        priceCurrency: "ZAR",
+        price: p.sale_price,
+        availability: "https://schema.org/InStock",
+        url: shareUrl,
+      },
+    }));
+
   return (
-    <div className="min-h-screen bg-background pb-24 sm:pb-10">
-      {/* Unified UMOJA Spark Trade brand header — present on every member storefront.
-          TODO(paid-upgrade): allow custom-domain plans to hide/replace this bar. */}
+    <div className="min-h-screen bg-background pb-28 sm:pb-10">
+      <Helmet>
+        <title>{metaTitle}</title>
+        <meta name="description" content={metaDesc} />
+        <link rel="canonical" href={shareUrl} />
+        <meta property="og:type" content="website" />
+        <meta property="og:title" content={metaTitle} />
+        <meta property="og:description" content={metaDesc} />
+        <meta property="og:url" content={shareUrl} />
+        {ogImage && <meta property="og:image" content={ogImage} />}
+        <meta name="twitter:card" content="summary_large_image" />
+        <meta name="twitter:title" content={metaTitle} />
+        <meta name="twitter:description" content={metaDesc} />
+        {ogImage && <meta name="twitter:image" content={ogImage} />}
+        {productJsonLd.length > 0 && (
+          <script type="application/ld+json">{JSON.stringify(productJsonLd)}</script>
+        )}
+      </Helmet>
+
+      {/* UMOJA brand strip */}
       <div className="w-full border-b border-border/60 bg-background/95 backdrop-blur sticky top-0 z-30">
-        <div className="mx-auto max-w-5xl px-4 py-2 flex items-center justify-between">
-          <Link to="/" className="flex items-center gap-2 group">
+        <div className="mx-auto max-w-6xl px-4 py-2 flex items-center justify-between">
+          <Link to="/" className="flex items-center gap-2 group focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent rounded-md">
             <Logo showWord={false} className="scale-90" />
             <span className="text-[11px] uppercase tracking-[0.18em] font-semibold text-muted-foreground group-hover:text-foreground transition-smooth">
               UMOJA <span className="text-accent">Spark Trade</span>
             </span>
           </Link>
-          <span className="hidden sm:inline text-[10px] uppercase tracking-wider text-muted-foreground">Verified member store</span>
+          <span className="hidden sm:inline-flex items-center gap-1.5 text-[10px] uppercase tracking-wider text-muted-foreground">
+            <ShieldCheck className="h-3.5 w-3.5 text-accent" /> Verified member store
+          </span>
         </div>
       </div>
 
-      {/* Banner */}
-      <div className="w-full aspect-[4/1] sm:aspect-[5/1] bg-gradient-to-br from-primary/30 to-accent/20 overflow-hidden">
+      {/* HERO */}
+      <section
+        className="relative w-full overflow-hidden"
+        aria-label={`${storeName} featured products`}
+      >
+        <div className="relative h-[62vh] min-h-[420px] max-h-[720px] sm:h-[70vh] w-full bg-secondary">
+          {/* Slides */}
+          {heroProducts.length > 0 ? (
+            heroProducts.map((p, i) => (
+              <img
+                key={p.id}
+                src={p.image_url!}
+                alt={`${p.product_name ?? "Featured product"} — ${p.category ?? categoryLabel}`}
+                className={`absolute inset-0 h-full w-full object-cover transition-opacity duration-700 ${i === heroIdx ? "opacity-100" : "opacity-0"}`}
+                loading={i === 0 ? "eager" : "lazy"}
+                decoding="async"
+                fetchPriority={i === 0 ? "high" as any : undefined}
+              />
+            ))
+          ) : sf.banner_url ? (
+            <img src={sf.banner_url} alt={`${storeName} store banner`} className="absolute inset-0 h-full w-full object-cover" />
+          ) : (
+            <div
+              className="absolute inset-0"
+              style={{ background: `linear-gradient(135deg, ${accent}44, hsl(var(--background)))` }}
+              aria-hidden
+            />
+          )}
 
-        {sf.banner_url && <img src={sf.banner_url} alt="" className="h-full w-full object-cover" />}
-      </div>
+          {/* Overlay gradient */}
+          <div className="absolute inset-0 bg-gradient-to-t from-background via-background/70 to-background/10" aria-hidden />
 
-      {/* Profile */}
-      <div className="mx-auto max-w-4xl px-4 -mt-16 text-center">
-        <div className="inline-block">
-          {/* PRIVACY: never render KYC selfie here. Public avatar = store initial on brand color. */}
-          <div
-            className="h-28 w-28 sm:h-32 sm:w-32 rounded-full border-4 border-background overflow-hidden mx-auto grid place-items-center font-display text-4xl"
-            style={{ boxShadow: `0 0 0 3px ${accent}`, backgroundColor: `${accent}22`, color: accent }}
-          >
-            {(sf.display_name || member.full_name || "?").charAt(0).toUpperCase()}
+          {/* Text overlay */}
+          <div className="absolute inset-x-0 bottom-0 px-5 pb-8 sm:pb-14">
+            <div className="mx-auto max-w-6xl">
+              <span
+                className="inline-flex items-center gap-1.5 text-[10px] uppercase tracking-[0.22em] font-semibold rounded-full px-3 py-1 backdrop-blur"
+                style={{ backgroundColor: `${accent}22`, color: accent, border: `1px solid ${accent}55` }}
+              >
+                <Sparkles className="h-3 w-3" /> Spark Trade Store
+              </span>
+              <h1
+                className="mt-3 font-display text-4xl sm:text-6xl leading-[1.02] tracking-tight max-w-3xl"
+                style={{ textShadow: "0 2px 24px rgba(0,0,0,0.55)" }}
+              >
+                {storeName}
+              </h1>
+              <p className="mt-3 max-w-xl text-sm sm:text-base text-foreground/85">
+                {sf.bio?.trim() || "Quality products, group-bought and delivered."}
+              </p>
+              <div className="mt-5 flex flex-wrap gap-3">
+                <a
+                  href="#products"
+                  className="inline-flex h-12 items-center gap-2 rounded-2xl px-5 text-sm font-semibold shadow-lg transition-transform hover:scale-[1.02] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-offset-background"
+                  style={{ backgroundColor: accent, color: "#1a1100" }}
+                >
+                  <ShoppingBag className="h-4 w-4" /> Shop the collection
+                </a>
+                <div className="inline-flex items-center gap-1.5 rounded-2xl bg-background/60 backdrop-blur px-3 py-2 text-[11px] uppercase tracking-wider text-muted-foreground border border-border/60">
+                  <ShieldCheck className="h-3.5 w-3.5 text-accent" /> Secure via Paystack
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* Slide controls */}
+          {heroProducts.length > 1 && (
+            <>
+              <button
+                aria-label="Previous product"
+                onClick={() => setHeroIdx((i) => (i - 1 + heroProducts.length) % heroProducts.length)}
+                className="absolute left-3 top-1/2 -translate-y-1/2 grid h-10 w-10 place-items-center rounded-full bg-background/60 backdrop-blur border border-border/60 hover:bg-background/80 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent"
+              >
+                <ChevronLeft className="h-5 w-5" />
+              </button>
+              <button
+                aria-label="Next product"
+                onClick={() => setHeroIdx((i) => (i + 1) % heroProducts.length)}
+                className="absolute right-3 top-1/2 -translate-y-1/2 grid h-10 w-10 place-items-center rounded-full bg-background/60 backdrop-blur border border-border/60 hover:bg-background/80 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent"
+              >
+                <ChevronRight className="h-5 w-5" />
+              </button>
+              <div className="absolute bottom-3 left-1/2 -translate-x-1/2 flex gap-1.5">
+                {heroProducts.map((_, i) => (
+                  <button
+                    key={i}
+                    aria-label={`Go to slide ${i + 1}`}
+                    onClick={() => setHeroIdx(i)}
+                    className="h-1.5 rounded-full transition-all"
+                    style={{
+                      width: i === heroIdx ? 24 : 8,
+                      backgroundColor: i === heroIdx ? accent : "rgba(255,255,255,0.4)",
+                    }}
+                  />
+                ))}
+              </div>
+            </>
+          )}
+        </div>
+      </section>
+
+      {/* Trust bar */}
+      <section aria-label="Store guarantees" className="border-b border-border/60 bg-secondary/30">
+        <div className="mx-auto max-w-6xl px-4 py-4 grid grid-cols-3 gap-3 text-center sm:text-left">
+          <div className="flex items-center justify-center sm:justify-start gap-2 text-xs sm:text-sm">
+            <ShieldCheck className="h-4 w-4 text-accent shrink-0" />
+            <span><span className="font-semibold">Secure checkout</span><span className="hidden sm:inline text-muted-foreground"> · Paystack</span></span>
+          </div>
+          <div className="flex items-center justify-center sm:justify-start gap-2 text-xs sm:text-sm">
+            <Truck className="h-4 w-4 text-accent shrink-0" />
+            <span><span className="font-semibold">Group delivery</span><span className="hidden sm:inline text-muted-foreground"> · 4–6 weeks</span></span>
+          </div>
+          <div className="flex items-center justify-center sm:justify-start gap-2 text-xs sm:text-sm">
+            <Sparkles className="h-4 w-4 text-accent shrink-0" />
+            <span><span className="font-semibold">Verified member</span><span className="hidden sm:inline text-muted-foreground"> · UMOJA</span></span>
           </div>
         </div>
-        <h1 className="font-display text-3xl mt-4">{sf.display_name || member.full_name}</h1>
-        <div className="mt-2 inline-flex items-center gap-2 rounded-full px-3 py-1 text-[11px] uppercase tracking-wider"
-             style={{ backgroundColor: `${accent}22`, color: accent }}>
-          ⭐ Gold member
-        </div>
-        <p className="text-sm text-muted-foreground mt-3 max-w-xl mx-auto">
-          {sf.bio || `Hi! I'm ${member.full_name.split(" ")[0]} and I import quality products through UMOJA. Browse my collection below!`}
-        </p>
-        <p className="text-xs text-muted-foreground mt-2">
-          Member since {new Date(member.created_at).toLocaleDateString(undefined, { month: "long", year: "numeric" })}
-        </p>
-      </div>
+      </section>
 
-      {/* Products */}
-      <div className="mx-auto max-w-5xl px-4 mt-10">
-        <h2 className="font-display text-2xl">Products</h2>
+      {/* PRODUCTS */}
+      <section id="products" className="mx-auto max-w-6xl px-4 mt-10 sm:mt-14 scroll-mt-20">
+        <div className="flex items-end justify-between">
+          <div>
+            <h2 className="font-display text-2xl sm:text-3xl tracking-tight">The collection</h2>
+            <p className="text-sm text-muted-foreground mt-1">
+              {products.length > 0
+                ? `${products.length} product${products.length === 1 ? "" : "s"} · group-bought pricing`
+                : "New drops loading"}
+            </p>
+          </div>
+          <div className="hidden sm:flex items-center gap-1 text-xs text-muted-foreground">
+            <Package className="h-3.5 w-3.5" /> Ships via group order
+          </div>
+        </div>
+
         {products.length === 0 ? (
-          <p className="mt-3 text-sm text-muted-foreground">No products listed yet — check back soon.</p>
+          <div className="mt-6 rounded-3xl border border-dashed border-border bg-gradient-card p-10 text-center">
+            <div className="mx-auto grid h-14 w-14 place-items-center rounded-2xl" style={{ backgroundColor: `${accent}22` }}>
+              <Sparkles className="h-6 w-6" style={{ color: accent }} />
+            </div>
+            <p className="mt-4 font-display text-lg">Coming soon</p>
+            <p className="mt-1 text-sm text-muted-foreground">New products are dropping shortly — check back or follow the store.</p>
+          </div>
         ) : (
-          <div className="mt-4 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+          <div className="mt-6 grid gap-4 sm:gap-5 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3">
             {products.map((p) => (
-              <article key={p.id} className="rounded-3xl border border-border bg-gradient-card p-4 flex flex-col">
-                <div className="aspect-square rounded-2xl bg-secondary/40 overflow-hidden grid place-items-center text-3xl">
+              <article
+                key={p.id}
+                className="group relative flex flex-col rounded-3xl border border-border bg-card overflow-hidden transition-all hover:border-accent/50 hover:shadow-xl"
+              >
+                <div className="relative aspect-square bg-secondary/40 overflow-hidden">
                   {p.image_url ? (
-                    <img src={p.image_url} alt={p.product_name ?? "Product"} loading="lazy" className="h-full w-full object-cover" />
+                    <img
+                      src={p.image_url}
+                      alt={`${p.product_name ?? "Product"} — ${p.category ?? "Spark Trade product"}`}
+                      loading="lazy"
+                      decoding="async"
+                      className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-105"
+                    />
                   ) : (
-                    <span>📦</span>
+                    <div className="h-full w-full grid place-items-center text-4xl">📦</div>
+                  )}
+                  {p.category && (
+                    <span
+                      className="absolute top-3 left-3 text-[10px] uppercase tracking-wider rounded-full px-2.5 py-1 backdrop-blur bg-background/70 border border-border/60"
+                    >
+                      {p.category}
+                    </span>
                   )}
                 </div>
-                <h3 className="mt-3 font-medium line-clamp-2">{p.product_name ?? "Product"}</h3>
-                <p className="text-xs text-muted-foreground">{p.category ?? "—"}</p>
-                {typeof p.sale_price === "number" && p.sale_price > 0 && (
-                  <p className="mt-1 font-display text-2xl font-bold text-foreground tracking-tight">R{p.sale_price.toFixed(2)}</p>
-                )}
-                <Button onClick={() => contactWhatsapp(p.product_name ?? undefined)}
-                  className="mt-auto rounded-2xl"
-                  style={{ backgroundColor: accent, color: "#1a1100" }}>
-                  <MessageCircle className="h-4 w-4 mr-1" /> Contact Seller
-                </Button>
+                <div className="flex flex-col gap-3 p-4">
+                  <h3 className="font-display text-lg leading-tight line-clamp-2">
+                    {p.product_name ?? "Product"}
+                  </h3>
+                  {typeof p.sale_price === "number" && p.sale_price > 0 ? (
+                    <div className="flex items-baseline gap-2">
+                      <span className="font-display text-3xl font-bold tracking-tight text-foreground">
+                        R{Math.round(p.sale_price).toLocaleString("en-ZA")}
+                      </span>
+                      <span className="text-xs text-muted-foreground">incl. group delivery</span>
+                    </div>
+                  ) : (
+                    <p className="text-sm text-muted-foreground">Contact for pricing</p>
+                  )}
+                  <Button
+                    onClick={() => contactWhatsapp(p.product_name ?? undefined)}
+                    className="mt-1 h-12 rounded-2xl text-sm font-semibold shadow-md transition-transform hover:scale-[1.01]"
+                    style={{ backgroundColor: accent, color: "#1a1100" }}
+                    aria-label={`Buy ${p.product_name ?? "product"} now`}
+                  >
+                    <ShoppingBag className="h-4 w-4 mr-1.5" /> Buy now
+                  </Button>
+                  <p className="text-[11px] text-muted-foreground text-center">
+                    <ShieldCheck className="inline h-3 w-3 mr-1 text-accent" />
+                    Secure checkout · WhatsApp confirmation
+                  </p>
+                </div>
               </article>
             ))}
           </div>
         )}
-      </div>
+      </section>
 
-      {/* Reviews */}
-      <div className="mx-auto max-w-3xl px-4 mt-12">
-        <h2 className="font-display text-2xl">Customer Reviews</h2>
-        <div className="mt-3 flex items-center gap-3">
-          <div className="text-4xl font-display" style={{ color: accent }}>{avgRating.toFixed(1)}</div>
-          <div>
+      {/* REVIEWS */}
+      <section className="mx-auto max-w-4xl px-4 mt-14">
+        <h2 className="font-display text-2xl sm:text-3xl tracking-tight">Customer reviews</h2>
+        <div className="mt-4 flex items-center gap-4 rounded-3xl border border-border bg-card p-5">
+          <div className="text-5xl font-display" style={{ color: accent }}>{avgRating.toFixed(1)}</div>
+          <div className="flex-1">
             <div className="flex">
               {[1, 2, 3, 4, 5].map((i) => (
                 <Star key={i} className="h-4 w-4" fill={i <= Math.round(avgRating) ? accent : "none"} stroke={accent} />
               ))}
             </div>
-            <p className="text-xs text-muted-foreground">({reviews.length} reviews)</p>
+            <p className="text-xs text-muted-foreground mt-1">{reviews.length} review{reviews.length === 1 ? "" : "s"}</p>
           </div>
           {user && user.id !== member.id && (
-            <Button onClick={() => setShowReview(true)} variant="outline" className="ml-auto rounded-2xl">
-              Write Review
+            <Button onClick={() => setShowReview(true)} variant="outline" className="rounded-2xl">
+              Write a review
             </Button>
           )}
         </div>
 
         <div className="mt-5 space-y-3">
           {reviews.map((r) => (
-            <div key={r.id} className="rounded-2xl border border-border bg-gradient-card p-4">
+            <div key={r.id} className="rounded-2xl border border-border bg-card p-4">
               <div className="flex items-center justify-between">
                 <p className="font-medium text-sm">{r.reviewer_name}</p>
                 <p className="text-xs text-muted-foreground">{new Date(r.created_at).toLocaleDateString()}</p>
@@ -288,28 +493,30 @@ export default function StorefrontPublic() {
               <p className="mt-2 text-sm">{r.review_text}</p>
             </div>
           ))}
-          {reviews.length === 0 && <p className="text-sm text-muted-foreground">Be the first to leave a review.</p>}
+          {reviews.length === 0 && (
+            <p className="text-sm text-muted-foreground text-center py-6">Be the first to leave a review.</p>
+          )}
         </div>
-      </div>
+      </section>
 
-      {/* Footer */}
-      <div className="mx-auto max-w-3xl px-4 mt-16">
+      {/* Footer — powered by */}
+      <section className="mx-auto max-w-4xl px-4 mt-14">
         <div className="rounded-3xl border border-border bg-gradient-card p-5 flex flex-col sm:flex-row items-center gap-4 text-center sm:text-left">
           <Logo showWord={false} />
           <div className="flex-1">
             <p className="text-sm font-semibold">Powered by UMOJA <span className="text-accent">Spark Trade</span></p>
             <p className="text-xs text-muted-foreground mt-1">
               Every Spark Trade store is run by a verified UMOJA member and backed by our group-buying network.
+              Member since {new Date(member.created_at).toLocaleDateString(undefined, { month: "long", year: "numeric" })}.
             </p>
           </div>
           <Link to="/spark" className="text-xs font-semibold text-accent hover:underline whitespace-nowrap">
             Open your store →
           </Link>
         </div>
-      </div>
+      </section>
 
-
-      {/* Sticky share bar (mobile) / inline (desktop) */}
+      {/* Sticky share bar */}
       <div className="fixed bottom-0 inset-x-0 sm:static sm:max-w-3xl sm:mx-auto sm:mt-6 z-40 border-t sm:border border-border bg-background/95 backdrop-blur sm:rounded-2xl sm:bg-gradient-card">
         <div className="flex items-center justify-around sm:justify-center sm:gap-3 px-2 py-3">
           <a href={`https://wa.me/?text=${encodeURIComponent(`${shareText} ${shareUrl}`)}`} target="_blank" rel="noreferrer"
@@ -337,7 +544,7 @@ export default function StorefrontPublic() {
             <h3 className="font-display text-xl">Write a review</h3>
             <div className="mt-3 flex gap-1">
               {[1, 2, 3, 4, 5].map((i) => (
-                <button key={i} onClick={() => setRating(i)}>
+                <button key={i} onClick={() => setRating(i)} aria-label={`${i} star${i === 1 ? "" : "s"}`}>
                   <Star className="h-7 w-7" fill={i <= rating ? accent : "none"} stroke={accent} />
                 </button>
               ))}
