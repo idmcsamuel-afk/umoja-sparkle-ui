@@ -89,6 +89,7 @@ import AdminRevenueDashboard from "./pages/admin/AdminRevenueDashboard.tsx";
 import AdminSupplierDashboard from "./pages/admin/AdminSupplierDashboard.tsx";
 import AdminAutomationTest from "./pages/admin/AdminAutomationTest.tsx";
 import AdminProductValidation from "./pages/admin/AdminProductValidation.tsx";
+import AdminMemberInspector from "./pages/admin/AdminMemberInspector.tsx";
 import MemberVideos from "./pages/MemberVideos.tsx";
 import UploadVideo from "./pages/UploadVideo.tsx";
 
@@ -243,6 +244,7 @@ const App = () => (
                 <Route path="supplier-dashboard" element={<AdminSupplierDashboard />} />
                 <Route path="automation-test" element={<AdminAutomationTest />} />
                 <Route path="product-validation" element={<AdminProductValidation />} />
+                <Route path="member-inspector" element={<AdminMemberInspector />} />
               </Route>
 
               <Route path="*" element={<NotFound />} />
