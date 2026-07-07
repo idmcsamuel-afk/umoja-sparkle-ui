@@ -317,11 +317,17 @@ export default function AdminProductValidation() {
     const moq = parseInt(f.moq);
     const memberMinBuyinRaw = f.member_min_buyin_zar.trim();
     const memberMinBuyin = memberMinBuyinRaw === "" ? null : parseFloat(memberMinBuyinRaw);
+
+    // SA selling price: prefer explicit form value, then row.price_zar (SA rows), else required.
+    const overrideSaRaw = f.sa_selling_price_zar.trim();
+    const overrideSa = overrideSaRaw === "" ? null : parseFloat(overrideSaRaw);
+    const saPrice = overrideSa != null && !isNaN(overrideSa) ? overrideSa : (r.price_zar != null ? Number(r.price_zar) : null);
+
     if (!alibaba || alibaba <= 0) { toast({ title: "Alibaba unit cost (ZAR) is required", variant: "destructive" }); return; }
     if (!weight || weight <= 0) { toast({ title: "Weight (kg) is required", variant: "destructive" }); return; }
     if (!moq || moq <= 0) { toast({ title: "Factory MOQ (units) is required", description: "Enter the real MOQ your factory requires (100, 500, 10000…).", variant: "destructive" }); return; }
     if (memberMinBuyin != null && (isNaN(memberMinBuyin) || memberMinBuyin < 0)) { toast({ title: "Member min buy-in must be a non-negative number", variant: "destructive" }); return; }
-    if (!r.price_zar || r.price_zar <= 0) { toast({ title: "Missing SA selling price (price_zar) on source row", variant: "destructive" }); return; }
+    if (saPrice == null || isNaN(saPrice) || saPrice <= 0) { toast({ title: "SA selling price (ZAR) is required", description: "Enter the target SA retail price for this product.", variant: "destructive" }); return; }
 
     const freightOverrideRaw = f.freight_override_zar.trim();
     const freightSeaOverride = freightOverrideRaw === "" ? null : parseFloat(freightOverrideRaw);
@@ -335,7 +341,7 @@ export default function AdminProductValidation() {
     }
     const m = computeMargins({
       alibaba_cost_zar: alibaba, weight_kg: weight, buffer_pct: buffer, commission_pct: commission,
-      price_zar: Number(r.price_zar),
+      price_zar: saPrice,
       freight_sea_override: freightSeaOverride,
       freight_air_override: freightAirOverride,
     });
