@@ -7855,6 +7855,7 @@ export type Database = {
         Returns: Json
       }
       expire_unpaid_bids: { Args: never; Returns: number }
+      extract_takealot_plid: { Args: { url: string }; Returns: string }
       flame_graphics_count_week: { Args: never; Returns: number }
       flame_video_count_week: { Args: never; Returns: number }
       gen_referral_code: { Args: { _seed?: string }; Returns: string }
@@ -8047,6 +8048,10 @@ export type Database = {
           _include_promotional?: boolean
         }
         Returns: Json
+      }
+      sync_takealot_row_to_products: {
+        Args: { _row: Database["public"]["Tables"]["takealot_products"]["Row"] }
+        Returns: undefined
       }
       touch_last_seen: { Args: never; Returns: undefined }
     }
