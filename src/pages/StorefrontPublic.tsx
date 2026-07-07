@@ -517,6 +517,15 @@ export default function StorefrontPublic() {
         </div>
       </section>
 
+      {/* Store policies footer */}
+      <StorePolicies
+        storeName={storeName}
+        ownerName={member.full_name}
+        ownerEmail={member.email}
+        ownerPhone={member.phone}
+        accent={accent}
+      />
+
       {/* Sticky share bar */}
       <div className="fixed bottom-0 inset-x-0 sm:static sm:max-w-3xl sm:mx-auto sm:mt-6 z-40 border-t sm:border border-border bg-background/95 backdrop-blur sm:rounded-2xl sm:bg-gradient-card">
         <div className="flex items-center justify-around sm:justify-center sm:gap-3 px-2 py-3">
