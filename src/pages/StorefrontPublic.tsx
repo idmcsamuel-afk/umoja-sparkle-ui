@@ -499,31 +499,34 @@ export default function StorefrontPublic() {
         </div>
       </section>
 
-      {/* Footer — powered by */}
-      <section className="mx-auto max-w-4xl px-4 mt-14">
-        <div className="rounded-3xl border border-border bg-gradient-card p-5 flex flex-col sm:flex-row items-center gap-4 text-center sm:text-left">
-          <Logo showWord={false} />
-          <div className="flex-1">
-            <p className="text-sm font-semibold">Powered by UMOJA <span className="text-accent">Spark Trade</span></p>
-            <p className="text-xs text-muted-foreground mt-1">
-              Every Spark Trade store is run by a verified UMOJA member and backed by our group-buying network.
-              Member since {new Date(member.created_at).toLocaleDateString(undefined, { month: "long", year: "numeric" })}.
-            </p>
+      {/* Dark brand footer frame */}
+      <div className="mt-14 bg-neutral-950 text-neutral-200">
+        <section className="mx-auto max-w-4xl px-4 pt-10">
+          <div className="rounded-3xl border border-neutral-800 bg-neutral-900 p-5 flex flex-col sm:flex-row items-center gap-4 text-center sm:text-left">
+            <Logo showWord={false} />
+            <div className="flex-1">
+              <p className="text-sm font-semibold text-white">Powered by UMOJA <span style={{ color: "#C9A84C" }}>Spark Trade</span></p>
+              <p className="text-xs text-neutral-400 mt-1">
+                Every Spark Trade store is run by a verified UMOJA member and backed by our group-buying network.
+                Member since {new Date(member.created_at).toLocaleDateString(undefined, { month: "long", year: "numeric" })}.
+              </p>
+            </div>
+            <Link to="/spark" className="text-xs font-semibold hover:underline whitespace-nowrap" style={{ color: "#C9A84C" }}>
+              Open your store →
+            </Link>
           </div>
-          <Link to="/spark" className="text-xs font-semibold text-accent hover:underline whitespace-nowrap">
-            Open your store →
-          </Link>
-        </div>
-      </section>
+        </section>
 
-      {/* Store policies footer */}
-      <StorePolicies
-        storeName={storeName}
-        ownerName={member.full_name}
-        ownerEmail={member.email}
-        ownerPhone={member.phone}
-        accent={accent}
-      />
+        {/* Store policies footer */}
+        <StorePolicies
+          storeName={storeName}
+          ownerName={member.full_name}
+          ownerEmail={member.email}
+          ownerPhone={member.phone}
+          accent={accent}
+        />
+        <div className="pb-10" />
+      </div>
 
       {/* Sticky share bar */}
       <div className="fixed bottom-0 inset-x-0 sm:static sm:max-w-3xl sm:mx-auto sm:mt-6 z-40 border-t sm:border border-border bg-background/95 backdrop-blur sm:rounded-2xl sm:bg-gradient-card">
