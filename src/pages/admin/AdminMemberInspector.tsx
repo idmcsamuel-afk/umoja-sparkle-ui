@@ -164,6 +164,17 @@ export default function AdminMemberInspector() {
       },
     });
 
+    // Place the confirmed bid into its vault window so it appears on the
+    // Circle Tracker's Active / Overdue / Payout Due tabs immediately —
+    // matching the downstream effect of the scheduled allocate_circle_payouts run.
+    const { error: promoteErr } = await supabase.rpc(
+      "admin_promote_bid_to_vault" as any,
+      { _bid_id: approveBid.id } as any,
+    );
+    if (promoteErr) {
+      toast.error(`Confirmed, but vault allocation failed: ${promoteErr.message}`);
+    }
+
     await supabase.from("notifications").insert({
       member_id: member.id,
       title: "✅ Payment confirmed by admin",
