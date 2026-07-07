@@ -285,11 +285,11 @@ export default function StorefrontPublic() {
             />
           )}
 
-          {/* Overlay gradient */}
-          <div className="absolute inset-0 bg-gradient-to-t from-background via-background/70 to-background/10" aria-hidden />
+          {/* Overlay gradient — always dark so hero text is readable on light page */}
+          <div className="absolute inset-0 bg-gradient-to-t from-black via-black/60 to-black/10" aria-hidden />
 
           {/* Text overlay */}
-          <div className="absolute inset-x-0 bottom-0 px-5 pb-8 sm:pb-14">
+          <div className="absolute inset-x-0 bottom-0 px-5 pb-8 sm:pb-14 text-white">
             <div className="mx-auto max-w-6xl">
               <span
                 className="inline-flex items-center gap-1.5 text-[10px] uppercase tracking-[0.22em] font-semibold rounded-full px-3 py-1 backdrop-blur"
@@ -298,24 +298,24 @@ export default function StorefrontPublic() {
                 <Sparkles className="h-3 w-3" /> Spark Trade Store
               </span>
               <h1
-                className="mt-3 font-display text-4xl sm:text-6xl leading-[1.02] tracking-tight max-w-3xl"
+                className="mt-3 font-display text-4xl sm:text-6xl leading-[1.02] tracking-tight max-w-3xl text-white"
                 style={{ textShadow: "0 2px 24px rgba(0,0,0,0.55)" }}
               >
                 {storeName}
               </h1>
-              <p className="mt-3 max-w-xl text-sm sm:text-base text-foreground/85">
+              <p className="mt-3 max-w-xl text-sm sm:text-base text-white/85">
                 {sf.bio?.trim() || "Quality products, delivered to your door."}
               </p>
               <div className="mt-5 flex flex-wrap gap-3">
                 <a
                   href="#products"
-                  className="inline-flex h-12 items-center gap-2 rounded-2xl px-5 text-sm font-semibold shadow-lg transition-transform hover:scale-[1.02] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-offset-background"
+                  className="inline-flex h-12 items-center gap-2 rounded-2xl px-5 text-sm font-semibold shadow-lg transition-transform hover:scale-[1.02] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-offset-black"
                   style={{ backgroundColor: accent, color: "#1a1100" }}
                 >
                   <ShoppingBag className="h-4 w-4" /> Shop the collection
                 </a>
-                <div className="inline-flex items-center gap-1.5 rounded-2xl bg-background/60 backdrop-blur px-3 py-2 text-[11px] uppercase tracking-wider text-muted-foreground border border-border/60">
-                  <ShieldCheck className="h-3.5 w-3.5 text-accent" /> Secure via Paystack
+                <div className="inline-flex items-center gap-1.5 rounded-2xl bg-black/40 backdrop-blur px-3 py-2 text-[11px] uppercase tracking-wider text-white/80 border border-white/20">
+                  <ShieldCheck className="h-3.5 w-3.5" style={{ color: accent }} /> Secure via Paystack
                 </div>
               </div>
             </div>
