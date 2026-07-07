@@ -1,10 +1,10 @@
-// Fetches Takealot category pages via Bright Data Web Unlocker, parses the
-// product grid in-code using stable data-ref selectors, and inserts rows into
-// takealot_products. Replaces the black-box Bright Data collector approach.
+// Fetches Takealot product data via Bright Data Web Unlocker hitting Takealot's
+// own JSON search API. The website is a Next.js SPA (renders products
+// client-side), so scraping the HTML returns only a loader shell. Hitting the
+// JSON API through Web Unlocker gives us real product data directly.
 
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
-import { DOMParser, Element } from "https://deno.land/x/deno_dom@v0.1.45/deno-dom-wasm.ts";
 
 const supabase = createClient(
   Deno.env.get("SUPABASE_URL")!,
@@ -12,17 +12,21 @@ const supabase = createClient(
 );
 
 const BRIGHT_DATA_API_KEY = Deno.env.get("BRIGHT_DATA_API_KEY");
-// Web Unlocker zone name in the Bright Data account (e.g. "web_unlocker1").
 const BRIGHT_DATA_UNLOCKER_ZONE =
-  Deno.env.get("BRIGHT_DATA_UNLOCKER_ZONE") || "web_unlocker1";
+  Deno.env.get("BRIGHT_DATA_UNLOCKER_ZONE") || "umoja_web_unlocker1";
 
-const DEFAULT_CATEGORIES = [
-  "fashion",
-  "electronics",
-  "computers-tablets",
-  "home-kitchen",
-  "sports-outdoors",
-];
+// Category label -> search query used against Takealot's search API.
+// (Category-page HTML is client-rendered, so we drive the search endpoint
+// instead. Query terms broad enough to yield the top ~40 products per category.)
+const DEFAULT_CATEGORIES: Record<string, string> = {
+  "fashion": "clothing",
+  "electronics": "electronics",
+  "computers-tablets": "laptop",
+  "home-kitchen": "kitchen",
+  "sports-outdoors": "sports",
+  "beauty": "beauty",
+  "toys": "toys",
+};
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -55,76 +59,57 @@ async function fetchViaUnlocker(url: string): Promise<string> {
       country: "za",
     }),
   });
-
   if (!res.ok) {
     const body = await res.text();
-    throw new Error(
-      `Unlocker fetch failed ${res.status}: ${body.slice(0, 300)}`,
-    );
+    throw new Error(`Unlocker ${res.status}: ${body.slice(0, 300)}`);
   }
   return await res.text();
 }
 
-function parsePrice(text: string | null | undefined): number {
-  if (!text) return 0;
-  // "R 2,799" or "R2 799" → 2799
-  const digits = text.replace(/[^\d.]/g, "");
-  const n = parseFloat(digits);
-  return Number.isFinite(n) ? n : 0;
+function buildImageUrl(raw: string | undefined): string {
+  if (!raw) return "";
+  // Gallery images use `{size}` placeholder, e.g. .../s-{size}.file
+  return raw.replace("{size}", "pdpxl");
 }
 
-function parseHtml(html: string, category: string): ParsedProduct[] {
-  const doc = new DOMParser().parseFromString(html, "text/html");
-  if (!doc) return [];
+function parseSearchJson(json: string, category: string): ParsedProduct[] {
+  let doc: any;
+  try { doc = JSON.parse(json); } catch { return []; }
 
-  const cards = doc.querySelectorAll('article[data-ref="product-card"]');
+  const results: any[] = doc?.sections?.products?.results ?? [];
   const now = new Date().toISOString();
   const out: ParsedProduct[] = [];
 
-  cards.forEach((node) => {
-    const card = node as unknown as Element;
+  for (const r of results) {
+    const pv = r?.product_views;
+    const core = pv?.core;
+    const buybox = pv?.buybox_summary;
+    const gallery = pv?.gallery;
+    if (!core || !buybox) continue;
 
-    // Name: prefer h4 textContent, fallback to product-image alt
-    const h4 = card.querySelector("h4");
-    const img = card.querySelector('img[data-ref="product-image"]');
-    const name =
-      (h4?.textContent || img?.getAttribute("alt") || "").trim();
-
-    // Price
-    const priceEl = card.querySelector(
-      '[data-ref="price"] span.currency, [data-ref="buybox-price"] span.currency, span.currency',
-    );
-    const price = parsePrice(priceEl?.textContent);
-
-    // Image
-    const image = img?.getAttribute("src") || "";
-
-    // Link
-    const linkEl = card.querySelector('a[href*="/"]');
-    let href = linkEl?.getAttribute("href") || "";
-    if (href && !href.startsWith("http")) {
-      href = `https://www.takealot.com${href}`;
-    }
-
-    // Rating (optional)
-    const ratingEl = card.querySelector(".rating-module_score, .score");
-    const ratingText = ratingEl?.textContent?.trim();
-    const rating = ratingText ? parseFloat(ratingText) : null;
-
-    if (!name || !price) return;
+    const id = core.id;
+    const title = (core.title || "").trim();
+    const slug = core.slug || "";
+    const priceNum =
+      Array.isArray(buybox.prices) && buybox.prices.length
+        ? Number(buybox.prices[0])
+        : 0;
+    if (!title || !priceNum || !id) continue;
 
     out.push({
-      takealot_name: name,
-      takealot_price: price,
-      takealot_url: href,
-      image_url: image,
-      category: category.replace(/-/g, " "),
+      takealot_name: title,
+      takealot_price: priceNum,
+      takealot_url: slug
+        ? `https://www.takealot.com/${slug}/PLID${id}`
+        : `https://www.takealot.com/PLID${id}`,
+      image_url: buildImageUrl(gallery?.images?.[0]),
+      category,
       seller_count: 1,
-      rating: rating && Number.isFinite(rating) ? rating : null,
+      rating:
+        typeof core.star_rating === "number" ? core.star_rating : null,
       scraped_at: now,
     });
-  });
-
+  }
   return out;
 }
 
@@ -132,90 +117,71 @@ serve(async (req) => {
   if (req.method === "OPTIONS") {
     return new Response("ok", { headers: corsHeaders });
   }
-
   try {
     if (!BRIGHT_DATA_API_KEY) {
       return new Response(
         JSON.stringify({ error: "BRIGHT_DATA_API_KEY is not set" }),
-        {
-          status: 500,
-          headers: { ...corsHeaders, "Content-Type": "application/json" },
-        },
+        { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } },
       );
     }
 
-    let categories = DEFAULT_CATEGORIES;
-    let maxPerCategory = 60;
+    let categories: Record<string, string> = DEFAULT_CATEGORIES;
+    let rows = 40;
     if (req.method === "POST") {
       try {
         const body = await req.json();
-        if (Array.isArray(body?.categories) && body.categories.length) {
+        if (body?.categories && typeof body.categories === "object") {
           categories = body.categories;
         }
-        if (typeof body?.max_per_category === "number") {
-          maxPerCategory = body.max_per_category;
-        }
-      } catch {
-        // no body, use defaults
-      }
+        if (typeof body?.rows === "number") rows = body.rows;
+      } catch { /* no body */ }
     }
 
     const perCategory: Array<{
       category: string;
+      query: string;
       fetched: number;
       inserted: number;
       error?: string;
-      sample?: ParsedProduct[];
     }> = [];
-
     let totalInserted = 0;
-    const allSamples: ParsedProduct[] = [];
+    const samples: ParsedProduct[] = [];
 
-    for (const category of categories) {
-      const url = `https://www.takealot.com/${category}`;
+    for (const [category, query] of Object.entries(categories)) {
+      const apiUrl =
+        `https://api.takealot.com/rest/v-1-13-0/searches/products,filters,facets,sort_options,breadcrumbs,slots_audience,context` +
+        `?newsearch=true&qsearch=${encodeURIComponent(query)}&rows=${rows}&detail=mlisting`;
       try {
-        console.log(`[unlocker] fetching ${url}`);
-        const html = await fetchViaUnlocker(url);
-        const parsed = parseHtml(html, category).slice(0, maxPerCategory);
-        console.log(`[unlocker] ${category}: parsed ${parsed.length} cards`);
+        console.log(`[unlocker] ${category} <- ${query}`);
+        const json = await fetchViaUnlocker(apiUrl);
+        const parsed = parseSearchJson(json, category);
+        console.log(`[unlocker] ${category}: parsed ${parsed.length}`);
 
         if (parsed.length === 0) {
           perCategory.push({
-            category,
-            fetched: 0,
-            inserted: 0,
-            error: "0 cards parsed (selectors may have changed)",
+            category, query, fetched: 0, inserted: 0,
+            error: "0 products in API response",
           });
           continue;
         }
 
-        const { error } = await supabase
-          .from("takealot_products")
-          .insert(parsed);
-
+        const { error } = await supabase.from("takealot_products").insert(parsed);
         if (error) {
           perCategory.push({
-            category,
-            fetched: parsed.length,
-            inserted: 0,
+            category, query, fetched: parsed.length, inserted: 0,
             error: error.message,
           });
         } else {
           totalInserted += parsed.length;
           perCategory.push({
-            category,
-            fetched: parsed.length,
-            inserted: parsed.length,
-            sample: parsed.slice(0, 2),
+            category, query, fetched: parsed.length, inserted: parsed.length,
           });
-          allSamples.push(...parsed.slice(0, 2));
+          samples.push(...parsed.slice(0, 2));
         }
       } catch (e) {
         console.error(`[unlocker] ${category} error:`, e);
         perCategory.push({
-          category,
-          fetched: 0,
-          inserted: 0,
+          category, query, fetched: 0, inserted: 0,
           error: (e as Error).message,
         });
       }
@@ -226,22 +192,16 @@ serve(async (req) => {
         status: "ok",
         total_inserted: totalInserted,
         per_category: perCategory,
-        samples: allSamples.slice(0, 5),
+        samples: samples.slice(0, 5),
         timestamp: new Date().toISOString(),
       }),
-      {
-        status: 200,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      },
+      { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } },
     );
   } catch (e) {
     console.error("scrape-takealot-unlocker fatal:", e);
     return new Response(
       JSON.stringify({ error: (e as Error).message }),
-      {
-        status: 500,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      },
+      { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } },
     );
   }
 });
