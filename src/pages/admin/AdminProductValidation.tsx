@@ -224,6 +224,7 @@ export default function AdminProductValidation() {
           moq: d.moq ?? "",
           member_min_buyin_zar: d.member_min_buyin_zar ?? "",
           supplier_name: d.supplier_name ?? "",
+          sa_selling_price_zar: d.sa_selling_price_zar ?? "",
         };
         setForms((p) => ({ ...p, [openForm]: restored }));
         setRestoredNote((p) => ({ ...p, [openForm]: true }));
