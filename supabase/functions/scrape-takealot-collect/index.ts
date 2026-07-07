@@ -10,10 +10,10 @@ const brightDataApiKey = Deno.env.get('BRIGHT_DATA_API_KEY')
 
 async function pollDataset(
   collectionId: string,
-  maxWaitMs: number = 180000
+  maxWaitMs: number = 330000
 ): Promise<any[]> {
   const startTime = Date.now()
-  const pollIntervalMs = 5000
+  const pollIntervalMs = 8000
 
   while (Date.now() - startTime < maxWaitMs) {
     try {
@@ -34,20 +34,30 @@ async function pollDataset(
         continue
       }
 
-      const data = await response.json()
+      const rawText = await response.text()
+      let data: any
+      try { data = JSON.parse(rawText) } catch {
+        console.log(`[${collectionId}] non-JSON body (first 300 chars): ${rawText.slice(0, 300)}`)
+        await new Promise(resolve => setTimeout(resolve, pollIntervalMs))
+        continue
+      }
 
       if (Array.isArray(data)) {
         console.log(`Collection ${collectionId} ready: ${data.length} products`)
         return data
       }
 
-      if (data.status === 'processing' || data.status === 'pending') {
-        console.log(`Collection ${collectionId} still processing...`)
+      // Bright Data returns various in-progress status strings depending on API version
+      const status = (data?.status ?? '').toString().toLowerCase()
+      const inProgress = ['processing', 'pending', 'running', 'building', 'collecting', 'in_progress', 'started', 'queued']
+      if (inProgress.includes(status)) {
+        console.log(`Collection ${collectionId} status=${status}, still processing...`)
         await new Promise(resolve => setTimeout(resolve, pollIntervalMs))
         continue
       }
 
-      console.log(`Collection ${collectionId}: unexpected response, retrying...`)
+      // Log the actual response so we can debug what Bright Data returned
+      console.log(`[${collectionId}] unexpected response (first 500 chars): ${rawText.slice(0, 500)}`)
       await new Promise(resolve => setTimeout(resolve, pollIntervalMs))
 
     } catch (error) {
