@@ -12,6 +12,7 @@ const items = [
   { to: "/admin/revenue-dashboard", label: "Revenue 💰", icon: TrendingUp },
   { to: "/admin/fraud-dashboard", label: "Fraud 🛡️", icon: ShieldAlert },
   { to: "/admin/members", label: "Members", icon: Users },
+  { to: "/admin/member-inspector", label: "Member Inspector 🔍", icon: Eye },
   { to: "/admin/circles", label: "Circles", icon: Coins },
   { to: "/admin/circle-tracker", label: "Circle Tracker ⏱️", icon: TrendingUp },
   { to: "/admin/allocations", label: "Allocations", icon: Trophy },
