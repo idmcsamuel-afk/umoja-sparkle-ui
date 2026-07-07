@@ -43,16 +43,18 @@ interface ProductRow {
 }
 
 type StatusFilter = "all" | "pending_review" | "approved_to_queue";
-type MarketFilter = "all" | "amazon_us" | "amazon_sa" | "walmart_us";
+type MarketFilter = "all" | "amazon_us" | "amazon_sa" | "walmart_us" | "takealot_sa";
 
 const PAGE_SIZE = 5;
 const MARKET_LABEL: Record<string, string> = {
   amazon_us: "Amazon US",
   amazon_sa: "Amazon SA",
   walmart_us: "Walmart US",
+  takealot_sa: "Takealot SA",
   amazon_uk: "Amazon UK",
   amazon_de: "Amazon DE",
 };
+const SA_MARKETS = new Set(["amazon_sa", "takealot_sa"]);
 
 const DEFAULTS = { buffer_pct: 10, commission_pct: 8, freight_rate_per_cbm: 8800, kg_per_cbm: 167 };
 
@@ -86,6 +88,7 @@ interface PriceForm {
   supplier_name: string;
   freight_override_zar: string;   // sea override (legacy key retained)
   freight_air_zar: string;        // air override (blank = air unavailable)
+  sa_selling_price_zar: string;   // required for US/Walmart rows (no price_zar); optional override for SA rows
 }
 
 function computeMargins(input: {
@@ -193,7 +196,7 @@ export default function AdminProductValidation() {
   const currentPage = Math.min(page, totalPages);
   const pageRows = filtered.slice((currentPage - 1) * PAGE_SIZE, currentPage * PAGE_SIZE);
 
-  const blankForm = (): PriceForm => ({ alibaba_cost_zar: "", weight_kg: "", buffer_pct: String(DEFAULTS.buffer_pct), commission_pct: String(DEFAULTS.commission_pct), moq: "", member_min_buyin_zar: "", supplier_name: "", freight_override_zar: "", freight_air_zar: "" });
+  const blankForm = (): PriceForm => ({ alibaba_cost_zar: "", weight_kg: "", buffer_pct: String(DEFAULTS.buffer_pct), commission_pct: String(DEFAULTS.commission_pct), moq: "", member_min_buyin_zar: "", supplier_name: "", freight_override_zar: "", freight_air_zar: "", sa_selling_price_zar: "" });
   const setFormField = (id: string, k: keyof PriceForm, v: string) => {
     setForms((p) => ({ ...p, [id]: { ...(p[id] ?? blankForm()), [k]: v } }));
   };
@@ -221,6 +224,7 @@ export default function AdminProductValidation() {
           moq: d.moq ?? "",
           member_min_buyin_zar: d.member_min_buyin_zar ?? "",
           supplier_name: d.supplier_name ?? "",
+          sa_selling_price_zar: d.sa_selling_price_zar ?? "",
         };
         setForms((p) => ({ ...p, [openForm]: restored }));
         setRestoredNote((p) => ({ ...p, [openForm]: true }));
@@ -313,11 +317,17 @@ export default function AdminProductValidation() {
     const moq = parseInt(f.moq);
     const memberMinBuyinRaw = f.member_min_buyin_zar.trim();
     const memberMinBuyin = memberMinBuyinRaw === "" ? null : parseFloat(memberMinBuyinRaw);
+
+    // SA selling price: prefer explicit form value, then row.price_zar (SA rows), else required.
+    const overrideSaRaw = f.sa_selling_price_zar.trim();
+    const overrideSa = overrideSaRaw === "" ? null : parseFloat(overrideSaRaw);
+    const saPrice = overrideSa != null && !isNaN(overrideSa) ? overrideSa : (r.price_zar != null ? Number(r.price_zar) : null);
+
     if (!alibaba || alibaba <= 0) { toast({ title: "Alibaba unit cost (ZAR) is required", variant: "destructive" }); return; }
     if (!weight || weight <= 0) { toast({ title: "Weight (kg) is required", variant: "destructive" }); return; }
     if (!moq || moq <= 0) { toast({ title: "Factory MOQ (units) is required", description: "Enter the real MOQ your factory requires (100, 500, 10000…).", variant: "destructive" }); return; }
     if (memberMinBuyin != null && (isNaN(memberMinBuyin) || memberMinBuyin < 0)) { toast({ title: "Member min buy-in must be a non-negative number", variant: "destructive" }); return; }
-    if (!r.price_zar || r.price_zar <= 0) { toast({ title: "Missing SA selling price (price_zar) on source row", variant: "destructive" }); return; }
+    if (saPrice == null || isNaN(saPrice) || saPrice <= 0) { toast({ title: "SA selling price (ZAR) is required", description: "Enter the target SA retail price for this product.", variant: "destructive" }); return; }
 
     const freightOverrideRaw = f.freight_override_zar.trim();
     const freightSeaOverride = freightOverrideRaw === "" ? null : parseFloat(freightOverrideRaw);
@@ -331,7 +341,7 @@ export default function AdminProductValidation() {
     }
     const m = computeMargins({
       alibaba_cost_zar: alibaba, weight_kg: weight, buffer_pct: buffer, commission_pct: commission,
-      price_zar: Number(r.price_zar),
+      price_zar: saPrice,
       freight_sea_override: freightSeaOverride,
       freight_air_override: freightAirOverride,
     });
@@ -343,7 +353,7 @@ export default function AdminProductValidation() {
       product_name: r.title,
       category: r.category,
       product_image_url: r.image_url,
-      suggested_selling_price_zar: Number(r.price_zar),
+      suggested_selling_price_zar: saPrice,
       unit_cost_zar: r2(m.landed_cost_zar),
       alibaba_cost_zar: alibaba,
       buffer_pct: buffer,
@@ -409,8 +419,8 @@ export default function AdminProductValidation() {
     <div className="space-y-6">
       <div className="flex items-center justify-between flex-wrap gap-3">
         <div>
-          <h1 className="text-2xl font-semibold">Product Validation — Amazon (Live)</h1>
-          <p className="text-sm text-muted-foreground">Approve Amazon SA products with Alibaba cost + weight to publish to Browse. US/Walmart are demand signals only.</p>
+          <h1 className="text-2xl font-semibold">Product Validation — Marketplaces (Live)</h1>
+          <p className="text-sm text-muted-foreground">All marketplaces (Amazon US, Amazon SA, Walmart US, Takealot SA) are approvable — add Alibaba cost + weight (+ SA selling price for non-SA rows) to publish to Browse. Gaps in the SA market are sourcing opportunities.</p>
         </div>
         <Button variant="outline" size="sm" onClick={load}><RefreshCw className="h-4 w-4 mr-1" /> Refresh</Button>
       </div>
@@ -428,7 +438,7 @@ export default function AdminProductValidation() {
           <Button key={f} size="sm" variant={statusFilter===f?"default":"outline"} onClick={()=>setStatusFilter(f)}>{l}</Button>
         ))}
         <span className="text-xs text-muted-foreground ml-4 mr-1">Marketplace:</span>
-        {([["all","All"],["amazon_us","Amazon US"],["amazon_sa","Amazon SA"],["walmart_us","Walmart US"]] as [MarketFilter,string][]).map(([f,l])=>(
+        {([["all","All"],["amazon_us","Amazon US"],["amazon_sa","Amazon SA"],["walmart_us","Walmart US"],["takealot_sa","Takealot SA"]] as [MarketFilter,string][]).map(([f,l])=>(
           <Button key={f} size="sm" variant={marketFilter===f?"default":"outline"} onClick={()=>setMarketFilter(f)}>{l}</Button>
         ))}
         <span className="text-xs text-muted-foreground ml-4 mr-1">Images:</span>
@@ -444,19 +454,23 @@ export default function AdminProductValidation() {
           {pageRows.map((r) => {
             const status = (r.validation_status ?? "pending_review") as ValidationStatus;
             const market = r.marketplace ?? "amazon_us";
-            const isSA = market === "amazon_sa";
+            const isSA = SA_MARKETS.has(market);
             const cardTone =
               status === "approved_to_queue" ? "border-green-500/40 bg-green-500/5"
               : status === "rejected" ? "border-destructive/40 bg-destructive/5"
               : status === "demand_validated" ? "border-blue-500/40 bg-blue-500/5" : "";
             const f = getForm(r.id);
-            const live = isSA && r.price_zar && parseFloat(f.alibaba_cost_zar) > 0 && parseFloat(f.weight_kg) > 0
+            const overrideSa = f.sa_selling_price_zar.trim() === "" ? null : parseFloat(f.sa_selling_price_zar);
+            const effectiveSa = overrideSa != null && !isNaN(overrideSa) && overrideSa > 0
+              ? overrideSa
+              : (r.price_zar != null ? Number(r.price_zar) : null);
+            const live = effectiveSa && parseFloat(f.alibaba_cost_zar) > 0 && parseFloat(f.weight_kg) > 0
               ? computeMargins({
                   alibaba_cost_zar: parseFloat(f.alibaba_cost_zar),
                   weight_kg: parseFloat(f.weight_kg),
                   buffer_pct: parseFloat(f.buffer_pct) || 0,
                   commission_pct: parseFloat(f.commission_pct) || 0,
-                  price_zar: Number(r.price_zar),
+                  price_zar: effectiveSa,
                   freight_sea_override: f.freight_override_zar.trim() === "" ? null : parseFloat(f.freight_override_zar),
                   freight_air_override: f.freight_air_zar.trim() === "" ? null : parseFloat(f.freight_air_zar),
                 })
@@ -496,23 +510,23 @@ export default function AdminProductValidation() {
                         {r.buybox_price != null && (
                           <>
                             <span className="text-muted-foreground ml-3">Buy-box:</span>{" "}
-                            {r.buybox_currency === "ZAR" || r.marketplace === "amazon_sa" ? "R" : "$"}{Number(r.buybox_price).toFixed(2)}
+                            {r.buybox_currency === "ZAR" || isSA ? "R" : "$"}{Number(r.buybox_price).toFixed(2)}
                           </>
                         )}
                       </p>
                       {r.product_url && (
                         <Button asChild size="sm" variant="outline">
-                          <a href={r.product_url} target="_blank" rel="noopener noreferrer"><ExternalLink className="h-3.5 w-3.5 mr-1" /> View on {market === "walmart_us" ? "Walmart" : "Amazon"}</a>
+                          <a href={r.product_url} target="_blank" rel="noopener noreferrer"><ExternalLink className="h-3.5 w-3.5 mr-1" /> View on {MARKET_LABEL[market]?.split(" ")[0] ?? "source"}</a>
                         </Button>
                       )}
                     </div>
                   </div>
 
-                  {!isSA && status === "pending_review" && (
-                    <p className="text-xs text-blue-600 dark:text-blue-400">Demand signal only — needs SA selling price to publish.</p>
+                  {!isSA && status === "pending_review" && r.price_zar == null && (
+                    <p className="text-xs text-blue-600 dark:text-blue-400">Non-SA source — enter an SA selling price in the form to publish as a sourcing opportunity.</p>
                   )}
 
-                  {isSA && openForm === r.id && (
+                  {openForm === r.id && (
                     <div className="rounded border p-3 space-y-3 bg-muted/30">
                       <div className="flex items-center justify-between gap-2 flex-wrap">
                         <p className="text-sm font-medium">Pricing & margin (Alibaba → landed cost)</p>
@@ -534,6 +548,20 @@ export default function AdminProductValidation() {
                           <Input type="number" step="0.01" min="0" value={f.member_min_buyin_zar} onChange={(e) => setFormField(r.id, "member_min_buyin_zar", e.target.value)} placeholder={`Blank = global R${floors.minItemBuyinZar}`} />
                         </div>
                         <div className="md:col-span-2"><Label className="text-xs">Supplier / manufacturer</Label><Input value={f.supplier_name} onChange={(e) => setFormField(r.id, "supplier_name", e.target.value)} placeholder="optional" /></div>
+                        <div className="md:col-span-3">
+                          <Label className="text-xs">SA selling price (ZAR) {r.price_zar == null ? "*" : "— override"}</Label>
+                          <Input
+                            type="number" step="0.01" min="0"
+                            value={f.sa_selling_price_zar}
+                            onChange={(e) => setFormField(r.id, "sa_selling_price_zar", e.target.value)}
+                            placeholder={r.price_zar != null ? `Blank = source R${Number(r.price_zar).toFixed(2)}` : "Required — target SA retail price"}
+                          />
+                          <p className="text-[11px] text-muted-foreground mt-1">
+                            {r.price_zar != null
+                              ? "Blank = use the source SA price above. Override to set a different Browse price."
+                              : "This is a non-SA source (sourcing opportunity) — enter the SA retail price you'll list at."}
+                          </p>
+                        </div>
                       </div>
                       <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                         <div>
@@ -610,18 +638,15 @@ export default function AdminProductValidation() {
                   )}
 
                   <div className="flex flex-wrap gap-2">
-                    {isSA ? (
-                      openForm !== r.id && status !== "approved_to_queue" && (
-                        <Button size="sm" className="bg-green-600 hover:bg-green-700 text-white" onClick={() => setOpenForm(r.id)}>
-                          <Check className="h-4 w-4 mr-1" /> Approve & Price
-                        </Button>
-                      )
-                    ) : (
-                      status !== "demand_validated" && status !== "approved_to_queue" && (
-                        <Button size="sm" variant="secondary" onClick={() => updateStatusOnly(r.id, "demand_validated")} disabled={saving===r.id}>
-                          📊 Mark as demand signal
-                        </Button>
-                      )
+                    {openForm !== r.id && status !== "approved_to_queue" && (
+                      <Button size="sm" className="bg-green-600 hover:bg-green-700 text-white" onClick={() => setOpenForm(r.id)}>
+                        <Check className="h-4 w-4 mr-1" /> Approve & Price
+                      </Button>
+                    )}
+                    {!isSA && status !== "demand_validated" && status !== "approved_to_queue" && openForm !== r.id && (
+                      <Button size="sm" variant="secondary" onClick={() => updateStatusOnly(r.id, "demand_validated")} disabled={saving===r.id}>
+                        📊 Mark as demand signal
+                      </Button>
                     )}
                     {status !== "rejected" && (
                       <Button variant="destructive" size="sm" onClick={() => updateStatusOnly(r.id, "rejected")} disabled={saving===r.id}>
