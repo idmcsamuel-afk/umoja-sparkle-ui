@@ -11,6 +11,7 @@ import {
 } from "lucide-react";
 import { toast } from "sonner";
 import { Logo } from "@/components/umoja/Logo";
+import { StorePolicies } from "@/components/umoja/StorePolicies";
 
 interface Storefront {
   member_id: string;
