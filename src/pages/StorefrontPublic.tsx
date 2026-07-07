@@ -358,19 +358,19 @@ export default function StorefrontPublic() {
       </section>
 
       {/* Trust bar */}
-      <section aria-label="Store guarantees" className="border-b border-border/60 bg-secondary/30">
+      <section aria-label="Store guarantees" className="border-b border-neutral-200 bg-white">
         <div className="mx-auto max-w-6xl px-4 py-4 grid grid-cols-3 gap-3 text-center sm:text-left">
-          <div className="flex items-center justify-center sm:justify-start gap-2 text-xs sm:text-sm">
-            <ShieldCheck className="h-4 w-4 text-accent shrink-0" />
-            <span><span className="font-semibold">Secure checkout</span><span className="hidden sm:inline text-muted-foreground"> · Paystack</span></span>
+          <div className="flex items-center justify-center sm:justify-start gap-2 text-xs sm:text-sm text-neutral-800">
+            <ShieldCheck className="h-4 w-4 shrink-0" style={{ color: accent }} />
+            <span><span className="font-semibold">Secure checkout</span><span className="hidden sm:inline text-neutral-500"> · Paystack</span></span>
           </div>
-          <div className="flex items-center justify-center sm:justify-start gap-2 text-xs sm:text-sm">
-            <Truck className="h-4 w-4 text-accent shrink-0" />
-            <span><span className="font-semibold">Delivery to your door</span><span className="hidden sm:inline text-muted-foreground"> · nationwide</span></span>
+          <div className="flex items-center justify-center sm:justify-start gap-2 text-xs sm:text-sm text-neutral-800">
+            <Truck className="h-4 w-4 shrink-0" style={{ color: accent }} />
+            <span><span className="font-semibold">Delivery to your door</span><span className="hidden sm:inline text-neutral-500"> · nationwide</span></span>
           </div>
-          <div className="flex items-center justify-center sm:justify-start gap-2 text-xs sm:text-sm">
-            <Sparkles className="h-4 w-4 text-accent shrink-0" />
-            <span><span className="font-semibold">Verified member</span><span className="hidden sm:inline text-muted-foreground"> · UMOJA</span></span>
+          <div className="flex items-center justify-center sm:justify-start gap-2 text-xs sm:text-sm text-neutral-800">
+            <Sparkles className="h-4 w-4 shrink-0" style={{ color: accent }} />
+            <span><span className="font-semibold">Verified member</span><span className="hidden sm:inline text-neutral-500"> · UMOJA</span></span>
           </div>
         </div>
       </section>
@@ -379,34 +379,34 @@ export default function StorefrontPublic() {
       <section id="products" className="mx-auto max-w-6xl px-4 mt-10 sm:mt-14 scroll-mt-20">
         <div className="flex items-end justify-between">
           <div>
-            <h2 className="font-display text-2xl sm:text-3xl tracking-tight">The collection</h2>
-            <p className="text-sm text-muted-foreground mt-1">
+            <h2 className="font-display text-2xl sm:text-3xl tracking-tight text-neutral-900">The collection</h2>
+            <p className="text-sm text-neutral-500 mt-1">
               {products.length > 0
                 ? `${products.length} product${products.length === 1 ? "" : "s"} available`
                 : "New drops loading"}
             </p>
           </div>
-          <div className="hidden sm:flex items-center gap-1 text-xs text-muted-foreground">
+          <div className="hidden sm:flex items-center gap-1 text-xs text-neutral-500">
             <Package className="h-3.5 w-3.5" /> Delivered nationwide
           </div>
         </div>
 
         {products.length === 0 ? (
-          <div className="mt-6 rounded-3xl border border-dashed border-border bg-gradient-card p-10 text-center">
+          <div className="mt-6 rounded-3xl border border-dashed border-neutral-300 bg-white p-10 text-center">
             <div className="mx-auto grid h-14 w-14 place-items-center rounded-2xl" style={{ backgroundColor: `${accent}22` }}>
               <Sparkles className="h-6 w-6" style={{ color: accent }} />
             </div>
-            <p className="mt-4 font-display text-lg">Coming soon</p>
-            <p className="mt-1 text-sm text-muted-foreground">New products are dropping shortly — check back or follow the store.</p>
+            <p className="mt-4 font-display text-lg text-neutral-900">Coming soon</p>
+            <p className="mt-1 text-sm text-neutral-500">New products are dropping shortly — check back or follow the store.</p>
           </div>
         ) : (
           <div className="mt-6 grid gap-4 sm:gap-5 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3">
             {products.map((p) => (
               <article
                 key={p.id}
-                className="group relative flex flex-col rounded-3xl border border-border bg-card overflow-hidden transition-all hover:border-accent/50 hover:shadow-xl"
+                className="group relative flex flex-col rounded-3xl border border-neutral-200 bg-white overflow-hidden transition-all hover:border-neutral-300 hover:shadow-xl"
               >
-                <div className="relative aspect-square bg-secondary/40 overflow-hidden">
+                <div className="relative aspect-square bg-neutral-100 overflow-hidden">
                   {p.image_url ? (
                     <img
                       src={p.image_url}
@@ -420,36 +420,35 @@ export default function StorefrontPublic() {
                   )}
                   {p.category && (
                     <span
-                      className="absolute top-3 left-3 text-[10px] uppercase tracking-wider rounded-full px-2.5 py-1 backdrop-blur bg-background/70 border border-border/60"
+                      className="absolute top-3 left-3 text-[10px] uppercase tracking-wider rounded-full px-2.5 py-1 backdrop-blur bg-white/85 border border-neutral-200 text-neutral-700"
                     >
                       {p.category}
                     </span>
                   )}
                 </div>
                 <div className="flex flex-col gap-3 p-4">
-                  <h3 className="font-display text-lg leading-tight line-clamp-2">
+                  <h3 className="font-display text-lg leading-tight line-clamp-2 text-[#1A1A1A]">
                     {p.product_name ?? "Product"}
                   </h3>
                   {typeof p.sale_price === "number" && p.sale_price > 0 ? (
                     <div className="flex items-baseline gap-2">
-                      <span className="font-display text-3xl font-bold tracking-tight text-foreground">
+                      <span className="font-display text-3xl font-bold tracking-tight text-[#1A1A1A]">
                         R{Math.round(p.sale_price).toLocaleString("en-ZA")}
                       </span>
-                      <span className="text-xs text-muted-foreground">incl. delivery</span>
+                      <span className="text-xs text-neutral-500">incl. delivery</span>
                     </div>
                   ) : (
-                    <p className="text-sm text-muted-foreground">Contact for pricing</p>
+                    <p className="text-sm text-neutral-500">Contact for pricing</p>
                   )}
                   <Button
                     onClick={() => contactWhatsapp(p.product_name ?? undefined)}
-                    className="mt-1 h-12 rounded-2xl text-sm font-semibold shadow-md transition-transform hover:scale-[1.01]"
-                    style={{ backgroundColor: accent, color: "#1a1100" }}
+                    className="mt-1 h-12 rounded-2xl text-sm font-semibold shadow-md transition-transform hover:scale-[1.01] bg-green-600 hover:bg-green-700 text-white"
                     aria-label={`Buy ${p.product_name ?? "product"} now`}
                   >
                     <ShoppingBag className="h-4 w-4 mr-1.5" /> Buy now
                   </Button>
-                  <p className="text-[11px] text-muted-foreground text-center">
-                    <ShieldCheck className="inline h-3 w-3 mr-1 text-accent" />
+                  <p className="text-[11px] text-neutral-500 text-center">
+                    <ShieldCheck className="inline h-3 w-3 mr-1" style={{ color: accent }} />
                     Secure checkout · WhatsApp confirmation
                   </p>
                 </div>
@@ -461,8 +460,8 @@ export default function StorefrontPublic() {
 
       {/* REVIEWS */}
       <section className="mx-auto max-w-4xl px-4 mt-14">
-        <h2 className="font-display text-2xl sm:text-3xl tracking-tight">Customer reviews</h2>
-        <div className="mt-4 flex items-center gap-4 rounded-3xl border border-border bg-card p-5">
+        <h2 className="font-display text-2xl sm:text-3xl tracking-tight text-neutral-900">Customer reviews</h2>
+        <div className="mt-4 flex items-center gap-4 rounded-3xl border border-neutral-200 bg-white p-5">
           <div className="text-5xl font-display" style={{ color: accent }}>{avgRating.toFixed(1)}</div>
           <div className="flex-1">
             <div className="flex">
@@ -470,10 +469,10 @@ export default function StorefrontPublic() {
                 <Star key={i} className="h-4 w-4" fill={i <= Math.round(avgRating) ? accent : "none"} stroke={accent} />
               ))}
             </div>
-            <p className="text-xs text-muted-foreground mt-1">{reviews.length} review{reviews.length === 1 ? "" : "s"}</p>
+            <p className="text-xs text-neutral-500 mt-1">{reviews.length} review{reviews.length === 1 ? "" : "s"}</p>
           </div>
           {user && user.id !== member.id && (
-            <Button onClick={() => setShowReview(true)} variant="outline" className="rounded-2xl">
+            <Button onClick={() => setShowReview(true)} variant="outline" className="rounded-2xl border-neutral-300 text-neutral-800 hover:bg-neutral-100">
               Write a review
             </Button>
           )}
@@ -481,21 +480,21 @@ export default function StorefrontPublic() {
 
         <div className="mt-5 space-y-3">
           {reviews.map((r) => (
-            <div key={r.id} className="rounded-2xl border border-border bg-card p-4">
+            <div key={r.id} className="rounded-2xl border border-neutral-200 bg-white p-4">
               <div className="flex items-center justify-between">
-                <p className="font-medium text-sm">{r.reviewer_name}</p>
-                <p className="text-xs text-muted-foreground">{new Date(r.created_at).toLocaleDateString()}</p>
+                <p className="font-medium text-sm text-neutral-900">{r.reviewer_name}</p>
+                <p className="text-xs text-neutral-500">{new Date(r.created_at).toLocaleDateString()}</p>
               </div>
               <div className="flex mt-1">
                 {[1, 2, 3, 4, 5].map((i) => (
                   <Star key={i} className="h-3.5 w-3.5" fill={i <= r.rating ? accent : "none"} stroke={accent} />
                 ))}
               </div>
-              <p className="mt-2 text-sm">{r.review_text}</p>
+              <p className="mt-2 text-sm text-neutral-800">{r.review_text}</p>
             </div>
           ))}
           {reviews.length === 0 && (
-            <p className="text-sm text-muted-foreground text-center py-6">Be the first to leave a review.</p>
+            <p className="text-sm text-neutral-500 text-center py-6">Be the first to leave a review.</p>
           )}
         </div>
       </section>
