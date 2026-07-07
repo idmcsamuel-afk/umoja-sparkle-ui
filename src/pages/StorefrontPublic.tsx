@@ -222,7 +222,7 @@ export default function StorefrontPublic() {
     }));
 
   return (
-    <div className="min-h-screen bg-background pb-28 sm:pb-10">
+    <div className="min-h-screen bg-[#FAFAF8] text-neutral-900 pb-28 sm:pb-10">
       <Helmet>
         <title>{metaTitle}</title>
         <meta name="description" content={metaDesc} />
@@ -241,17 +241,17 @@ export default function StorefrontPublic() {
         )}
       </Helmet>
 
-      {/* UMOJA brand strip */}
-      <div className="w-full border-b border-border/60 bg-background/95 backdrop-blur sticky top-0 z-30">
-        <div className="mx-auto max-w-6xl px-4 py-2 flex items-center justify-between">
+      {/* UMOJA brand strip — dark brand frame */}
+      <div className="w-full border-b border-neutral-800 bg-neutral-950 text-white sticky top-0 z-30">
+        <div className="mx-auto max-w-6xl px-4 py-2.5 flex items-center justify-between">
           <Link to="/" className="flex items-center gap-2 group focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent rounded-md">
             <Logo showWord={false} className="scale-90" />
-            <span className="text-[11px] uppercase tracking-[0.18em] font-semibold text-muted-foreground group-hover:text-foreground transition-smooth">
-              UMOJA <span className="text-accent">Spark Trade</span>
+            <span className="text-[11px] uppercase tracking-[0.18em] font-semibold text-neutral-400 group-hover:text-white transition-smooth">
+              UMOJA <span style={{ color: "#C9A84C" }}>Spark Trade</span>
             </span>
           </Link>
-          <span className="hidden sm:inline-flex items-center gap-1.5 text-[10px] uppercase tracking-wider text-muted-foreground">
-            <ShieldCheck className="h-3.5 w-3.5 text-accent" /> Verified member store
+          <span className="hidden sm:inline-flex items-center gap-1.5 text-[10px] uppercase tracking-wider text-neutral-400">
+            <ShieldCheck className="h-3.5 w-3.5" style={{ color: "#C9A84C" }} /> Verified member store
           </span>
         </div>
       </div>
