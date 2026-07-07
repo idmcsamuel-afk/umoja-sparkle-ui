@@ -43,6 +43,9 @@ verify_jwt = false
 [functions.publish-confirmed-products]
 verify_jwt = false
 
+[functions.scrape-takealot-unlocker]
+verify_jwt = false
+
 project_id = "lamohcoijkpigygiqyih"
 
 [functions.scan-amazon-products]
