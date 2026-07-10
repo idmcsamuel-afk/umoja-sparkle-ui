@@ -511,6 +511,10 @@ export default function AdminProductValidation() {
         {([[0,"All"],[100,"100+"],[500,"500+"],[1000,"1000+"]] as [MinReviewsFilter,string][]).map(([v,l])=>(
           <Button key={v} size="sm" variant={minReviewsFilter===v?"default":"outline"} onClick={()=>setMinReviewsFilter(v)}>{l}</Button>
         ))}
+        <span className="text-xs text-muted-foreground ml-4 mr-1">Brand:</span>
+        {([["all","All"],["generic","Generic (sourceable)"],["branded","Branded (demand signal)"]] as [BrandFilter,string][]).map(([v,l])=>(
+          <Button key={v} size="sm" variant={brandFilter===v?"default":"outline"} onClick={()=>setBrandFilter(v)}>{l}</Button>
+        ))}
         <span className="text-xs text-muted-foreground ml-4 mr-1">Sort:</span>
         {([["reviews_desc","Most reviews"],["newest","Newest"]] as [SortMode,string][]).map(([v,l])=>(
           <Button key={v} size="sm" variant={sortMode===v?"default":"outline"} onClick={()=>setSortMode(v)}>{l}</Button>
