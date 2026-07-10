@@ -40,6 +40,8 @@ interface ProductRow {
   seller_count_verified: boolean | null;
   buybox_price: number | null;
   buybox_currency: string | null;
+  days_seen: number | null;
+  times_seen: number | null;
 }
 
 type StatusFilter = "all" | "pending_review" | "approved_to_queue";
