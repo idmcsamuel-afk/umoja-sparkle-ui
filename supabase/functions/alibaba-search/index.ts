@@ -171,24 +171,25 @@ serve(async (req) => {
         { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } });
     }
 
-    const slug = slugify(query);
+    // Build progressively simpler slug candidates.
+    const words = query.toLowerCase().replace(/[^a-z0-9\s-]+/g, " ").split(/\s+/).filter(Boolean);
+    const slugCandidates: string[] = [];
+    const push = (s: string) => { if (s && !slugCandidates.includes(s)) slugCandidates.push(s); };
+    push(slugify(query));                                    // full
+    push(words.slice(0, 3).join("-"));                       // first 3 words
+    push(words.slice(0, 2).join("-"));                       // first 2 words
+    if (words.length > 1) push(words[words.length - 1]);     // last word (usually the noun)
+    push(words[0]);                                          // first word
+
     const attempted: { slug: string; status: number; found: number }[] = [];
-
-    // Attempt 1: full slug
-    let url = `https://www.alibaba.com/showroom/${slug}.html`;
-    let r = await unlockerFetch(url);
-    let candidates = r.status === 200 ? candidatesFromHtml(r.body) : [];
-    attempted.push({ slug, status: r.status, found: candidates.length });
-
-    // Attempt 2: shorter slug (first 3 words) if nothing usable
-    if (candidates.length === 0) {
-      const s2 = shortSlug(query);
-      if (s2 && s2 !== slug) {
-        url = `https://www.alibaba.com/showroom/${s2}.html`;
-        r = await unlockerFetch(url);
-        candidates = r.status === 200 ? candidatesFromHtml(r.body) : [];
-        attempted.push({ slug: s2, status: r.status, found: candidates.length });
-      }
+    let candidates: Candidate[] = [];
+    let url = "";
+    for (const s of slugCandidates) {
+      url = `https://www.alibaba.com/showroom/${s}.html`;
+      const r = await unlockerFetch(url);
+      candidates = r.status === 200 ? candidatesFromHtml(r.body) : [];
+      attempted.push({ slug: s, status: r.status, found: candidates.length });
+      if (candidates.length > 0) break;
     }
 
     return new Response(
