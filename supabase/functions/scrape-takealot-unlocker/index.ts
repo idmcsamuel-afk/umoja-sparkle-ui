@@ -94,7 +94,7 @@ function buildImageUrl(raw: string | undefined): string {
   return raw.replace("{size}", "pdpxl");
 }
 
-function parseSearchJson(json: string, category: string, maxRank: number): ParsedProduct[] {
+function parseSearchJson(json: string, category: string): ParsedProduct[] {
   let doc: any;
   try { doc = JSON.parse(json); } catch { return []; }
 
