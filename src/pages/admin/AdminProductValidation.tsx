@@ -830,7 +830,23 @@ export default function AdminProductValidation() {
                         Fetch competition data
                       </Button>
                     )}
+                    <Button size="sm" variant="outline" onClick={() => setAlibabaFor({ id: r.id, title: r.title ?? "" })} title="1 Web Unlocker request">
+                      <Search className="h-4 w-4 mr-1" /> Find on Alibaba
+                    </Button>
                   </div>
+                  {(r.alibaba_url || r.alibaba_moq != null) && (
+                    <div className="text-xs text-muted-foreground flex flex-wrap items-center gap-2 pt-1">
+                      <span className="font-medium text-foreground">Alibaba ref:</span>
+                      {r.alibaba_price && <Badge variant="outline">{r.alibaba_price}</Badge>}
+                      {r.alibaba_moq != null && <Badge variant="outline">MOQ {r.alibaba_moq.toLocaleString()}</Badge>}
+                      {r.alibaba_supplier && <Badge variant="outline">🏭 {r.alibaba_supplier}</Badge>}
+                      {r.alibaba_url && (
+                        <a href={r.alibaba_url} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1 text-primary hover:underline">
+                          <ExternalLink className="h-3 w-3" /> Open on Alibaba
+                        </a>
+                      )}
+                    </div>
+                  )}
                 </CardContent>
               </Card>
             );
