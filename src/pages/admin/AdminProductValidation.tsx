@@ -13,9 +13,10 @@ import {
   PaginationNext,
   PaginationPrevious,
 } from "@/components/ui/pagination";
-import { Check, X, ExternalLink, Star, RefreshCw, ImageOff, Trash2, Radar, Loader2 } from "lucide-react";
+import { Check, X, ExternalLink, Star, RefreshCw, ImageOff, Trash2, Radar, Loader2, Search } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 import { computeMemberMoq, useSparkTradeFloors } from "@/lib/sparkTradeMoq";
+import { AlibabaSearchPanel, type AlibabaCandidate } from "@/components/umoja/AlibabaSearchPanel";
 
 type ValidationStatus = "pending_review" | "approved_to_queue" | "rejected" | "demand_validated";
 
@@ -44,6 +45,10 @@ interface ProductRow {
   times_seen: number | null;
   brand: string | null;
   is_branded: boolean | null;
+  alibaba_url?: string | null;
+  alibaba_price?: string | null;
+  alibaba_moq?: number | null;
+  alibaba_supplier?: string | null;
 }
 
 type StatusFilter = "all" | "pending_review" | "approved_to_queue";
@@ -188,7 +193,42 @@ export default function AdminProductValidation() {
   const [draftLoaded, setDraftLoaded] = useState<Record<string, boolean>>({});
   const [restoredNote, setRestoredNote] = useState<Record<string, boolean>>({});
   const [enriching, setEnriching] = useState<string | null>(null);
+  const [alibabaFor, setAlibabaFor] = useState<{ id: string; title: string } | null>(null);
   const floors = useSparkTradeFloors();
+
+  const USD_TO_ZAR = 18.5;
+
+  const handleAlibabaSelect = async (rowId: string, c: AlibabaCandidate) => {
+    setForms((prev) => {
+      const cur = prev[rowId] ?? blankForm();
+      const costZar = c.price_from != null ? (c.price_from * USD_TO_ZAR).toFixed(2) : cur.alibaba_cost_zar;
+      return {
+        ...prev,
+        [rowId]: {
+          ...cur,
+          alibaba_cost_zar: costZar,
+          moq: c.moq_found && c.moq ? String(c.moq) : "",
+          supplier_name: c.supplier_name ?? cur.supplier_name,
+        },
+      };
+    });
+    setOpenForm(rowId);
+    const { error } = await supabase.from("products" as any).update({
+      alibaba_url: c.url,
+      alibaba_price: c.price_label,
+      alibaba_moq: c.moq_found ? c.moq : null,
+      alibaba_supplier: c.supplier_name,
+    }).eq("id", rowId);
+    if (error) {
+      toast({ title: "Saved to form (reference not persisted)", description: error.message });
+    } else {
+      setRows((prev) => prev.map((x) => x.id === rowId ? { ...x, alibaba_url: c.url, alibaba_price: c.price_label, alibaba_moq: c.moq_found ? c.moq : null, alibaba_supplier: c.supplier_name } as any : x));
+      toast({
+        title: "Alibaba match selected",
+        description: c.moq_found ? `MOQ ${c.moq!.toLocaleString()} · ${c.price_label}` : "⚠️ MOQ not found — enter it manually before approving.",
+      });
+    }
+  };
 
   const load = async () => {
     setLoading(true);
@@ -790,7 +830,23 @@ export default function AdminProductValidation() {
                         Fetch competition data
                       </Button>
                     )}
+                    <Button size="sm" variant="outline" onClick={() => setAlibabaFor({ id: r.id, title: r.title ?? "" })} title="1 Web Unlocker request">
+                      <Search className="h-4 w-4 mr-1" /> Find on Alibaba
+                    </Button>
                   </div>
+                  {(r.alibaba_url || r.alibaba_moq != null) && (
+                    <div className="text-xs text-muted-foreground flex flex-wrap items-center gap-2 pt-1">
+                      <span className="font-medium text-foreground">Alibaba ref:</span>
+                      {r.alibaba_price && <Badge variant="outline">{r.alibaba_price}</Badge>}
+                      {r.alibaba_moq != null && <Badge variant="outline">MOQ {r.alibaba_moq.toLocaleString()}</Badge>}
+                      {r.alibaba_supplier && <Badge variant="outline">🏭 {r.alibaba_supplier}</Badge>}
+                      {r.alibaba_url && (
+                        <a href={r.alibaba_url} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1 text-primary hover:underline">
+                          <ExternalLink className="h-3 w-3" /> Open on Alibaba
+                        </a>
+                      )}
+                    </div>
+                  )}
                 </CardContent>
               </Card>
             );
@@ -804,6 +860,15 @@ export default function AdminProductValidation() {
             </PaginationContent>
           </Pagination>
         </div>
+      )}
+
+      {alibabaFor && (
+        <AlibabaSearchPanel
+          open={!!alibabaFor}
+          onOpenChange={(v) => !v && setAlibabaFor(null)}
+          initialQuery={alibabaFor.title}
+          onSelect={(c) => handleAlibabaSelect(alibabaFor.id, c)}
+        />
       )}
     </div>
   );
