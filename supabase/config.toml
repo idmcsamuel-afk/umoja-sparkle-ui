@@ -64,3 +64,6 @@ verify_jwt = false
 verify_jwt = false
 
 
+
+[functions.alibaba-debug]
+verify_jwt = false
