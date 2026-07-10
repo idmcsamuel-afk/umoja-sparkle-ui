@@ -29,10 +29,20 @@ interface Props {
   open: boolean;
   onOpenChange: (v: boolean) => void;
   initialQuery: string;
+  originalImage?: string | null;
+  originalName?: string | null;
+  originalPriceLabel?: string | null;
   onSelect: (c: AlibabaCandidate) => void;
 }
 
-export function AlibabaSearchPanel({ open, onOpenChange, initialQuery, onSelect }: Props) {
+const absUrl = (u: string) => {
+  if (!u) return u;
+  if (u.startsWith("//")) return "https:" + u;
+  if (u.startsWith("/")) return "https://www.alibaba.com" + u;
+  return u;
+};
+
+export function AlibabaSearchPanel({ open, onOpenChange, initialQuery, originalImage, originalName, originalPriceLabel, onSelect }: Props) {
   const [query, setQuery] = useState(initialQuery);
   const [loading, setLoading] = useState(false);
   const [candidates, setCandidates] = useState<AlibabaCandidate[] | null>(null);
@@ -63,6 +73,20 @@ export function AlibabaSearchPanel({ open, onOpenChange, initialQuery, onSelect 
             1 Web Unlocker request per search · MOQ is best-effort — always open the Alibaba link to verify · Select the correct match manually.
           </DialogDescription>
         </DialogHeader>
+
+        {(originalImage || originalName) && (
+          <div className="rounded-lg border-2 border-primary/40 bg-primary/5 p-3 flex gap-3 sticky top-0 z-10">
+            <div className="w-24 h-24 rounded bg-background flex items-center justify-center overflow-hidden shrink-0 border">
+              {originalImage ? <img src={originalImage} alt="" className="w-full h-full object-contain" /> : <ImageOff className="h-5 w-5 text-muted-foreground" />}
+            </div>
+            <div className="flex-1 min-w-0">
+              <Badge className="mb-1">Original product (Takealot)</Badge>
+              <p className="text-sm font-medium line-clamp-2">{originalName}</p>
+              {originalPriceLabel && <p className="text-xs text-muted-foreground mt-1">SA price: <span className="font-semibold text-foreground">{originalPriceLabel}</span></p>}
+              <p className="text-[11px] text-muted-foreground mt-1">Compare each Alibaba candidate below against this image.</p>
+            </div>
+          </div>
+        )}
 
         <div className="flex gap-2">
           <Input value={query} onChange={(e) => setQuery(e.target.value)} placeholder="Product name or shorter search term" />
@@ -115,11 +139,15 @@ export function AlibabaSearchPanel({ open, onOpenChange, initialQuery, onSelect 
                     )}
                   </div>
                   <div className="flex flex-wrap gap-2 pt-1">
-                    <Button asChild size="sm" variant="outline">
-                      <a href={c.url} target="_blank" rel="noopener noreferrer">
-                        <ExternalLink className="h-3.5 w-3.5 mr-1" /> Open on Alibaba
-                      </a>
-                    </Button>
+                    <a
+                      href={absUrl(c.url)}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      onClick={(e) => e.stopPropagation()}
+                      className="inline-flex items-center h-9 px-3 rounded-md border border-input bg-background hover:bg-accent hover:text-accent-foreground text-sm font-medium"
+                    >
+                      <ExternalLink className="h-3.5 w-3.5 mr-1" /> Open on Alibaba
+                    </a>
                     <Button size="sm" className="bg-green-600 hover:bg-green-700 text-white" onClick={() => { onSelect(c); onOpenChange(false); }}>
                       <Check className="h-3.5 w-3.5 mr-1" /> Select this match
                     </Button>

@@ -193,7 +193,7 @@ export default function AdminProductValidation() {
   const [draftLoaded, setDraftLoaded] = useState<Record<string, boolean>>({});
   const [restoredNote, setRestoredNote] = useState<Record<string, boolean>>({});
   const [enriching, setEnriching] = useState<string | null>(null);
-  const [alibabaFor, setAlibabaFor] = useState<{ id: string; title: string } | null>(null);
+  const [alibabaFor, setAlibabaFor] = useState<{ id: string; title: string; image: string | null; priceLabel: string | null } | null>(null);
   const floors = useSparkTradeFloors();
 
   const USD_TO_ZAR = 18.5;
@@ -830,7 +830,7 @@ export default function AdminProductValidation() {
                         Fetch competition data
                       </Button>
                     )}
-                    <Button size="sm" variant="outline" onClick={() => setAlibabaFor({ id: r.id, title: r.title ?? "" })} title="1 Web Unlocker request">
+                    <Button size="sm" variant="outline" onClick={() => setAlibabaFor({ id: r.id, title: r.title ?? "", image: r.image_url ?? null, priceLabel: isSA ? (r.price_zar != null ? `R${Number(r.price_zar).toFixed(2)}` : null) : (r.price_usd != null ? `$${Number(r.price_usd).toFixed(2)}` : null) })} title="1 Web Unlocker request">
                       <Search className="h-4 w-4 mr-1" /> Find on Alibaba
                     </Button>
                   </div>
@@ -867,6 +867,9 @@ export default function AdminProductValidation() {
           open={!!alibabaFor}
           onOpenChange={(v) => !v && setAlibabaFor(null)}
           initialQuery={alibabaFor.title}
+          originalImage={alibabaFor.image}
+          originalName={alibabaFor.title}
+          originalPriceLabel={alibabaFor.priceLabel}
           onSelect={(c) => handleAlibabaSelect(alibabaFor.id, c)}
         />
       )}
