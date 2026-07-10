@@ -58,6 +58,7 @@ interface ParsedProduct {
   image_url: string;
   category: string;
   rating: number | null;
+  review_count: number | null;
   search_rank: number;
 }
 
