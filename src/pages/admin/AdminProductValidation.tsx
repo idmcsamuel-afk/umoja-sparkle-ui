@@ -525,6 +525,29 @@ export default function AdminProductValidation() {
         </Button>
       </div>
 
+      {provenCategories.length > 0 && (
+        <Card>
+          <CardHeader className="pb-2">
+            <CardTitle className="text-base">Proven categories — real SA demand (branded + generic reviews)</CardTitle>
+            <p className="text-xs text-muted-foreground">Use this to decide which categories to source generic / private-label products into. Branded rows prove demand; source generic equivalents.</p>
+          </CardHeader>
+          <CardContent>
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-2">
+              {provenCategories.map((c) => (
+                <div key={c.category} className="flex items-center justify-between rounded border px-3 py-2 text-sm">
+                  <span className="font-medium truncate mr-2">{c.category}</span>
+                  <span className="text-xs text-muted-foreground whitespace-nowrap">
+                    <b>{c.totalReviews.toLocaleString()}</b> reviews · {c.products} products
+                    {c.brandedProducts > 0 && <> · {c.brandedProducts} branded</>}
+                  </span>
+                </div>
+              ))}
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
+
       {loading ? <p className="text-sm text-muted-foreground">Loading…</p>
       : pageRows.length === 0 ? <p className="text-sm text-muted-foreground">No products match these filters.</p>
       : (
