@@ -181,14 +181,15 @@ serve(async (req) => {
     if (words.length > 1) push(words[words.length - 1]);     // last word (usually the noun)
     push(words[0]);                                          // first word
 
-    const attempted: { slug: string; status: number; found: number }[] = [];
+    const attempted: { slug: string; status: number; bytes: number; ldBlocks: number; found: number }[] = [];
     let candidates: Candidate[] = [];
     let url = "";
     for (const s of slugCandidates) {
       url = `https://www.alibaba.com/showroom/${s}.html`;
       const r = await unlockerFetch(url);
+      const ldBlocks = r.status === 200 ? parseJsonLd(r.body).length : 0;
       candidates = r.status === 200 ? candidatesFromHtml(r.body) : [];
-      attempted.push({ slug: s, status: r.status, found: candidates.length });
+      attempted.push({ slug: s, status: r.status, bytes: r.body.length, ldBlocks, found: candidates.length });
       if (candidates.length > 0) break;
     }
 
