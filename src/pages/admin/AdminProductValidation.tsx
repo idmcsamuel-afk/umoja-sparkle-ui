@@ -179,6 +179,7 @@ export default function AdminProductValidation() {
   const [marketFilter, setMarketFilter] = useState<MarketFilter>("all");
   const [minReviewsFilter, setMinReviewsFilter] = useState<MinReviewsFilter>(0);
   const [sortMode, setSortMode] = useState<SortMode>("reviews_desc");
+  const [brandFilter, setBrandFilter] = useState<BrandFilter>("all");
   const [showImageless, setShowImageless] = useState(false);
   const [page, setPage] = useState(1);
   const [saving, setSaving] = useState<string | null>(null);
