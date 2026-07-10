@@ -220,7 +220,8 @@ serve(async (req) => {
     return new Response(
       JSON.stringify({
         status: "ok",
-        total_inserted: totalInserted,
+        max_rank: maxRank,
+        total_upserted: totalUpserted,
         per_category: perCategory,
         samples: samples.slice(0, 5),
         timestamp: new Date().toISOString(),
