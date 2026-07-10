@@ -73,16 +73,18 @@ function Stars({ value }: { value: number | null }) {
   );
 }
 
-function DemandBadge({ reviews, marketplace, rank, rating }: { reviews: number | null; marketplace?: string | null; rank?: number | null; rating?: number | null }) {
-  // Takealot: no review counts from the API — use search rank + rating instead.
+function DemandBadge({ reviews, marketplace, rank, rating, daysSeen }: { reviews: number | null; marketplace?: string | null; rank?: number | null; rating?: number | null; daysSeen?: number | null }) {
+  // Takealot: no review counts from the API — use search rank + consistency (days seen) instead.
   if (marketplace === "takealot_sa") {
+    const suffix = rank != null ? ` · #${rank}` : "";
+    const consistency = (daysSeen ?? 0) >= 2 ? ` · seen ${daysSeen}d` : "";
     if (rank == null) {
-      if (rating != null && rating >= 4) return <Badge className="bg-amber-500 text-white">MEDIUM DEMAND</Badge>;
-      return <Badge variant="outline">RANK N/A</Badge>;
+      if (rating != null && rating >= 4) return <Badge className="bg-amber-500 text-white">MEDIUM DEMAND{consistency}</Badge>;
+      return <Badge variant="outline">RANK N/A{consistency}</Badge>;
     }
-    if (rank <= 10) return <Badge className="bg-green-600 text-white">HIGH DEMAND · #{rank}</Badge>;
-    if (rank <= 25) return <Badge className="bg-amber-500 text-white">MEDIUM DEMAND · #{rank}</Badge>;
-    return <Badge className="bg-red-600 text-white">LOW DEMAND · #{rank}</Badge>;
+    if (rank <= 10) return <Badge className="bg-green-600 text-white">HIGH DEMAND{suffix}{consistency}</Badge>;
+    if (rank <= 25) return <Badge className="bg-amber-500 text-white">MEDIUM DEMAND{suffix}{consistency}</Badge>;
+    return <Badge className="bg-red-600 text-white">LOW DEMAND{suffix}{consistency}</Badge>;
   }
   if (reviews == null) return <Badge variant="outline">NO REVIEWS</Badge>;
   if (reviews >= 5000) return <Badge className="bg-green-600 text-white">HIGH DEMAND</Badge>;
