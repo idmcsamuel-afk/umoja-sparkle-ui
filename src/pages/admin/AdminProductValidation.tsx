@@ -46,6 +46,8 @@ interface ProductRow {
 
 type StatusFilter = "all" | "pending_review" | "approved_to_queue";
 type MarketFilter = "all" | "amazon_us" | "amazon_sa" | "walmart_us" | "takealot_sa";
+type MinReviewsFilter = 0 | 100 | 500 | 1000;
+type SortMode = "reviews_desc" | "newest";
 
 const PAGE_SIZE = 5;
 const MARKET_LABEL: Record<string, string> = {
@@ -74,26 +76,29 @@ function Stars({ value }: { value: number | null }) {
 }
 
 function DemandBadge({ reviews, marketplace, rank, rating, daysSeen }: { reviews: number | null; marketplace?: string | null; rank?: number | null; rating?: number | null; daysSeen?: number | null }) {
-  // Takealot: combine search rank + consistency (days seen) + review count.
+  // Reviews-first hierarchy (Takealot):
+  //   HIGH   = reviews>=500  OR (reviews>=100 AND rank<=10)
+  //   MEDIUM = reviews>=100  OR (rank<=10 AND daysSeen>=3)
+  //   LOW    = otherwise
   if (marketplace === "takealot_sa") {
-    const parts: string[] = [];
-    if (rank != null) parts.push(`#${rank}`);
-    if ((daysSeen ?? 0) >= 2) parts.push(`seen ${daysSeen}d`);
-    if (reviews != null && reviews > 0) parts.push(`${reviews.toLocaleString()} reviews`);
-    const suffix = parts.length ? ` · ${parts.join(" · ")}` : "";
+    const r = reviews ?? 0;
+    const rk = rank ?? 999;
+    const d = daysSeen ?? 0;
 
-    // Reviews are the strongest signal when present.
-    if (reviews != null && reviews >= 500) return <Badge className="bg-green-600 text-white">HIGH DEMAND{suffix}</Badge>;
-    if (reviews != null && reviews >= 100) return <Badge className="bg-amber-500 text-white">MEDIUM DEMAND{suffix}</Badge>;
-    // Fall back to rank + consistency when reviews are missing / low.
-    if (rank == null) {
-      if (rating != null && rating >= 4) return <Badge className="bg-amber-500 text-white">MEDIUM DEMAND{suffix}</Badge>;
-      return <Badge variant="outline">RANK N/A{suffix}</Badge>;
-    }
-    if (rank <= 10 && (daysSeen ?? 0) >= 2) return <Badge className="bg-green-600 text-white">HIGH DEMAND{suffix}</Badge>;
-    if (rank <= 10) return <Badge className="bg-amber-500 text-white">MEDIUM DEMAND{suffix}</Badge>;
-    if (rank <= 25) return <Badge className="bg-amber-500 text-white">MEDIUM DEMAND{suffix}</Badge>;
-    return <Badge className="bg-red-600 text-white">LOW DEMAND{suffix}</Badge>;
+    // Reason — reviews take precedence in the label
+    const reason =
+      r >= 500 ? `${r.toLocaleString()} reviews`
+      : r >= 100 && rk <= 10 ? `${r.toLocaleString()} reviews · #${rk}`
+      : r >= 100 ? `${r.toLocaleString()} reviews`
+      : rk <= 10 && d >= 3 ? `#${rk} · ${d}d in top 10`
+      : rk <= 10 ? `#${rk}`
+      : d >= 3 ? `${d}d in top 10`
+      : rk <= 25 ? `#${rk}`
+      : "low signal";
+
+    if (r >= 500 || (r >= 100 && rk <= 10)) return <Badge className="bg-green-600 text-white">HIGH — {reason}</Badge>;
+    if (r >= 100 || (rk <= 10 && d >= 3)) return <Badge className="bg-amber-500 text-white">MEDIUM — {reason}</Badge>;
+    return <Badge className="bg-red-600 text-white">LOW — {reason}</Badge>;
   }
   if (reviews == null) return <Badge variant="outline">NO REVIEWS</Badge>;
   if (reviews >= 5000) return <Badge className="bg-green-600 text-white">HIGH DEMAND</Badge>;
@@ -169,6 +174,8 @@ export default function AdminProductValidation() {
   const [loading, setLoading] = useState(true);
   const [statusFilter, setStatusFilter] = useState<StatusFilter>("pending_review");
   const [marketFilter, setMarketFilter] = useState<MarketFilter>("all");
+  const [minReviewsFilter, setMinReviewsFilter] = useState<MinReviewsFilter>(0);
+  const [sortMode, setSortMode] = useState<SortMode>("reviews_desc");
   const [showImageless, setShowImageless] = useState(false);
   const [page, setPage] = useState(1);
   const [saving, setSaving] = useState<string | null>(null);
@@ -201,7 +208,7 @@ export default function AdminProductValidation() {
   useEffect(() => { load(); }, [marketFilter]);
 
   
-  useEffect(() => { setPage(1); }, [statusFilter, marketFilter, showImageless]);
+  useEffect(() => { setPage(1); }, [statusFilter, marketFilter, showImageless, minReviewsFilter, sortMode]);
 
   const hasImage = (r: ProductRow) => typeof r.image_url === "string" && /^https?:\/\//i.test(r.image_url);
 
@@ -218,8 +225,14 @@ export default function AdminProductValidation() {
     if (!showImageless) list = list.filter(hasImage);
     if (statusFilter !== "all") list = list.filter((r) => (r.validation_status ?? "pending_review") === statusFilter);
     if (marketFilter !== "all") list = list.filter((r) => (r.marketplace ?? "amazon_us") === marketFilter);
+    if (minReviewsFilter > 0) list = list.filter((r) => (r.review_count ?? 0) >= minReviewsFilter);
+    if (sortMode === "reviews_desc") {
+      list = [...list].sort((a, b) => (b.review_count ?? -1) - (a.review_count ?? -1));
+    } else {
+      list = [...list].sort((a, b) => (b.created_at ?? "").localeCompare(a.created_at ?? ""));
+    }
     return list;
-  }, [rows, statusFilter, marketFilter, showImageless]);
+  }, [rows, statusFilter, marketFilter, showImageless, minReviewsFilter, sortMode]);
 
   const hiddenImagelessCount = useMemo(() => rows.filter((r) => !hasImage(r)).length, [rows]);
   const totalPages = Math.max(1, Math.ceil(filtered.length / PAGE_SIZE));
@@ -470,6 +483,14 @@ export default function AdminProductValidation() {
         <span className="text-xs text-muted-foreground ml-4 mr-1">Marketplace:</span>
         {([["all","All"],["amazon_us","Amazon US"],["amazon_sa","Amazon SA"],["walmart_us","Walmart US"],["takealot_sa","Takealot SA"]] as [MarketFilter,string][]).map(([f,l])=>(
           <Button key={f} size="sm" variant={marketFilter===f?"default":"outline"} onClick={()=>setMarketFilter(f)}>{l}</Button>
+        ))}
+        <span className="text-xs text-muted-foreground ml-4 mr-1">Min reviews:</span>
+        {([[0,"All"],[100,"100+"],[500,"500+"],[1000,"1000+"]] as [MinReviewsFilter,string][]).map(([v,l])=>(
+          <Button key={v} size="sm" variant={minReviewsFilter===v?"default":"outline"} onClick={()=>setMinReviewsFilter(v)}>{l}</Button>
+        ))}
+        <span className="text-xs text-muted-foreground ml-4 mr-1">Sort:</span>
+        {([["reviews_desc","Most reviews"],["newest","Newest"]] as [SortMode,string][]).map(([v,l])=>(
+          <Button key={v} size="sm" variant={sortMode===v?"default":"outline"} onClick={()=>setSortMode(v)}>{l}</Button>
         ))}
         <span className="text-xs text-muted-foreground ml-4 mr-1">Images:</span>
         <Button size="sm" variant={showImageless?"default":"outline"} onClick={()=>setShowImageless((v)=>!v)}>

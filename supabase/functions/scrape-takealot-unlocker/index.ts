@@ -41,8 +41,13 @@ const DEFAULT_CATEGORIES: Record<string, string> = {
   "pet": "pet supplies",
 };
 
-// Default max rank we keep. Overridable per-request via body.max_rank.
+// Keep rules (any-of): reviews are the PRIMARY signal.
+//   review_count >= MIN_REVIEWS  -> proven demand (primary)
+//   search_rank  <= MAX_RANK     -> currently trending
+//   days_seen    >= MIN_DAYS     -> consistent presence (checked in DB, always upserts existing)
+const DEFAULT_MIN_REVIEWS = 100;
 const DEFAULT_MAX_RANK = 10;
+const DEFAULT_ROWS = 50; // fetch deeper so heavily-reviewed items below rank 10 are captured
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -89,7 +94,7 @@ function buildImageUrl(raw: string | undefined): string {
   return raw.replace("{size}", "pdpxl");
 }
 
-function parseSearchJson(json: string, category: string, maxRank: number): ParsedProduct[] {
+function parseSearchJson(json: string, category: string): ParsedProduct[] {
   let doc: any;
   try { doc = JSON.parse(json); } catch { return []; }
 
@@ -113,7 +118,6 @@ function parseSearchJson(json: string, category: string, maxRank: number): Parse
     if (!title || !priceNum || !id) continue;
 
     const rank = out.length + 1;
-    if (rank > maxRank) break; // high-demand only
 
     const reviewSummary = pv?.review_summary;
     const reviewCount =
@@ -159,8 +163,9 @@ serve(async (req) => {
     }
 
     let categories: Record<string, string> = DEFAULT_CATEGORIES;
-    let rows = 20;
+    let rows = DEFAULT_ROWS;
     let maxRank = DEFAULT_MAX_RANK;
+    let minReviews = DEFAULT_MIN_REVIEWS;
     if (req.method === "POST") {
       try {
         const body = await req.json();
@@ -169,6 +174,7 @@ serve(async (req) => {
         }
         if (typeof body?.rows === "number") rows = body.rows;
         if (typeof body?.max_rank === "number") maxRank = body.max_rank;
+        if (typeof body?.min_reviews === "number") minReviews = body.min_reviews;
       } catch { /* no body */ }
     }
 
@@ -176,6 +182,7 @@ serve(async (req) => {
       category: string;
       query: string;
       fetched: number;
+      kept: number;
       upserted: number;
       error?: string;
     }> = [];
@@ -189,20 +196,35 @@ serve(async (req) => {
       try {
         console.log(`[unlocker] ${category} <- ${query}`);
         const json = await fetchViaUnlocker(apiUrl);
-        const parsed = parseSearchJson(json, category, maxRank);
-        console.log(`[unlocker] ${category}: kept ${parsed.length} (rank<=${maxRank})`);
+        const parsed = parseSearchJson(json, category);
 
         if (parsed.length === 0) {
           perCategory.push({
-            category, query, fetched: 0, upserted: 0,
+            category, query, fetched: 0, kept: 0, upserted: 0,
             error: "0 products in API response",
           });
           continue;
         }
 
+        // Always re-upsert products we've already seen (so days_seen keeps counting).
+        const plids = parsed.map((p) => p.plid);
+        const { data: existing } = await supabase
+          .from("takealot_products")
+          .select("plid")
+          .in("plid", plids);
+        const existingSet = new Set((existing ?? []).map((r: any) => r.plid));
+
+        // Keep = reviews (primary) OR rank OR already-tracked
+        const kept = parsed.filter((p) =>
+          (p.review_count != null && p.review_count >= minReviews) ||
+          p.search_rank <= maxRank ||
+          existingSet.has(p.plid)
+        );
+        console.log(`[unlocker] ${category}: fetched ${parsed.length}, kept ${kept.length} (reviews>=${minReviews} OR rank<=${maxRank} OR existing)`);
+
         let upserted = 0;
         let lastErr: string | undefined;
-        for (const p of parsed) {
+        for (const p of kept) {
           const { error } = await supabase.rpc("upsert_takealot_product", {
             _plid: p.plid,
             _name: p.takealot_name,
@@ -219,14 +241,14 @@ serve(async (req) => {
         }
         totalUpserted += upserted;
         perCategory.push({
-          category, query, fetched: parsed.length, upserted,
+          category, query, fetched: parsed.length, kept: kept.length, upserted,
           error: lastErr,
         });
-        samples.push(...parsed.slice(0, 2));
+        samples.push(...kept.slice(0, 2));
       } catch (e) {
         console.error(`[unlocker] ${category} error:`, e);
         perCategory.push({
-          category, query, fetched: 0, upserted: 0,
+          category, query, fetched: 0, kept: 0, upserted: 0,
           error: (e as Error).message,
         });
       }
@@ -237,6 +259,8 @@ serve(async (req) => {
       JSON.stringify({
         status: "ok",
         max_rank: maxRank,
+        min_reviews: minReviews,
+        rows_per_category: rows,
         total_upserted: totalUpserted,
         per_category: perCategory,
         samples: samples.slice(0, 5),
