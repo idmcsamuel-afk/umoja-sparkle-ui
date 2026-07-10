@@ -29,10 +29,20 @@ interface Props {
   open: boolean;
   onOpenChange: (v: boolean) => void;
   initialQuery: string;
+  originalImage?: string | null;
+  originalName?: string | null;
+  originalPriceLabel?: string | null;
   onSelect: (c: AlibabaCandidate) => void;
 }
 
-export function AlibabaSearchPanel({ open, onOpenChange, initialQuery, onSelect }: Props) {
+const absUrl = (u: string) => {
+  if (!u) return u;
+  if (u.startsWith("//")) return "https:" + u;
+  if (u.startsWith("/")) return "https://www.alibaba.com" + u;
+  return u;
+};
+
+export function AlibabaSearchPanel({ open, onOpenChange, initialQuery, originalImage, originalName, originalPriceLabel, onSelect }: Props) {
   const [query, setQuery] = useState(initialQuery);
   const [loading, setLoading] = useState(false);
   const [candidates, setCandidates] = useState<AlibabaCandidate[] | null>(null);
