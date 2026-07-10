@@ -4762,6 +4762,10 @@ export type Database = {
       }
       products: {
         Row: {
+          alibaba_moq: number | null
+          alibaba_price: string | null
+          alibaba_supplier: string | null
+          alibaba_url: string | null
           asin: string
           brand: string | null
           buybox_currency: string | null
@@ -4794,6 +4798,10 @@ export type Database = {
           validation_status: string | null
         }
         Insert: {
+          alibaba_moq?: number | null
+          alibaba_price?: string | null
+          alibaba_supplier?: string | null
+          alibaba_url?: string | null
           asin: string
           brand?: string | null
           buybox_currency?: string | null
@@ -4826,6 +4834,10 @@ export type Database = {
           validation_status?: string | null
         }
         Update: {
+          alibaba_moq?: number | null
+          alibaba_price?: string | null
+          alibaba_supplier?: string | null
+          alibaba_url?: string | null
           asin?: string
           brand?: string | null
           buybox_currency?: string | null
