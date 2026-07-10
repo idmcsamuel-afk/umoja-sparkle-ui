@@ -29,3 +29,4 @@ serve(async (req) => {
   const titleMatch = html.match(/<title>([^<]{1,200})<\/title>/i);
 
   return new Response(JSON.stringify({ len: html.length, title: titleMatch?.[1], isChallenge, ldCount: ldMatches.length, ldTypes, productDetailAnchors: idxs.length, snippets, moqCtx, priceCtx }, null, 2), { headers: { ...corsHeaders, "Content-Type": "application/json" } });
+});
