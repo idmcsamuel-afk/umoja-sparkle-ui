@@ -230,13 +230,32 @@ export default function AdminProductValidation() {
     if (statusFilter !== "all") list = list.filter((r) => (r.validation_status ?? "pending_review") === statusFilter);
     if (marketFilter !== "all") list = list.filter((r) => (r.marketplace ?? "amazon_us") === marketFilter);
     if (minReviewsFilter > 0) list = list.filter((r) => (r.review_count ?? 0) >= minReviewsFilter);
+    if (brandFilter === "branded") list = list.filter((r) => !!r.is_branded);
+    else if (brandFilter === "generic") list = list.filter((r) => !r.is_branded);
     if (sortMode === "reviews_desc") {
       list = [...list].sort((a, b) => (b.review_count ?? -1) - (a.review_count ?? -1));
     } else {
       list = [...list].sort((a, b) => (b.created_at ?? "").localeCompare(a.created_at ?? ""));
     }
     return list;
-  }, [rows, statusFilter, marketFilter, showImageless, minReviewsFilter, sortMode]);
+  }, [rows, statusFilter, marketFilter, showImageless, minReviewsFilter, sortMode, brandFilter]);
+
+  // Category demand aggregation — branded products count too (they prove category demand).
+  const provenCategories = useMemo(() => {
+    const map = new Map<string, { category: string; totalReviews: number; products: number; brandedProducts: number }>();
+    for (const r of rows) {
+      const cat = r.category ?? "uncategorised";
+      const entry = map.get(cat) ?? { category: cat, totalReviews: 0, products: 0, brandedProducts: 0 };
+      entry.totalReviews += r.review_count ?? 0;
+      entry.products += 1;
+      if (r.is_branded) entry.brandedProducts += 1;
+      map.set(cat, entry);
+    }
+    return Array.from(map.values())
+      .filter((e) => e.totalReviews > 0)
+      .sort((a, b) => b.totalReviews - a.totalReviews)
+      .slice(0, 15);
+  }, [rows]);
 
   const hiddenImagelessCount = useMemo(() => rows.filter((r) => !hasImage(r)).length, [rows]);
   const totalPages = Math.max(1, Math.ceil(filtered.length / PAGE_SIZE));
