@@ -4768,6 +4768,7 @@ export type Database = {
           category: string
           competition_level: string | null
           created_at: string
+          days_seen: number | null
           id: string
           image_url: string | null
           marketplace: string | null
@@ -4786,6 +4787,7 @@ export type Database = {
           search_volume: number | null
           seller_count: number | null
           seller_count_verified: boolean
+          times_seen: number | null
           title: string
           validation_status: string | null
         }
@@ -4796,6 +4798,7 @@ export type Database = {
           category: string
           competition_level?: string | null
           created_at?: string
+          days_seen?: number | null
           id?: string
           image_url?: string | null
           marketplace?: string | null
@@ -4814,6 +4817,7 @@ export type Database = {
           search_volume?: number | null
           seller_count?: number | null
           seller_count_verified?: boolean
+          times_seen?: number | null
           title: string
           validation_status?: string | null
         }
@@ -4824,6 +4828,7 @@ export type Database = {
           category?: string
           competition_level?: string | null
           created_at?: string
+          days_seen?: number | null
           id?: string
           image_url?: string | null
           marketplace?: string | null
@@ -4842,6 +4847,7 @@ export type Database = {
           search_volume?: number | null
           seller_count?: number | null
           seller_count_verified?: boolean
+          times_seen?: number | null
           title?: string
           validation_status?: string | null
         }
@@ -6557,8 +6563,13 @@ export type Database = {
       takealot_products: {
         Row: {
           category: string | null
+          days_seen: number
+          first_seen_at: string | null
           id: string
           image_url: string | null
+          last_seen_at: string | null
+          last_seen_date: string | null
+          plid: string
           rating: number | null
           scraped_at: string
           search_rank: number | null
@@ -6566,11 +6577,17 @@ export type Database = {
           takealot_name: string
           takealot_price: number | null
           takealot_url: string | null
+          times_seen: number
         }
         Insert: {
           category?: string | null
+          days_seen?: number
+          first_seen_at?: string | null
           id?: string
           image_url?: string | null
+          last_seen_at?: string | null
+          last_seen_date?: string | null
+          plid: string
           rating?: number | null
           scraped_at?: string
           search_rank?: number | null
@@ -6578,11 +6595,17 @@ export type Database = {
           takealot_name: string
           takealot_price?: number | null
           takealot_url?: string | null
+          times_seen?: number
         }
         Update: {
           category?: string | null
+          days_seen?: number
+          first_seen_at?: string | null
           id?: string
           image_url?: string | null
+          last_seen_at?: string | null
+          last_seen_date?: string | null
+          plid?: string
           rating?: number | null
           scraped_at?: string
           search_rank?: number | null
@@ -6590,6 +6613,7 @@ export type Database = {
           takealot_name?: string
           takealot_price?: number | null
           takealot_url?: string | null
+          times_seen?: number
         }
         Relationships: []
       }
@@ -8057,6 +8081,19 @@ export type Database = {
         Returns: undefined
       }
       touch_last_seen: { Args: never; Returns: undefined }
+      upsert_takealot_product: {
+        Args: {
+          _category: string
+          _image: string
+          _name: string
+          _plid: string
+          _price: number
+          _rank: number
+          _rating: number
+          _url: string
+        }
+        Returns: undefined
+      }
     }
     Enums: {
       zcreator_job_status: "queued" | "processing" | "completed" | "failed"

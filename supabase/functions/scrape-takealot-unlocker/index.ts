@@ -16,17 +16,33 @@ const BRIGHT_DATA_UNLOCKER_ZONE =
   Deno.env.get("BRIGHT_DATA_UNLOCKER_ZONE") || "umoja_web_unlocker1";
 
 // Category label -> search query used against Takealot's search API.
-// (Category-page HTML is client-rendered, so we drive the search endpoint
-// instead. Query terms broad enough to yield the top ~40 products per category.)
+// Broader net (more sub-categories) so we can safely keep only rank<=10
+// per query without losing catalog coverage.
 const DEFAULT_CATEGORIES: Record<string, string> = {
-  "fashion": "clothing",
+  "fashion-clothing": "clothing",
+  "fashion-shoes": "shoes",
+  "fashion-bags": "handbags",
   "electronics": "electronics",
-  "computers-tablets": "laptop",
-  "home-kitchen": "kitchen",
+  "cellphones": "cellphone",
+  "headphones": "headphones",
+  "tv-audio": "smart tv",
+  "computers-laptops": "laptop",
+  "computers-accessories": "keyboard mouse",
+  "home-kitchen": "kitchen appliance",
+  "home-cookware": "cookware",
+  "home-decor": "home decor",
   "sports-outdoors": "sports",
-  "beauty": "beauty",
+  "sports-fitness": "fitness equipment",
+  "beauty-skincare": "skincare",
+  "beauty-haircare": "hair care",
   "toys": "toys",
+  "baby": "baby products",
+  "gaming": "gaming console",
+  "pet": "pet supplies",
 };
+
+// Default max rank we keep. Overridable per-request via body.max_rank.
+const DEFAULT_MAX_RANK = 10;
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -35,14 +51,13 @@ const corsHeaders = {
 };
 
 interface ParsedProduct {
+  plid: string;
   takealot_name: string;
   takealot_price: number;
   takealot_url: string;
   image_url: string;
   category: string;
-  seller_count: number;
   rating: number | null;
-  scraped_at: string;
   search_rank: number;
 }
 
