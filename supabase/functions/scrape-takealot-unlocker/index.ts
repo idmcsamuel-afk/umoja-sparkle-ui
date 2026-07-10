@@ -259,6 +259,8 @@ serve(async (req) => {
       JSON.stringify({
         status: "ok",
         max_rank: maxRank,
+        min_reviews: minReviews,
+        rows_per_category: rows,
         total_upserted: totalUpserted,
         per_category: perCategory,
         samples: samples.slice(0, 5),
