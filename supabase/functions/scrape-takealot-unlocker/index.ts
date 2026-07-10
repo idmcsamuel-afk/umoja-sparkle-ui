@@ -141,6 +141,7 @@ interface ParsedProduct {
   rating: number | null;
   review_count: number | null;
   search_rank: number;
+  brand: string | null;
 }
 
 async function fetchViaUnlocker(url: string): Promise<string> {
