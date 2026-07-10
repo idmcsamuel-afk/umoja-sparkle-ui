@@ -193,7 +193,7 @@ export default function AdminProductValidation() {
   const [draftLoaded, setDraftLoaded] = useState<Record<string, boolean>>({});
   const [restoredNote, setRestoredNote] = useState<Record<string, boolean>>({});
   const [enriching, setEnriching] = useState<string | null>(null);
-  const [alibabaFor, setAlibabaFor] = useState<{ id: string; title: string } | null>(null);
+  const [alibabaFor, setAlibabaFor] = useState<{ id: string; title: string; image: string | null; priceLabel: string | null } | null>(null);
   const floors = useSparkTradeFloors();
 
   const USD_TO_ZAR = 18.5;
