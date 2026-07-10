@@ -543,6 +543,12 @@ export default function AdminProductValidation() {
                               ? <><b>{r.days_seen}</b> day{r.days_seen === 1 ? "" : "s"} in top 10 · {r.times_seen ?? r.days_seen} scrape{(r.times_seen ?? 1) === 1 ? "" : "s"}</>
                               : "—"}
                           </p>
+                          <p className="text-sm">
+                            <span className="text-muted-foreground">Reviews (demand):</span>{" "}
+                            {r.review_count != null && r.review_count > 0
+                              ? <><b>{r.review_count.toLocaleString()}</b> review{r.review_count === 1 ? "" : "s"}</>
+                              : "—"}
+                          </p>
                           <p className="text-sm text-muted-foreground italic">Reviews / BSR / seller count: — (not provided by Takealot)</p>
                         </>
                       ) : (
