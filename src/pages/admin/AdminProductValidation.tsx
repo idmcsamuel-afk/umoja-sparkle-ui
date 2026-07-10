@@ -45,6 +45,10 @@ interface ProductRow {
   times_seen: number | null;
   brand: string | null;
   is_branded: boolean | null;
+  alibaba_url?: string | null;
+  alibaba_price?: string | null;
+  alibaba_moq?: number | null;
+  alibaba_supplier?: string | null;
 }
 
 type StatusFilter = "all" | "pending_review" | "approved_to_queue";
