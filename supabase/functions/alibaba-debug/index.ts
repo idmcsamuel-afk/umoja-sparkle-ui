@@ -20,5 +20,18 @@ serve(async (req) => {
   const moqCtx = [...html.matchAll(/Min\.? ?Order[\s\S]{0,200}/gi)].slice(0, 3).map(x => x[0]);
   const priceCtx = [...html.matchAll(/US\s*\$\s*[\d.,]+[\s\S]{0,200}/gi)].slice(0, 3).map(x => x[0]);
 
+  // Look for JSON-LD blocks
+  const ldMatches = [...html.matchAll(/<script[^>]+application\/ld\+json[^>]*>([\s\S]*?)<\/script>/gi)];
+  const ldTypes = ldMatches.map(m => { try { const j = JSON.parse(m[1].trim()); return j["@type"] || Object.keys(j).slice(0,3); } catch { return "parse-err"; } });
+
+  // Look for challenge markers
+  const isChallenge = /captcha|verify.you.re.human|cf-chl|verification challenge|_smartCaptcha/i.test(html);
+  const titleMatch = html.match(/<title>([^<]{1,200})<\/title>/i);
+
+  return new Response(JSON.stringify({ len: html.length, title: titleMatch?.[1], isChallenge, ldCount: ldMatches.length, ldTypes, productDetailAnchors: idxs.length, snippets, moqCtx, priceCtx }, null, 2), { headers: { ...corsHeaders, "Content-Type": "application/json" } });
+});
+  const moqCtx = [...html.matchAll(/Min\.? ?Order[\s\S]{0,200}/gi)].slice(0, 3).map(x => x[0]);
+  const priceCtx = [...html.matchAll(/US\s*\$\s*[\d.,]+[\s\S]{0,200}/gi)].slice(0, 3).map(x => x[0]);
+
   return new Response(JSON.stringify({ len: html.length, snippets, moqCtx, priceCtx }, null, 2), { headers: { ...corsHeaders, "Content-Type": "application/json" } });
 });
