@@ -139,11 +139,15 @@ export function AlibabaSearchPanel({ open, onOpenChange, initialQuery, originalI
                     )}
                   </div>
                   <div className="flex flex-wrap gap-2 pt-1">
-                    <Button asChild size="sm" variant="outline">
-                      <a href={c.url} target="_blank" rel="noopener noreferrer">
-                        <ExternalLink className="h-3.5 w-3.5 mr-1" /> Open on Alibaba
-                      </a>
-                    </Button>
+                    <a
+                      href={absUrl(c.url)}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      onClick={(e) => e.stopPropagation()}
+                      className="inline-flex items-center h-9 px-3 rounded-md border border-input bg-background hover:bg-accent hover:text-accent-foreground text-sm font-medium"
+                    >
+                      <ExternalLink className="h-3.5 w-3.5 mr-1" /> Open on Alibaba
+                    </a>
                     <Button size="sm" className="bg-green-600 hover:bg-green-700 text-white" onClick={() => { onSelect(c); onOpenChange(false); }}>
                       <Check className="h-3.5 w-3.5 mr-1" /> Select this match
                     </Button>
