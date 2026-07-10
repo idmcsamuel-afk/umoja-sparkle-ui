@@ -212,6 +212,7 @@ serve(async (req) => {
             _category: p.category,
             _rating: p.rating,
             _rank: p.search_rank,
+            _review_count: p.review_count,
           });
           if (error) { lastErr = error.message; console.error("upsert err:", error.message); }
           else upserted++;
