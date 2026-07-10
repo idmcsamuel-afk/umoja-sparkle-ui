@@ -41,8 +41,13 @@ const DEFAULT_CATEGORIES: Record<string, string> = {
   "pet": "pet supplies",
 };
 
-// Default max rank we keep. Overridable per-request via body.max_rank.
+// Keep rules (any-of): reviews are the PRIMARY signal.
+//   review_count >= MIN_REVIEWS  -> proven demand (primary)
+//   search_rank  <= MAX_RANK     -> currently trending
+//   days_seen    >= MIN_DAYS     -> consistent presence (checked in DB, always upserts existing)
+const DEFAULT_MIN_REVIEWS = 100;
 const DEFAULT_MAX_RANK = 10;
+const DEFAULT_ROWS = 50; // fetch deeper so heavily-reviewed items below rank 10 are captured
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
