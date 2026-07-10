@@ -248,7 +248,7 @@ serve(async (req) => {
       } catch (e) {
         console.error(`[unlocker] ${category} error:`, e);
         perCategory.push({
-          category, query, fetched: 0, upserted: 0,
+          category, query, fetched: 0, kept: 0, upserted: 0,
           error: (e as Error).message,
         });
       }
