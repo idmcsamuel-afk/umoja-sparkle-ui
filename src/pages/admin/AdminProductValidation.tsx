@@ -504,7 +504,7 @@ export default function AdminProductValidation() {
                     <CardTitle className="text-lg">{r.title ?? "(no title)"}</CardTitle>
                     <div className="flex items-center gap-2 flex-wrap">
                       <Badge variant="outline">{MARKET_LABEL[market] ?? market}</Badge>
-                      <DemandBadge reviews={r.review_count} marketplace={market} rank={r.sales_rank} rating={r.rating} />
+                      <DemandBadge reviews={r.review_count} marketplace={market} rank={r.sales_rank} rating={r.rating} daysSeen={r.days_seen} />
                       <Badge variant={status==="approved_to_queue"?"default":status==="rejected"?"destructive":"secondary"}>
                         {status==="approved_to_queue"?"✅ Published":status==="rejected"?"❌ Rejected":status==="demand_validated"?"📊 Demand signal":"⏳ Pending"}
                       </Badge>
