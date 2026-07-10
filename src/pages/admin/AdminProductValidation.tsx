@@ -585,6 +585,11 @@ export default function AdminProductValidation() {
                     <div className="flex items-center gap-2 flex-wrap">
                       <Badge variant="outline">{MARKET_LABEL[market] ?? market}</Badge>
                       <DemandBadge reviews={r.review_count} marketplace={market} rank={r.sales_rank} rating={r.rating} daysSeen={r.days_seen} />
+                      {r.is_branded && (
+                        <Badge variant="outline" className="border-purple-400 text-purple-700 dark:text-purple-300">
+                          🏷 {r.brand ?? "Branded"} — not sourceable
+                        </Badge>
+                      )}
                       <Badge variant={status==="approved_to_queue"?"default":status==="rejected"?"destructive":"secondary"}>
                         {status==="approved_to_queue"?"✅ Published":status==="rejected"?"❌ Rejected":status==="demand_validated"?"📊 Demand signal":"⏳ Pending"}
                       </Badge>
