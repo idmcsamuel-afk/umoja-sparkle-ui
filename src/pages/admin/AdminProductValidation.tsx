@@ -46,6 +46,8 @@ interface ProductRow {
 
 type StatusFilter = "all" | "pending_review" | "approved_to_queue";
 type MarketFilter = "all" | "amazon_us" | "amazon_sa" | "walmart_us" | "takealot_sa";
+type MinReviewsFilter = 0 | 100 | 500 | 1000;
+type SortMode = "reviews_desc" | "newest";
 
 const PAGE_SIZE = 5;
 const MARKET_LABEL: Record<string, string> = {
