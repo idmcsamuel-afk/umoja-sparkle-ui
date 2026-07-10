@@ -484,6 +484,14 @@ export default function AdminProductValidation() {
         {([["all","All"],["amazon_us","Amazon US"],["amazon_sa","Amazon SA"],["walmart_us","Walmart US"],["takealot_sa","Takealot SA"]] as [MarketFilter,string][]).map(([f,l])=>(
           <Button key={f} size="sm" variant={marketFilter===f?"default":"outline"} onClick={()=>setMarketFilter(f)}>{l}</Button>
         ))}
+        <span className="text-xs text-muted-foreground ml-4 mr-1">Min reviews:</span>
+        {([[0,"All"],[100,"100+"],[500,"500+"],[1000,"1000+"]] as [MinReviewsFilter,string][]).map(([v,l])=>(
+          <Button key={v} size="sm" variant={minReviewsFilter===v?"default":"outline"} onClick={()=>setMinReviewsFilter(v)}>{l}</Button>
+        ))}
+        <span className="text-xs text-muted-foreground ml-4 mr-1">Sort:</span>
+        {([["reviews_desc","Most reviews"],["newest","Newest"]] as [SortMode,string][]).map(([v,l])=>(
+          <Button key={v} size="sm" variant={sortMode===v?"default":"outline"} onClick={()=>setSortMode(v)}>{l}</Button>
+        ))}
         <span className="text-xs text-muted-foreground ml-4 mr-1">Images:</span>
         <Button size="sm" variant={showImageless?"default":"outline"} onClick={()=>setShowImageless((v)=>!v)}>
           {showImageless ? `Showing items without images (${hiddenImagelessCount})` : `Hide items without images${hiddenImagelessCount?` (${hiddenImagelessCount} hidden)`:""}`}
