@@ -189,7 +189,42 @@ export default function AdminProductValidation() {
   const [draftLoaded, setDraftLoaded] = useState<Record<string, boolean>>({});
   const [restoredNote, setRestoredNote] = useState<Record<string, boolean>>({});
   const [enriching, setEnriching] = useState<string | null>(null);
+  const [alibabaFor, setAlibabaFor] = useState<{ id: string; title: string } | null>(null);
   const floors = useSparkTradeFloors();
+
+  const USD_TO_ZAR = 18.5;
+
+  const handleAlibabaSelect = async (rowId: string, c: AlibabaCandidate) => {
+    setForms((prev) => {
+      const cur = prev[rowId] ?? blankForm();
+      const costZar = c.price_from != null ? (c.price_from * USD_TO_ZAR).toFixed(2) : cur.alibaba_cost_zar;
+      return {
+        ...prev,
+        [rowId]: {
+          ...cur,
+          alibaba_cost_zar: costZar,
+          moq: c.moq_found && c.moq ? String(c.moq) : "",
+          supplier_name: c.supplier_name ?? cur.supplier_name,
+        },
+      };
+    });
+    setOpenForm(rowId);
+    const { error } = await supabase.from("products" as any).update({
+      alibaba_url: c.url,
+      alibaba_price: c.price_label,
+      alibaba_moq: c.moq_found ? c.moq : null,
+      alibaba_supplier: c.supplier_name,
+    }).eq("id", rowId);
+    if (error) {
+      toast({ title: "Saved to form (reference not persisted)", description: error.message });
+    } else {
+      setRows((prev) => prev.map((x) => x.id === rowId ? { ...x, alibaba_url: c.url, alibaba_price: c.price_label, alibaba_moq: c.moq_found ? c.moq : null, alibaba_supplier: c.supplier_name } as any : x));
+      toast({
+        title: "Alibaba match selected",
+        description: c.moq_found ? `MOQ ${c.moq!.toLocaleString()} · ${c.price_label}` : "⚠️ MOQ not found — enter it manually before approving.",
+      });
+    }
+  };
 
   const load = async () => {
     setLoading(true);
