@@ -4763,6 +4763,7 @@ export type Database = {
       products: {
         Row: {
           asin: string
+          brand: string | null
           buybox_currency: string | null
           buybox_price: number | null
           category: string
@@ -4771,6 +4772,7 @@ export type Database = {
           days_seen: number | null
           id: string
           image_url: string | null
+          is_branded: boolean
           marketplace: string | null
           monthly_rank: number | null
           price_usd: number | null
@@ -4793,6 +4795,7 @@ export type Database = {
         }
         Insert: {
           asin: string
+          brand?: string | null
           buybox_currency?: string | null
           buybox_price?: number | null
           category: string
@@ -4801,6 +4804,7 @@ export type Database = {
           days_seen?: number | null
           id?: string
           image_url?: string | null
+          is_branded?: boolean
           marketplace?: string | null
           monthly_rank?: number | null
           price_usd?: number | null
@@ -4823,6 +4827,7 @@ export type Database = {
         }
         Update: {
           asin?: string
+          brand?: string | null
           buybox_currency?: string | null
           buybox_price?: number | null
           category?: string
@@ -4831,6 +4836,7 @@ export type Database = {
           days_seen?: number | null
           id?: string
           image_url?: string | null
+          is_branded?: boolean
           marketplace?: string | null
           monthly_rank?: number | null
           price_usd?: number | null
@@ -6562,11 +6568,13 @@ export type Database = {
       }
       takealot_products: {
         Row: {
+          brand: string | null
           category: string | null
           days_seen: number
           first_seen_at: string | null
           id: string
           image_url: string | null
+          is_branded: boolean
           last_seen_at: string | null
           last_seen_date: string | null
           plid: string
@@ -6581,11 +6589,13 @@ export type Database = {
           times_seen: number
         }
         Insert: {
+          brand?: string | null
           category?: string | null
           days_seen?: number
           first_seen_at?: string | null
           id?: string
           image_url?: string | null
+          is_branded?: boolean
           last_seen_at?: string | null
           last_seen_date?: string | null
           plid: string
@@ -6600,11 +6610,13 @@ export type Database = {
           times_seen?: number
         }
         Update: {
+          brand?: string | null
           category?: string | null
           days_seen?: number
           first_seen_at?: string | null
           id?: string
           image_url?: string | null
+          is_branded?: boolean
           last_seen_at?: string | null
           last_seen_date?: string | null
           plid?: string
@@ -8100,6 +8112,21 @@ export type Database = {
           }
         | {
             Args: {
+              _category: string
+              _image: string
+              _name: string
+              _plid: string
+              _price: number
+              _rank: number
+              _rating: number
+              _review_count?: number
+              _url: string
+            }
+            Returns: undefined
+          }
+        | {
+            Args: {
+              _brand?: string
               _category: string
               _image: string
               _name: string
