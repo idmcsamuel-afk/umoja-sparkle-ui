@@ -144,7 +144,8 @@ serve(async (req) => {
     }
 
     let categories: Record<string, string> = DEFAULT_CATEGORIES;
-    let rows = 40;
+    let rows = 20;
+    let maxRank = DEFAULT_MAX_RANK;
     if (req.method === "POST") {
       try {
         const body = await req.json();
@@ -152,6 +153,7 @@ serve(async (req) => {
           categories = body.categories;
         }
         if (typeof body?.rows === "number") rows = body.rows;
+        if (typeof body?.max_rank === "number") maxRank = body.max_rank;
       } catch { /* no body */ }
     }
 
@@ -159,10 +161,10 @@ serve(async (req) => {
       category: string;
       query: string;
       fetched: number;
-      inserted: number;
+      upserted: number;
       error?: string;
     }> = [];
-    let totalInserted = 0;
+    let totalUpserted = 0;
     const samples: ParsedProduct[] = [];
 
     for (const [category, query] of Object.entries(categories)) {
@@ -172,38 +174,48 @@ serve(async (req) => {
       try {
         console.log(`[unlocker] ${category} <- ${query}`);
         const json = await fetchViaUnlocker(apiUrl);
-        const parsed = parseSearchJson(json, category);
-        console.log(`[unlocker] ${category}: parsed ${parsed.length}`);
+        const parsed = parseSearchJson(json, category, maxRank);
+        console.log(`[unlocker] ${category}: kept ${parsed.length} (rank<=${maxRank})`);
 
         if (parsed.length === 0) {
           perCategory.push({
-            category, query, fetched: 0, inserted: 0,
+            category, query, fetched: 0, upserted: 0,
             error: "0 products in API response",
           });
           continue;
         }
 
-        const { error } = await supabase.from("takealot_products").insert(parsed);
-        if (error) {
-          perCategory.push({
-            category, query, fetched: parsed.length, inserted: 0,
-            error: error.message,
+        let upserted = 0;
+        let lastErr: string | undefined;
+        for (const p of parsed) {
+          const { error } = await supabase.rpc("upsert_takealot_product", {
+            _plid: p.plid,
+            _name: p.takealot_name,
+            _price: p.takealot_price,
+            _url: p.takealot_url,
+            _image: p.image_url,
+            _category: p.category,
+            _rating: p.rating,
+            _rank: p.search_rank,
           });
-        } else {
-          totalInserted += parsed.length;
-          perCategory.push({
-            category, query, fetched: parsed.length, inserted: parsed.length,
-          });
-          samples.push(...parsed.slice(0, 2));
+          if (error) { lastErr = error.message; console.error("upsert err:", error.message); }
+          else upserted++;
         }
+        totalUpserted += upserted;
+        perCategory.push({
+          category, query, fetched: parsed.length, upserted,
+          error: lastErr,
+        });
+        samples.push(...parsed.slice(0, 2));
       } catch (e) {
         console.error(`[unlocker] ${category} error:`, e);
         perCategory.push({
-          category, query, fetched: 0, inserted: 0,
+          category, query, fetched: 0, upserted: 0,
           error: (e as Error).message,
         });
       }
     }
+
 
     return new Response(
       JSON.stringify({
