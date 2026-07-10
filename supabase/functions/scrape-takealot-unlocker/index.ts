@@ -222,6 +222,7 @@ function parseSearchJson(json: string, category: string): ParsedProduct[] {
       rating: starRating,
       review_count: reviewCount,
       search_rank: rank,
+      brand: detectBrand(title),
     });
   }
   return out;
