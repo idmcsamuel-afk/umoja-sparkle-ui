@@ -74,6 +74,20 @@ export function AlibabaSearchPanel({ open, onOpenChange, initialQuery, originalI
           </DialogDescription>
         </DialogHeader>
 
+        {(originalImage || originalName) && (
+          <div className="rounded-lg border-2 border-primary/40 bg-primary/5 p-3 flex gap-3 sticky top-0 z-10">
+            <div className="w-24 h-24 rounded bg-background flex items-center justify-center overflow-hidden shrink-0 border">
+              {originalImage ? <img src={originalImage} alt="" className="w-full h-full object-contain" /> : <ImageOff className="h-5 w-5 text-muted-foreground" />}
+            </div>
+            <div className="flex-1 min-w-0">
+              <Badge className="mb-1">Original product (Takealot)</Badge>
+              <p className="text-sm font-medium line-clamp-2">{originalName}</p>
+              {originalPriceLabel && <p className="text-xs text-muted-foreground mt-1">SA price: <span className="font-semibold text-foreground">{originalPriceLabel}</span></p>}
+              <p className="text-[11px] text-muted-foreground mt-1">Compare each Alibaba candidate below against this image.</p>
+            </div>
+          </div>
+        )}
+
         <div className="flex gap-2">
           <Input value={query} onChange={(e) => setQuery(e.target.value)} placeholder="Product name or shorter search term" />
           <Button onClick={() => run(query)} disabled={loading || !query.trim()}>
