@@ -74,17 +74,26 @@ function Stars({ value }: { value: number | null }) {
 }
 
 function DemandBadge({ reviews, marketplace, rank, rating, daysSeen }: { reviews: number | null; marketplace?: string | null; rank?: number | null; rating?: number | null; daysSeen?: number | null }) {
-  // Takealot: no review counts from the API — use search rank + consistency (days seen) instead.
+  // Takealot: combine search rank + consistency (days seen) + review count.
   if (marketplace === "takealot_sa") {
-    const suffix = rank != null ? ` · #${rank}` : "";
-    const consistency = (daysSeen ?? 0) >= 2 ? ` · seen ${daysSeen}d` : "";
+    const parts: string[] = [];
+    if (rank != null) parts.push(`#${rank}`);
+    if ((daysSeen ?? 0) >= 2) parts.push(`seen ${daysSeen}d`);
+    if (reviews != null && reviews > 0) parts.push(`${reviews.toLocaleString()} reviews`);
+    const suffix = parts.length ? ` · ${parts.join(" · ")}` : "";
+
+    // Reviews are the strongest signal when present.
+    if (reviews != null && reviews >= 500) return <Badge className="bg-green-600 text-white">HIGH DEMAND{suffix}</Badge>;
+    if (reviews != null && reviews >= 100) return <Badge className="bg-amber-500 text-white">MEDIUM DEMAND{suffix}</Badge>;
+    // Fall back to rank + consistency when reviews are missing / low.
     if (rank == null) {
-      if (rating != null && rating >= 4) return <Badge className="bg-amber-500 text-white">MEDIUM DEMAND{consistency}</Badge>;
-      return <Badge variant="outline">RANK N/A{consistency}</Badge>;
+      if (rating != null && rating >= 4) return <Badge className="bg-amber-500 text-white">MEDIUM DEMAND{suffix}</Badge>;
+      return <Badge variant="outline">RANK N/A{suffix}</Badge>;
     }
-    if (rank <= 10) return <Badge className="bg-green-600 text-white">HIGH DEMAND{suffix}{consistency}</Badge>;
-    if (rank <= 25) return <Badge className="bg-amber-500 text-white">MEDIUM DEMAND{suffix}{consistency}</Badge>;
-    return <Badge className="bg-red-600 text-white">LOW DEMAND{suffix}{consistency}</Badge>;
+    if (rank <= 10 && (daysSeen ?? 0) >= 2) return <Badge className="bg-green-600 text-white">HIGH DEMAND{suffix}</Badge>;
+    if (rank <= 10) return <Badge className="bg-amber-500 text-white">MEDIUM DEMAND{suffix}</Badge>;
+    if (rank <= 25) return <Badge className="bg-amber-500 text-white">MEDIUM DEMAND{suffix}</Badge>;
+    return <Badge className="bg-red-600 text-white">LOW DEMAND{suffix}</Badge>;
   }
   if (reviews == null) return <Badge variant="outline">NO REVIEWS</Badge>;
   if (reviews >= 5000) return <Badge className="bg-green-600 text-white">HIGH DEMAND</Badge>;
