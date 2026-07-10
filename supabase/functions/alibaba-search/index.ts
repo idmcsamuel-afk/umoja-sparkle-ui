@@ -64,7 +64,8 @@ function parseJsonLd(html: string): any[] {
   while ((m = re.exec(html))) {
     try {
       const parsed = JSON.parse(m[1].trim());
-      out.push(parsed);
+      if (Array.isArray(parsed)) out.push(...parsed);
+      else out.push(parsed);
     } catch { /* ignore */ }
   }
   return out;
