@@ -29,9 +29,3 @@ serve(async (req) => {
   const titleMatch = html.match(/<title>([^<]{1,200})<\/title>/i);
 
   return new Response(JSON.stringify({ len: html.length, title: titleMatch?.[1], isChallenge, ldCount: ldMatches.length, ldTypes, productDetailAnchors: idxs.length, snippets, moqCtx, priceCtx }, null, 2), { headers: { ...corsHeaders, "Content-Type": "application/json" } });
-});
-  const moqCtx = [...html.matchAll(/Min\.? ?Order[\s\S]{0,200}/gi)].slice(0, 3).map(x => x[0]);
-  const priceCtx = [...html.matchAll(/US\s*\$\s*[\d.,]+[\s\S]{0,200}/gi)].slice(0, 3).map(x => x[0]);
-
-  return new Response(JSON.stringify({ len: html.length, snippets, moqCtx, priceCtx }, null, 2), { headers: { ...corsHeaders, "Content-Type": "application/json" } });
-});
