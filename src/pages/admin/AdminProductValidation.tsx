@@ -867,6 +867,9 @@ export default function AdminProductValidation() {
           open={!!alibabaFor}
           onOpenChange={(v) => !v && setAlibabaFor(null)}
           initialQuery={alibabaFor.title}
+          originalImage={alibabaFor.image}
+          originalName={alibabaFor.title}
+          originalPriceLabel={alibabaFor.priceLabel}
           onSelect={(c) => handleAlibabaSelect(alibabaFor.id, c)}
         />
       )}
