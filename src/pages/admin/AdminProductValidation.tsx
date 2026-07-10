@@ -225,8 +225,14 @@ export default function AdminProductValidation() {
     if (!showImageless) list = list.filter(hasImage);
     if (statusFilter !== "all") list = list.filter((r) => (r.validation_status ?? "pending_review") === statusFilter);
     if (marketFilter !== "all") list = list.filter((r) => (r.marketplace ?? "amazon_us") === marketFilter);
+    if (minReviewsFilter > 0) list = list.filter((r) => (r.review_count ?? 0) >= minReviewsFilter);
+    if (sortMode === "reviews_desc") {
+      list = [...list].sort((a, b) => (b.review_count ?? -1) - (a.review_count ?? -1));
+    } else {
+      list = [...list].sort((a, b) => (b.created_at ?? "").localeCompare(a.created_at ?? ""));
+    }
     return list;
-  }, [rows, statusFilter, marketFilter, showImageless]);
+  }, [rows, statusFilter, marketFilter, showImageless, minReviewsFilter, sortMode]);
 
   const hiddenImagelessCount = useMemo(() => rows.filter((r) => !hasImage(r)).length, [rows]);
   const totalPages = Math.max(1, Math.ceil(filtered.length / PAGE_SIZE));
