@@ -88,12 +88,11 @@ function buildImageUrl(raw: string | undefined): string {
   return raw.replace("{size}", "pdpxl");
 }
 
-function parseSearchJson(json: string, category: string): ParsedProduct[] {
+function parseSearchJson(json: string, category: string, maxRank: number): ParsedProduct[] {
   let doc: any;
   try { doc = JSON.parse(json); } catch { return []; }
 
   const results: any[] = doc?.sections?.products?.results ?? [];
-  const now = new Date().toISOString();
   const out: ParsedProduct[] = [];
 
   for (const r of results) {
@@ -112,7 +111,11 @@ function parseSearchJson(json: string, category: string): ParsedProduct[] {
         : 0;
     if (!title || !priceNum || !id) continue;
 
+    const rank = out.length + 1;
+    if (rank > maxRank) break; // high-demand only
+
     out.push({
+      plid: String(id),
       takealot_name: title,
       takealot_price: priceNum,
       takealot_url: slug
@@ -120,11 +123,9 @@ function parseSearchJson(json: string, category: string): ParsedProduct[] {
         : `https://www.takealot.com/PLID${id}`,
       image_url: buildImageUrl(gallery?.images?.[0]),
       category,
-      seller_count: 1,
       rating:
         typeof core.star_rating === "number" ? core.star_rating : null,
-      scraped_at: now,
-      search_rank: out.length + 1,
+      search_rank: rank,
     });
   }
   return out;
