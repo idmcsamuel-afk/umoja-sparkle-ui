@@ -103,7 +103,7 @@ function extractCardMeta(html: string, id: string) {
 
 function candidatesFromHtml(html: string): Candidate[] {
   const jsonBlocks = parseJsonLd(html);
-  const itemList = jsonBlocks.find((b) => b && (b["@type"] === "ItemList" || b.itemListElement));
+  const itemList = jsonBlocks.find((b) => b && b["@type"] === "ItemList" && Array.isArray(b.itemListElement));
   if (!itemList || !Array.isArray(itemList.itemListElement)) return [];
 
   const results: Candidate[] = [];
