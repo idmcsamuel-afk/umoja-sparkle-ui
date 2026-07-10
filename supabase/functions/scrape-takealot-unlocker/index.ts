@@ -58,6 +58,7 @@ interface ParsedProduct {
   image_url: string;
   category: string;
   rating: number | null;
+  review_count: number | null;
   search_rank: number;
 }
 
@@ -114,6 +115,20 @@ function parseSearchJson(json: string, category: string, maxRank: number): Parse
     const rank = out.length + 1;
     if (rank > maxRank) break; // high-demand only
 
+    const reviewSummary = pv?.review_summary;
+    const reviewCount =
+      typeof reviewSummary?.review_count === "number"
+        ? reviewSummary.review_count
+        : typeof core.reviews === "number"
+        ? core.reviews
+        : null;
+    const starRating =
+      typeof reviewSummary?.star_rating === "number"
+        ? reviewSummary.star_rating
+        : typeof core.star_rating === "number"
+        ? core.star_rating
+        : null;
+
     out.push({
       plid: String(id),
       takealot_name: title,
@@ -123,8 +138,8 @@ function parseSearchJson(json: string, category: string, maxRank: number): Parse
         : `https://www.takealot.com/PLID${id}`,
       image_url: buildImageUrl(gallery?.images?.[0]),
       category,
-      rating:
-        typeof core.star_rating === "number" ? core.star_rating : null,
+      rating: starRating,
+      review_count: reviewCount,
       search_rank: rank,
     });
   }
@@ -197,6 +212,7 @@ serve(async (req) => {
             _category: p.category,
             _rating: p.rating,
             _rank: p.search_rank,
+            _review_count: p.review_count,
           });
           if (error) { lastErr = error.message; console.error("upsert err:", error.message); }
           else upserted++;
