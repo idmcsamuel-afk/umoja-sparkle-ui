@@ -212,7 +212,7 @@ export default function AdminProductValidation() {
   useEffect(() => { load(); }, [marketFilter]);
 
   
-  useEffect(() => { setPage(1); }, [statusFilter, marketFilter, showImageless, minReviewsFilter, sortMode]);
+  useEffect(() => { setPage(1); }, [statusFilter, marketFilter, showImageless, minReviewsFilter, sortMode, brandFilter]);
 
   const hasImage = (r: ProductRow) => typeof r.image_url === "string" && /^https?:\/\//i.test(r.image_url);
 
