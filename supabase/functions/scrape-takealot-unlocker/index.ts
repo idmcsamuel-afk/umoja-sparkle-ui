@@ -118,7 +118,6 @@ function parseSearchJson(json: string, category: string, maxRank: number): Parse
     if (!title || !priceNum || !id) continue;
 
     const rank = out.length + 1;
-    if (rank > maxRank) break; // high-demand only
 
     const reviewSummary = pv?.review_summary;
     const reviewCount =
