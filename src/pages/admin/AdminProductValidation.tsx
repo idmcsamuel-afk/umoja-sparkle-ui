@@ -13,9 +13,10 @@ import {
   PaginationNext,
   PaginationPrevious,
 } from "@/components/ui/pagination";
-import { Check, X, ExternalLink, Star, RefreshCw, ImageOff, Trash2, Radar, Loader2 } from "lucide-react";
+import { Check, X, ExternalLink, Star, RefreshCw, ImageOff, Trash2, Radar, Loader2, Search } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 import { computeMemberMoq, useSparkTradeFloors } from "@/lib/sparkTradeMoq";
+import { AlibabaSearchPanel, type AlibabaCandidate } from "@/components/umoja/AlibabaSearchPanel";
 
 type ValidationStatus = "pending_review" | "approved_to_queue" | "rejected" | "demand_validated";
 
