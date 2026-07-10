@@ -861,6 +861,15 @@ export default function AdminProductValidation() {
           </Pagination>
         </div>
       )}
+
+      {alibabaFor && (
+        <AlibabaSearchPanel
+          open={!!alibabaFor}
+          onOpenChange={(v) => !v && setAlibabaFor(null)}
+          initialQuery={alibabaFor.title}
+          onSelect={(c) => handleAlibabaSelect(alibabaFor.id, c)}
+        />
+      )}
     </div>
   );
 }
