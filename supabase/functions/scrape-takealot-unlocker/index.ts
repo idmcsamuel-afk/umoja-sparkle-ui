@@ -16,17 +16,33 @@ const BRIGHT_DATA_UNLOCKER_ZONE =
   Deno.env.get("BRIGHT_DATA_UNLOCKER_ZONE") || "umoja_web_unlocker1";
 
 // Category label -> search query used against Takealot's search API.
-// (Category-page HTML is client-rendered, so we drive the search endpoint
-// instead. Query terms broad enough to yield the top ~40 products per category.)
+// Broader net (more sub-categories) so we can safely keep only rank<=10
+// per query without losing catalog coverage.
 const DEFAULT_CATEGORIES: Record<string, string> = {
-  "fashion": "clothing",
+  "fashion-clothing": "clothing",
+  "fashion-shoes": "shoes",
+  "fashion-bags": "handbags",
   "electronics": "electronics",
-  "computers-tablets": "laptop",
-  "home-kitchen": "kitchen",
+  "cellphones": "cellphone",
+  "headphones": "headphones",
+  "tv-audio": "smart tv",
+  "computers-laptops": "laptop",
+  "computers-accessories": "keyboard mouse",
+  "home-kitchen": "kitchen appliance",
+  "home-cookware": "cookware",
+  "home-decor": "home decor",
   "sports-outdoors": "sports",
-  "beauty": "beauty",
+  "sports-fitness": "fitness equipment",
+  "beauty-skincare": "skincare",
+  "beauty-haircare": "hair care",
   "toys": "toys",
+  "baby": "baby products",
+  "gaming": "gaming console",
+  "pet": "pet supplies",
 };
+
+// Default max rank we keep. Overridable per-request via body.max_rank.
+const DEFAULT_MAX_RANK = 10;
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -35,14 +51,13 @@ const corsHeaders = {
 };
 
 interface ParsedProduct {
+  plid: string;
   takealot_name: string;
   takealot_price: number;
   takealot_url: string;
   image_url: string;
   category: string;
-  seller_count: number;
   rating: number | null;
-  scraped_at: string;
   search_rank: number;
 }
 
@@ -73,12 +88,11 @@ function buildImageUrl(raw: string | undefined): string {
   return raw.replace("{size}", "pdpxl");
 }
 
-function parseSearchJson(json: string, category: string): ParsedProduct[] {
+function parseSearchJson(json: string, category: string, maxRank: number): ParsedProduct[] {
   let doc: any;
   try { doc = JSON.parse(json); } catch { return []; }
 
   const results: any[] = doc?.sections?.products?.results ?? [];
-  const now = new Date().toISOString();
   const out: ParsedProduct[] = [];
 
   for (const r of results) {
@@ -97,7 +111,11 @@ function parseSearchJson(json: string, category: string): ParsedProduct[] {
         : 0;
     if (!title || !priceNum || !id) continue;
 
+    const rank = out.length + 1;
+    if (rank > maxRank) break; // high-demand only
+
     out.push({
+      plid: String(id),
       takealot_name: title,
       takealot_price: priceNum,
       takealot_url: slug
@@ -105,11 +123,9 @@ function parseSearchJson(json: string, category: string): ParsedProduct[] {
         : `https://www.takealot.com/PLID${id}`,
       image_url: buildImageUrl(gallery?.images?.[0]),
       category,
-      seller_count: 1,
       rating:
         typeof core.star_rating === "number" ? core.star_rating : null,
-      scraped_at: now,
-      search_rank: out.length + 1,
+      search_rank: rank,
     });
   }
   return out;
@@ -128,7 +144,8 @@ serve(async (req) => {
     }
 
     let categories: Record<string, string> = DEFAULT_CATEGORIES;
-    let rows = 40;
+    let rows = 20;
+    let maxRank = DEFAULT_MAX_RANK;
     if (req.method === "POST") {
       try {
         const body = await req.json();
@@ -136,6 +153,7 @@ serve(async (req) => {
           categories = body.categories;
         }
         if (typeof body?.rows === "number") rows = body.rows;
+        if (typeof body?.max_rank === "number") maxRank = body.max_rank;
       } catch { /* no body */ }
     }
 
@@ -143,10 +161,10 @@ serve(async (req) => {
       category: string;
       query: string;
       fetched: number;
-      inserted: number;
+      upserted: number;
       error?: string;
     }> = [];
-    let totalInserted = 0;
+    let totalUpserted = 0;
     const samples: ParsedProduct[] = [];
 
     for (const [category, query] of Object.entries(categories)) {
@@ -156,43 +174,54 @@ serve(async (req) => {
       try {
         console.log(`[unlocker] ${category} <- ${query}`);
         const json = await fetchViaUnlocker(apiUrl);
-        const parsed = parseSearchJson(json, category);
-        console.log(`[unlocker] ${category}: parsed ${parsed.length}`);
+        const parsed = parseSearchJson(json, category, maxRank);
+        console.log(`[unlocker] ${category}: kept ${parsed.length} (rank<=${maxRank})`);
 
         if (parsed.length === 0) {
           perCategory.push({
-            category, query, fetched: 0, inserted: 0,
+            category, query, fetched: 0, upserted: 0,
             error: "0 products in API response",
           });
           continue;
         }
 
-        const { error } = await supabase.from("takealot_products").insert(parsed);
-        if (error) {
-          perCategory.push({
-            category, query, fetched: parsed.length, inserted: 0,
-            error: error.message,
+        let upserted = 0;
+        let lastErr: string | undefined;
+        for (const p of parsed) {
+          const { error } = await supabase.rpc("upsert_takealot_product", {
+            _plid: p.plid,
+            _name: p.takealot_name,
+            _price: p.takealot_price,
+            _url: p.takealot_url,
+            _image: p.image_url,
+            _category: p.category,
+            _rating: p.rating,
+            _rank: p.search_rank,
           });
-        } else {
-          totalInserted += parsed.length;
-          perCategory.push({
-            category, query, fetched: parsed.length, inserted: parsed.length,
-          });
-          samples.push(...parsed.slice(0, 2));
+          if (error) { lastErr = error.message; console.error("upsert err:", error.message); }
+          else upserted++;
         }
+        totalUpserted += upserted;
+        perCategory.push({
+          category, query, fetched: parsed.length, upserted,
+          error: lastErr,
+        });
+        samples.push(...parsed.slice(0, 2));
       } catch (e) {
         console.error(`[unlocker] ${category} error:`, e);
         perCategory.push({
-          category, query, fetched: 0, inserted: 0,
+          category, query, fetched: 0, upserted: 0,
           error: (e as Error).message,
         });
       }
     }
 
+
     return new Response(
       JSON.stringify({
         status: "ok",
-        total_inserted: totalInserted,
+        max_rank: maxRank,
+        total_upserted: totalUpserted,
         per_category: perCategory,
         samples: samples.slice(0, 5),
         timestamp: new Date().toISOString(),

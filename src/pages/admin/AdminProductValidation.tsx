@@ -40,6 +40,8 @@ interface ProductRow {
   seller_count_verified: boolean | null;
   buybox_price: number | null;
   buybox_currency: string | null;
+  days_seen: number | null;
+  times_seen: number | null;
 }
 
 type StatusFilter = "all" | "pending_review" | "approved_to_queue";
@@ -71,16 +73,18 @@ function Stars({ value }: { value: number | null }) {
   );
 }
 
-function DemandBadge({ reviews, marketplace, rank, rating }: { reviews: number | null; marketplace?: string | null; rank?: number | null; rating?: number | null }) {
-  // Takealot: no review counts from the API — use search rank + rating instead.
+function DemandBadge({ reviews, marketplace, rank, rating, daysSeen }: { reviews: number | null; marketplace?: string | null; rank?: number | null; rating?: number | null; daysSeen?: number | null }) {
+  // Takealot: no review counts from the API — use search rank + consistency (days seen) instead.
   if (marketplace === "takealot_sa") {
+    const suffix = rank != null ? ` · #${rank}` : "";
+    const consistency = (daysSeen ?? 0) >= 2 ? ` · seen ${daysSeen}d` : "";
     if (rank == null) {
-      if (rating != null && rating >= 4) return <Badge className="bg-amber-500 text-white">MEDIUM DEMAND</Badge>;
-      return <Badge variant="outline">RANK N/A</Badge>;
+      if (rating != null && rating >= 4) return <Badge className="bg-amber-500 text-white">MEDIUM DEMAND{consistency}</Badge>;
+      return <Badge variant="outline">RANK N/A{consistency}</Badge>;
     }
-    if (rank <= 10) return <Badge className="bg-green-600 text-white">HIGH DEMAND · #{rank}</Badge>;
-    if (rank <= 25) return <Badge className="bg-amber-500 text-white">MEDIUM DEMAND · #{rank}</Badge>;
-    return <Badge className="bg-red-600 text-white">LOW DEMAND · #{rank}</Badge>;
+    if (rank <= 10) return <Badge className="bg-green-600 text-white">HIGH DEMAND{suffix}{consistency}</Badge>;
+    if (rank <= 25) return <Badge className="bg-amber-500 text-white">MEDIUM DEMAND{suffix}{consistency}</Badge>;
+    return <Badge className="bg-red-600 text-white">LOW DEMAND{suffix}{consistency}</Badge>;
   }
   if (reviews == null) return <Badge variant="outline">NO REVIEWS</Badge>;
   if (reviews >= 5000) return <Badge className="bg-green-600 text-white">HIGH DEMAND</Badge>;
@@ -500,7 +504,7 @@ export default function AdminProductValidation() {
                     <CardTitle className="text-lg">{r.title ?? "(no title)"}</CardTitle>
                     <div className="flex items-center gap-2 flex-wrap">
                       <Badge variant="outline">{MARKET_LABEL[market] ?? market}</Badge>
-                      <DemandBadge reviews={r.review_count} marketplace={market} rank={r.sales_rank} rating={r.rating} />
+                      <DemandBadge reviews={r.review_count} marketplace={market} rank={r.sales_rank} rating={r.rating} daysSeen={r.days_seen} />
                       <Badge variant={status==="approved_to_queue"?"default":status==="rejected"?"destructive":"secondary"}>
                         {status==="approved_to_queue"?"✅ Published":status==="rejected"?"❌ Rejected":status==="demand_validated"?"📊 Demand signal":"⏳ Pending"}
                       </Badge>
@@ -524,6 +528,12 @@ export default function AdminProductValidation() {
                             {r.sales_rank ? `#${r.sales_rank} in ${r.sales_rank_category ?? r.category ?? "category"}` : "—"}
                           </p>
                           <p className="text-sm"><span className="text-muted-foreground">Category:</span> {r.category ?? "—"}</p>
+                          <p className="text-sm">
+                            <span className="text-muted-foreground">Consistency:</span>{" "}
+                            {r.days_seen != null && r.days_seen > 0
+                              ? <><b>{r.days_seen}</b> day{r.days_seen === 1 ? "" : "s"} in top 10 · {r.times_seen ?? r.days_seen} scrape{(r.times_seen ?? 1) === 1 ? "" : "s"}</>
+                              : "—"}
+                          </p>
                           <p className="text-sm text-muted-foreground italic">Reviews / BSR / seller count: — (not provided by Takealot)</p>
                         </>
                       ) : (
