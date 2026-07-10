@@ -528,6 +528,12 @@ export default function AdminProductValidation() {
                             {r.sales_rank ? `#${r.sales_rank} in ${r.sales_rank_category ?? r.category ?? "category"}` : "—"}
                           </p>
                           <p className="text-sm"><span className="text-muted-foreground">Category:</span> {r.category ?? "—"}</p>
+                          <p className="text-sm">
+                            <span className="text-muted-foreground">Consistency:</span>{" "}
+                            {r.days_seen != null && r.days_seen > 0
+                              ? <><b>{r.days_seen}</b> day{r.days_seen === 1 ? "" : "s"} in top 10 · {r.times_seen ?? r.days_seen} scrape{(r.times_seen ?? 1) === 1 ? "" : "s"}</>
+                              : "—"}
+                          </p>
                           <p className="text-sm text-muted-foreground italic">Reviews / BSR / seller count: — (not provided by Takealot)</p>
                         </>
                       ) : (
