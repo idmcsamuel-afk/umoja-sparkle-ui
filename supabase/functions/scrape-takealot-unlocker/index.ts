@@ -18,28 +18,104 @@ const BRIGHT_DATA_UNLOCKER_ZONE =
 // Category label -> search query used against Takealot's search API.
 // Broader net (more sub-categories) so we can safely keep only rank<=10
 // per query without losing catalog coverage.
+// Expanded category coverage — 1 Unlocker request per category (~50 requests/scrape).
 const DEFAULT_CATEGORIES: Record<string, string> = {
+  // Fashion
   "fashion-clothing": "clothing",
   "fashion-shoes": "shoes",
   "fashion-bags": "handbags",
+  "fashion-accessories": "belt wallet",
+  "fashion-jewellery": "jewellery",
+  "fashion-watches": "watch",
+  // Electronics
   "electronics": "electronics",
   "cellphones": "cellphone",
+  "cellphone-accessories": "phone case charger",
   "headphones": "headphones",
   "tv-audio": "smart tv",
+  "audio-speakers": "bluetooth speaker",
   "computers-laptops": "laptop",
   "computers-accessories": "keyboard mouse",
-  "home-kitchen": "kitchen appliance",
+  "computers-storage": "external hard drive",
+  "gaming": "gaming console",
+  "gaming-accessories": "gaming headset controller",
+  "photo-video": "camera",
+  // Home
+  "home-kitchen-appliances": "kitchen appliance",
   "home-cookware": "cookware",
+  "home-storage": "storage container",
+  "home-organization": "closet organizer",
   "home-decor": "home decor",
-  "sports-outdoors": "sports",
-  "sports-fitness": "fitness equipment",
+  "home-lighting": "lamp lighting",
+  "home-cleaning": "cleaning supplies",
+  "home-bedding": "bedding duvet",
+  "home-bathroom": "bathroom accessories",
+  "home-small-appliances": "small kitchen appliance",
+  // Health & Beauty
   "beauty-skincare": "skincare",
   "beauty-haircare": "hair care",
+  "beauty-makeup": "makeup",
+  "beauty-fragrance": "perfume",
+  "health-personal-care": "personal care",
+  "health-supplements": "vitamins supplements",
+  // Kids & Baby
   "toys": "toys",
+  "toys-educational": "educational toys",
   "baby": "baby products",
-  "gaming": "gaming console",
+  "baby-feeding": "baby feeding bottle",
+  "baby-diapers": "diapers",
+  // Sports & Outdoors
+  "sports-outdoors": "sports",
+  "sports-fitness": "fitness equipment",
+  "sports-cycling": "bicycle",
+  "camping-outdoor": "camping gear",
+  // Auto
+  "automotive": "car accessories",
+  "automotive-tools": "car tools",
+  // Tools & DIY
+  "tools-diy": "tools DIY",
+  "tools-hardware": "hardware tools",
+  "power-tools": "power tools",
+  // Garden
+  "garden-outdoor": "garden tools",
+  "garden-patio": "patio furniture",
+  // Office
+  "office-stationery": "stationery",
+  "office-supplies": "office supplies",
+  // Pets
   "pet": "pet supplies",
+  "pet-food": "dog food",
+  // Luggage
+  "luggage-bags": "luggage suitcase",
 };
+
+// Brand detection — used to flag branded products (not sourceable from Alibaba).
+// Branded rows are KEPT as category demand signals; we source generic equivalents.
+const BRAND_LIST = [
+  "NIVEA","Puma","ASUS","HP","Lenovo","Dell","Samsung","Apple","Sony","LG",
+  "Bosch","Philips","Adidas","Nike","Huawei","Xiaomi","Canon","Nikon","JBL",
+  "Logitech","Colgate","Sunlight","Sta-Soft","OMO","Handy Andy","Dettol",
+  "Vaseline","Pantene","Dove","Garnier","L'Oreal","Maybelline","Revlon",
+  "Gillette","Braun","Remington","Russell Hobbs","Kenwood","Defy","Hisense",
+  "TCL","Acer","MSI","Microsoft","Xbox","PlayStation","Nintendo","Fitbit",
+  "Garmin","GoPro","Kodak","New Balance","Reebok","Under Armour","Converse",
+  "Vans","Skechers","Crocs","Timberland","Levi's","Guess","Polo","Fossil",
+  "Casio","Seiko","Fujifilm","DJI","Anker","Belkin","TP-Link","D-Link",
+  "Netgear","Mikrotik","Ubiquiti","Epson","Brother","WD","Seagate","Kingston",
+  "SanDisk","Crucial","Corsair","Razer","SteelSeries","HyperX","Bose",
+  "Sennheiser","Marshall","Beats","Skullcandy","Harman Kardon","Yamaha",
+  "Panasonic","Sharp","Whirlpool","KitchenAid","Ninja","NutriBullet",
+  "Instant Pot","Le Creuset","Tefal","Pyrex","Tupperware",
+].sort((a,b) => b.length - a.length); // match longest first
+
+function detectBrand(title: string): string | null {
+  if (!title) return null;
+  const t = title.toLowerCase();
+  for (const b of BRAND_LIST) {
+    if (t.includes(b.toLowerCase())) return b;
+  }
+  return null;
+}
 
 // Keep rules (any-of): reviews are the PRIMARY signal.
 //   review_count >= MIN_REVIEWS  -> proven demand (primary)
@@ -65,6 +141,7 @@ interface ParsedProduct {
   rating: number | null;
   review_count: number | null;
   search_rank: number;
+  brand: string | null;
 }
 
 async function fetchViaUnlocker(url: string): Promise<string> {
@@ -145,6 +222,7 @@ function parseSearchJson(json: string, category: string): ParsedProduct[] {
       rating: starRating,
       review_count: reviewCount,
       search_rank: rank,
+      brand: detectBrand(title),
     });
   }
   return out;
@@ -235,6 +313,7 @@ serve(async (req) => {
             _rating: p.rating,
             _rank: p.search_rank,
             _review_count: p.review_count,
+            _brand: p.brand,
           });
           if (error) { lastErr = error.message; console.error("upsert err:", error.message); }
           else upserted++;

@@ -42,12 +42,15 @@ interface ProductRow {
   buybox_currency: string | null;
   days_seen: number | null;
   times_seen: number | null;
+  brand: string | null;
+  is_branded: boolean | null;
 }
 
 type StatusFilter = "all" | "pending_review" | "approved_to_queue";
 type MarketFilter = "all" | "amazon_us" | "amazon_sa" | "walmart_us" | "takealot_sa";
 type MinReviewsFilter = 0 | 100 | 500 | 1000;
 type SortMode = "reviews_desc" | "newest";
+type BrandFilter = "all" | "branded" | "generic";
 
 const PAGE_SIZE = 5;
 const MARKET_LABEL: Record<string, string> = {
@@ -176,6 +179,7 @@ export default function AdminProductValidation() {
   const [marketFilter, setMarketFilter] = useState<MarketFilter>("all");
   const [minReviewsFilter, setMinReviewsFilter] = useState<MinReviewsFilter>(0);
   const [sortMode, setSortMode] = useState<SortMode>("reviews_desc");
+  const [brandFilter, setBrandFilter] = useState<BrandFilter>("all");
   const [showImageless, setShowImageless] = useState(false);
   const [page, setPage] = useState(1);
   const [saving, setSaving] = useState<string | null>(null);
@@ -208,7 +212,7 @@ export default function AdminProductValidation() {
   useEffect(() => { load(); }, [marketFilter]);
 
   
-  useEffect(() => { setPage(1); }, [statusFilter, marketFilter, showImageless, minReviewsFilter, sortMode]);
+  useEffect(() => { setPage(1); }, [statusFilter, marketFilter, showImageless, minReviewsFilter, sortMode, brandFilter]);
 
   const hasImage = (r: ProductRow) => typeof r.image_url === "string" && /^https?:\/\//i.test(r.image_url);
 
@@ -226,13 +230,32 @@ export default function AdminProductValidation() {
     if (statusFilter !== "all") list = list.filter((r) => (r.validation_status ?? "pending_review") === statusFilter);
     if (marketFilter !== "all") list = list.filter((r) => (r.marketplace ?? "amazon_us") === marketFilter);
     if (minReviewsFilter > 0) list = list.filter((r) => (r.review_count ?? 0) >= minReviewsFilter);
+    if (brandFilter === "branded") list = list.filter((r) => !!r.is_branded);
+    else if (brandFilter === "generic") list = list.filter((r) => !r.is_branded);
     if (sortMode === "reviews_desc") {
       list = [...list].sort((a, b) => (b.review_count ?? -1) - (a.review_count ?? -1));
     } else {
       list = [...list].sort((a, b) => (b.created_at ?? "").localeCompare(a.created_at ?? ""));
     }
     return list;
-  }, [rows, statusFilter, marketFilter, showImageless, minReviewsFilter, sortMode]);
+  }, [rows, statusFilter, marketFilter, showImageless, minReviewsFilter, sortMode, brandFilter]);
+
+  // Category demand aggregation — branded products count too (they prove category demand).
+  const provenCategories = useMemo(() => {
+    const map = new Map<string, { category: string; totalReviews: number; products: number; brandedProducts: number }>();
+    for (const r of rows) {
+      const cat = r.category ?? "uncategorised";
+      const entry = map.get(cat) ?? { category: cat, totalReviews: 0, products: 0, brandedProducts: 0 };
+      entry.totalReviews += r.review_count ?? 0;
+      entry.products += 1;
+      if (r.is_branded) entry.brandedProducts += 1;
+      map.set(cat, entry);
+    }
+    return Array.from(map.values())
+      .filter((e) => e.totalReviews > 0)
+      .sort((a, b) => b.totalReviews - a.totalReviews)
+      .slice(0, 15);
+  }, [rows]);
 
   const hiddenImagelessCount = useMemo(() => rows.filter((r) => !hasImage(r)).length, [rows]);
   const totalPages = Math.max(1, Math.ceil(filtered.length / PAGE_SIZE));
@@ -488,6 +511,10 @@ export default function AdminProductValidation() {
         {([[0,"All"],[100,"100+"],[500,"500+"],[1000,"1000+"]] as [MinReviewsFilter,string][]).map(([v,l])=>(
           <Button key={v} size="sm" variant={minReviewsFilter===v?"default":"outline"} onClick={()=>setMinReviewsFilter(v)}>{l}</Button>
         ))}
+        <span className="text-xs text-muted-foreground ml-4 mr-1">Brand:</span>
+        {([["all","All"],["generic","Generic (sourceable)"],["branded","Branded (demand signal)"]] as [BrandFilter,string][]).map(([v,l])=>(
+          <Button key={v} size="sm" variant={brandFilter===v?"default":"outline"} onClick={()=>setBrandFilter(v)}>{l}</Button>
+        ))}
         <span className="text-xs text-muted-foreground ml-4 mr-1">Sort:</span>
         {([["reviews_desc","Most reviews"],["newest","Newest"]] as [SortMode,string][]).map(([v,l])=>(
           <Button key={v} size="sm" variant={sortMode===v?"default":"outline"} onClick={()=>setSortMode(v)}>{l}</Button>
@@ -497,6 +524,29 @@ export default function AdminProductValidation() {
           {showImageless ? `Showing items without images (${hiddenImagelessCount})` : `Hide items without images${hiddenImagelessCount?` (${hiddenImagelessCount} hidden)`:""}`}
         </Button>
       </div>
+
+      {provenCategories.length > 0 && (
+        <Card>
+          <CardHeader className="pb-2">
+            <CardTitle className="text-base">Proven categories — real SA demand (branded + generic reviews)</CardTitle>
+            <p className="text-xs text-muted-foreground">Use this to decide which categories to source generic / private-label products into. Branded rows prove demand; source generic equivalents.</p>
+          </CardHeader>
+          <CardContent>
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-2">
+              {provenCategories.map((c) => (
+                <div key={c.category} className="flex items-center justify-between rounded border px-3 py-2 text-sm">
+                  <span className="font-medium truncate mr-2">{c.category}</span>
+                  <span className="text-xs text-muted-foreground whitespace-nowrap">
+                    <b>{c.totalReviews.toLocaleString()}</b> reviews · {c.products} products
+                    {c.brandedProducts > 0 && <> · {c.brandedProducts} branded</>}
+                  </span>
+                </div>
+              ))}
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
 
       {loading ? <p className="text-sm text-muted-foreground">Loading…</p>
       : pageRows.length === 0 ? <p className="text-sm text-muted-foreground">No products match these filters.</p>
@@ -535,6 +585,11 @@ export default function AdminProductValidation() {
                     <div className="flex items-center gap-2 flex-wrap">
                       <Badge variant="outline">{MARKET_LABEL[market] ?? market}</Badge>
                       <DemandBadge reviews={r.review_count} marketplace={market} rank={r.sales_rank} rating={r.rating} daysSeen={r.days_seen} />
+                      {r.is_branded && (
+                        <Badge variant="outline" className="border-purple-400 text-purple-700 dark:text-purple-300">
+                          🏷 {r.brand ?? "Branded"} — not sourceable
+                        </Badge>
+                      )}
                       <Badge variant={status==="approved_to_queue"?"default":status==="rejected"?"destructive":"secondary"}>
                         {status==="approved_to_queue"?"✅ Published":status==="rejected"?"❌ Rejected":status==="demand_validated"?"📊 Demand signal":"⏳ Pending"}
                       </Badge>
