@@ -6571,6 +6571,7 @@ export type Database = {
           last_seen_date: string | null
           plid: string
           rating: number | null
+          review_count: number | null
           scraped_at: string
           search_rank: number | null
           seller_count: number | null
@@ -6589,6 +6590,7 @@ export type Database = {
           last_seen_date?: string | null
           plid: string
           rating?: number | null
+          review_count?: number | null
           scraped_at?: string
           search_rank?: number | null
           seller_count?: number | null
@@ -6607,6 +6609,7 @@ export type Database = {
           last_seen_date?: string | null
           plid?: string
           rating?: number | null
+          review_count?: number | null
           scraped_at?: string
           search_rank?: number | null
           seller_count?: number | null
@@ -8081,19 +8084,34 @@ export type Database = {
         Returns: undefined
       }
       touch_last_seen: { Args: never; Returns: undefined }
-      upsert_takealot_product: {
-        Args: {
-          _category: string
-          _image: string
-          _name: string
-          _plid: string
-          _price: number
-          _rank: number
-          _rating: number
-          _url: string
-        }
-        Returns: undefined
-      }
+      upsert_takealot_product:
+        | {
+            Args: {
+              _category: string
+              _image: string
+              _name: string
+              _plid: string
+              _price: number
+              _rank: number
+              _rating: number
+              _url: string
+            }
+            Returns: undefined
+          }
+        | {
+            Args: {
+              _category: string
+              _image: string
+              _name: string
+              _plid: string
+              _price: number
+              _rank: number
+              _rating: number
+              _review_count?: number
+              _url: string
+            }
+            Returns: undefined
+          }
     }
     Enums: {
       zcreator_job_status: "queued" | "processing" | "completed" | "failed"
