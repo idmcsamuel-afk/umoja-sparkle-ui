@@ -830,7 +830,7 @@ export default function AdminProductValidation() {
                         Fetch competition data
                       </Button>
                     )}
-                    <Button size="sm" variant="outline" onClick={() => setAlibabaFor({ id: r.id, title: r.title ?? "" })} title="1 Web Unlocker request">
+                    <Button size="sm" variant="outline" onClick={() => setAlibabaFor({ id: r.id, title: r.title ?? "", image: r.image_url ?? null, priceLabel: isSA ? (r.price_zar != null ? `R${Number(r.price_zar).toFixed(2)}` : null) : (r.price_usd != null ? `$${Number(r.price_usd).toFixed(2)}` : null) })} title="1 Web Unlocker request">
                       <Search className="h-4 w-4 mr-1" /> Find on Alibaba
                     </Button>
                   </div>
