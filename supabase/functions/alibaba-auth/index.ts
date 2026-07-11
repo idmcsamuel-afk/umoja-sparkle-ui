@@ -53,7 +53,10 @@ async function callApi(apiPath: string, bizParams: Record<string, string>) {
   const body = new URLSearchParams({ ...params, sign }).toString();
   const res = await fetch(url, {
     method: "POST",
-    headers: { "Content-Type": "application/x-www-form-urlencoded" },
+    headers: {
+      "Content-Type": "application/x-www-form-urlencoded",
+      "X-Protocol": "GOP",
+    },
     body,
   });
   const text = await res.text();
