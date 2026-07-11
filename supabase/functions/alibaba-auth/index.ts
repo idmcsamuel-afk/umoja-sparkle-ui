@@ -127,9 +127,10 @@ serve(async (req) => {
           headers: { ...corsHeaders, "Content-Type": "application/json" },
         });
       }
-      // Token exchange on openapi.alibaba.com is a SIGNED GOP call to /auth/token/create,
-      // not a plain form POST. Use the existing callApi() signer.
-      const result = await callApi("/auth/token/create", { code }, { method: "GET" });
+      // Token exchange on openapi.alibaba.com is a SIGNED GOP call to /auth/token/create.
+      // The official Python GOP sample posts all signed params together as
+      // application/x-www-form-urlencoded with X-Protocol: GOP.
+      const result = await callApi("/auth/token/create", { code }, { method: "POST" });
       return new Response(JSON.stringify(result, null, 2), {
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
