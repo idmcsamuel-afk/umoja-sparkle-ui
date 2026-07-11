@@ -91,7 +91,8 @@ serve(async (req) => {
 
     if (action === "exchange") {
       const code = u.searchParams.get("code");
-      const redirect = u.searchParams.get("redirect") ?? `${u.origin}/functions/v1/alibaba-auth?action=exchange`;
+      const httpsOrigin = u.origin.replace(/^http:\/\//, "https://");
+      const redirect = u.searchParams.get("redirect") ?? `${httpsOrigin}/functions/v1/alibaba-auth?action=exchange`;
       if (!code) {
         return new Response(JSON.stringify({ error: "Missing code query param" }), {
           status: 400,
