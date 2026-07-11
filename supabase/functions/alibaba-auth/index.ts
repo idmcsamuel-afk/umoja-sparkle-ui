@@ -79,7 +79,10 @@ serve(async (req) => {
     if (action === "authUrl") {
       const redirect = u.searchParams.get("redirect") ?? `${u.origin}/functions/v1/alibaba-auth?action=exchange`;
       const state = u.searchParams.get("state") ?? crypto.randomUUID();
-      const authUrl = `https://auth.alibaba.com/oauth/authorize?response_type=code&force_login=true&client_id=${encodeURIComponent(APP_KEY)}&site=alibaba&redirect_uri=${encodeURIComponent(redirect)}&state=${encodeURIComponent(state)}`;
+      // Official Alibaba.com ICBU OAuth authorize endpoint (per open.alitrip.com docs, articleId=118846).
+      // Use oauth.alibaba.com — NOT auth.alibaba.com (which serves a Kubernetes fake cert).
+      // sp=icbu selects the Alibaba.com International login skin.
+      const authUrl = `https://oauth.alibaba.com/authorize?response_type=code&client_id=${encodeURIComponent(APP_KEY)}&redirect_uri=${encodeURIComponent(redirect)}&state=${encodeURIComponent(state)}&view=web&sp=icbu`;
       return new Response(JSON.stringify({ authUrl, appKey: APP_KEY, redirect, state }, null, 2), {
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
@@ -94,10 +97,31 @@ serve(async (req) => {
           headers: { ...corsHeaders, "Content-Type": "application/json" },
         });
       }
-      const result = await callApi("auth/token/create", { code, redirect_uri: redirect });
-      return new Response(JSON.stringify(result, null, 2), {
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      // Token exchange goes to https://oauth.alibaba.com/token as a form POST — NOT the /rest signed gateway.
+      const tokenBody = new URLSearchParams({
+        grant_type: "authorization_code",
+        code,
+        client_id: APP_KEY,
+        client_secret: APP_SECRET,
+        redirect_uri: redirect,
+        sp: "icbu",
+      }).toString();
+      const tokenRes = await fetch("https://oauth.alibaba.com/token", {
+        method: "POST",
+        headers: { "Content-Type": "application/x-www-form-urlencoded" },
+        body: tokenBody,
       });
+      const tokenText = await tokenRes.text();
+      let tokenJson: unknown = null;
+      try { tokenJson = JSON.parse(tokenText); } catch { /* keep raw */ }
+      return new Response(
+        JSON.stringify(
+          { status: tokenRes.status, endpoint: "https://oauth.alibaba.com/token", raw: tokenText, json: tokenJson },
+          null,
+          2,
+        ),
+        { headers: { ...corsHeaders, "Content-Type": "application/json" } },
+      );
     }
 
     if (action === "search") {
