@@ -34,35 +34,61 @@ async function hmacSha256Hex(secret: string, msg: string) {
  *   base = "/" + apiPath (e.g. "auth/token/create") + sorted(k+v concatenated)
  *   sign = HMAC-SHA256(app_secret, base) -> uppercase hex
  */
-async function signRequest(apiPath: string, params: Record<string, string>) {
+function buildSignBaseString(apiName: string, params: Record<string, string>) {
   const sorted = Object.keys(params).sort();
-  let concat = "/" + apiPath;
+  let concat = apiName;
   for (const k of sorted) concat += k + params[k];
-  return await hmacSha256Hex(APP_SECRET, concat);
+  return { sorted, baseString: concat };
 }
 
-async function callApi(apiPath: string, bizParams: Record<string, string>) {
+async function signRequest(apiName: string, params: Record<string, string>) {
+  const { sorted, baseString } = buildSignBaseString(apiName, params);
+  const sign = await hmacSha256Hex(APP_SECRET, baseString);
+  return { sign, sorted, baseString };
+}
+
+async function callApi(apiName: string, bizParams: Record<string, string>, options: { method?: "GET" | "POST" } = {}) {
+  const method = options.method ?? "POST";
+  const apiPath = apiName.replace(/^\//, "");
   const params: Record<string, string> = {
     ...bizParams,
     app_key: APP_KEY,
     sign_method: "sha256",
     timestamp: String(Date.now()),
   };
-  const sign = await signRequest(apiPath, params);
+  const { sign, sorted, baseString } = await signRequest(apiName, params);
   const url = `${GATEWAY}/${apiPath}`;
-  const body = new URLSearchParams({ ...params, sign }).toString();
-  const res = await fetch(url, {
-    method: "POST",
+  const signedParams = { ...params, sign };
+  const query = new URLSearchParams(signedParams).toString();
+  const requestUrl = method === "GET" ? `${url}?${query}` : url;
+  const res = await fetch(requestUrl, {
+    method,
     headers: {
       "Content-Type": "application/x-www-form-urlencoded",
       "X-Protocol": "GOP",
     },
-    body,
+    body: method === "POST" ? query : undefined,
   });
   const text = await res.text();
   let json: unknown = null;
   try { json = JSON.parse(text); } catch { /* keep raw */ }
-  return { status: res.status, url, sentParams: { ...params, sign }, raw: text, json };
+  return {
+    status: res.status,
+    url,
+    method,
+    transport: method === "GET" ? "all signed params in query string" : "all signed params in x-www-form-urlencoded body",
+    sentParams: signedParams,
+    signDiagnostics: {
+      apiName,
+      sortedParamKeys: sorted,
+      signExcludedFromBaseString: true,
+      signBaseString: baseString,
+      hmac: "HMAC-SHA256(APP_SECRET, UTF-8 signBaseString) => uppercase hex",
+      officialSdkComparison: "Matches iop-client generate_sign(Some('/auth/token/create'), params): apiName + sorted(key + value), excluding sign. Token SDK then appends params + sign to the URL query and sends GET.",
+    },
+    raw: text,
+    json,
+  };
 }
 
 serve(async (req) => {
@@ -103,7 +129,7 @@ serve(async (req) => {
       }
       // Token exchange on openapi.alibaba.com is a SIGNED GOP call to /auth/token/create,
       // not a plain form POST. Use the existing callApi() signer.
-      const result = await callApi("auth/token/create", { code });
+      const result = await callApi("/auth/token/create", { code }, { method: "GET" });
       return new Response(JSON.stringify(result, null, 2), {
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
@@ -119,7 +145,7 @@ serve(async (req) => {
         });
       }
       // Try buyer product search — path may vary; return the raw response either way.
-      const result = await callApi("alibaba/icbu/product/list", {
+      const result = await callApi("/alibaba/icbu/product/list", {
         access_token: token,
         keyword: q,
         page_size: "10",
