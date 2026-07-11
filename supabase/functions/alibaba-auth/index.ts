@@ -80,10 +80,11 @@ serve(async (req) => {
       const httpsOrigin = u.origin.replace(/^http:\/\//, "https://");
       const redirect = u.searchParams.get("redirect") ?? `${httpsOrigin}/functions/v1/alibaba-auth?action=exchange`;
       const state = u.searchParams.get("state") ?? crypto.randomUUID();
-      // Official Alibaba.com ICBU OAuth authorize endpoint (per open.alitrip.com docs, articleId=118846).
-      // Use oauth.alibaba.com — NOT auth.alibaba.com (which serves a Kubernetes fake cert).
-      // sp=icbu selects the Alibaba.com International login skin.
-      const authUrl = `https://oauth.alibaba.com/authorize?response_type=code&client_id=${encodeURIComponent(APP_KEY)}&redirect_uri=${encodeURIComponent(redirect)}&state=${encodeURIComponent(state)}&view=web&sp=icbu`;
+      // Alibaba Open Platform (GOP / openapi.alibaba.com) OAuth authorize endpoint.
+      // NOT oauth.alibaba.com (that's the legacy Taobao/ICBU TOP server — apps registered on
+      // openapi.alibaba.com are unknown there, which produces param-appkey.not.exists).
+      // No sp= or view= parameters — those are Taobao/ICBU-console concepts.
+      const authUrl = `https://openapi-auth.alibaba.com/oauth/authorize?response_type=code&client_id=${encodeURIComponent(APP_KEY)}&redirect_uri=${encodeURIComponent(redirect)}&state=${encodeURIComponent(state)}`;
       return new Response(JSON.stringify({ authUrl, appKey: APP_KEY, redirect, state }, null, 2), {
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
@@ -91,39 +92,18 @@ serve(async (req) => {
 
     if (action === "exchange") {
       const code = u.searchParams.get("code");
-      const httpsOrigin = u.origin.replace(/^http:\/\//, "https://");
-      const redirect = u.searchParams.get("redirect") ?? `${httpsOrigin}/functions/v1/alibaba-auth?action=exchange`;
       if (!code) {
         return new Response(JSON.stringify({ error: "Missing code query param" }), {
           status: 400,
           headers: { ...corsHeaders, "Content-Type": "application/json" },
         });
       }
-      // Token exchange goes to https://oauth.alibaba.com/token as a form POST — NOT the /rest signed gateway.
-      const tokenBody = new URLSearchParams({
-        grant_type: "authorization_code",
-        code,
-        client_id: APP_KEY,
-        client_secret: APP_SECRET,
-        redirect_uri: redirect,
-        sp: "icbu",
-      }).toString();
-      const tokenRes = await fetch("https://oauth.alibaba.com/token", {
-        method: "POST",
-        headers: { "Content-Type": "application/x-www-form-urlencoded" },
-        body: tokenBody,
+      // Token exchange on openapi.alibaba.com is a SIGNED GOP call to /auth/token/create,
+      // not a plain form POST. Use the existing callApi() signer.
+      const result = await callApi("auth/token/create", { code });
+      return new Response(JSON.stringify(result, null, 2), {
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
-      const tokenText = await tokenRes.text();
-      let tokenJson: unknown = null;
-      try { tokenJson = JSON.parse(tokenText); } catch { /* keep raw */ }
-      return new Response(
-        JSON.stringify(
-          { status: tokenRes.status, endpoint: "https://oauth.alibaba.com/token", raw: tokenText, json: tokenJson },
-          null,
-          2,
-        ),
-        { headers: { ...corsHeaders, "Content-Type": "application/json" } },
-      );
     }
 
     if (action === "search") {
