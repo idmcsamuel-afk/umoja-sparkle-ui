@@ -431,6 +431,36 @@ export type Database = {
           },
         ]
       }
+      alibaba_tokens: {
+        Row: {
+          access_token: string
+          expires_at: string | null
+          id: string
+          raw: Json | null
+          refresh_expires_at: string | null
+          refresh_token: string | null
+          updated_at: string
+        }
+        Insert: {
+          access_token: string
+          expires_at?: string | null
+          id?: string
+          raw?: Json | null
+          refresh_expires_at?: string | null
+          refresh_token?: string | null
+          updated_at?: string
+        }
+        Update: {
+          access_token?: string
+          expires_at?: string | null
+          id?: string
+          raw?: Json | null
+          refresh_expires_at?: string | null
+          refresh_token?: string | null
+          updated_at?: string
+        }
+        Relationships: []
+      }
       amazon_integration_settings: {
         Row: {
           api_connected: boolean
