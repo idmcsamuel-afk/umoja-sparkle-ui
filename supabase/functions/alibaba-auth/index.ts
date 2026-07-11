@@ -11,8 +11,11 @@ const corsHeaders = {
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
 };
 
-const APP_KEY = Deno.env.get("ALIBABA_APP_KEY") ?? "";
-const APP_SECRET = Deno.env.get("ALIBABA_APP_SECRET") ?? "";
+const APP_KEY_RAW = Deno.env.get("ALIBABA_APP_KEY") ?? "";
+const APP_SECRET_RAW = Deno.env.get("ALIBABA_APP_SECRET") ?? "";
+const normalizeSecretValue = (value: string) => value.trim().replace(/^("|')(.+)\1$/, "$2");
+const APP_KEY = normalizeSecretValue(APP_KEY_RAW);
+const APP_SECRET = normalizeSecretValue(APP_SECRET_RAW);
 
 // Alibaba Open Platform gateway (new global endpoint)
 const GATEWAY = "https://openapi-api.alibaba.com/rest";
@@ -84,7 +87,11 @@ async function callApi(apiName: string, bizParams: Record<string, string>, optio
       signExcludedFromBaseString: true,
       signBaseString: baseString,
       hmac: "HMAC-SHA256(APP_SECRET, UTF-8 signBaseString) => uppercase hex",
-      officialSdkComparison: "Matches iop-client generate_sign(Some('/auth/token/create'), params): apiName + sorted(key + value), excluding sign. Token SDK then appends params + sign to the URL query and sends GET.",
+      credentialNormalization: {
+        appKeyNormalized: APP_KEY_RAW !== APP_KEY,
+        appSecretNormalized: APP_SECRET_RAW !== APP_SECRET,
+      },
+      officialSdkComparison: "Matches the official GOP Python sample: API_OPERATION ('/auth/token/create') + sorted(key + value), excluding sign; POST all signed params as application/x-www-form-urlencoded with X-Protocol: GOP.",
     },
     raw: text,
     json,
