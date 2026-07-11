@@ -77,7 +77,8 @@ serve(async (req) => {
     }
 
     if (action === "authUrl") {
-      const redirect = u.searchParams.get("redirect") ?? `${u.origin}/functions/v1/alibaba-auth?action=exchange`;
+      const httpsOrigin = u.origin.replace(/^http:\/\//, "https://");
+      const redirect = u.searchParams.get("redirect") ?? `${httpsOrigin}/functions/v1/alibaba-auth?action=exchange`;
       const state = u.searchParams.get("state") ?? crypto.randomUUID();
       // Official Alibaba.com ICBU OAuth authorize endpoint (per open.alitrip.com docs, articleId=118846).
       // Use oauth.alibaba.com — NOT auth.alibaba.com (which serves a Kubernetes fake cert).
