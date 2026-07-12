@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -176,25 +176,83 @@ function computeMargins(input: {
   };
 }
 
+const SS_KEY = "adminProductValidation:uiState:v1";
+type PersistedUi = {
+  statusFilter: StatusFilter;
+  marketFilter: MarketFilter;
+  minReviewsFilter: MinReviewsFilter;
+  sortMode: SortMode;
+  brandFilter: BrandFilter;
+  showImageless: boolean;
+  page: number;
+  openForm: string | null;
+  alibabaFor: { id: string; title: string; image: string | null; priceLabel: string | null } | null;
+  scrollY: number;
+};
+const readPersisted = (): Partial<PersistedUi> => {
+  try {
+    const raw = sessionStorage.getItem(SS_KEY);
+    return raw ? (JSON.parse(raw) as Partial<PersistedUi>) : {};
+  } catch { return {}; }
+};
+
 export default function AdminProductValidation() {
   const { user } = useAuth();
+  const persisted = useMemo(readPersisted, []);
   const [rows, setRows] = useState<ProductRow[]>([]);
   const [loading, setLoading] = useState(true);
-  const [statusFilter, setStatusFilter] = useState<StatusFilter>("pending_review");
-  const [marketFilter, setMarketFilter] = useState<MarketFilter>("all");
-  const [minReviewsFilter, setMinReviewsFilter] = useState<MinReviewsFilter>(0);
-  const [sortMode, setSortMode] = useState<SortMode>("reviews_desc");
-  const [brandFilter, setBrandFilter] = useState<BrandFilter>("all");
-  const [showImageless, setShowImageless] = useState(false);
-  const [page, setPage] = useState(1);
+  const [statusFilter, setStatusFilter] = useState<StatusFilter>(persisted.statusFilter ?? "pending_review");
+  const [marketFilter, setMarketFilter] = useState<MarketFilter>(persisted.marketFilter ?? "all");
+  const [minReviewsFilter, setMinReviewsFilter] = useState<MinReviewsFilter>(persisted.minReviewsFilter ?? 0);
+  const [sortMode, setSortMode] = useState<SortMode>(persisted.sortMode ?? "reviews_desc");
+  const [brandFilter, setBrandFilter] = useState<BrandFilter>(persisted.brandFilter ?? "all");
+  const [showImageless, setShowImageless] = useState(persisted.showImageless ?? false);
+  const [page, setPage] = useState(persisted.page ?? 1);
   const [saving, setSaving] = useState<string | null>(null);
-  const [openForm, setOpenForm] = useState<string | null>(null);
+  const [openForm, setOpenForm] = useState<string | null>(persisted.openForm ?? null);
   const [forms, setForms] = useState<Record<string, PriceForm>>({});
   const [draftLoaded, setDraftLoaded] = useState<Record<string, boolean>>({});
   const [restoredNote, setRestoredNote] = useState<Record<string, boolean>>({});
   const [enriching, setEnriching] = useState<string | null>(null);
-  const [alibabaFor, setAlibabaFor] = useState<{ id: string; title: string; image: string | null; priceLabel: string | null } | null>(null);
+  const [alibabaFor, setAlibabaFor] = useState<{ id: string; title: string; image: string | null; priceLabel: string | null } | null>(persisted.alibabaFor ?? null);
   const floors = useSparkTradeFloors();
+
+  // Persist UI state so navigating away (e.g. opening Alibaba in a new tab and
+  // returning, or the component remounting on tab focus) keeps page / filters /
+  // open panel intact.
+  useEffect(() => {
+    const payload: PersistedUi = {
+      statusFilter, marketFilter, minReviewsFilter, sortMode, brandFilter,
+      showImageless, page, openForm, alibabaFor,
+      scrollY: typeof window !== "undefined" ? window.scrollY : 0,
+    };
+    try { sessionStorage.setItem(SS_KEY, JSON.stringify(payload)); } catch { /* ignore */ }
+  }, [statusFilter, marketFilter, minReviewsFilter, sortMode, brandFilter, showImageless, page, openForm, alibabaFor]);
+
+  // Save scroll position continuously so restore is accurate.
+  useEffect(() => {
+    const onScroll = () => {
+      try {
+        const raw = sessionStorage.getItem(SS_KEY);
+        const obj = raw ? JSON.parse(raw) : {};
+        obj.scrollY = window.scrollY;
+        sessionStorage.setItem(SS_KEY, JSON.stringify(obj));
+      } catch { /* ignore */ }
+    };
+    window.addEventListener("scroll", onScroll, { passive: true });
+    return () => window.removeEventListener("scroll", onScroll);
+  }, []);
+
+  // Restore scroll once rows have loaded and the DOM has rendered.
+  useEffect(() => {
+    if (loading) return;
+    const y = persisted.scrollY ?? 0;
+    if (y > 0) {
+      requestAnimationFrame(() => window.scrollTo(0, y));
+    }
+    // Only run once after first load.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [loading]);
 
   const USD_TO_ZAR = 18.5;
 
@@ -251,8 +309,13 @@ export default function AdminProductValidation() {
 
   useEffect(() => { load(); }, [marketFilter]);
 
-  
-  useEffect(() => { setPage(1); }, [statusFilter, marketFilter, showImageless, minReviewsFilter, sortMode, brandFilter]);
+  // Reset page when filters change — but skip the first render so a restored
+  // page number from sessionStorage isn't wiped on mount.
+  const filtersMountedRef = useRef(false);
+  useEffect(() => {
+    if (!filtersMountedRef.current) { filtersMountedRef.current = true; return; }
+    setPage(1);
+  }, [statusFilter, marketFilter, showImageless, minReviewsFilter, sortMode, brandFilter]);
 
   const hasImage = (r: ProductRow) => typeof r.image_url === "string" && /^https?:\/\//i.test(r.image_url);
 
