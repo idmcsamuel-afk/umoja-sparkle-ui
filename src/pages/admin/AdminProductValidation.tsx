@@ -309,8 +309,13 @@ export default function AdminProductValidation() {
 
   useEffect(() => { load(); }, [marketFilter]);
 
-  
-  useEffect(() => { setPage(1); }, [statusFilter, marketFilter, showImageless, minReviewsFilter, sortMode, brandFilter]);
+  // Reset page when filters change — but skip the first render so a restored
+  // page number from sessionStorage isn't wiped on mount.
+  const filtersMountedRef = useRef(false);
+  useEffect(() => {
+    if (!filtersMountedRef.current) { filtersMountedRef.current = true; return; }
+    setPage(1);
+  }, [statusFilter, marketFilter, showImageless, minReviewsFilter, sortMode, brandFilter]);
 
   const hasImage = (r: ProductRow) => typeof r.image_url === "string" && /^https?:\/\//i.test(r.image_url);
 
