@@ -156,6 +156,10 @@ Deno.serve(async (req) => {
       : legacyOverride;
     const airOverrideRaw = body.freight_air_override;
 
+    const cbmRaw = body.cbm_per_unit;
+    const rateRaw = body.freight_rate_per_cbm;
+    const densityRaw = body.freight_density_kg_per_cbm;
+
     const computed = computePricing({
       alibaba_cost_zar: Number(body.alibaba_cost_zar) || 0,
       weight_kg: Number(body.weight_kg) || 0,
@@ -165,6 +169,9 @@ Deno.serve(async (req) => {
       commission_pct: Number(body.commission_pct) || 0,
       suggested_selling_price_zar: Number(body.suggested_selling_price_zar) || 0,
       air_available: body.air_available !== false,
+      freight_rate_per_cbm: rateRaw === "" || rateRaw == null ? null : Number(rateRaw),
+      freight_density_kg_per_cbm: densityRaw === "" || densityRaw == null ? null : Number(densityRaw),
+      cbm_per_unit: cbmRaw === "" || cbmRaw == null ? null : Number(cbmRaw),
     });
 
     const memberMinRaw = body.member_min_buyin_zar;
