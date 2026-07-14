@@ -910,17 +910,32 @@ export default function AdminProductValidation() {
                       <Search className="h-4 w-4 mr-1" /> Find on Alibaba
                     </Button>
                   </div>
-                  {(r.alibaba_url || r.alibaba_moq != null) && (
-                    <div className="text-xs text-muted-foreground flex flex-wrap items-center gap-2 pt-1">
-                      <span className="font-medium text-foreground">Alibaba ref:</span>
-                      {r.alibaba_price && <Badge variant="outline">{r.alibaba_price}</Badge>}
-                      {r.alibaba_moq != null && <Badge variant="outline">MOQ {r.alibaba_moq.toLocaleString()}</Badge>}
-                      {r.alibaba_supplier && <Badge variant="outline">🏭 {r.alibaba_supplier}</Badge>}
-                      {r.alibaba_url && (
-                        <a href={r.alibaba_url} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1 text-primary hover:underline">
-                          <ExternalLink className="h-3 w-3" /> Open on Alibaba
-                        </a>
-                      )}
+                  {(r.alibaba_url || r.alibaba_moq != null || r.alibaba_supplier || r.alibaba_price) && (
+                    <div className="rounded-lg border-2 border-green-500/40 bg-green-500/5 p-3 space-y-2">
+                      <div className="flex items-center justify-between flex-wrap gap-2">
+                        <p className="text-sm font-semibold text-foreground inline-flex items-center gap-1.5">
+                          🏭 Chosen Alibaba supplier
+                          <Badge className="bg-green-600 text-white text-[10px]">SAVED</Badge>
+                        </p>
+                        {r.alibaba_url && (
+                          <a
+                            href={r.alibaba_url}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="inline-flex items-center h-8 px-3 rounded-md bg-green-600 hover:bg-green-700 text-white text-xs font-medium"
+                          >
+                            <ExternalLink className="h-3.5 w-3.5 mr-1" /> View chosen supplier on Alibaba
+                          </a>
+                        )}
+                      </div>
+                      <div className="flex flex-wrap items-center gap-2 text-xs">
+                        {r.alibaba_supplier && <Badge variant="secondary">🏭 {r.alibaba_supplier}</Badge>}
+                        {r.alibaba_price && <Badge variant="outline">💵 {r.alibaba_price}</Badge>}
+                        {r.alibaba_moq != null
+                          ? <Badge variant="outline">📦 MOQ {r.alibaba_moq.toLocaleString()}</Badge>
+                          : <Badge className="bg-amber-500 text-white">MOQ not captured — verify on link</Badge>}
+                      </div>
+                      <p className="text-[11px] text-muted-foreground">Click the button above to reopen the exact Alibaba listing you selected when it's time to place the order.</p>
                     </div>
                   )}
                 </CardContent>
