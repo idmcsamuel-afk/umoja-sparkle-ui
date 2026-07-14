@@ -510,7 +510,20 @@ function PricingEditor({
               <Field label="Factory MOQ (units) *" type="number" value={moq} onChange={(v) => setMoq(Number(v))} />
               <Field label={`Member min buy-in (ZAR) — blank = global R${floors.minItemBuyinZar}`} type="number" value={memberMinBuyin} onChange={(v) => setMemberMinBuyin(v)} />
               <Field label="Suggested selling price (ZAR)" type="number" value={sell} onChange={(v) => setSell(Number(v))} />
+              <Field label="Sea rate R/CBM (default 8800)" type="number" value={ratePerCbm} onChange={(v) => setRatePerCbm(Number(v) || 8800)} />
+              <Field label="Sea density kg/CBM (default 200)" type="number" value={densityKgPerCbm} onChange={(v) => setDensityKgPerCbm(Number(v) || 200)} />
+              <Field
+                label="CBM per unit — leave blank unless verified (junk 1×1×1 auto-ignored)"
+                type="number"
+                value={cbmPerUnit}
+                onChange={(v) => setCbmPerUnit(v)}
+              />
             </div>
+            {dimensionsFlagged && (
+              <div className="rounded-md border border-amber-500/40 bg-amber-500/10 p-3 text-xs text-amber-700 dark:text-amber-400">
+                ⚠️ Dimensions look like a placeholder (implied density {cbmDensity.toFixed(0)} kg/CBM is outside 20–2000). Freight will use the weight estimate instead.
+              </div>
+            )}
 
             {(() => {
               const memberMinNum = memberMinBuyin.trim() === "" ? null : Number(memberMinBuyin);
