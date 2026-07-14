@@ -423,6 +423,9 @@ function PricingEditor({
   const [moq, setMoq] = useState(0);
   const [memberMinBuyin, setMemberMinBuyin] = useState<string>("");
   const [sell, setSell] = useState(0);
+  const [ratePerCbm, setRatePerCbm] = useState<number>(8800);
+  const [densityKgPerCbm, setDensityKgPerCbm] = useState<number>(200);
+  const [cbmPerUnit, setCbmPerUnit] = useState<string>("");
 
   useEffect(() => {
     if (!opp) return;
@@ -439,15 +442,28 @@ function PricingEditor({
     setMoq(Number(opp.moq_required ?? 0));
     setMemberMinBuyin(opp.member_min_buyin_zar != null ? String(opp.member_min_buyin_zar) : "");
     setSell(Number(opp.suggested_selling_price_zar ?? 0));
+    setRatePerCbm(Number((opp as any).freight_rate_per_cbm ?? 8800) || 8800);
+    setDensityKgPerCbm(Number((opp as any).freight_density_kg_per_cbm ?? 200) || 200);
+    setCbmPerUnit((opp as any).cbm_per_unit != null ? String((opp as any).cbm_per_unit) : "");
   }, [opp]);
 
   const seaOverrideNum = freightSeaOverride.trim() === "" ? null : Number(freightSeaOverride);
-  const isSeaOverride = seaOverrideNum != null && !Number.isNaN(seaOverrideNum);
+  const isSeaOverride = seaOverrideNum != null && !Number.isNaN(seaOverrideNum) && (seaOverrideNum as number) > 0;
   const airNum = freightAir.trim() === "" ? null : Number(freightAir);
   const airAvailable = airNum != null && !Number.isNaN(airNum) && airNum > 0;
 
+  const cbmNum = cbmPerUnit.trim() === "" ? null : Number(cbmPerUnit);
+  const cbmDensity = cbmNum && cbmNum > 0 && weight > 0 ? weight / cbmNum : 0;
+  const cbmIsPlausible = cbmNum != null && !Number.isNaN(cbmNum) && cbmNum > 0 && cbmDensity >= 20 && cbmDensity <= 2000;
+  const dimensionsFlagged = cbmNum != null && cbmNum > 0 && !cbmIsPlausible;
+
   const adjusted = alibaba * (1 + buffer / 100);
-  const freightSea = isSeaOverride ? (seaOverrideNum as number) : (weight / 167) * 8800;
+  const freightSea = isSeaOverride
+    ? (seaOverrideNum as number)
+    : cbmIsPlausible
+      ? (cbmNum as number) * ratePerCbm
+      : (weight / densityKgPerCbm) * ratePerCbm;
+  const freightMode = isSeaOverride ? "override" : cbmIsPlausible ? "real CBM" : "weight estimate";
   const commissionSea = (adjusted + freightSea) * (commission / 100);
   const landedSea = adjusted + freightSea + commissionSea;
   const marginSea = sell - landedSea;
