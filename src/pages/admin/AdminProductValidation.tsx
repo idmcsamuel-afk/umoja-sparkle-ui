@@ -818,7 +818,7 @@ export default function AdminProductValidation() {
                       <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                         <div>
                           <Label className="text-xs">🚢 Sea freight per unit (ZAR) — override</Label>
-                          <Input type="number" step="0.01" min="0" value={f.freight_override_zar} onChange={(e) => setFormField(r.id, "freight_override_zar", e.target.value)} placeholder="Blank = auto (weight ÷ 167 × R8800)" />
+                          <Input type="number" step="0.01" min="0" value={f.freight_override_zar} onChange={(e) => setFormField(r.id, "freight_override_zar", e.target.value)} placeholder="Blank = auto: (weight ÷ 200) × R8,800/CBM ≈ R44/kg. Enter a value to override." />
                           <p className="text-[11px] text-muted-foreground mt-1">Blank = volumetric estimate from weight (~4–6 weeks).</p>
                         </div>
                         <div>
