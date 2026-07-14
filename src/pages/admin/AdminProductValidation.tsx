@@ -330,7 +330,11 @@ export default function AdminProductValidation() {
   const filtered = useMemo(() => {
     let list = rows;
     if (!showImageless) list = list.filter(hasImage);
-    if (statusFilter !== "all") list = list.filter((r) => (r.validation_status ?? "pending_review") === statusFilter);
+    if (statusFilter === "has_alibaba") {
+      list = list.filter((r) => !!r.alibaba_url);
+    } else if (statusFilter !== "all") {
+      list = list.filter((r) => (r.validation_status ?? "pending_review") === statusFilter);
+    }
     if (marketFilter !== "all") list = list.filter((r) => (r.marketplace ?? "amazon_us") === marketFilter);
     if (minReviewsFilter > 0) list = list.filter((r) => (r.review_count ?? 0) >= minReviewsFilter);
     if (brandFilter === "branded") list = list.filter((r) => !!r.is_branded);
