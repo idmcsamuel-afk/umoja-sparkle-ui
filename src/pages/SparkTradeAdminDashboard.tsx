@@ -557,7 +557,7 @@ function PricingEditor({
             <div className="rounded-md border p-3 text-sm space-y-1">
               <div className="font-medium mb-2">🚢 Sea — live preview</div>
               <Row k="Adjusted cost (alibaba + buffer)" v={`R${r(adjusted).toLocaleString()}`} />
-              <Row k={`Freight ${isSeaOverride ? "(override)" : "(volumetric)"}`} v={`R${r(freightSea).toLocaleString()}`} />
+              <Row k={`Freight (${freightMode})`} v={`R${r(freightSea).toLocaleString()}`} />
               <Row k="Umoja commission (hidden)" v={`R${r(commissionSea).toLocaleString()}`} muted />
               <Row k="Landed / unit" v={`R${r(landedSea).toLocaleString()}`} bold />
               <Row
