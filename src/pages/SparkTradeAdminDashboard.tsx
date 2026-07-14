@@ -408,6 +408,9 @@ function PricingEditor({
     moq_required: number;
     member_min_buyin_zar: number | null;
     suggested_selling_price_zar: number;
+    freight_rate_per_cbm: number;
+    freight_density_kg_per_cbm: number;
+    cbm_per_unit: number | null;
   }) => void;
 }) {
   const floors = useSparkTradeFloors();
@@ -420,6 +423,9 @@ function PricingEditor({
   const [moq, setMoq] = useState(0);
   const [memberMinBuyin, setMemberMinBuyin] = useState<string>("");
   const [sell, setSell] = useState(0);
+  const [ratePerCbm, setRatePerCbm] = useState<number>(8800);
+  const [densityKgPerCbm, setDensityKgPerCbm] = useState<number>(200);
+  const [cbmPerUnit, setCbmPerUnit] = useState<string>("");
 
   useEffect(() => {
     if (!opp) return;
@@ -436,15 +442,28 @@ function PricingEditor({
     setMoq(Number(opp.moq_required ?? 0));
     setMemberMinBuyin(opp.member_min_buyin_zar != null ? String(opp.member_min_buyin_zar) : "");
     setSell(Number(opp.suggested_selling_price_zar ?? 0));
+    setRatePerCbm(Number((opp as any).freight_rate_per_cbm ?? 8800) || 8800);
+    setDensityKgPerCbm(Number((opp as any).freight_density_kg_per_cbm ?? 200) || 200);
+    setCbmPerUnit((opp as any).cbm_per_unit != null ? String((opp as any).cbm_per_unit) : "");
   }, [opp]);
 
   const seaOverrideNum = freightSeaOverride.trim() === "" ? null : Number(freightSeaOverride);
-  const isSeaOverride = seaOverrideNum != null && !Number.isNaN(seaOverrideNum);
+  const isSeaOverride = seaOverrideNum != null && !Number.isNaN(seaOverrideNum) && (seaOverrideNum as number) > 0;
   const airNum = freightAir.trim() === "" ? null : Number(freightAir);
   const airAvailable = airNum != null && !Number.isNaN(airNum) && airNum > 0;
 
+  const cbmNum = cbmPerUnit.trim() === "" ? null : Number(cbmPerUnit);
+  const cbmDensity = cbmNum && cbmNum > 0 && weight > 0 ? weight / cbmNum : 0;
+  const cbmIsPlausible = cbmNum != null && !Number.isNaN(cbmNum) && cbmNum > 0 && cbmDensity >= 20 && cbmDensity <= 2000;
+  const dimensionsFlagged = cbmNum != null && cbmNum > 0 && !cbmIsPlausible;
+
   const adjusted = alibaba * (1 + buffer / 100);
-  const freightSea = isSeaOverride ? (seaOverrideNum as number) : (weight / 167) * 8800;
+  const freightSea = isSeaOverride
+    ? (seaOverrideNum as number)
+    : cbmIsPlausible
+      ? (cbmNum as number) * ratePerCbm
+      : (weight / densityKgPerCbm) * ratePerCbm;
+  const freightMode = isSeaOverride ? "override" : cbmIsPlausible ? "real CBM" : "weight estimate";
   const commissionSea = (adjusted + freightSea) * (commission / 100);
   const landedSea = adjusted + freightSea + commissionSea;
   const marginSea = sell - landedSea;
@@ -491,7 +510,20 @@ function PricingEditor({
               <Field label="Factory MOQ (units) *" type="number" value={moq} onChange={(v) => setMoq(Number(v))} />
               <Field label={`Member min buy-in (ZAR) — blank = global R${floors.minItemBuyinZar}`} type="number" value={memberMinBuyin} onChange={(v) => setMemberMinBuyin(v)} />
               <Field label="Suggested selling price (ZAR)" type="number" value={sell} onChange={(v) => setSell(Number(v))} />
+              <Field label="Sea rate R/CBM (default 8800)" type="number" value={ratePerCbm} onChange={(v) => setRatePerCbm(Number(v) || 8800)} />
+              <Field label="Sea density kg/CBM (default 200)" type="number" value={densityKgPerCbm} onChange={(v) => setDensityKgPerCbm(Number(v) || 200)} />
+              <Field
+                label="CBM per unit — leave blank unless verified (junk 1×1×1 auto-ignored)"
+                type="number"
+                value={cbmPerUnit}
+                onChange={(v) => setCbmPerUnit(v)}
+              />
             </div>
+            {dimensionsFlagged && (
+              <div className="rounded-md border border-amber-500/40 bg-amber-500/10 p-3 text-xs text-amber-700 dark:text-amber-400">
+                ⚠️ Dimensions look like a placeholder (implied density {cbmDensity.toFixed(0)} kg/CBM is outside 20–2000). Freight will use the weight estimate instead.
+              </div>
+            )}
 
             {(() => {
               const memberMinNum = memberMinBuyin.trim() === "" ? null : Number(memberMinBuyin);
@@ -525,7 +557,7 @@ function PricingEditor({
             <div className="rounded-md border p-3 text-sm space-y-1">
               <div className="font-medium mb-2">🚢 Sea — live preview</div>
               <Row k="Adjusted cost (alibaba + buffer)" v={`R${r(adjusted).toLocaleString()}`} />
-              <Row k={`Freight ${isSeaOverride ? "(override)" : "(volumetric)"}`} v={`R${r(freightSea).toLocaleString()}`} />
+              <Row k={`Freight (${freightMode})`} v={`R${r(freightSea).toLocaleString()}`} />
               <Row k="Umoja commission (hidden)" v={`R${r(commissionSea).toLocaleString()}`} muted />
               <Row k="Landed / unit" v={`R${r(landedSea).toLocaleString()}`} bold />
               <Row
@@ -584,6 +616,9 @@ function PricingEditor({
                 moq_required: moq,
                 member_min_buyin_zar: memberMinNum,
                 suggested_selling_price_zar: sell,
+                freight_rate_per_cbm: ratePerCbm,
+                freight_density_kg_per_cbm: densityKgPerCbm,
+                cbm_per_unit: cbmNum != null && !Number.isNaN(cbmNum) && cbmNum > 0 ? cbmNum : null,
               });
             }}
             disabled={saving}
@@ -711,9 +746,16 @@ function LiveProductsTable({
     const commission = Number(o.commission_pct ?? 0);
     const weight = Number(o.weight_kg ?? 0);
     const adjusted = alibaba * (1 + buffer / 100);
+    const rate = Number((o as any).freight_rate_per_cbm ?? 8800) || 8800;
+    const density = Number((o as any).freight_density_kg_per_cbm ?? 200) || 200;
+    const cbm = Number((o as any).cbm_per_unit ?? 0);
+    const cbmDensity = cbm > 0 && weight > 0 ? weight / cbm : 0;
+    const cbmOk = cbm > 0 && cbmDensity >= 20 && cbmDensity <= 2000;
     const freightSea = o.freight_is_override
       ? Number(o.freight_sea_zar ?? o.freight_cost_zar ?? 0)
-      : (weight / 167) * 8800;
+      : cbmOk
+        ? cbm * rate
+        : (weight / density) * rate;
     const commissionSea = (adjusted + freightSea) * (commission / 100);
     const landedSea = adjusted + freightSea + commissionSea;
     return landedSea || Number(o.unit_cost_zar ?? 0);
