@@ -616,6 +616,9 @@ function PricingEditor({
                 moq_required: moq,
                 member_min_buyin_zar: memberMinNum,
                 suggested_selling_price_zar: sell,
+                freight_rate_per_cbm: ratePerCbm,
+                freight_density_kg_per_cbm: densityKgPerCbm,
+                cbm_per_unit: cbmNum != null && !Number.isNaN(cbmNum) && cbmNum > 0 ? cbmNum : null,
               });
             }}
             disabled={saving}
