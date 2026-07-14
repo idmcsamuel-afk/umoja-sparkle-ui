@@ -51,7 +51,7 @@ interface ProductRow {
   alibaba_supplier?: string | null;
 }
 
-type StatusFilter = "all" | "pending_review" | "approved_to_queue";
+type StatusFilter = "all" | "pending_review" | "approved_to_queue" | "demand_validated" | "rejected" | "has_alibaba";
 type MarketFilter = "all" | "amazon_us" | "amazon_sa" | "walmart_us" | "takealot_sa";
 type MinReviewsFilter = 0 | 100 | 500 | 1000;
 type SortMode = "reviews_desc" | "newest";
