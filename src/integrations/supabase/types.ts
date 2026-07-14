@@ -5806,16 +5806,21 @@ export type Database = {
           alibaba_cost_zar: number | null
           buffer_pct: number | null
           category: string | null
+          cbm_per_unit: number | null
           commission_pct: number | null
           created_at: string | null
           current_reserved: number | null
+          dimensions_flagged: boolean
           expected_arrival_date: string | null
           expected_margin_percentage: number | null
           expected_order_date: string | null
           freight_air_zar: number | null
           freight_cost_zar: number | null
+          freight_density_kg_per_cbm: number
           freight_is_override: boolean
+          freight_rate_per_cbm: number
           freight_sea_zar: number | null
+          freight_uses_weight_estimate: boolean
           gross_margin_air_zar: number | null
           gross_margin_sea_zar: number | null
           gross_margin_zar: number | null
@@ -5854,16 +5859,21 @@ export type Database = {
           alibaba_cost_zar?: number | null
           buffer_pct?: number | null
           category?: string | null
+          cbm_per_unit?: number | null
           commission_pct?: number | null
           created_at?: string | null
           current_reserved?: number | null
+          dimensions_flagged?: boolean
           expected_arrival_date?: string | null
           expected_margin_percentage?: number | null
           expected_order_date?: string | null
           freight_air_zar?: number | null
           freight_cost_zar?: number | null
+          freight_density_kg_per_cbm?: number
           freight_is_override?: boolean
+          freight_rate_per_cbm?: number
           freight_sea_zar?: number | null
+          freight_uses_weight_estimate?: boolean
           gross_margin_air_zar?: number | null
           gross_margin_sea_zar?: number | null
           gross_margin_zar?: number | null
@@ -5902,16 +5912,21 @@ export type Database = {
           alibaba_cost_zar?: number | null
           buffer_pct?: number | null
           category?: string | null
+          cbm_per_unit?: number | null
           commission_pct?: number | null
           created_at?: string | null
           current_reserved?: number | null
+          dimensions_flagged?: boolean
           expected_arrival_date?: string | null
           expected_margin_percentage?: number | null
           expected_order_date?: string | null
           freight_air_zar?: number | null
           freight_cost_zar?: number | null
+          freight_density_kg_per_cbm?: number
           freight_is_override?: boolean
+          freight_rate_per_cbm?: number
           freight_sea_zar?: number | null
+          freight_uses_weight_estimate?: boolean
           gross_margin_air_zar?: number | null
           gross_margin_sea_zar?: number | null
           gross_margin_zar?: number | null
