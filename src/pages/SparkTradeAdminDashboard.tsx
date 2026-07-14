@@ -746,9 +746,16 @@ function LiveProductsTable({
     const commission = Number(o.commission_pct ?? 0);
     const weight = Number(o.weight_kg ?? 0);
     const adjusted = alibaba * (1 + buffer / 100);
+    const rate = Number((o as any).freight_rate_per_cbm ?? 8800) || 8800;
+    const density = Number((o as any).freight_density_kg_per_cbm ?? 200) || 200;
+    const cbm = Number((o as any).cbm_per_unit ?? 0);
+    const cbmDensity = cbm > 0 && weight > 0 ? weight / cbm : 0;
+    const cbmOk = cbm > 0 && cbmDensity >= 20 && cbmDensity <= 2000;
     const freightSea = o.freight_is_override
       ? Number(o.freight_sea_zar ?? o.freight_cost_zar ?? 0)
-      : (weight / 167) * 8800;
+      : cbmOk
+        ? cbm * rate
+        : (weight / density) * rate;
     const commissionSea = (adjusted + freightSea) * (commission / 100);
     const landedSea = adjusted + freightSea + commissionSea;
     return landedSea || Number(o.unit_cost_zar ?? 0);
