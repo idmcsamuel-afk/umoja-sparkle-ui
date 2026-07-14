@@ -408,6 +408,9 @@ function PricingEditor({
     moq_required: number;
     member_min_buyin_zar: number | null;
     suggested_selling_price_zar: number;
+    freight_rate_per_cbm: number;
+    freight_density_kg_per_cbm: number;
+    cbm_per_unit: number | null;
   }) => void;
 }) {
   const floors = useSparkTradeFloors();
