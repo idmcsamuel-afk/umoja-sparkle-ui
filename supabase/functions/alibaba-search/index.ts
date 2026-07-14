@@ -17,7 +17,7 @@ interface Candidate {
   price_from: number | null;
   price_to: number | null;
   price_currency: string;
-  price_label: string;                // e.g. "from $0.35" or "$0.35 - $0.89"
+  price_label: string;
   moq: number | null;
   moq_unit: string | null;
   moq_found: boolean;
@@ -25,6 +25,7 @@ interface Candidate {
   supplier_url: string | null;
   supplier_rating: number | null;
   supplier_review_count: number | null;
+  matched_query?: string;
 }
 
 function slugify(q: string): string {
@@ -35,11 +36,6 @@ function slugify(q: string): string {
     .replace(/\s+/g, "-")
     .replace(/-+/g, "-")
     .slice(0, 100);
-}
-
-function shortSlug(q: string): string {
-  const words = q.toLowerCase().replace(/[^a-z0-9\s-]+/g, " ").trim().split(/\s+/).filter(Boolean);
-  return words.slice(0, 3).join("-");
 }
 
 async function unlockerFetch(url: string): Promise<{ status: number; body: string }> {
@@ -71,25 +67,21 @@ function parseJsonLd(html: string): any[] {
   return out;
 }
 
-/** Best-effort HTML regex around a product-id anchor to find MOQ + supplier + price range. */
 function extractCardMeta(html: string, id: string) {
   const anchorRe = new RegExp(`_${id}\\.html`);
   const idx = html.search(anchorRe);
-  if (idx < 0) return {};
+  if (idx < 0) return {} as any;
   const window = html.slice(Math.max(0, idx - 4000), idx + 4000);
 
-  // Price range like "US $0.35 - $0.89" or "$0.35-$0.89"
   const rangeMatch = window.match(/US\s*\$\s*([\d.]+)\s*[-–]\s*\$?\s*([\d.]+)/i);
   const priceFrom = rangeMatch ? Number(rangeMatch[1]) : null;
   const priceTo = rangeMatch ? Number(rangeMatch[2]) : null;
 
-  // MOQ: "Min. order: 100 pieces" / "Min. Order: 500 sets" / "MOQ: 200"
   const moqMatch = window.match(/Min\.?\s*Order[:\s]*([\d,]+)\s*([a-zA-Z]+)?/i)
                 || window.match(/MOQ[:\s]*([\d,]+)\s*([a-zA-Z]+)?/i);
   const moq = moqMatch ? Number(moqMatch[1].replace(/,/g, "")) : null;
   const moqUnit = moqMatch && moqMatch[2] ? moqMatch[2] : null;
 
-  // Supplier name: nearby "by <name>" or company anchor. Alibaba markup varies; try a couple.
   const supMatch = window.match(/company-name[^>]*>\s*([^<]{2,80})</i)
                 || window.match(/supplier-name[^>]*>\s*([^<]{2,80})</i)
                 || window.match(/data-company-name=["']([^"']{2,80})["']/i);
@@ -101,7 +93,7 @@ function extractCardMeta(html: string, id: string) {
   return { priceFrom, priceTo, moq, moqUnit, supplier_name, supplier_url };
 }
 
-function candidatesFromHtml(html: string): Candidate[] {
+function candidatesFromHtml(html: string, matchedQuery: string): Candidate[] {
   const jsonBlocks = parseJsonLd(html);
   const itemList = jsonBlocks.find((b) => b && b["@type"] === "ItemList" && Array.isArray(b.itemListElement));
   if (!itemList || !Array.isArray(itemList.itemListElement)) return [];
@@ -144,8 +136,8 @@ function candidatesFromHtml(html: string): Candidate[] {
       supplier_url: meta.supplier_url ?? null,
       supplier_rating: rating,
       supplier_review_count: reviewCount,
+      matched_query: matchedQuery,
     });
-    if (results.length >= 10) break;
   }
   return results;
 }
@@ -159,52 +151,66 @@ serve(async (req) => {
         { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } });
     }
 
-    let query = "";
+    let queries: string[] = [];
+    let pages = 3;
+    let targetCount = 40;
     if (req.method === "POST") {
       const body = await req.json().catch(() => ({}));
-      query = String(body?.query ?? body?.q ?? "").trim();
+      if (Array.isArray(body?.queries)) queries = body.queries.map((s: any) => String(s).trim()).filter(Boolean);
+      else if (body?.query) queries = [String(body.query).trim()];
+      if (typeof body?.pages === "number") pages = Math.min(5, Math.max(1, body.pages));
+      if (typeof body?.target === "number") targetCount = Math.min(60, Math.max(10, body.target));
     } else {
-      query = new URL(req.url).searchParams.get("q")?.trim() ?? "";
+      const q = new URL(req.url).searchParams.get("q")?.trim();
+      if (q) queries = [q];
     }
-    if (!query) {
+    if (queries.length === 0) {
       return new Response(JSON.stringify({ error: "query required" }),
         { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } });
     }
 
-    // Build progressively simpler slug candidates.
-    const words = query.toLowerCase().replace(/[^a-z0-9\s-]+/g, " ").split(/\s+/).filter(Boolean);
-    const slugCandidates: string[] = [];
-    const push = (s: string) => { if (s && !slugCandidates.includes(s)) slugCandidates.push(s); };
-    push(slugify(query));                                    // full
-    push(words.slice(0, 3).join("-"));                       // first 3 words
-    push(words.slice(0, 2).join("-"));                       // first 2 words
-    if (words.length > 1) push(words[words.length - 1]);     // last word (usually the noun)
-    push(words[0]);                                          // first word
+    const attempted: { query: string; slug: string; page: number; url: string; status: number; found: number }[] = [];
+    const byId = new Map<string, Candidate>();
+    let unlockerRequests = 0;
+    let source_url = "";
 
-    const attempted: { slug: string; status: number; bytes: number; ldBlocks: number; found: number }[] = [];
-    let candidates: Candidate[] = [];
-    let url = "";
-    for (const s of slugCandidates) {
-      url = `https://www.alibaba.com/showroom/${s}.html`;
-      const r = await unlockerFetch(url);
-      const ldBlocks = r.status === 200 ? parseJsonLd(r.body).length : 0;
-      candidates = r.status === 200 ? candidatesFromHtml(r.body) : [];
-      attempted.push({ slug: s, status: r.status, bytes: r.body.length, ldBlocks, found: candidates.length });
-      if (candidates.length > 0) break;
+    outer:
+    for (const q of queries) {
+      const slug = slugify(q);
+      if (!slug) continue;
+      for (let p = 1; p <= pages; p++) {
+        const url = p === 1
+          ? `https://www.alibaba.com/showroom/${slug}.html`
+          : `https://www.alibaba.com/showroom/${slug}/${p}.html`;
+        if (!source_url) source_url = url;
+        const r = await unlockerFetch(url);
+        unlockerRequests++;
+        const found = r.status === 200 ? candidatesFromHtml(r.body, q) : [];
+        attempted.push({ query: q, slug, page: p, url, status: r.status, found: found.length });
+        for (const c of found) {
+          if (!byId.has(c.id)) byId.set(c.id, c);
+        }
+        if (byId.size >= targetCount) break outer;
+        // if a page returns 0 items, don't waste more requests on later pages of same query
+        if (found.length === 0 && p > 1) break;
+      }
     }
+
+    const candidates = Array.from(byId.values()).slice(0, targetCount);
 
     return new Response(
       JSON.stringify({
-        query,
-        source_url: url,
+        queries,
+        source_url,
         candidates,
         attempted,
-        note: "1 Web Unlocker request per search. MOQ is best-effort HTML parse — always verify via the Alibaba link.",
+        unlocker_requests: unlockerRequests,
+        note: `${unlockerRequests} Web Unlocker request(s) used. MOQ is best-effort — verify via the Alibaba link.`,
       }),
       { headers: { ...corsHeaders, "Content-Type": "application/json" } },
     );
   } catch (e) {
-    return new Response(JSON.stringify({ error: String(e?.message ?? e) }),
+    return new Response(JSON.stringify({ error: String((e as any)?.message ?? e) }),
       { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } });
   }
 });
