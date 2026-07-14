@@ -609,7 +609,14 @@ export default function AdminProductValidation() {
 
       <div className="flex flex-wrap items-center gap-2">
         <span className="text-xs text-muted-foreground mr-1">Status:</span>
-        {([["all","All"],["pending_review","Pending"],["approved_to_queue","Approved"]] as [StatusFilter,string][]).map(([f,l])=>(
+        {([
+          ["all","All"],
+          ["pending_review",`⏳ Pending (${counts.pending})`],
+          ["approved_to_queue",`✅ Approved (${counts.approved})`],
+          ["demand_validated",`📊 Demand signal (${counts.demand})`],
+          ["has_alibaba",`🏭 Has Alibaba source (${counts.withAlibaba})`],
+          ["rejected",`❌ Rejected (${counts.rejected})`],
+        ] as [StatusFilter,string][]).map(([f,l])=>(
           <Button key={f} size="sm" variant={statusFilter===f?"default":"outline"} onClick={()=>setStatusFilter(f)}>{l}</Button>
         ))}
         <span className="text-xs text-muted-foreground ml-4 mr-1">Marketplace:</span>
