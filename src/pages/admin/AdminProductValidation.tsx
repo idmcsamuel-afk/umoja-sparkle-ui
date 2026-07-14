@@ -323,8 +323,10 @@ export default function AdminProductValidation() {
     const pending = rows.filter((r) => (r.validation_status ?? "pending_review") === "pending_review").length;
     const approved = rows.filter((r) => r.validation_status === "approved_to_queue").length;
     const rejected = rows.filter((r) => r.validation_status === "rejected").length;
+    const demand = rows.filter((r) => r.validation_status === "demand_validated").length;
+    const withAlibaba = rows.filter((r) => !!r.alibaba_url).length;
     const total = pending + approved + rejected;
-    return { pending, approved, rejected, approvedPct: total > 0 ? Math.round((approved / total) * 100) : 0 };
+    return { pending, approved, rejected, demand, withAlibaba, approvedPct: total > 0 ? Math.round((approved / total) * 100) : 0 };
   }, [rows]);
 
   const filtered = useMemo(() => {
