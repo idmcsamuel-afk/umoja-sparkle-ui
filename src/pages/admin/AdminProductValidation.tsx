@@ -68,7 +68,7 @@ const MARKET_LABEL: Record<string, string> = {
 };
 const SA_MARKETS = new Set(["amazon_sa", "takealot_sa"]);
 
-const DEFAULTS = { buffer_pct: 10, commission_pct: 8, freight_rate_per_cbm: 8800, kg_per_cbm: 167 };
+const DEFAULTS = { buffer_pct: 10, commission_pct: 8, freight_rate_per_cbm: 8800, kg_per_cbm: 200 };
 
 function Stars({ value }: { value: number | null }) {
   if (value == null) return <span className="text-muted-foreground text-xs">No rating</span>;
