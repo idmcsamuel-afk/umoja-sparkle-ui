@@ -271,21 +271,26 @@ export default function AdminProductValidation() {
       };
     });
     setOpenForm(rowId);
-    const { error } = await supabase.from("products" as any).update({
+    const { data: updated, error } = await supabase.from("products" as any).update({
       alibaba_url: c.url,
       alibaba_price: c.price_label,
       alibaba_moq: c.moq_found ? c.moq : null,
       alibaba_supplier: c.supplier_name,
-    }).eq("id", rowId);
+    }).eq("id", rowId).select("id, alibaba_url, alibaba_price, alibaba_moq, alibaba_supplier");
     if (error) {
-      toast({ title: "Saved to form (reference not persisted)", description: error.message });
-    } else {
-      setRows((prev) => prev.map((x) => x.id === rowId ? { ...x, alibaba_url: c.url, alibaba_price: c.price_label, alibaba_moq: c.moq_found ? c.moq : null, alibaba_supplier: c.supplier_name } as any : x));
-      toast({
-        title: "Alibaba match selected",
-        description: c.moq_found ? `MOQ ${c.moq!.toLocaleString()} · ${c.price_label}` : "⚠️ MOQ not found — enter it manually before approving.",
-      });
+      toast({ title: "Save failed", description: error.message, variant: "destructive" });
+      return;
     }
+    if (!updated || updated.length === 0) {
+      toast({ title: "Save blocked", description: "No row updated — you may not have permission on this row.", variant: "destructive" });
+      return;
+    }
+    const saved = updated[0] as any;
+    setRows((prev) => prev.map((x) => x.id === rowId ? { ...x, alibaba_url: saved.alibaba_url, alibaba_price: saved.alibaba_price, alibaba_moq: saved.alibaba_moq, alibaba_supplier: saved.alibaba_supplier } as any : x));
+    toast({
+      title: "Alibaba match saved",
+      description: c.moq_found ? `MOQ ${c.moq!.toLocaleString()} · ${c.price_label}` : "⚠️ MOQ not found — enter it manually before approving.",
+    });
   };
 
   const load = async () => {
