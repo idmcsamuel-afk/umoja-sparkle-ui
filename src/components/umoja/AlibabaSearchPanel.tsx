@@ -1,11 +1,11 @@
-import { useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "@/hooks/use-toast";
-import { ExternalLink, Loader2, Search, ImageOff, AlertTriangle, Star, Check } from "lucide-react";
+import { ExternalLink, Loader2, Search, ImageOff, AlertTriangle, Star, Check, Sparkles } from "lucide-react";
 
 export interface AlibabaCandidate {
   id: string;
@@ -23,6 +23,7 @@ export interface AlibabaCandidate {
   supplier_url: string | null;
   supplier_rating: number | null;
   supplier_review_count: number | null;
+  matched_query?: string;
 }
 
 interface Props {
@@ -42,19 +43,91 @@ const absUrl = (u: string) => {
   return u;
 };
 
+// Words that don't help identify a product on Alibaba — strip them.
+const STOPWORDS = new Set<string>([
+  "the","a","an","and","or","of","for","with","in","on","to","from","by","at","this","that",
+  "vintage","professional","premium","deluxe","luxury","new","hot","sale","top","best","quality","high",
+  "super","ultra","mini","portable","household","home","house","use","using","waterproof","wireless",
+  "rechargeable","usb","powered","power","english","cordless","corded","smart","auto","automatic","manual",
+  "men","mens","women","womens","kids","boys","girls","unisex","adult","adults","baby","child","children",
+  "set","kit","pack","piece","pieces","pcs","pc","model","style","series","size","large","small","medium","xl",
+  "color","colour","black","white","red","blue","green","pink","gold","silver","gray","grey","brown",
+  "buy","cheap","free","shipping","brand","genuine","original","official","case","cover","accessory","accessories",
+  "type","edition","version","gen","version",
+]);
+
+// e.g. "IPX6", "IP67", "2000mah", "5g", "16gb"
+const RE_MODEL_TOKEN = /^(ipx?\d+|ip\d{2,}|\d+[a-z]{1,4}|[a-z]{1,3}\d+[a-z]*)$/i;
+
+function extractSmartKeywords(title: string): { primary: string; variants: string[] } {
+  if (!title) return { primary: "", variants: [] };
+  // remove parentheticals, punctuation
+  const cleaned = title
+    .replace(/\([^)]*\)/g, " ")
+    .replace(/\[[^\]]*\]/g, " ")
+    .replace(/[^a-zA-Z0-9\s-]+/g, " ")
+    .replace(/\s+/g, " ")
+    .trim();
+
+  const rawWords = cleaned.split(" ");
+  const words: string[] = [];
+  for (const w of rawWords) {
+    const lw = w.toLowerCase();
+    if (!lw) continue;
+    if (STOPWORDS.has(lw)) continue;
+    if (RE_MODEL_TOKEN.test(lw)) continue;
+    if (lw.length <= 1) continue;
+    words.push(lw);
+  }
+  // primary = last 2-3 meaningful words (product noun tends to be later, e.g. "hair clipper")
+  const tail = words.slice(-3);
+  const primary = tail.slice(-2).join(" ") || tail.join(" ") || words[0] || title;
+
+  const variants: string[] = [];
+  const add = (s: string) => {
+    const t = s.trim();
+    if (t && t !== primary && !variants.includes(t) && t.split(" ").length <= 4) variants.push(t);
+  };
+  add(tail.join(" "));
+  add(words.slice(-2).join(" "));
+  add(words[words.length - 1] || "");
+  return { primary, variants: variants.slice(0, 2) };
+}
+
 export function AlibabaSearchPanel({ open, onOpenChange, initialQuery, originalImage, originalName, originalPriceLabel, onSelect }: Props) {
-  const [query, setQuery] = useState(initialQuery);
+  const smart = useMemo(() => extractSmartKeywords(initialQuery), [initialQuery]);
+  const [query, setQuery] = useState(smart.primary || initialQuery);
   const [loading, setLoading] = useState(false);
   const [candidates, setCandidates] = useState<AlibabaCandidate[] | null>(null);
-  const [attempted, setAttempted] = useState<{ slug: string; status: number; found: number }[]>([]);
+  const [attempted, setAttempted] = useState<{ query: string; slug: string; page: number; status: number; found: number }[]>([]);
+  const [unlockerRequests, setUnlockerRequests] = useState(0);
+  const [usedQueries, setUsedQueries] = useState<string[]>([]);
+  const [hasSearched, setHasSearched] = useState(false);
 
-  const run = async (q: string) => {
+  useEffect(() => {
+    setQuery(smart.primary || initialQuery);
+    setCandidates(null);
+    setAttempted([]);
+    setUnlockerRequests(0);
+    setUsedQueries([]);
+    setHasSearched(false);
+  }, [initialQuery, smart.primary]);
+
+  const run = async (q: string, opts?: { includeVariants?: boolean }) => {
     const term = q.trim();
     if (!term) return;
+    const queries = opts?.includeVariants
+      ? [term, ...smart.variants.filter((v) => v && v !== term)]
+      : [term];
     setLoading(true);
     setCandidates(null);
     setAttempted([]);
-    const { data, error } = await supabase.functions.invoke("alibaba-search", { body: { query: term } });
+    setUnlockerRequests(0);
+    setUsedQueries(queries);
+    setHasSearched(true);
+    const { data, error } = await supabase.functions.invoke("alibaba-search", {
+      body: { queries, pages: 3, target: 40 },
+    });
     setLoading(false);
     if (error) {
       toast({ title: "Alibaba search failed", description: error.message, variant: "destructive" });
@@ -62,15 +135,16 @@ export function AlibabaSearchPanel({ open, onOpenChange, initialQuery, originalI
     }
     setCandidates(data?.candidates ?? []);
     setAttempted(data?.attempted ?? []);
+    setUnlockerRequests(data?.unlocker_requests ?? 0);
   };
 
   return (
-    <Dialog open={open} onOpenChange={(v) => { onOpenChange(v); if (v && candidates === null) run(initialQuery); }}>
+    <Dialog open={open} onOpenChange={(v) => { onOpenChange(v); if (v && !hasSearched) run(smart.primary || initialQuery, { includeVariants: true }); }}>
       <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle>Find on Alibaba</DialogTitle>
           <DialogDescription>
-            1 Web Unlocker request per search · MOQ is best-effort — always open the Alibaba link to verify · Select the correct match manually.
+            Searches up to 3 pages per keyword (≈1 Web Unlocker request per page). MOQ best-effort — verify via link. Select the correct match manually.
           </DialogDescription>
         </DialogHeader>
 
@@ -88,26 +162,57 @@ export function AlibabaSearchPanel({ open, onOpenChange, initialQuery, originalI
           </div>
         )}
 
-        <div className="flex gap-2">
-          <Input value={query} onChange={(e) => setQuery(e.target.value)} placeholder="Product name or shorter search term" />
-          <Button onClick={() => run(query)} disabled={loading || !query.trim()}>
-            {loading ? <Loader2 className="h-4 w-4 mr-1 animate-spin" /> : <Search className="h-4 w-4 mr-1" />}
-            Search
-          </Button>
+        <div className="space-y-2">
+          <div className="flex items-center gap-2 text-xs text-muted-foreground">
+            <Sparkles className="h-3.5 w-3.5 text-primary" />
+            <span>Auto keyword: <span className="font-medium text-foreground">"{smart.primary}"</span></span>
+            {smart.variants.length > 0 && (
+              <span className="hidden sm:inline">· variants: {smart.variants.map(v => `"${v}"`).join(", ")}</span>
+            )}
+            <button
+              type="button"
+              className="ml-auto underline hover:text-foreground"
+              onClick={() => setQuery(smart.primary)}
+            >
+              reset
+            </button>
+          </div>
+          <div className="flex gap-2">
+            <Input
+              value={query}
+              onChange={(e) => setQuery(e.target.value)}
+              placeholder='Type your own search e.g. "hair clipper"'
+              onKeyDown={(e) => { if (e.key === "Enter") run(query, { includeVariants: false }); }}
+            />
+            <Button onClick={() => run(query, { includeVariants: false })} disabled={loading || !query.trim()}>
+              {loading ? <Loader2 className="h-4 w-4 mr-1 animate-spin" /> : <Search className="h-4 w-4 mr-1" />}
+              Search
+            </Button>
+            {smart.variants.length > 0 && (
+              <Button
+                variant="outline"
+                onClick={() => run(query, { includeVariants: true })}
+                disabled={loading || !query.trim()}
+                title="Search this term plus auto-generated variants and merge results"
+              >
+                + variants
+              </Button>
+            )}
+          </div>
         </div>
 
-        {attempted.length > 0 && (
+        {(usedQueries.length > 0 || attempted.length > 0) && (
           <p className="text-[11px] text-muted-foreground">
-            Tried: {attempted.map(a => `${a.slug} (HTTP ${a.status}, ${a.found} found)`).join(" · ")}
+            Searched: {usedQueries.map(q => `"${q}"`).join(", ")} · {unlockerRequests} Unlocker request{unlockerRequests === 1 ? "" : "s"} · {candidates?.length ?? 0} results
           </p>
         )}
 
-        {loading && <p className="text-sm text-muted-foreground">Searching Alibaba…</p>}
+        {loading && <p className="text-sm text-muted-foreground">Searching Alibaba (up to 3 pages per keyword)…</p>}
 
         {!loading && candidates && candidates.length === 0 && (
           <div className="rounded border p-3 text-sm">
             <p className="font-medium">No results.</p>
-            <p className="text-muted-foreground mt-1">Try a shorter, more generic search term (e.g. "crew neck tee" instead of full title).</p>
+            <p className="text-muted-foreground mt-1">Try a shorter, more generic search term (e.g. "hair clipper" instead of the full title).</p>
           </div>
         )}
 
@@ -137,6 +242,7 @@ export function AlibabaSearchPanel({ open, onOpenChange, initialQuery, originalI
                         {c.supplier_review_count != null ? ` (${c.supplier_review_count.toLocaleString()})` : ""}
                       </span>
                     )}
+                    {c.matched_query && <span className="text-muted-foreground">· via "{c.matched_query}"</span>}
                   </div>
                   <div className="flex flex-wrap gap-2 pt-1">
                     <a
