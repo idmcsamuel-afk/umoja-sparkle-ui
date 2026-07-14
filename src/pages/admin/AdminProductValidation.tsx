@@ -51,7 +51,7 @@ interface ProductRow {
   alibaba_supplier?: string | null;
 }
 
-type StatusFilter = "all" | "pending_review" | "approved_to_queue";
+type StatusFilter = "all" | "pending_review" | "approved_to_queue" | "demand_validated" | "rejected" | "has_alibaba";
 type MarketFilter = "all" | "amazon_us" | "amazon_sa" | "walmart_us" | "takealot_sa";
 type MinReviewsFilter = 0 | 100 | 500 | 1000;
 type SortMode = "reviews_desc" | "newest";
@@ -323,14 +323,20 @@ export default function AdminProductValidation() {
     const pending = rows.filter((r) => (r.validation_status ?? "pending_review") === "pending_review").length;
     const approved = rows.filter((r) => r.validation_status === "approved_to_queue").length;
     const rejected = rows.filter((r) => r.validation_status === "rejected").length;
+    const demand = rows.filter((r) => r.validation_status === "demand_validated").length;
+    const withAlibaba = rows.filter((r) => !!r.alibaba_url).length;
     const total = pending + approved + rejected;
-    return { pending, approved, rejected, approvedPct: total > 0 ? Math.round((approved / total) * 100) : 0 };
+    return { pending, approved, rejected, demand, withAlibaba, approvedPct: total > 0 ? Math.round((approved / total) * 100) : 0 };
   }, [rows]);
 
   const filtered = useMemo(() => {
     let list = rows;
     if (!showImageless) list = list.filter(hasImage);
-    if (statusFilter !== "all") list = list.filter((r) => (r.validation_status ?? "pending_review") === statusFilter);
+    if (statusFilter === "has_alibaba") {
+      list = list.filter((r) => !!r.alibaba_url);
+    } else if (statusFilter !== "all") {
+      list = list.filter((r) => (r.validation_status ?? "pending_review") === statusFilter);
+    }
     if (marketFilter !== "all") list = list.filter((r) => (r.marketplace ?? "amazon_us") === marketFilter);
     if (minReviewsFilter > 0) list = list.filter((r) => (r.review_count ?? 0) >= minReviewsFilter);
     if (brandFilter === "branded") list = list.filter((r) => !!r.is_branded);
@@ -603,7 +609,14 @@ export default function AdminProductValidation() {
 
       <div className="flex flex-wrap items-center gap-2">
         <span className="text-xs text-muted-foreground mr-1">Status:</span>
-        {([["all","All"],["pending_review","Pending"],["approved_to_queue","Approved"]] as [StatusFilter,string][]).map(([f,l])=>(
+        {([
+          ["all","All"],
+          ["pending_review",`⏳ Pending (${counts.pending})`],
+          ["approved_to_queue",`✅ Approved (${counts.approved})`],
+          ["demand_validated",`📊 Demand signal (${counts.demand})`],
+          ["has_alibaba",`🏭 Has Alibaba source (${counts.withAlibaba})`],
+          ["rejected",`❌ Rejected (${counts.rejected})`],
+        ] as [StatusFilter,string][]).map(([f,l])=>(
           <Button key={f} size="sm" variant={statusFilter===f?"default":"outline"} onClick={()=>setStatusFilter(f)}>{l}</Button>
         ))}
         <span className="text-xs text-muted-foreground ml-4 mr-1">Marketplace:</span>
@@ -897,17 +910,32 @@ export default function AdminProductValidation() {
                       <Search className="h-4 w-4 mr-1" /> Find on Alibaba
                     </Button>
                   </div>
-                  {(r.alibaba_url || r.alibaba_moq != null) && (
-                    <div className="text-xs text-muted-foreground flex flex-wrap items-center gap-2 pt-1">
-                      <span className="font-medium text-foreground">Alibaba ref:</span>
-                      {r.alibaba_price && <Badge variant="outline">{r.alibaba_price}</Badge>}
-                      {r.alibaba_moq != null && <Badge variant="outline">MOQ {r.alibaba_moq.toLocaleString()}</Badge>}
-                      {r.alibaba_supplier && <Badge variant="outline">🏭 {r.alibaba_supplier}</Badge>}
-                      {r.alibaba_url && (
-                        <a href={r.alibaba_url} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1 text-primary hover:underline">
-                          <ExternalLink className="h-3 w-3" /> Open on Alibaba
-                        </a>
-                      )}
+                  {(r.alibaba_url || r.alibaba_moq != null || r.alibaba_supplier || r.alibaba_price) && (
+                    <div className="rounded-lg border-2 border-green-500/40 bg-green-500/5 p-3 space-y-2">
+                      <div className="flex items-center justify-between flex-wrap gap-2">
+                        <p className="text-sm font-semibold text-foreground inline-flex items-center gap-1.5">
+                          🏭 Chosen Alibaba supplier
+                          <Badge className="bg-green-600 text-white text-[10px]">SAVED</Badge>
+                        </p>
+                        {r.alibaba_url && (
+                          <a
+                            href={r.alibaba_url}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="inline-flex items-center h-8 px-3 rounded-md bg-green-600 hover:bg-green-700 text-white text-xs font-medium"
+                          >
+                            <ExternalLink className="h-3.5 w-3.5 mr-1" /> View chosen supplier on Alibaba
+                          </a>
+                        )}
+                      </div>
+                      <div className="flex flex-wrap items-center gap-2 text-xs">
+                        {r.alibaba_supplier && <Badge variant="secondary">🏭 {r.alibaba_supplier}</Badge>}
+                        {r.alibaba_price && <Badge variant="outline">💵 {r.alibaba_price}</Badge>}
+                        {r.alibaba_moq != null
+                          ? <Badge variant="outline">📦 MOQ {r.alibaba_moq.toLocaleString()}</Badge>
+                          : <Badge className="bg-amber-500 text-white">MOQ not captured — verify on link</Badge>}
+                      </div>
+                      <p className="text-[11px] text-muted-foreground">Click the button above to reopen the exact Alibaba listing you selected when it's time to place the order.</p>
                     </div>
                   )}
                 </CardContent>
