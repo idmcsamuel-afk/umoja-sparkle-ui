@@ -151,8 +151,18 @@ export function AlibabaSearchPanel({ open, onOpenChange, initialQuery, originalI
     setUnlockerRequests(data?.unlocker_requests ?? 0);
   };
 
+  // Auto-run search when the panel opens (parent mounts it with open=true,
+  // so the Dialog's own onOpenChange never fires for the initial open).
+  useEffect(() => {
+    if (open && !hasSearched && !loading) {
+      run(smart.primary || initialQuery, { includeVariants: true });
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [open, smart.primary, initialQuery]);
+
   return (
-    <Dialog open={open} onOpenChange={(v) => { onOpenChange(v); if (v && !hasSearched) run(smart.primary || initialQuery, { includeVariants: true }); }}>
+    <Dialog open={open} onOpenChange={onOpenChange}>
+
       <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle>Find on Alibaba</DialogTitle>
