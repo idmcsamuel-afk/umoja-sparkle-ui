@@ -192,26 +192,24 @@ serve(async (req) => {
 
     if (action === "productSearch") {
       const q = u.searchParams.get("q") ?? "hair clipper";
+      const page = u.searchParams.get("page") ?? "1";
+      const pageSize = u.searchParams.get("pageSize") ?? "10";
+      const country = u.searchParams.get("country") ?? "ZA";
       const token = u.searchParams.get("token") ?? (await getValidAccessToken());
-      // Try the Buyer-Product keyword search. Path names on GOP for ICBU buyer product:
-      //   /icbu/product/search   (current buyer-product endpoint)
-      // Fallback attempted: /alibaba/icbu/product/list (legacy).
-      const primary = await callApi("/icbu/product/search", {
-        access_token: token,
+      // /eco/buyer/product/search requires a single structured param named `param0`
+      // (JSON string, signed like any other param). Field names come from the ICBU
+      // buyer-product SDK sample: keyword, page, pageSize, country (optional).
+      const param0 = JSON.stringify({
         keyword: q,
-        page_size: "10",
-        page_no: "1",
-      }, { method: "POST" });
-      let fallback: any = null;
-      if (primary.json?.code && primary.json?.code !== "0" && primary.json?.code !== 0) {
-        fallback = await callApi("/alibaba/icbu/product/list", {
-          access_token: token,
-          keyword: q,
-          page_size: "10",
-          page_no: "1",
-        }, { method: "POST" });
-      }
-      return jsonRes({ query: q, primary, fallback });
+        page: Number(page),
+        pageSize: Number(pageSize),
+        country,
+      });
+      const primary = await callApi("/eco/buyer/product/search", {
+        access_token: token,
+        param0,
+      }, { method: "GET" });
+      return jsonRes({ query: q, param0, primary });
     }
 
     if (action === "imageSearch") {
