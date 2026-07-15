@@ -50,6 +50,20 @@ function slugCandidates(q: string): string[] {
   const pushPriority = (s: string) => { if (s && s.length > 1 && !priority.includes(s)) priority.push(s); };
   const pushFallback = (s: string) => { if (s && s.length > 1 && !priority.includes(s) && !fallback.includes(s)) fallback.push(s); };
 
+  const words = base.split("-").filter(Boolean);
+  const has = (word: string) => words.includes(word);
+
+  // Put high-signal core product nouns first. Long descriptive showroom slugs
+  // often render thin SEO pages with no cards, while canonical noun slugs work.
+  if ((has("luggage") || has("suitcase") || has("suitcases")) && (has("set") || has("sets"))) {
+    pushPriority("luggage-sets");
+    pushPriority("suitcase-sets");
+    if (has("hard") || has("hardshell") || has("shell")) pushPriority("hardshell-luggage");
+  }
+  if ((has("clipper") || has("clippers") || has("trimmer") || has("trimmers")) && has("hair")) {
+    pushPriority("hair-clippers");
+  }
+
   // Strip a leading numeric quantity ("3-piece-luggage-set" -> "luggage-set")
   const stripped = base.replace(/^(\d+[a-z]{0,4}-)+/i, "").replace(/^(piece|pcs|pc|pack)-/i, "");
 
