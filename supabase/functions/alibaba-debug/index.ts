@@ -6,25 +6,30 @@ serve(async (req) => {
   if (req.method === "OPTIONS") return new Response("ok", { headers: corsHeaders });
   const u = new URL(req.url);
   const target = u.searchParams.get("url")!;
+  const raw = u.searchParams.get("raw") === "1";
+  const grep = u.searchParams.get("grep");
   const res = await fetch("https://api.brightdata.com/request", { method: "POST", headers: { Authorization: `Bearer ${KEY}`, "Content-Type": "application/json" }, body: JSON.stringify({ zone: ZONE, url: target, format: "raw", country: "us" }) });
   const html = await res.text();
 
-  // Try to find product card blocks. Alibaba showroom often uses divs
-  // containing an anchor to /product-detail/... with data attributes.
+  if (raw) {
+    return new Response(html, { headers: { ...corsHeaders, "Content-Type": "text/html" } });
+  }
+
+  if (grep) {
+    const re = new RegExp(grep, "gi");
+    const hits: string[] = [];
+    let m; let count = 0;
+    while ((m = re.exec(html)) && count < 8) { hits.push(html.slice(Math.max(0,m.index-200), m.index+400)); count++; }
+    return new Response(JSON.stringify({ len: html.length, matches: count, hits }, null, 2), { headers: { ...corsHeaders, "Content-Type": "application/json" } });
+  }
+
   const idxs: number[] = [];
   const re = /product-detail\//g; let m; while ((m = re.exec(html)) && idxs.length < 3) idxs.push(m.index);
-
   const snippets = idxs.map(i => html.slice(Math.max(0, i - 1500), i + 2500));
-
-  // Also grep for MOQ, price and supplier markers
   const moqCtx = [...html.matchAll(/Min\.? ?Order[\s\S]{0,200}/gi)].slice(0, 3).map(x => x[0]);
   const priceCtx = [...html.matchAll(/US\s*\$\s*[\d.,]+[\s\S]{0,200}/gi)].slice(0, 3).map(x => x[0]);
-
-  // Look for JSON-LD blocks
   const ldMatches = [...html.matchAll(/<script[^>]+application\/ld\+json[^>]*>([\s\S]*?)<\/script>/gi)];
   const ldTypes = ldMatches.map(m => { try { const j = JSON.parse(m[1].trim()); return j["@type"] || Object.keys(j).slice(0,3); } catch { return "parse-err"; } });
-
-  // Look for challenge markers
   const isChallenge = /captcha|verify.you.re.human|cf-chl|verification challenge|_smartCaptcha/i.test(html);
   const titleMatch = html.match(/<title>([^<]{1,200})<\/title>/i);
 

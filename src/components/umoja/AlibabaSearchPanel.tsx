@@ -44,24 +44,33 @@ const absUrl = (u: string) => {
 };
 
 // Words that don't help identify a product on Alibaba — strip them.
+// NOTE: "set", "kit", "pack" are KEPT — they're core product nouns
+// ("luggage set", "tool kit", "6-pack").
 const STOPWORDS = new Set<string>([
   "the","a","an","and","or","of","for","with","in","on","to","from","by","at","this","that",
   "vintage","professional","premium","deluxe","luxury","new","hot","sale","top","best","quality","high",
   "super","ultra","mini","portable","household","home","house","use","using","waterproof","wireless",
   "rechargeable","usb","powered","power","english","cordless","corded","smart","auto","automatic","manual",
   "men","mens","women","womens","kids","boys","girls","unisex","adult","adults","baby","child","children",
-  "set","kit","pack","piece","pieces","pcs","pc","model","style","series","size","large","small","medium","xl",
+  "piece","pieces","pcs","pc","model","style","series","size","large","small","medium","xl",
   "color","colour","black","white","red","blue","green","pink","gold","silver","gray","grey","brown",
   "buy","cheap","free","shipping","brand","genuine","original","official","case","cover","accessory","accessories",
-  "type","edition","version","gen","version",
+  "type","edition","version","gen",
+  "hard","soft","outer","inner",
 ]);
 
 // e.g. "IPX6", "IP67", "2000mah", "5g", "16gb"
 const RE_MODEL_TOKEN = /^(ipx?\d+|ip\d{2,}|\d+[a-z]{1,4}|[a-z]{1,3}\d+[a-z]*)$/i;
 
+function pluralize(word: string): string {
+  if (/(s|x|z|ch|sh)$/.test(word)) return word + "es";
+  if (/[^aeiou]y$/.test(word)) return word.slice(0, -1) + "ies";
+  if (!word.endsWith("s")) return word + "s";
+  return word;
+}
+
 function extractSmartKeywords(title: string): { primary: string; variants: string[] } {
   if (!title) return { primary: "", variants: [] };
-  // remove parentheticals, punctuation
   const cleaned = title
     .replace(/\([^)]*\)/g, " ")
     .replace(/\[[^\]]*\]/g, " ")
@@ -79,19 +88,22 @@ function extractSmartKeywords(title: string): { primary: string; variants: strin
     if (lw.length <= 1) continue;
     words.push(lw);
   }
-  // primary = last 2-3 meaningful words (product noun tends to be later, e.g. "hair clipper")
-  const tail = words.slice(-3);
-  const primary = tail.slice(-2).join(" ") || tail.join(" ") || words[0] || title;
+  // primary = last 2 meaningful words (product noun tends to be at the end,
+  // e.g. "luggage set", "hair clipper").
+  const last2 = words.slice(-2).join(" ");
+  const last1 = words[words.length - 1] || "";
+  const primary = last2 || last1 || words[0] || title;
 
   const variants: string[] = [];
   const add = (s: string) => {
     const t = s.trim();
     if (t && t !== primary && !variants.includes(t) && t.split(" ").length <= 4) variants.push(t);
   };
-  add(tail.join(" "));
-  add(words.slice(-2).join(" "));
-  add(words[words.length - 1] || "");
-  return { primary, variants: variants.slice(0, 2) };
+  // pluralized primary ("luggage set" -> "luggage sets") — often the canonical slug
+  const parts = primary.split(" ").filter(Boolean);
+  if (parts.length) add([...parts.slice(0, -1), pluralize(parts[parts.length - 1])].join(" "));
+  add(last1);
+  return { primary, variants: variants.slice(0, 3) };
 }
 
 export function AlibabaSearchPanel({ open, onOpenChange, initialQuery, originalImage, originalName, originalPriceLabel, onSelect }: Props) {
