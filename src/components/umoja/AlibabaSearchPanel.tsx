@@ -125,6 +125,7 @@ export function AlibabaSearchPanel({ open, onOpenChange, initialQuery, originalI
     setHasSearched(false);
   }, [initialQuery, smart.primary]);
 
+
   const run = async (q: string, opts?: { includeVariants?: boolean }) => {
     const term = q.trim();
     if (!term) return;
