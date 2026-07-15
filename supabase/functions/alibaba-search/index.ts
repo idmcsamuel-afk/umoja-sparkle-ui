@@ -45,13 +45,13 @@ function slugify(q: string): string {
 function slugCandidates(q: string): string[] {
   const base = slugify(q);
   if (!base) return [];
-  const out = new Set<string>();
-  const push = (s: string) => { if (s && s.length > 1) out.add(s); };
+  const priority: string[] = [];
+  const fallback: string[] = [];
+  const pushPriority = (s: string) => { if (s && s.length > 1 && !priority.includes(s)) priority.push(s); };
+  const pushFallback = (s: string) => { if (s && s.length > 1 && !priority.includes(s) && !fallback.includes(s)) fallback.push(s); };
 
-  push(base);
   // Strip a leading numeric quantity ("3-piece-luggage-set" -> "luggage-set")
   const stripped = base.replace(/^(\d+[a-z]{0,4}-)+/i, "").replace(/^(piece|pcs|pc|pack)-/i, "");
-  push(stripped);
 
   for (const s of [base, stripped]) {
     const parts = s.split("-").filter(Boolean);
@@ -61,15 +61,18 @@ function slugCandidates(q: string): string[] {
     if (/(s|x|z|ch|sh)$/.test(last)) pl = last + "es";
     else if (/[^aeiou]y$/.test(last)) pl = last.slice(0, -1) + "ies";
     else if (!last.endsWith("s")) pl = last + "s";
-    if (pl !== last) push([...parts.slice(0, -1), pl].join("-"));
+    if (pl !== last) pushPriority([...parts.slice(0, -1), pl].join("-"));
     if (last.endsWith("s") && last.length > 3) {
       const sg = last.endsWith("ies") ? last.slice(0, -3) + "y"
               : /(ses|xes|zes|ches|shes)$/.test(last) ? last.slice(0, -2)
               : last.slice(0, -1);
-      push([...parts.slice(0, -1), sg].join("-"));
+      pushFallback([...parts.slice(0, -1), sg].join("-"));
     }
   }
-  return Array.from(out).slice(0, 4);
+
+  pushFallback(stripped);
+  pushFallback(base);
+  return [...priority, ...fallback].slice(0, 4);
 }
 
 function isSoft404(html: string): boolean {
@@ -134,7 +137,7 @@ function extractCardMeta(html: string, id: string) {
 function candidatesFromHtml(html: string, matchedQuery: string): Candidate[] {
   const jsonBlocks = parseJsonLd(html);
   const itemList = jsonBlocks.find((b) => b && b["@type"] === "ItemList" && Array.isArray(b.itemListElement));
-  if (!itemList || !Array.isArray(itemList.itemListElement)) return [];
+  if (!itemList || !Array.isArray(itemList.itemListElement)) return candidatesFromDom(html, matchedQuery);
 
   const results: Candidate[] = [];
   for (const el of itemList.itemListElement) {
@@ -180,6 +183,77 @@ function candidatesFromHtml(html: string, matchedQuery: string): Candidate[] {
   return results;
 }
 
+function decodeHtml(input: string): string {
+  return input
+    .replace(/&amp;/g, "&")
+    .replace(/&quot;/g, '"')
+    .replace(/&#39;|&apos;/g, "'")
+    .replace(/&lt;/g, "<")
+    .replace(/&gt;/g, ">")
+    .replace(/\s+/g, " ")
+    .trim();
+}
+
+function absoluteAlibabaUrl(url: string): string {
+  if (url.startsWith("http")) return url;
+  if (url.startsWith("//")) return `https:${url}`;
+  if (url.startsWith("/")) return `https://www.alibaba.com${url}`;
+  return `https://www.alibaba.com/${url}`;
+}
+
+function extractAttr(tag: string, attr: string): string | null {
+  const re = new RegExp(`${attr}=["']([^"']+)["']`, "i");
+  return tag.match(re)?.[1] ?? null;
+}
+
+function candidatesFromDom(html: string, matchedQuery: string): Candidate[] {
+  const results: Candidate[] = [];
+  const seen = new Set<string>();
+  const anchorRe = /<a\b[^>]*href=["']([^"']*product-detail\/[^"']+_[0-9]{6,}\.html[^"']*)["'][^>]*>[\s\S]*?<\/a>/gi;
+  let m;
+  while ((m = anchorRe.exec(html)) && results.length < 50) {
+    const anchorHtml = m[0];
+    const url = absoluteAlibabaUrl(decodeHtml(m[1]));
+    const id = extractProductId(url) || String(results.length + 1);
+    if (seen.has(id)) continue;
+
+    const imgTag = anchorHtml.match(/<img\b[^>]*>/i)?.[0] ?? "";
+    const alt = extractAttr(imgTag, "alt");
+    const src = extractAttr(imgTag, "src");
+    const name = decodeHtml(alt || anchorHtml.replace(/<[^>]+>/g, " ")).slice(0, 240);
+    if (!name || name.length < 8) continue;
+
+    const meta = extractCardMeta(html, id);
+    let priceLabel = "—";
+    if (meta.priceFrom != null && meta.priceTo != null && meta.priceTo !== meta.priceFrom) {
+      priceLabel = `$${meta.priceFrom.toFixed(2)} - $${meta.priceTo.toFixed(2)}`;
+    } else if (meta.priceFrom != null) {
+      priceLabel = `from $${meta.priceFrom.toFixed(2)}`;
+    }
+
+    seen.add(id);
+    results.push({
+      id,
+      name,
+      url,
+      image: src ? absoluteAlibabaUrl(decodeHtml(src)) : null,
+      price_from: meta.priceFrom ?? null,
+      price_to: meta.priceTo ?? null,
+      price_currency: "USD",
+      price_label: priceLabel,
+      moq: meta.moq ?? null,
+      moq_unit: meta.moqUnit ?? null,
+      moq_found: meta.moq != null,
+      supplier_name: meta.supplier_name ?? null,
+      supplier_url: meta.supplier_url ?? null,
+      supplier_rating: null,
+      supplier_review_count: null,
+      matched_query: matchedQuery,
+    });
+  }
+  return results;
+}
+
 serve(async (req) => {
   if (req.method === "OPTIONS") return new Response("ok", { headers: corsHeaders });
 
@@ -190,13 +264,13 @@ serve(async (req) => {
     }
 
     let queries: string[] = [];
-    let pages = 3;
+    let pages = 2;
     let targetCount = 40;
     if (req.method === "POST") {
       const body = await req.json().catch(() => ({}));
       if (Array.isArray(body?.queries)) queries = body.queries.map((s: any) => String(s).trim()).filter(Boolean);
       else if (body?.query) queries = [String(body.query).trim()];
-      if (typeof body?.pages === "number") pages = Math.min(5, Math.max(1, body.pages));
+      if (typeof body?.pages === "number") pages = Math.min(3, Math.max(1, body.pages));
       if (typeof body?.target === "number") targetCount = Math.min(60, Math.max(10, body.target));
     } else {
       const q = new URL(req.url).searchParams.get("q")?.trim();
@@ -228,7 +302,7 @@ serve(async (req) => {
         const found = r.status === 200 && !soft404 ? candidatesFromHtml(r.body, q) : [];
         attempted.push({ query: q, slug, page: 1, url, status: soft404 ? 404 : r.status, found: found.length });
         for (const c of found) if (!byId.has(c.id)) byId.set(c.id, c);
-        if (!soft404 && r.status === 200) { workingSlug = slug; break; }
+        if (!soft404 && r.status === 200 && found.length > 0) { workingSlug = slug; break; }
         if (byId.size >= targetCount) break outer;
       }
 

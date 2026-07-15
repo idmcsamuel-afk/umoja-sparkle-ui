@@ -30,8 +30,29 @@ serve(async (req) => {
   const priceCtx = [...html.matchAll(/US\s*\$\s*[\d.,]+[\s\S]{0,200}/gi)].slice(0, 3).map(x => x[0]);
   const ldMatches = [...html.matchAll(/<script[^>]+application\/ld\+json[^>]*>([\s\S]*?)<\/script>/gi)];
   const ldTypes = ldMatches.map(m => { try { const j = JSON.parse(m[1].trim()); return j["@type"] || Object.keys(j).slice(0,3); } catch { return "parse-err"; } });
-  const isChallenge = /captcha|verify.you.re.human|cf-chl|verification challenge|_smartCaptcha/i.test(html);
+  const isChallenge = /captcha|punish|verify.you.re.human|verify your request|unusual traffic|access denied|cf-chl|verification challenge|_smartCaptcha/i.test(html);
+  const isBrightDataError = res.status >= 400 || /bright\s*data|quota|rate limit|balance|credit|unauthori[sz]ed|forbidden/i.test(html.slice(0, 3000));
+  const soft404 = isSoft404Like(html);
   const titleMatch = html.match(/<title>([^<]{1,200})<\/title>/i);
 
-  return new Response(JSON.stringify({ len: html.length, title: titleMatch?.[1], isChallenge, ldCount: ldMatches.length, ldTypes, productDetailAnchors: idxs.length, snippets, moqCtx, priceCtx }, null, 2), { headers: { ...corsHeaders, "Content-Type": "application/json" } });
+  return new Response(JSON.stringify({
+    upstreamStatus: res.status,
+    len: html.length,
+    title: titleMatch?.[1],
+    classification: isBrightDataError ? "bright-data-error" : isChallenge ? "alibaba-block-or-captcha" : soft404 ? "soft-404" : idxs.length > 0 ? "real-products-dom" : ldMatches.length > 0 ? "json-ld-present" : "unknown-empty",
+    isBrightDataError,
+    isChallenge,
+    soft404,
+    first1500: html.slice(0, 1500),
+    ldCount: ldMatches.length,
+    ldTypes,
+    productDetailAnchors: idxs.length,
+    snippets,
+    moqCtx,
+    priceCtx,
+  }, null, 2), { headers: { ...corsHeaders, "Content-Type": "application/json" } });
 });
+
+function isSoft404Like(html: string): boolean {
+  return /<title>\s*404-Error\s*<\/title>/i.test(html.slice(0, 4000));
+}
