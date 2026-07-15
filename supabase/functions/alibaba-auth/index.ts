@@ -215,25 +215,23 @@ serve(async (req) => {
     if (action === "imageSearch") {
       const image = u.searchParams.get("image");
       if (!image) return jsonRes({ error: "Missing image query param (public image URL)" }, 400);
+      const page = u.searchParams.get("page") ?? "1";
+      const pageSize = u.searchParams.get("pageSize") ?? "10";
+      const country = u.searchParams.get("country") ?? "ZA";
       const token = u.searchParams.get("token") ?? (await getValidAccessToken());
-      // Highest-priority endpoint per Alibaba Buyer-Product docs:
-      //   /icbu/product/image/search   (a.k.a. /eco/buyer/item/rec/image on some listings)
-      const primary = await callApi("/icbu/product/image/search", {
+      // Same pattern as productSearch: single structured `param0` JSON object,
+      // GET method, signed into the HMAC base string alongside access_token/app_key/etc.
+      const param0 = JSON.stringify({
+        imageUrl: image,
+        page: Number(page),
+        pageSize: Number(pageSize),
+        country,
+      });
+      const primary = await callApi("/eco/buyer/item/rec/image", {
         access_token: token,
-        image_url: image,
-        page_size: "10",
-        page_no: "1",
-      }, { method: "POST" });
-      let fallback: any = null;
-      if (primary.json?.code && primary.json?.code !== "0" && primary.json?.code !== 0) {
-        fallback = await callApi("/eco/buyer/item/rec/image", {
-          access_token: token,
-          image_url: image,
-          page_size: "10",
-          page_no: "1",
-        }, { method: "POST" });
-      }
-      return jsonRes({ image, primary, fallback });
+        param0,
+      }, { method: "GET" });
+      return jsonRes({ image, param0, primary });
     }
 
     return jsonRes({
