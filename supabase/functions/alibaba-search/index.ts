@@ -214,23 +214,37 @@ serve(async (req) => {
 
     outer:
     for (const q of queries) {
-      const slug = slugify(q);
-      if (!slug) continue;
-      for (let p = 1; p <= pages; p++) {
-        const url = p === 1
-          ? `https://www.alibaba.com/showroom/${slug}.html`
-          : `https://www.alibaba.com/showroom/${slug}/${p}.html`;
+      const slugs = slugCandidates(q);
+      if (!slugs.length) continue;
+      let workingSlug: string | null = null;
+
+      // First, find a slug that isn't a soft-404 by probing page 1 of each candidate.
+      for (const slug of slugs) {
+        const url = `https://www.alibaba.com/showroom/${slug}.html`;
         if (!source_url) source_url = url;
         const r = await unlockerFetch(url);
         unlockerRequests++;
-        const found = r.status === 200 ? candidatesFromHtml(r.body, q) : [];
-        attempted.push({ query: q, slug, page: p, url, status: r.status, found: found.length });
-        for (const c of found) {
-          if (!byId.has(c.id)) byId.set(c.id, c);
-        }
+        const soft404 = r.status === 200 && isSoft404(r.body);
+        const found = r.status === 200 && !soft404 ? candidatesFromHtml(r.body, q) : [];
+        attempted.push({ query: q, slug, page: 1, url, status: soft404 ? 404 : r.status, found: found.length });
+        for (const c of found) if (!byId.has(c.id)) byId.set(c.id, c);
+        if (!soft404 && r.status === 200) { workingSlug = slug; break; }
         if (byId.size >= targetCount) break outer;
-        // if a page returns 0 items, don't waste more requests on later pages of same query
-        if (found.length === 0 && p > 1) break;
+      }
+
+      if (byId.size >= targetCount) break outer;
+      if (!workingSlug) continue;
+
+      // Paginate the working slug for extra results.
+      for (let p = 2; p <= pages; p++) {
+        const url = `https://www.alibaba.com/showroom/${workingSlug}/${p}.html`;
+        const r = await unlockerFetch(url);
+        unlockerRequests++;
+        const found = r.status === 200 && !isSoft404(r.body) ? candidatesFromHtml(r.body, q) : [];
+        attempted.push({ query: q, slug: workingSlug, page: p, url, status: r.status, found: found.length });
+        for (const c of found) if (!byId.has(c.id)) byId.set(c.id, c);
+        if (byId.size >= targetCount) break outer;
+        if (found.length === 0) break;
       }
     }
 
