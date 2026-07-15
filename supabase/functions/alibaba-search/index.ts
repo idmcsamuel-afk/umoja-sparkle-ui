@@ -38,6 +38,44 @@ function slugify(q: string): string {
     .slice(0, 100);
 }
 
+// Alibaba's /showroom/<slug>.html uses arbitrary canonical slugs — many are
+// pluralized ("luggage-sets", "hair-clippers"), some singular. There's no way
+// to know in advance, so we generate a few candidate slugs per query and try
+// each until one returns a real page (not the 404-Error soft page).
+function slugCandidates(q: string): string[] {
+  const base = slugify(q);
+  if (!base) return [];
+  const out = new Set<string>();
+  const push = (s: string) => { if (s && s.length > 1) out.add(s); };
+
+  push(base);
+  // Strip a leading numeric quantity ("3-piece-luggage-set" -> "luggage-set")
+  const stripped = base.replace(/^(\d+[a-z]{0,4}-)+/i, "").replace(/^(piece|pcs|pc|pack)-/i, "");
+  push(stripped);
+
+  for (const s of [base, stripped]) {
+    const parts = s.split("-").filter(Boolean);
+    if (!parts.length) continue;
+    const last = parts[parts.length - 1];
+    let pl = last;
+    if (/(s|x|z|ch|sh)$/.test(last)) pl = last + "es";
+    else if (/[^aeiou]y$/.test(last)) pl = last.slice(0, -1) + "ies";
+    else if (!last.endsWith("s")) pl = last + "s";
+    if (pl !== last) push([...parts.slice(0, -1), pl].join("-"));
+    if (last.endsWith("s") && last.length > 3) {
+      const sg = last.endsWith("ies") ? last.slice(0, -3) + "y"
+              : /(ses|xes|zes|ches|shes)$/.test(last) ? last.slice(0, -2)
+              : last.slice(0, -1);
+      push([...parts.slice(0, -1), sg].join("-"));
+    }
+  }
+  return Array.from(out).slice(0, 4);
+}
+
+function isSoft404(html: string): boolean {
+  return /<title>\s*404-Error\s*<\/title>/i.test(html.slice(0, 4000));
+}
+
 async function unlockerFetch(url: string): Promise<{ status: number; body: string }> {
   const res = await fetch("https://api.brightdata.com/request", {
     method: "POST",
