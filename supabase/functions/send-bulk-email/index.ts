@@ -83,6 +83,29 @@ function escapeHtml(s: string) {
     .replace(/'/g, "&#39;");
 }
 
+// Detect whether the body already contains HTML markup. If so, skip markdown
+// conversion (which escapes tags and shows them as literal text) and only
+// sanitize dangerous elements — matches send-email's "custom" template.
+function looksLikeHtml(s: string): boolean {
+  return /<\/?[a-z][\s\S]*?>/i.test(s);
+}
+
+function sanitizeHtml(input: string): string {
+  let s = String(input ?? "");
+  s = s.replace(/<\s*(script|style|iframe|object|embed|link|meta)\b[\s\S]*?<\s*\/\s*\1\s*>/gi, "");
+  s = s.replace(/<\s*(script|style|iframe|object|embed|link|meta)\b[^>]*>/gi, "");
+  s = s.replace(/\son[a-z]+\s*=\s*"(?:[^"\\]|\\.)*"/gi, "");
+  s = s.replace(/\son[a-z]+\s*=\s*'(?:[^'\\]|\\.)*'/gi, "");
+  s = s.replace(/\son[a-z]+\s*=\s*[^\s>]+/gi, "");
+  s = s.replace(/(href|src)\s*=\s*"(\s*(?:javascript|data|vbscript):[^"]*)"/gi, '$1="#"');
+  s = s.replace(/(href|src)\s*=\s*'(\s*(?:javascript|data|vbscript):[^']*)'/gi, "$1='#'");
+  return s;
+}
+
+function renderBody(raw: string): string {
+  return looksLikeHtml(raw) ? sanitizeHtml(raw) : markdownToEmailHtml(raw);
+}
+
 // Convert lightweight markdown-ish body into email-safe HTML.
 // Supports: **bold**, *italic*, bullet lines (•, -, *), auto-links (http/https, mailto:),
 // and paragraph breaks on blank lines.
@@ -187,8 +210,13 @@ Deno.serve(async (req) => {
 
     if (!campaignId) throw new Error("subject (or campaign_id) required");
 
-    const members = await fetchValidMembers();
-    const alreadySent = await fetchAlreadySentEmails(campaignId);
+    const allMembers = await fetchValidMembers();
+    const onlyEmail: string = String(payload.only_email ?? "").trim().toLowerCase();
+    const members = onlyEmail
+      ? allMembers.filter((m: any) => String(m.email).toLowerCase() === onlyEmail)
+      : allMembers;
+    // In only_email mode, skip campaign dedup so repeat test sends work.
+    const alreadySent = onlyEmail ? new Set<string>() : await fetchAlreadySentEmails(campaignId);
     const remaining = members.filter((m: any) => !alreadySent.has(String(m.email).toLowerCase()));
 
     if (preview) {
@@ -217,7 +245,7 @@ Deno.serve(async (req) => {
       try {
         const unsubUrl = `${unsubBase}?email=${encodeURIComponent(m.email)}`;
         const personalizedSubject = personalize(subject, m.full_name);
-        const personalizedBody = markdownToEmailHtml(personalize(String(body), m.full_name));
+        const personalizedBody = renderBody(personalize(String(body), m.full_name));
         const html = wrap(personalizedSubject, personalizedBody, unsubUrl);
         const r = await fetch("https://api.resend.com/emails", {
           method: "POST",

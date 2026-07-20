@@ -179,6 +179,26 @@ export default function AdminNotifications() {
     else { toast.success("Test sent to " + user.email); loadLogs(); }
   };
 
+  // Runs the REAL bulk-send route restricted to your own email, so you can
+  // verify the exact rendering path that "Send to all" uses before broadcasting.
+  const sendBulkTestToMe = async () => {
+    if (!user?.email) return toast.error("No email on your account");
+    if (!subject || !body) return toast.error("Subject and body required");
+    setBusy(true);
+    const { data, error } = await supabase.functions.invoke("send-bulk-email", {
+      body: {
+        subject, body,
+        campaign_id: `test:${user.email}:${Date.now()}`,
+        batch_size: 1,
+        throttle_ms: 0,
+        only_email: user.email,
+      },
+    });
+    setBusy(false);
+    if (error || !data || data.error) toast.error("Bulk test failed: " + (error?.message ?? data?.error));
+    else { toast.success(`Bulk test sent to ${user.email} (${data.sent}/${data.batch_size})`); loadLogs(); }
+  };
+
   const sendBlast = async () => {
     if (!subject || !body) return toast.error("Subject and body required");
     if (audience === "custom" && parsedIds.length === 0) return toast.error("Provide member IDs");
@@ -421,6 +441,9 @@ export default function AdminNotifications() {
         <div className="flex flex-wrap gap-2">
           <Button variant="outline" onClick={sendTest} disabled={busy} className="rounded-2xl">
             {busy ? <Loader2 className="h-4 w-4 animate-spin" /> : <Mail className="h-4 w-4" />} Send Test to Myself
+          </Button>
+          <Button variant="outline" onClick={sendBulkTestToMe} disabled={busy} className="rounded-2xl">
+            {busy ? <Loader2 className="h-4 w-4 animate-spin" /> : <Mail className="h-4 w-4" />} Bulk Test (only me)
           </Button>
           <Button onClick={sendBlast} disabled={busy} className="rounded-2xl bg-gradient-gold text-amber-950">
             {busy ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />}
