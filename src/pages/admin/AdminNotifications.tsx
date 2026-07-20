@@ -442,6 +442,8 @@ export default function AdminNotifications() {
           <Button variant="outline" onClick={sendTest} disabled={busy} className="rounded-2xl">
             {busy ? <Loader2 className="h-4 w-4 animate-spin" /> : <Mail className="h-4 w-4" />} Send Test to Myself
           </Button>
+          <Button variant="outline" onClick={sendBulkTestToMe} disabled={busy} className="rounded-2xl">
+            {busy ? <Loader2 className="h-4 w-4 animate-spin" /> : <Mail className="h-4 w-4" />} Bulk Test (only me)
           <Button onClick={sendBlast} disabled={busy} className="rounded-2xl bg-gradient-gold text-amber-950">
             {busy ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />}
             {audience === "all" && campaignProgress
