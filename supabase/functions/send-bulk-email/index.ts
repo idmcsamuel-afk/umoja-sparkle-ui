@@ -210,8 +210,13 @@ Deno.serve(async (req) => {
 
     if (!campaignId) throw new Error("subject (or campaign_id) required");
 
-    const members = await fetchValidMembers();
-    const alreadySent = await fetchAlreadySentEmails(campaignId);
+    const allMembers = await fetchValidMembers();
+    const onlyEmail: string = String(payload.only_email ?? "").trim().toLowerCase();
+    const members = onlyEmail
+      ? allMembers.filter((m: any) => String(m.email).toLowerCase() === onlyEmail)
+      : allMembers;
+    // In only_email mode, skip campaign dedup so repeat test sends work.
+    const alreadySent = onlyEmail ? new Set<string>() : await fetchAlreadySentEmails(campaignId);
     const remaining = members.filter((m: any) => !alreadySent.has(String(m.email).toLowerCase()));
 
     if (preview) {
