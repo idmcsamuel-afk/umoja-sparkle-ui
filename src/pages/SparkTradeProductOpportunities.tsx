@@ -388,9 +388,53 @@ function SparkTradeProductOpportunities() {
 }
 
 /* ============================================================
+   Demand proof — member-safe signals only (reviews + rating).
+   "High Demand" mirrors the admin high-demand rule (500+ reviews).
+   ============================================================ */
+function DemandProofRow({ demand }: { demand?: DemandProof }) {
+  if (!demand) return null;
+  const reviews = demand.review_count ?? 0;
+  const rating = demand.rating;
+  if (!reviews && rating == null) return null;
+  const highDemand = reviews >= 500;
+
+  return (
+    <div className="flex flex-wrap items-center gap-2 text-[11px]">
+      {highDemand && (
+        <Badge className="bg-green-600 text-white hover:bg-green-600 gap-1">
+          <Flame className="h-3 w-3" /> High Demand
+        </Badge>
+      )}
+      {rating != null && (
+        <span className="inline-flex items-center gap-1 text-muted-foreground">
+          <span className="inline-flex">
+            {[0, 1, 2, 3, 4].map((i) => (
+              <Star
+                key={i}
+                className={
+                  "h-3 w-3 " +
+                  (i < Math.round(rating)
+                    ? "fill-amber-400 text-amber-400"
+                    : "text-muted-foreground/40")
+                }
+              />
+            ))}
+          </span>
+          <span className="font-medium text-foreground">{rating.toFixed(1)}</span>
+        </span>
+      )}
+      {reviews > 0 && (
+        <span className="text-muted-foreground">{reviews.toLocaleString()} reviews</span>
+      )}
+    </div>
+  );
+}
+
+/* ============================================================
    Opportunity card — shows tier-adjusted landed & profit, has
    qty stepper and "Add to cart" button.
    ============================================================ */
+
 function OpportunityCard({
   p,
   commitment,
