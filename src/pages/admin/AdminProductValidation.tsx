@@ -185,6 +185,7 @@ type PersistedUi = {
   minReviewsFilter: MinReviewsFilter;
   sortMode: SortMode;
   brandFilter: BrandFilter;
+  recencyFilter: RecencyFilter;
   showImageless: boolean;
   page: number;
   openForm: string | null;
