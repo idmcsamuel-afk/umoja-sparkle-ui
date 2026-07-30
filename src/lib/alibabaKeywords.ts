@@ -189,7 +189,9 @@ export function extractSmartKeywords(title: string): { primary: string; variants
   add(core);                                        // singular compound
   const parts = core.split(" ");
   const head = parts[parts.length - 1];
-  if (head) { add(pluralize(head)); add(head); }    // bare noun, plural first
+  // A bare generic head ("set", "kit", "toy") is a useless Alibaba query.
+  const GENERIC_HEADS = new Set(["set","kit","pack","box","bag","case","machine","toy","item","product"]);
+  if (head && !GENERIC_HEADS.has(head)) { add(pluralize(head)); add(head); }
 
   return { primary, variants: variants.slice(0, 3) };
 }
