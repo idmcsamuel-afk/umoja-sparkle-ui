@@ -171,7 +171,7 @@ function SparkTradeProductOpportunities() {
       const { data, error } = await supabase
         .from("spark_trade_opportunities" as any)
         .select(
-          "id, product_name, category, moq_required, unit_cost_zar, suggested_selling_price_zar, expected_margin_percentage, product_image_url, stock_available, trending_direction, supplier_country, is_spotlight, spotlight_rank, spotlight_title, landed_cost_sea_zar, landed_cost_air_zar, gross_margin_sea_zar, margin_sea_pct, gross_margin_air_zar, margin_air_pct, air_available, member_min_buyin_zar, alibaba_cost_zar, freight_sea_zar, freight_air_zar",
+          "id, product_name, category, moq_required, unit_cost_zar, suggested_selling_price_zar, expected_margin_percentage, product_image_url, stock_available, trending_direction, supplier_country, is_spotlight, spotlight_rank, spotlight_title, landed_cost_sea_zar, landed_cost_air_zar, gross_margin_sea_zar, margin_sea_pct, gross_margin_air_zar, margin_air_pct, air_available, member_min_buyin_zar, alibaba_cost_zar, freight_sea_zar, freight_air_zar, source_product_url",
         )
         .eq("is_spotlight", true)
         .order("spotlight_rank", { ascending: true, nullsFirst: false })
@@ -185,11 +185,34 @@ function SparkTradeProductOpportunities() {
       setLoading(false);
 
       if (rows.length) {
+        // Member-safe demand proof (review count + rating) from the source listing.
+        const urls = rows.map((r) => r.source_product_url).filter(Boolean) as string[];
+        if (urls.length) {
+          const { data: prods } = await supabase
+            .from("products")
+            .select("product_url, review_count, rating")
+            .in("product_url", urls);
+          const byUrl = new Map<string, DemandProof>();
+          for (const pr of (prods as any[]) ?? []) {
+            byUrl.set(pr.product_url, {
+              review_count: pr.review_count == null ? null : Number(pr.review_count),
+              rating: pr.rating == null ? null : Number(pr.rating),
+            });
+          }
+          const dmap: Record<number, DemandProof> = {};
+          for (const r of rows) {
+            const d = r.source_product_url ? byUrl.get(r.source_product_url) : undefined;
+            if (d && (d.review_count != null || d.rating != null)) dmap[r.id] = d;
+          }
+          setDemand(dmap);
+        }
+
         const entries = await Promise.all(rows.map(async (r) => [r.id, await fetchCommitment(r.id)] as const));
         const map: Record<number, CommitmentStatus> = {};
         for (const [id, s] of entries) if (s) map[id] = s;
         setCommitments(map);
       }
+
     })();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
