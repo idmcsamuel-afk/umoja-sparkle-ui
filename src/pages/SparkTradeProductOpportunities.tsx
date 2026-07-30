@@ -103,6 +103,8 @@ function SparkTradeProductOpportunities() {
   const [category, setCategory] = useState<CategoryFilter>("All");
   const [availableCapital, setAvailableCapital] = useState<number | null>(null);
   const [commitments, setCommitments] = useState<Record<number, CommitmentStatus>>({});
+  const [demand, setDemand] = useState<Record<number, DemandProof>>({});
+
 
   useEffect(() => {
     if (!authLoading && !user) navigate("/login");
