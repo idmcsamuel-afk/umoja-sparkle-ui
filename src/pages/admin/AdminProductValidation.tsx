@@ -56,6 +56,8 @@ type MarketFilter = "all" | "amazon_us" | "amazon_sa" | "walmart_us" | "takealot
 type MinReviewsFilter = 0 | 100 | 500 | 1000;
 type SortMode = "reviews_desc" | "newest";
 type BrandFilter = "all" | "branded" | "generic";
+/** Days of recency to load. 0 = no date limit. */
+type RecencyFilter = 7 | 30 | 90 | 0;
 
 const PAGE_SIZE = 5;
 const MARKET_LABEL: Record<string, string> = {
