@@ -511,6 +511,10 @@ function OpportunityCard({
       <div className="p-4 flex-1 flex flex-col gap-3">
         <h3 className="font-semibold line-clamp-2 min-h-[3rem]">{p.product_name}</h3>
 
+        <DemandProofRow demand={demand} />
+
+
+
         {airOn && (
           <div className="flex gap-2">
             <button
