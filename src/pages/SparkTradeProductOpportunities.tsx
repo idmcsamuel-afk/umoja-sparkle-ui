@@ -61,7 +61,15 @@ interface Opportunity extends CartOpportunity {
   margin_sea_pct?: number | null;
   margin_air_pct?: number | null;
   unit_cost_zar?: number | null;
+  source_product_url?: string | null;
 }
+
+/** Member-safe demand proof pulled from the source marketplace listing. */
+interface DemandProof {
+  review_count: number | null;
+  rating: number | null;
+}
+
 
 interface CommitmentStatus {
   members_committed: number;
