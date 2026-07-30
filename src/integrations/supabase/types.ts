@@ -4286,6 +4286,7 @@ export type Database = {
           seed_override_open: boolean
           updated_at: string
           updated_by: string | null
+          usd_zar_rate: number
           usdt_trc20_address: string | null
           usdt_zar_rate: number | null
         }
@@ -4307,6 +4308,7 @@ export type Database = {
           seed_override_open?: boolean
           updated_at?: string
           updated_by?: string | null
+          usd_zar_rate?: number
           usdt_trc20_address?: string | null
           usdt_zar_rate?: number | null
         }
@@ -4328,6 +4330,7 @@ export type Database = {
           seed_override_open?: boolean
           updated_at?: string
           updated_by?: string | null
+          usd_zar_rate?: number
           usdt_trc20_address?: string | null
           usdt_zar_rate?: number | null
         }
@@ -7953,6 +7956,7 @@ export type Database = {
         }
         Returns: Json
       }
+      current_usd_zar_rate: { Args: never; Returns: number }
       expire_unpaid_bids: { Args: never; Returns: number }
       extract_takealot_plid: { Args: { url: string }; Returns: string }
       flame_graphics_count_week: { Args: never; Returns: number }
