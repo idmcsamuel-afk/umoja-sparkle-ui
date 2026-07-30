@@ -30,6 +30,9 @@ import {
   Crown,
   RefreshCw,
   CheckCircle2,
+  Star,
+  Flame,
+
 } from "lucide-react";
 import {
   computeMemberMoq,
@@ -61,7 +64,15 @@ interface Opportunity extends CartOpportunity {
   margin_sea_pct?: number | null;
   margin_air_pct?: number | null;
   unit_cost_zar?: number | null;
+  source_product_url?: string | null;
 }
+
+/** Member-safe demand proof pulled from the source marketplace listing. */
+interface DemandProof {
+  review_count: number | null;
+  rating: number | null;
+}
+
 
 interface CommitmentStatus {
   members_committed: number;
@@ -95,6 +106,8 @@ function SparkTradeProductOpportunities() {
   const [category, setCategory] = useState<CategoryFilter>("All");
   const [availableCapital, setAvailableCapital] = useState<number | null>(null);
   const [commitments, setCommitments] = useState<Record<number, CommitmentStatus>>({});
+  const [demand, setDemand] = useState<Record<number, DemandProof>>({});
+
 
   useEffect(() => {
     if (!authLoading && !user) navigate("/login");
@@ -171,7 +184,7 @@ function SparkTradeProductOpportunities() {
       const { data, error } = await supabase
         .from("spark_trade_opportunities" as any)
         .select(
-          "id, product_name, category, moq_required, unit_cost_zar, suggested_selling_price_zar, expected_margin_percentage, product_image_url, stock_available, trending_direction, supplier_country, is_spotlight, spotlight_rank, spotlight_title, landed_cost_sea_zar, landed_cost_air_zar, gross_margin_sea_zar, margin_sea_pct, gross_margin_air_zar, margin_air_pct, air_available, member_min_buyin_zar, alibaba_cost_zar, freight_sea_zar, freight_air_zar",
+          "id, product_name, category, moq_required, unit_cost_zar, suggested_selling_price_zar, expected_margin_percentage, product_image_url, stock_available, trending_direction, supplier_country, is_spotlight, spotlight_rank, spotlight_title, landed_cost_sea_zar, landed_cost_air_zar, gross_margin_sea_zar, margin_sea_pct, gross_margin_air_zar, margin_air_pct, air_available, member_min_buyin_zar, alibaba_cost_zar, freight_sea_zar, freight_air_zar, source_product_url",
         )
         .eq("is_spotlight", true)
         .order("spotlight_rank", { ascending: true, nullsFirst: false })
@@ -185,11 +198,34 @@ function SparkTradeProductOpportunities() {
       setLoading(false);
 
       if (rows.length) {
+        // Member-safe demand proof (review count + rating) from the source listing.
+        const urls = rows.map((r) => r.source_product_url).filter(Boolean) as string[];
+        if (urls.length) {
+          const { data: prods } = await supabase
+            .from("products")
+            .select("product_url, review_count, rating")
+            .in("product_url", urls);
+          const byUrl = new Map<string, DemandProof>();
+          for (const pr of (prods as any[]) ?? []) {
+            byUrl.set(pr.product_url, {
+              review_count: pr.review_count == null ? null : Number(pr.review_count),
+              rating: pr.rating == null ? null : Number(pr.rating),
+            });
+          }
+          const dmap: Record<number, DemandProof> = {};
+          for (const r of rows) {
+            const d = r.source_product_url ? byUrl.get(r.source_product_url) : undefined;
+            if (d && (d.review_count != null || d.rating != null)) dmap[r.id] = d;
+          }
+          setDemand(dmap);
+        }
+
         const entries = await Promise.all(rows.map(async (r) => [r.id, await fetchCommitment(r.id)] as const));
         const map: Record<number, CommitmentStatus> = {};
         for (const [id, s] of entries) if (s) map[id] = s;
         setCommitments(map);
       }
+
     })();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
@@ -334,6 +370,8 @@ function SparkTradeProductOpportunities() {
                 key={p.id}
                 p={p}
                 commitment={commitments[p.id]}
+                demand={demand[p.id]}
+
                 bufferPct={bufferPct}
                 minItemBuyin={floors.minItemBuyinZar}
                 onOpenCart={() => setCartOpen(true)}
@@ -353,20 +391,67 @@ function SparkTradeProductOpportunities() {
 }
 
 /* ============================================================
+   Demand proof — member-safe signals only (reviews + rating).
+   "High Demand" mirrors the admin high-demand rule (500+ reviews).
+   ============================================================ */
+function DemandProofRow({ demand }: { demand?: DemandProof }) {
+  if (!demand) return null;
+  const reviews = demand.review_count ?? 0;
+  const rating = demand.rating;
+  if (!reviews && rating == null) return null;
+  const highDemand = reviews >= 500;
+
+  return (
+    <div className="flex flex-wrap items-center gap-2 text-[11px]">
+      {highDemand && (
+        <Badge className="bg-green-600 text-white hover:bg-green-600 gap-1">
+          <Flame className="h-3 w-3" /> High Demand
+        </Badge>
+      )}
+      {rating != null && (
+        <span className="inline-flex items-center gap-1 text-muted-foreground">
+          <span className="inline-flex">
+            {[0, 1, 2, 3, 4].map((i) => (
+              <Star
+                key={i}
+                className={
+                  "h-3 w-3 " +
+                  (i < Math.round(rating)
+                    ? "fill-amber-400 text-amber-400"
+                    : "text-muted-foreground/40")
+                }
+              />
+            ))}
+          </span>
+          <span className="font-medium text-foreground">{rating.toFixed(1)}</span>
+        </span>
+      )}
+      {reviews > 0 && (
+        <span className="text-muted-foreground">{reviews.toLocaleString()} reviews</span>
+      )}
+    </div>
+  );
+}
+
+/* ============================================================
    Opportunity card — shows tier-adjusted landed & profit, has
    qty stepper and "Add to cart" button.
    ============================================================ */
+
 function OpportunityCard({
   p,
   commitment,
+  demand,
   bufferPct,
   minItemBuyin,
   onOpenCart,
 }: {
   p: Opportunity;
   commitment?: CommitmentStatus;
+  demand?: DemandProof;
   bufferPct: number;
   minItemBuyin: number;
+
   onOpenCart: () => void;
 }) {
   const { addItem, has, items } = useSparkTradeCart();
@@ -472,6 +557,10 @@ function OpportunityCard({
       </div>
       <div className="p-4 flex-1 flex flex-col gap-3">
         <h3 className="font-semibold line-clamp-2 min-h-[3rem]">{p.product_name}</h3>
+
+        <DemandProofRow demand={demand} />
+
+
 
         {airOn && (
           <div className="flex gap-2">
