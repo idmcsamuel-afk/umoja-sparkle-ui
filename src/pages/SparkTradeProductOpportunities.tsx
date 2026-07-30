@@ -367,6 +367,8 @@ function SparkTradeProductOpportunities() {
                 key={p.id}
                 p={p}
                 commitment={commitments[p.id]}
+                demand={demand[p.id]}
+
                 bufferPct={bufferPct}
                 minItemBuyin={floors.minItemBuyinZar}
                 onOpenCart={() => setCartOpen(true)}
