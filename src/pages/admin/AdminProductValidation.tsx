@@ -646,6 +646,10 @@ export default function AdminProductValidation() {
         {([["all","All"],["generic","Generic (sourceable)"],["branded","Branded (demand signal)"]] as [BrandFilter,string][]).map(([v,l])=>(
           <Button key={v} size="sm" variant={brandFilter===v?"default":"outline"} onClick={()=>setBrandFilter(v)}>{l}</Button>
         ))}
+        <span className="text-xs text-muted-foreground ml-4 mr-1">First seen:</span>
+        {([[7,"7 days"],[30,"30 days"],[90,"90 days"],[0,"All time"]] as [RecencyFilter,string][]).map(([v,l])=>(
+          <Button key={v} size="sm" variant={recencyFilter===v?"default":"outline"} onClick={()=>setRecencyFilter(v)}>{l}</Button>
+        ))}
         <span className="text-xs text-muted-foreground ml-4 mr-1">Sort:</span>
         {([["reviews_desc","Most reviews"],["newest","Newest"]] as [SortMode,string][]).map(([v,l])=>(
           <Button key={v} size="sm" variant={sortMode===v?"default":"outline"} onClick={()=>setSortMode(v)}>{l}</Button>
