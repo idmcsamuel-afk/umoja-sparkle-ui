@@ -30,6 +30,9 @@ import {
   Crown,
   RefreshCw,
   CheckCircle2,
+  Star,
+  Flame,
+
 } from "lucide-react";
 import {
   computeMemberMoq,
