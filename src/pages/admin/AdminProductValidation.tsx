@@ -209,6 +209,9 @@ export default function AdminProductValidation() {
   const [minReviewsFilter, setMinReviewsFilter] = useState<MinReviewsFilter>(persisted.minReviewsFilter ?? 0);
   const [sortMode, setSortMode] = useState<SortMode>(persisted.sortMode ?? "reviews_desc");
   const [brandFilter, setBrandFilter] = useState<BrandFilter>(persisted.brandFilter ?? "all");
+  // Default 90 days: Amazon/Walmart rows refresh in place (upsert) so their
+  // created_at can be older than a week — a 7-day window hid them entirely.
+  const [recencyFilter, setRecencyFilter] = useState<RecencyFilter>(persisted.recencyFilter ?? 90);
   const [showImageless, setShowImageless] = useState(persisted.showImageless ?? false);
   const [page, setPage] = useState(persisted.page ?? 1);
   const [saving, setSaving] = useState<string | null>(null);
