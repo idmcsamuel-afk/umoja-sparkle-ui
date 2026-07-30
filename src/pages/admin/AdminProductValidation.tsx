@@ -301,11 +301,15 @@ export default function AdminProductValidation() {
 
   const load = async () => {
     setLoading(true);
-    const since = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString();
     let q = supabase
       .from("products" as any)
-      .select("*")
-      .gte("created_at", since);
+      .select("*");
+    // Recency window is configurable — marketplace scrapers upsert in place, so
+    // a freshly-refreshed row can still have an old created_at.
+    if (recencyFilter > 0) {
+      const since = new Date(Date.now() - recencyFilter * 24 * 60 * 60 * 1000).toISOString();
+      q = q.gte("created_at", since);
+    }
     if (marketFilter !== "all") q = q.eq("marketplace", marketFilter);
     // Order by review_count desc (Amazon/Walmart), then created_at desc so rows without
     // review_count (Takealot) still appear.
@@ -318,7 +322,7 @@ export default function AdminProductValidation() {
     setLoading(false);
   };
 
-  useEffect(() => { load(); }, [marketFilter]);
+  useEffect(() => { load(); }, [marketFilter, recencyFilter]);
 
   // Reset page when filters change — but skip the first render so a restored
   // page number from sessionStorage isn't wiped on mount.
@@ -326,7 +330,7 @@ export default function AdminProductValidation() {
   useEffect(() => {
     if (!filtersMountedRef.current) { filtersMountedRef.current = true; return; }
     setPage(1);
-  }, [statusFilter, marketFilter, showImageless, minReviewsFilter, sortMode, brandFilter]);
+  }, [statusFilter, marketFilter, showImageless, minReviewsFilter, sortMode, brandFilter, recencyFilter]);
 
   const hasImage = (r: ProductRow) => typeof r.image_url === "string" && /^https?:\/\//i.test(r.image_url);
 
