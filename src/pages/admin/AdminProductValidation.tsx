@@ -56,6 +56,8 @@ type MarketFilter = "all" | "amazon_us" | "amazon_sa" | "walmart_us" | "takealot
 type MinReviewsFilter = 0 | 100 | 500 | 1000;
 type SortMode = "reviews_desc" | "newest";
 type BrandFilter = "all" | "branded" | "generic";
+/** Days of recency to load. 0 = no date limit. */
+type RecencyFilter = 7 | 30 | 90 | 0;
 
 const PAGE_SIZE = 5;
 const MARKET_LABEL: Record<string, string> = {
@@ -183,6 +185,7 @@ type PersistedUi = {
   minReviewsFilter: MinReviewsFilter;
   sortMode: SortMode;
   brandFilter: BrandFilter;
+  recencyFilter: RecencyFilter;
   showImageless: boolean;
   page: number;
   openForm: string | null;
@@ -206,6 +209,9 @@ export default function AdminProductValidation() {
   const [minReviewsFilter, setMinReviewsFilter] = useState<MinReviewsFilter>(persisted.minReviewsFilter ?? 0);
   const [sortMode, setSortMode] = useState<SortMode>(persisted.sortMode ?? "reviews_desc");
   const [brandFilter, setBrandFilter] = useState<BrandFilter>(persisted.brandFilter ?? "all");
+  // Default 90 days: Amazon/Walmart rows refresh in place (upsert) so their
+  // created_at can be older than a week — a 7-day window hid them entirely.
+  const [recencyFilter, setRecencyFilter] = useState<RecencyFilter>(persisted.recencyFilter ?? 90);
   const [showImageless, setShowImageless] = useState(persisted.showImageless ?? false);
   const [page, setPage] = useState(persisted.page ?? 1);
   const [saving, setSaving] = useState<string | null>(null);
@@ -222,12 +228,12 @@ export default function AdminProductValidation() {
   // open panel intact.
   useEffect(() => {
     const payload: PersistedUi = {
-      statusFilter, marketFilter, minReviewsFilter, sortMode, brandFilter,
+      statusFilter, marketFilter, minReviewsFilter, sortMode, brandFilter, recencyFilter,
       showImageless, page, openForm, alibabaFor,
       scrollY: typeof window !== "undefined" ? window.scrollY : 0,
     };
     try { sessionStorage.setItem(SS_KEY, JSON.stringify(payload)); } catch { /* ignore */ }
-  }, [statusFilter, marketFilter, minReviewsFilter, sortMode, brandFilter, showImageless, page, openForm, alibabaFor]);
+  }, [statusFilter, marketFilter, minReviewsFilter, sortMode, brandFilter, recencyFilter, showImageless, page, openForm, alibabaFor]);
 
   // Save scroll position continuously so restore is accurate.
   useEffect(() => {
@@ -295,11 +301,15 @@ export default function AdminProductValidation() {
 
   const load = async () => {
     setLoading(true);
-    const since = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString();
     let q = supabase
       .from("products" as any)
-      .select("*")
-      .gte("created_at", since);
+      .select("*");
+    // Recency window is configurable — marketplace scrapers upsert in place, so
+    // a freshly-refreshed row can still have an old created_at.
+    if (recencyFilter > 0) {
+      const since = new Date(Date.now() - recencyFilter * 24 * 60 * 60 * 1000).toISOString();
+      q = q.gte("created_at", since);
+    }
     if (marketFilter !== "all") q = q.eq("marketplace", marketFilter);
     // Order by review_count desc (Amazon/Walmart), then created_at desc so rows without
     // review_count (Takealot) still appear.
@@ -312,7 +322,7 @@ export default function AdminProductValidation() {
     setLoading(false);
   };
 
-  useEffect(() => { load(); }, [marketFilter]);
+  useEffect(() => { load(); }, [marketFilter, recencyFilter]);
 
   // Reset page when filters change — but skip the first render so a restored
   // page number from sessionStorage isn't wiped on mount.
@@ -320,7 +330,7 @@ export default function AdminProductValidation() {
   useEffect(() => {
     if (!filtersMountedRef.current) { filtersMountedRef.current = true; return; }
     setPage(1);
-  }, [statusFilter, marketFilter, showImageless, minReviewsFilter, sortMode, brandFilter]);
+  }, [statusFilter, marketFilter, showImageless, minReviewsFilter, sortMode, brandFilter, recencyFilter]);
 
   const hasImage = (r: ProductRow) => typeof r.image_url === "string" && /^https?:\/\//i.test(r.image_url);
 
@@ -635,6 +645,10 @@ export default function AdminProductValidation() {
         <span className="text-xs text-muted-foreground ml-4 mr-1">Brand:</span>
         {([["all","All"],["generic","Generic (sourceable)"],["branded","Branded (demand signal)"]] as [BrandFilter,string][]).map(([v,l])=>(
           <Button key={v} size="sm" variant={brandFilter===v?"default":"outline"} onClick={()=>setBrandFilter(v)}>{l}</Button>
+        ))}
+        <span className="text-xs text-muted-foreground ml-4 mr-1">First seen:</span>
+        {([[7,"7 days"],[30,"30 days"],[90,"90 days"],[0,"All time"]] as [RecencyFilter,string][]).map(([v,l])=>(
+          <Button key={v} size="sm" variant={recencyFilter===v?"default":"outline"} onClick={()=>setRecencyFilter(v)}>{l}</Button>
         ))}
         <span className="text-xs text-muted-foreground ml-4 mr-1">Sort:</span>
         {([["reviews_desc","Most reviews"],["newest","Newest"]] as [SortMode,string][]).map(([v,l])=>(
