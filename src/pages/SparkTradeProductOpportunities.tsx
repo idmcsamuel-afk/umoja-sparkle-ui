@@ -394,14 +394,17 @@ function SparkTradeProductOpportunities() {
 function OpportunityCard({
   p,
   commitment,
+  demand,
   bufferPct,
   minItemBuyin,
   onOpenCart,
 }: {
   p: Opportunity;
   commitment?: CommitmentStatus;
+  demand?: DemandProof;
   bufferPct: number;
   minItemBuyin: number;
+
   onOpenCart: () => void;
 }) {
   const { addItem, has, items } = useSparkTradeCart();
