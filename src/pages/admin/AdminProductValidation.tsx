@@ -228,12 +228,12 @@ export default function AdminProductValidation() {
   // open panel intact.
   useEffect(() => {
     const payload: PersistedUi = {
-      statusFilter, marketFilter, minReviewsFilter, sortMode, brandFilter,
+      statusFilter, marketFilter, minReviewsFilter, sortMode, brandFilter, recencyFilter,
       showImageless, page, openForm, alibabaFor,
       scrollY: typeof window !== "undefined" ? window.scrollY : 0,
     };
     try { sessionStorage.setItem(SS_KEY, JSON.stringify(payload)); } catch { /* ignore */ }
-  }, [statusFilter, marketFilter, minReviewsFilter, sortMode, brandFilter, showImageless, page, openForm, alibabaFor]);
+  }, [statusFilter, marketFilter, minReviewsFilter, sortMode, brandFilter, recencyFilter, showImageless, page, openForm, alibabaFor]);
 
   // Save scroll position continuously so restore is accurate.
   useEffect(() => {
