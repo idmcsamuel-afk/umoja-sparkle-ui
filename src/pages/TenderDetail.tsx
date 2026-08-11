@@ -1,40 +1,110 @@
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { Link, useParams } from "react-router-dom";
 import {
   ArrowLeft, Building2, MapPin, Clock, CalendarClock, ExternalLink, Loader2, Lock, Flame, Truck,
+  CheckCircle2, FileText, Mail, Phone, User,
 } from "lucide-react";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { supabase } from "@/integrations/supabase/client";
 import {
-  type TenderRow, closingLabel, isUrgent, formatDateTime, formatDate, formatTenderValue,
-} from "@/lib/tenders";
+  AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription,
+  AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
+import { toast } from "sonner";
+import { supabase } from "@/integrations/supabase/client";
+import { useAuth } from "@/hooks/useAuth";
+import { closingLabel, isUrgent, formatDateTime, formatDate, formatTenderValue } from "@/lib/tenders";
+
+const REVEAL_COST = 20;
+
+type TenderDoc = { title?: string | null; url?: string | null; format?: string | null };
+
+type TenderDetailPayload = {
+  id: string;
+  ocid: string;
+  title: string | null;
+  description: string | null;
+  buyer_name: string | null;
+  province: string | null;
+  delivery_location: string | null;
+  category: string | null;
+  procurement_method: string | null;
+  status: string | null;
+  value_amount: number | null;
+  value_currency: string | null;
+  published_at: string | null;
+  closing_at: string | null;
+  source_url: string | null;
+  unlocked: boolean;
+  reference_number?: string | null;
+  contact_name?: string | null;
+  contact_email?: string | null;
+  contact_phone?: string | null;
+  briefing_at?: string | null;
+  briefing_compulsory?: boolean | null;
+  documents?: TenderDoc[] | null;
+};
 
 export default function TenderDetail() {
   const { id } = useParams<{ id: string }>();
-  const [tender, setTender] = useState<TenderRow | null>(null);
+  const { user } = useAuth();
+  const [tender, setTender] = useState<TenderDetailPayload | null>(null);
   const [loading, setLoading] = useState(true);
+  const [balance, setBalance] = useState<number | null>(null);
+  const [confirmOpen, setConfirmOpen] = useState(false);
+  const [unlocking, setUnlocking] = useState(false);
+
+  const load = useCallback(async () => {
+    if (!id) return;
+    const { data, error } = await supabase.rpc("get_tender_detail", { p_tender_id: id });
+    if (error) console.error("tender fetch failed:", error.message);
+    setTender((data as unknown as TenderDetailPayload) ?? null);
+    setLoading(false);
+  }, [id]);
+
+  useEffect(() => { setLoading(true); load(); }, [load]);
 
   useEffect(() => {
-    if (!id) return;
-    let cancelled = false;
+    if (!user) { setBalance(null); return; }
     (async () => {
-      setLoading(true);
-      const { data, error } = await supabase
-        .from("tenders")
-        .select(
-          "id, ocid, reference_number, title, description, buyer_name, province, delivery_location, category, procurement_method, status, value_amount, value_currency, published_at, closing_at, briefing_at, briefing_compulsory, source_url, documents, contact_name, contact_email, contact_phone",
-        )
-        .eq("id", id)
+      const { data } = await supabase
+        .from("spark_wallets")
+        .select("balance")
+        .eq("member_id", user.id)
         .maybeSingle();
-      if (cancelled) return;
-      if (error) console.error("tender fetch failed:", error.message);
-      setTender((data as TenderRow) ?? null);
-      setLoading(false);
+      setBalance(data?.balance != null ? Number(data.balance) : 0);
     })();
-    return () => { cancelled = true; };
-  }, [id]);
+  }, [user, tender?.unlocked]);
+
+  const handleUnlock = async () => {
+    if (!id) return;
+    setUnlocking(true);
+    const { data, error } = await supabase.rpc("unlock_tender", {
+      p_tender_id: id,
+      p_unlock_type: "reveal",
+    });
+    setUnlocking(false);
+    setConfirmOpen(false);
+
+    if (error) {
+      const msg = error.message ?? "";
+      if (msg.includes("insufficient_sparks")) {
+        toast.error(
+          "Not enough Sparks — earn more in Spark Trade or Spark Pit, or subscribe for R199/month unlimited access.",
+        );
+      } else if (msg.includes("spark_payments_disabled")) {
+        toast.error("Spark unlocks are temporarily disabled. Please try again later.");
+      } else {
+        toast.error(msg || "Unlock failed. Please try again.");
+      }
+      return;
+    }
+
+    const res = data as { already_unlocked?: boolean } | null;
+    toast.success(res?.already_unlocked ? "Already unlocked" : "Unlocked — full bid details revealed");
+    await load();
+  };
 
   if (loading) {
     return (
@@ -55,6 +125,7 @@ export default function TenderDetail() {
 
   const urgent = isUrgent(tender.closing_at);
   const value = formatTenderValue(tender.value_amount, tender.value_currency);
+  const docs = Array.isArray(tender.documents) ? tender.documents : [];
 
   return (
     <div className="space-y-6 max-w-3xl">
@@ -112,37 +183,123 @@ export default function TenderDetail() {
         </dl>
       </Card>
 
-      {/* Locked / premium panel — unlock wiring comes in the next build step */}
-      <Card className="p-5 space-y-4 border-dashed">
-        <div className="flex items-center gap-2">
-          <span className="grid h-8 w-8 place-items-center rounded-xl bg-gradient-primary text-primary-foreground">
-            <Lock className="h-4 w-4" />
-          </span>
-          <div>
-            <h2 className="font-medium">Full bid details</h2>
-            <p className="text-xs text-muted-foreground">Unlock to see everything you need to submit.</p>
+      {tender.unlocked ? (
+        <Card className="p-5 space-y-4 border-primary/40">
+          <div className="flex items-center gap-2">
+            <span className="grid h-8 w-8 place-items-center rounded-xl bg-gradient-primary text-primary-foreground">
+              <CheckCircle2 className="h-4 w-4" />
+            </span>
+            <div>
+              <h2 className="font-medium">Full bid details</h2>
+              <p className="text-xs text-muted-foreground">Unlocked — yours permanently.</p>
+            </div>
           </div>
-        </div>
 
-        <ul className="space-y-2 text-sm">
-          {[
-            "Official bid / reference number",
-            "Buyer contact person, email and phone",
-            "Briefing session date & whether it is compulsory",
-            "Bid pack documents list and direct links",
-          ].map((item) => (
-            <li key={item} className="flex items-center justify-between gap-3 rounded-xl bg-muted/50 px-3 py-2">
-              <span className="text-muted-foreground">{item}</span>
-              <span className="select-none text-xs text-muted-foreground blur-[3px]">••••••••</span>
-            </li>
-          ))}
-        </ul>
+          <dl className="grid gap-3 sm:grid-cols-2 text-sm">
+            <div className="sm:col-span-2">
+              <dt className="text-xs text-muted-foreground">Bid / reference number</dt>
+              <dd className="font-medium break-words">{tender.reference_number ?? "—"}</dd>
+            </div>
+            <div>
+              <dt className="text-xs text-muted-foreground inline-flex items-center gap-1"><User className="h-3 w-3" />Contact person</dt>
+              <dd>{tender.contact_name ?? "—"}</dd>
+            </div>
+            <div>
+              <dt className="text-xs text-muted-foreground inline-flex items-center gap-1"><Mail className="h-3 w-3" />Email</dt>
+              <dd className="break-words">
+                {tender.contact_email
+                  ? <a className="underline" href={`mailto:${tender.contact_email}`}>{tender.contact_email}</a>
+                  : "—"}
+              </dd>
+            </div>
+            <div>
+              <dt className="text-xs text-muted-foreground inline-flex items-center gap-1"><Phone className="h-3 w-3" />Phone</dt>
+              <dd>{tender.contact_phone ?? "—"}</dd>
+            </div>
+            <div>
+              <dt className="text-xs text-muted-foreground">Briefing session</dt>
+              <dd>
+                {tender.briefing_at ? formatDateTime(tender.briefing_at) : "None stated"}
+                {tender.briefing_compulsory ? " · Compulsory" : tender.briefing_at ? " · Optional" : ""}
+              </dd>
+            </div>
+          </dl>
 
-        <Button className="w-full" disabled>Unlock — coming soon</Button>
-        <p className="text-[11px] text-muted-foreground text-center">
-          Spark unlocks and subscriptions go live shortly. Browsing stays free.
-        </p>
-      </Card>
+          <div className="space-y-2">
+            <p className="text-xs text-muted-foreground">Bid pack documents</p>
+            {docs.length === 0 ? (
+              <p className="text-sm text-muted-foreground">No documents listed on the feed.</p>
+            ) : (
+              <ul className="space-y-2">
+                {docs.map((d, i) => (
+                  <li key={`${d.url ?? i}`} className="rounded-xl bg-muted/50 px-3 py-2 text-sm">
+                    {d.url ? (
+                      <a
+                        href={d.url}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="inline-flex items-center gap-2 underline break-all"
+                      >
+                        <FileText className="h-3.5 w-3.5 shrink-0" />
+                        {d.title || d.url}
+                      </a>
+                    ) : (
+                      <span className="inline-flex items-center gap-2">
+                        <FileText className="h-3.5 w-3.5" />{d.title || "Untitled document"}
+                      </span>
+                    )}
+                  </li>
+                ))}
+              </ul>
+            )}
+          </div>
+        </Card>
+      ) : (
+        <Card className="p-5 space-y-4 border-dashed">
+          <div className="flex items-center gap-2">
+            <span className="grid h-8 w-8 place-items-center rounded-xl bg-gradient-primary text-primary-foreground">
+              <Lock className="h-4 w-4" />
+            </span>
+            <div>
+              <h2 className="font-medium">Full bid details</h2>
+              <p className="text-xs text-muted-foreground">Unlock to see everything you need to submit.</p>
+            </div>
+          </div>
+
+          <ul className="space-y-2 text-sm">
+            {[
+              "Official bid / reference number",
+              "Buyer contact person, email and phone",
+              "Briefing session date & whether it is compulsory",
+              "Bid pack documents list and direct links",
+            ].map((item) => (
+              <li key={item} className="flex items-center justify-between gap-3 rounded-xl bg-muted/50 px-3 py-2">
+                <span className="text-muted-foreground">{item}</span>
+                <span className="select-none text-xs text-muted-foreground blur-[3px]">••••••••</span>
+              </li>
+            ))}
+          </ul>
+
+          {user ? (
+            <Button className="w-full" onClick={() => setConfirmOpen(true)} disabled={unlocking}>
+              {unlocking && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+              Unlock full details — {REVEAL_COST} Sparks (R{REVEAL_COST})
+            </Button>
+          ) : (
+            <Button asChild className="w-full"><Link to="/login">Sign in to unlock</Link></Button>
+          )}
+
+          <Button variant="outline" className="w-full" disabled>
+            Subscribe — R199/month unlimited (coming soon)
+          </Button>
+
+          <p className="text-[11px] text-muted-foreground text-center">
+            {balance !== null
+              ? `Your balance: ${balance.toLocaleString()} Sparks. Browsing stays free.`
+              : "Browsing stays free."}
+          </p>
+        </Card>
+      )}
 
       <Card className="p-4 space-y-2">
         <p className="text-sm">
@@ -160,6 +317,26 @@ export default function TenderDetail() {
           </a>
         </Button>
       </Card>
+
+      <AlertDialog open={confirmOpen} onOpenChange={setConfirmOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Unlock full bid details?</AlertDialogTitle>
+            <AlertDialogDescription>
+              This costs {REVEAL_COST} Sparks (R{REVEAL_COST}).{" "}
+              {balance !== null ? `You have ${balance.toLocaleString()} Sparks.` : ""} The bid number,
+              contacts, briefing and bid pack stay unlocked for you permanently.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={unlocking}>Cancel</AlertDialogCancel>
+            <AlertDialogAction onClick={(e) => { e.preventDefault(); handleUnlock(); }} disabled={unlocking}>
+              {unlocking && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+              Confirm — {REVEAL_COST} Sparks
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }
