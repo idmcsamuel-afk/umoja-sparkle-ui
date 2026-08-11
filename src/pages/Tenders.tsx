@@ -42,7 +42,7 @@ export default function Tenders() {
       let q = supabase
         .from("tenders")
         .select(
-          "id, ocid, reference_number, title, description, buyer_name, province, delivery_location, category, procurement_method, status, value_amount, value_currency, published_at, closing_at, briefing_at, briefing_compulsory, source_url, documents, contact_name, contact_email, contact_phone",
+          "id, ocid, title, description, buyer_name, province, delivery_location, category, procurement_method, status, value_amount, value_currency, published_at, closing_at, source_url",
           { count: "exact" },
         );
 

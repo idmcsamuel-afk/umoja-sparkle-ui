@@ -6927,6 +6927,7 @@ export type Database = {
           spark_transaction_id: string | null
           sparks_spent: number
           tender_id: string
+          unlock_type: string
         }
         Insert: {
           created_at?: string
@@ -6936,6 +6937,7 @@ export type Database = {
           spark_transaction_id?: string | null
           sparks_spent?: number
           tender_id: string
+          unlock_type?: string
         }
         Update: {
           created_at?: string
@@ -6945,6 +6947,7 @@ export type Database = {
           spark_transaction_id?: string | null
           sparks_spent?: number
           tender_id?: string
+          unlock_type?: string
         }
         Relationships: [
           {
@@ -8339,6 +8342,7 @@ export type Database = {
         }[]
       }
       get_predictor_answer: { Args: { _question: string }; Returns: string }
+      get_tender_detail: { Args: { p_tender_id: string }; Returns: Json }
       get_vault_queue: {
         Args: { _limit?: number; _tier: string }
         Returns: {
@@ -8476,6 +8480,10 @@ export type Database = {
         Returns: undefined
       }
       touch_last_seen: { Args: never; Returns: undefined }
+      unlock_tender: {
+        Args: { p_tender_id: string; p_unlock_type?: string }
+        Returns: Json
+      }
       upsert_takealot_product:
         | {
             Args: {
