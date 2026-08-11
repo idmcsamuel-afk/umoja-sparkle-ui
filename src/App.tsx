@@ -100,6 +100,8 @@ import CreatorSchedule from "./pages/CreatorSchedule.tsx";
 import CreatorAnalytics from "./pages/CreatorAnalytics.tsx";
 import CreatorSubscription from "./pages/CreatorSubscription.tsx";
 import Learn from "./pages/Learn.tsx";
+import Tenders from "./pages/Tenders.tsx";
+import TenderDetail from "./pages/TenderDetail.tsx";
 import SparkTradeMembership from "./pages/SparkTradeMembership.tsx";
 import SparkTradeOnboarding from "./pages/SparkTradeOnboarding.tsx";
 import SparkTradeIncomeGoal from "./pages/SparkTradeIncomeGoal.tsx";
