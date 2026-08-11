@@ -1,6 +1,6 @@
 import { Link, NavLink, useLocation } from "react-router-dom";
 import { useEffect, useRef, useState } from "react";
-import { Home, Users, Sparkles, Car, Store, ArrowLeftRight, Gamepad2, Gift, Palette, ChevronRight, ChevronLeft, ChevronDown, Trophy, Building2, MessageCircle, Flame, Video, Upload, BarChart3, Wand2, Headphones } from "lucide-react";
+import { Home, Users, Sparkles, Car, Store, ArrowLeftRight, Gamepad2, Gift, Palette, ChevronRight, ChevronLeft, ChevronDown, Trophy, Building2, MessageCircle, Flame, Video, Upload, BarChart3, Wand2, Headphones, FileSearch } from "lucide-react";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { SPARK_TRADE_SUB_ITEMS } from "@/components/umoja/SparkTradeNavMenu";
 
@@ -11,6 +11,7 @@ const items: NavItem[] = [
   { to: "/circle", label: "Circles", icon: Users, tour: "circle" },
   { to: "__spark_trade_menu__", label: "Group Buy", icon: Sparkles, tour: "spark-trade", expandable: true },
   { to: "/creator-studio", label: "Creator", icon: Wand2 },
+  { to: "/tenders", label: "Tenders", icon: FileSearch },
   { to: "/community", label: "Chat", icon: MessageCircle, tour: "community" },
   { to: "/learn", label: "Learn", icon: Headphones },
   { to: "/browse-videos", label: "Videos", icon: Video },

@@ -48,6 +48,9 @@ function mapRelease(rel: Record<string, any>) {
     description: t?.description ?? null,
     buyer_name: rel?.buyer?.name ?? t?.procuringEntity?.name ?? null,
     province: normalizeProvince(t?.province),
+    delivery_location: typeof t?.deliveryLocation === 'string' && t.deliveryLocation.trim()
+      ? t.deliveryLocation.trim()
+      : null,
     category: t?.category ?? t?.mainProcurementCategory ?? null,
     procurement_method: t?.procurementMethodDetails ?? t?.procurementMethod ?? null,
     status: t?.status ?? null,

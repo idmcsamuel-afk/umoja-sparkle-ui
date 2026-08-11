@@ -1,7 +1,7 @@
 import { NavLink, useLocation } from "react-router-dom";
 import {
   Home, Users, Sparkles, Store, ArrowLeftRight, Car, Building2, Gamepad2,
-  Trophy, Palette, Gift, Calculator as CalcIcon, User as UserIcon, ShieldCheck, BookOpen, MessageCircle, Flame, Video, BarChart3, Wand2, Headphones,
+  Trophy, Palette, Gift, Calculator as CalcIcon, User as UserIcon, ShieldCheck, BookOpen, MessageCircle, Flame, Video, BarChart3, Wand2, Headphones, FileSearch,
 } from "lucide-react";
 import {
   Sidebar, SidebarContent, SidebarGroup, SidebarGroupContent, SidebarGroupLabel,
@@ -20,6 +20,7 @@ const main = [
   { to: "/drive", label: "Drive", icon: Car, tour: "drive" },
   { to: "/property", label: "Property Fund", icon: Building2, tour: "property" },
   { to: "/creator-studio", label: "Creator Studio", icon: Wand2 },
+  { to: "/tenders", label: "Tenders", icon: FileSearch },
   { to: "/community", label: "Community", icon: MessageCircle },
   { to: "/priority", label: "Priority Queue", icon: Trophy },
   { to: "/spark-trade/membership", label: "🌍 Plans", icon: Sparkles },
