@@ -6734,6 +6734,322 @@ export type Database = {
         }
         Relationships: []
       }
+      tender_ai_outputs: {
+        Row: {
+          content: string | null
+          content_json: Json | null
+          created_at: string
+          id: string
+          kind: string
+          member_id: string | null
+          model: string | null
+          tender_id: string
+        }
+        Insert: {
+          content?: string | null
+          content_json?: Json | null
+          created_at?: string
+          id?: string
+          kind?: string
+          member_id?: string | null
+          model?: string | null
+          tender_id: string
+        }
+        Update: {
+          content?: string | null
+          content_json?: Json | null
+          created_at?: string
+          id?: string
+          kind?: string
+          member_id?: string | null
+          model?: string | null
+          tender_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "tender_ai_outputs_member_id_fkey"
+            columns: ["member_id"]
+            isOneToOne: false
+            referencedRelation: "members"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "tender_ai_outputs_tender_id_fkey"
+            columns: ["tender_id"]
+            isOneToOne: false
+            referencedRelation: "tenders"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      tender_alerts: {
+        Row: {
+          categories: string[]
+          channel: string
+          created_at: string
+          frequency: string
+          id: string
+          is_active: boolean
+          keywords: string[]
+          last_sent_at: string | null
+          max_value: number | null
+          member_id: string
+          min_value: number | null
+          name: string | null
+          provinces: string[]
+          updated_at: string
+        }
+        Insert: {
+          categories?: string[]
+          channel?: string
+          created_at?: string
+          frequency?: string
+          id?: string
+          is_active?: boolean
+          keywords?: string[]
+          last_sent_at?: string | null
+          max_value?: number | null
+          member_id: string
+          min_value?: number | null
+          name?: string | null
+          provinces?: string[]
+          updated_at?: string
+        }
+        Update: {
+          categories?: string[]
+          channel?: string
+          created_at?: string
+          frequency?: string
+          id?: string
+          is_active?: boolean
+          keywords?: string[]
+          last_sent_at?: string | null
+          max_value?: number | null
+          member_id?: string
+          min_value?: number | null
+          name?: string | null
+          provinces?: string[]
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "tender_alerts_member_id_fkey"
+            columns: ["member_id"]
+            isOneToOne: false
+            referencedRelation: "members"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      tender_feature_flags: {
+        Row: {
+          created_at: string
+          description: string | null
+          enabled: boolean
+          key: string
+          updated_at: string
+          value: Json | null
+        }
+        Insert: {
+          created_at?: string
+          description?: string | null
+          enabled?: boolean
+          key: string
+          updated_at?: string
+          value?: Json | null
+        }
+        Update: {
+          created_at?: string
+          description?: string | null
+          enabled?: boolean
+          key?: string
+          updated_at?: string
+          value?: Json | null
+        }
+        Relationships: []
+      }
+      tender_subscriptions: {
+        Row: {
+          amount_zar: number | null
+          cancelled_at: string | null
+          created_at: string
+          expires_at: string | null
+          id: string
+          member_id: string
+          payment_reference: string | null
+          plan: string
+          started_at: string | null
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          amount_zar?: number | null
+          cancelled_at?: string | null
+          created_at?: string
+          expires_at?: string | null
+          id?: string
+          member_id: string
+          payment_reference?: string | null
+          plan?: string
+          started_at?: string | null
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          amount_zar?: number | null
+          cancelled_at?: string | null
+          created_at?: string
+          expires_at?: string | null
+          id?: string
+          member_id?: string
+          payment_reference?: string | null
+          plan?: string
+          started_at?: string | null
+          status?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "tender_subscriptions_member_id_fkey"
+            columns: ["member_id"]
+            isOneToOne: false
+            referencedRelation: "members"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      tender_unlocks: {
+        Row: {
+          created_at: string
+          id: string
+          member_id: string
+          method: string
+          spark_transaction_id: string | null
+          sparks_spent: number
+          tender_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          member_id: string
+          method?: string
+          spark_transaction_id?: string | null
+          sparks_spent?: number
+          tender_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          member_id?: string
+          method?: string
+          spark_transaction_id?: string | null
+          sparks_spent?: number
+          tender_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "tender_unlocks_member_id_fkey"
+            columns: ["member_id"]
+            isOneToOne: false
+            referencedRelation: "members"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "tender_unlocks_tender_id_fkey"
+            columns: ["tender_id"]
+            isOneToOne: false
+            referencedRelation: "tenders"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      tenders: {
+        Row: {
+          briefing_at: string | null
+          briefing_compulsory: boolean | null
+          buyer_name: string | null
+          category: string | null
+          closing_at: string | null
+          contact_email: string | null
+          contact_name: string | null
+          contact_phone: string | null
+          created_at: string
+          description: string | null
+          documents: Json
+          id: string
+          ocid: string
+          procurement_method: string | null
+          province: string | null
+          published_at: string | null
+          raw_json: Json
+          reference_number: string | null
+          release_id: string | null
+          source_url: string | null
+          status: string | null
+          synced_at: string
+          title: string | null
+          updated_at: string
+          value_amount: number | null
+          value_currency: string | null
+        }
+        Insert: {
+          briefing_at?: string | null
+          briefing_compulsory?: boolean | null
+          buyer_name?: string | null
+          category?: string | null
+          closing_at?: string | null
+          contact_email?: string | null
+          contact_name?: string | null
+          contact_phone?: string | null
+          created_at?: string
+          description?: string | null
+          documents?: Json
+          id?: string
+          ocid: string
+          procurement_method?: string | null
+          province?: string | null
+          published_at?: string | null
+          raw_json?: Json
+          reference_number?: string | null
+          release_id?: string | null
+          source_url?: string | null
+          status?: string | null
+          synced_at?: string
+          title?: string | null
+          updated_at?: string
+          value_amount?: number | null
+          value_currency?: string | null
+        }
+        Update: {
+          briefing_at?: string | null
+          briefing_compulsory?: boolean | null
+          buyer_name?: string | null
+          category?: string | null
+          closing_at?: string | null
+          contact_email?: string | null
+          contact_name?: string | null
+          contact_phone?: string | null
+          created_at?: string
+          description?: string | null
+          documents?: Json
+          id?: string
+          ocid?: string
+          procurement_method?: string | null
+          province?: string | null
+          published_at?: string | null
+          raw_json?: Json
+          reference_number?: string | null
+          release_id?: string | null
+          source_url?: string | null
+          status?: string | null
+          synced_at?: string
+          title?: string | null
+          updated_at?: string
+          value_amount?: number | null
+          value_currency?: string | null
+        }
+        Relationships: []
+      }
       trending_products: {
         Row: {
           admin_notes: string | null
