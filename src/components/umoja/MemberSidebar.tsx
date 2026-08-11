@@ -20,6 +20,7 @@ const main = [
   { to: "/drive", label: "Drive", icon: Car, tour: "drive" },
   { to: "/property", label: "Property Fund", icon: Building2, tour: "property" },
   { to: "/creator-studio", label: "Creator Studio", icon: Wand2 },
+  { to: "/tenders", label: "Tenders", icon: FileSearch },
   { to: "/community", label: "Community", icon: MessageCircle },
   { to: "/priority", label: "Priority Queue", icon: Trophy },
   { to: "/spark-trade/membership", label: "🌍 Plans", icon: Sparkles },
