@@ -77,3 +77,6 @@ verify_jwt = false
 
 [functions.alibaba-auth]
 verify_jwt = false
+
+[functions.sync-tenders]
+verify_jwt = false
