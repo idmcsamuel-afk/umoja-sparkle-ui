@@ -6974,6 +6974,7 @@ export type Database = {
           contact_name: string | null
           contact_phone: string | null
           created_at: string
+          delivery_location: string | null
           description: string | null
           documents: Json
           id: string
@@ -7002,6 +7003,7 @@ export type Database = {
           contact_name?: string | null
           contact_phone?: string | null
           created_at?: string
+          delivery_location?: string | null
           description?: string | null
           documents?: Json
           id?: string
@@ -7030,6 +7032,7 @@ export type Database = {
           contact_name?: string | null
           contact_phone?: string | null
           created_at?: string
+          delivery_location?: string | null
           description?: string | null
           documents?: Json
           id?: string
