@@ -9,6 +9,8 @@ import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from "@/components/ui/select";
 import { supabase } from "@/integrations/supabase/client";
+import SparkBalanceChip from "@/components/umoja/SparkBalanceChip";
+
 import {
   type TenderRow, displayTitle, closingLabel, isUrgent, isClosed,
   formatDate, formatTenderValue, PROVINCES, ETENDERS_HOME,
