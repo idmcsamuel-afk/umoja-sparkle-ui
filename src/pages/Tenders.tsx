@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { Link } from "react-router-dom";
-import { Search, MapPin, Building2, Clock, ExternalLink, Loader2, Flame, Lock, Users } from "lucide-react";
+import { Search, MapPin, Building2, Clock, CalendarClock, ExternalLink, Loader2, Flame, Lock, Users } from "lucide-react";
 import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
