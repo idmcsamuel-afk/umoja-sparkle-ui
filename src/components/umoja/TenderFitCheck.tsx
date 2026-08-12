@@ -10,6 +10,8 @@ import {
 } from "@/components/ui/alert-dialog";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
+import SparkBalanceChip from "@/components/umoja/SparkBalanceChip";
+import { useSparkBalance } from "@/hooks/useSparkBalance";
 import { useAuth } from "@/hooks/useAuth";
 import { formatDateTime } from "@/lib/tenders";
 
@@ -60,7 +62,7 @@ export default function TenderFitCheck({ tenderId }: { tenderId: string }) {
   const [loading, setLoading] = useState(true);
   const [running, setRunning] = useState(false);
   const [confirmOpen, setConfirmOpen] = useState(false);
-  const [balance, setBalance] = useState<number | null>(null);
+  const { balance, refresh: refreshBalance } = useSparkBalance();
 
   const loadExisting = useCallback(async () => {
     if (!user) { setFit(null); setLoading(false); return; }
@@ -82,14 +84,6 @@ export default function TenderFitCheck({ tenderId }: { tenderId: string }) {
 
   useEffect(() => { setLoading(true); loadExisting(); }, [loadExisting]);
 
-  useEffect(() => {
-    if (!user) { setBalance(null); return; }
-    (async () => {
-      const { data } = await supabase
-        .from("spark_wallets").select("balance").eq("member_id", user.id).maybeSingle();
-      setBalance(data?.balance != null ? Number(data.balance) : 0);
-    })();
-  }, [user, fit]);
 
   const run = async () => {
     setRunning(true);
@@ -98,6 +92,7 @@ export default function TenderFitCheck({ tenderId }: { tenderId: string }) {
     });
     setRunning(false);
     setConfirmOpen(false);
+    await refreshBalance();
 
     const payload = data as
       | { ok?: boolean; fit_check?: FitCheck; generated_at?: string; error?: string; message?: string }
@@ -190,9 +185,10 @@ export default function TenderFitCheck({ tenderId }: { tenderId: string }) {
             {running && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
             AI Fit-Check — {FIT_CHECK_COST} Sparks
           </Button>
-          <p className="text-[11px] text-muted-foreground text-center">
-            {balance !== null ? `Your balance: ${balance.toLocaleString()} Sparks.` : ""}
-          </p>
+          <div className="flex justify-center">
+            <SparkBalanceChip />
+          </div>
+
         </>
       ) : (
         <Button asChild className="w-full"><Link to="/login">Sign in for the AI Fit-Check</Link></Button>

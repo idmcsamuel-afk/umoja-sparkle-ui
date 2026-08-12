@@ -16,6 +16,8 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import TenderIntentPanel from "@/components/umoja/TenderIntentPanel";
 import TenderFitCheck from "@/components/umoja/TenderFitCheck";
+import SparkBalanceChip from "@/components/umoja/SparkBalanceChip";
+import { useSparkBalance } from "@/hooks/useSparkBalance";
 import { closingLabel, isUrgent, formatDateTime, formatDate, formatTenderValue } from "@/lib/tenders";
 
 const REVEAL_COST = 20;
@@ -53,7 +55,7 @@ export default function TenderDetail() {
   const { user } = useAuth();
   const [tender, setTender] = useState<TenderDetailPayload | null>(null);
   const [loading, setLoading] = useState(true);
-  const [balance, setBalance] = useState<number | null>(null);
+  const { balance, refresh: refreshBalance } = useSparkBalance();
   const [confirmOpen, setConfirmOpen] = useState(false);
   const [unlocking, setUnlocking] = useState(false);
 
@@ -67,17 +69,6 @@ export default function TenderDetail() {
 
   useEffect(() => { setLoading(true); load(); }, [load]);
 
-  useEffect(() => {
-    if (!user) { setBalance(null); return; }
-    (async () => {
-      const { data } = await supabase
-        .from("spark_wallets")
-        .select("balance")
-        .eq("member_id", user.id)
-        .maybeSingle();
-      setBalance(data?.balance != null ? Number(data.balance) : 0);
-    })();
-  }, [user, tender?.unlocked]);
 
   const handleUnlock = async () => {
     if (!id) return;
@@ -105,7 +96,7 @@ export default function TenderDetail() {
 
     const res = data as { already_unlocked?: boolean } | null;
     toast.success(res?.already_unlocked ? "Already unlocked" : "Unlocked — full bid details revealed");
-    await load();
+    await Promise.all([load(), refreshBalance()]);
   };
 
   if (loading) {
@@ -131,9 +122,12 @@ export default function TenderDetail() {
 
   return (
     <div className="space-y-6 max-w-3xl">
-      <Link to="/tenders" className="inline-flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground">
-        <ArrowLeft className="h-4 w-4" /> All tenders
-      </Link>
+      <div className="flex items-center justify-between gap-2">
+        <Link to="/tenders" className="inline-flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground">
+          <ArrowLeft className="h-4 w-4" /> All tenders
+        </Link>
+        <SparkBalanceChip />
+      </div>
 
       <Card className={`p-5 space-y-4 ${urgent ? "border-destructive/60 bg-destructive/5" : ""}`}>
         <div className="flex flex-wrap items-center gap-2">
