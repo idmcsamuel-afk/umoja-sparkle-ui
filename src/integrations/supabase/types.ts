@@ -8564,6 +8564,7 @@ export type Database = {
           full_name: string
           member_id: string
           needs: string
+          province: string
         }[]
       }
       touch_last_seen: { Args: never; Returns: undefined }
