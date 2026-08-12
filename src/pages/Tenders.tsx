@@ -95,12 +95,16 @@ export default function Tenders() {
   return (
     <div className="space-y-6">
       <header className="space-y-2">
-        <h1 className="font-display text-2xl md:text-3xl">UMOJA Tenders</h1>
+        <div className="flex flex-wrap items-center justify-between gap-2">
+          <h1 className="font-display text-2xl md:text-3xl">UMOJA Tenders</h1>
+          <SparkBalanceChip />
+        </div>
         <p className="text-sm text-muted-foreground max-w-2xl">
           Live South African government tenders from the National Treasury eTenders feed. Browse for
           free — bid numbers, contacts and bid packs unlock inside each tender.
         </p>
       </header>
+
 
       <Card className="p-4 space-y-3">
         <div className="relative">
