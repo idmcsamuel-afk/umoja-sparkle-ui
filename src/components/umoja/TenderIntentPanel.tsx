@@ -135,21 +135,60 @@ export default function TenderIntentPanel({ tenderId }: { tenderId: string }) {
           <div>
             <h2 className="font-medium">Who's pursuing this</h2>
             <p className="text-xs text-muted-foreground">
-              {loading
-                ? "Loading community signal…"
-                : `${counts.pursuing} pursuing · ${counts.open} open to partner`}
+              {loading ? "Loading community signal…" : `${counts.pursuing} pursuing solo`}
             </p>
           </div>
         </div>
-        {activeMine && (
-          <Badge variant="outline" className="gap-1 border-primary/40 bg-primary/10 text-primary">
-            <UserCheck className="h-3 w-3" />
-            {activeMine.intent === "open_to_partner"
-              ? "You're open to partner"
-              : activeMine.visibility === "private" ? "You're pursuing (private)" : "You're pursuing"}
+        {!loading && counts.open > 0 && (
+          <Badge className="gap-1 border-partner/50 bg-partner/10 text-partner font-semibold" variant="outline">
+            <Handshake className="h-3.5 w-3.5" />
+            {counts.open} open to partner
           </Badge>
         )}
       </div>
+
+      {activeMine && (
+        <div
+          className={`flex items-center gap-3 rounded-xl border p-3 ${
+            activeMine.intent === "open_to_partner"
+              ? "border-partner/50 bg-partner/10"
+              : "border-primary/40 bg-primary/10"
+          }`}
+        >
+          <span
+            className={`grid h-9 w-9 shrink-0 place-items-center rounded-xl ring-1 ${
+              activeMine.intent === "open_to_partner"
+                ? "bg-partner/20 text-partner ring-partner/40"
+                : "bg-primary/20 text-primary ring-primary/40"
+            }`}
+          >
+            {activeMine.intent === "open_to_partner"
+              ? <Handshake className="h-4 w-4" />
+              : <UserCheck className="h-4 w-4" />}
+          </span>
+          <div className="min-w-0">
+            <p
+              className={`text-sm font-semibold ${
+                activeMine.intent === "open_to_partner" ? "text-partner" : "text-primary"
+              }`}
+            >
+              {activeMine.intent === "open_to_partner"
+                ? "You're open to partner on this tender"
+                : activeMine.visibility === "private"
+                  ? "You're pursuing this tender — privately"
+                  : "You're pursuing this tender"}
+            </p>
+            <p className="text-xs text-muted-foreground">
+              {activeMine.intent === "open_to_partner"
+                ? "Other members can see your name, province and what you bring."
+                : activeMine.visibility === "private"
+                  ? "You're counted in the total — your name is never shown."
+                  : "Your name is visible to admin only at this stage."}
+            </p>
+          </div>
+        </div>
+      )}
+
 
       {!user ? (
         <p className="text-sm text-muted-foreground">Sign in to mark that you're pursuing this tender.</p>
