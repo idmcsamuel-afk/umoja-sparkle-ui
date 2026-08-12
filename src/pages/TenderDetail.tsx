@@ -18,7 +18,7 @@ import TenderIntentPanel from "@/components/umoja/TenderIntentPanel";
 import TenderFitCheck from "@/components/umoja/TenderFitCheck";
 import SparkBalanceChip from "@/components/umoja/SparkBalanceChip";
 import { useSparkBalance } from "@/hooks/useSparkBalance";
-import { closingLabel, isUrgent, formatDateTime, formatDate, formatTenderValue } from "@/lib/tenders";
+import { closingLabel, urgencyBand, formatDateTime, formatDate, formatTenderValue } from "@/lib/tenders";
 
 const REVEAL_COST = 20;
 
