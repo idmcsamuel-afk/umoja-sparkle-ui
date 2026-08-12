@@ -12,7 +12,7 @@ import { supabase } from "@/integrations/supabase/client";
 import SparkBalanceChip from "@/components/umoja/SparkBalanceChip";
 
 import {
-  type TenderRow, displayTitle, closingLabel, isUrgent, isClosed,
+  type TenderRow, displayTitle, closingLabel, urgencyBand,
   formatDate, formatTenderValue, PROVINCES, ETENDERS_HOME,
 } from "@/lib/tenders";
 
