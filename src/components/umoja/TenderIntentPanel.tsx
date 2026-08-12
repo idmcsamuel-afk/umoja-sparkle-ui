@@ -276,14 +276,31 @@ export default function TenderIntentPanel({ tenderId }: { tenderId: string }) {
         ) : (
           <ul className="space-y-2">
             {partners.map((p) => (
-              <li key={p.member_id} className="rounded-xl bg-muted/50 px-3 py-2 text-sm space-y-1">
+              <li key={p.member_id} className="rounded-xl bg-muted/50 px-3 py-2 text-sm space-y-1.5">
                 <div className="flex flex-wrap items-center gap-2">
                   <span className="font-medium">{p.full_name ?? "UMOJA member"}</span>
                   {p.province && <Badge variant="outline" className="text-[10px]">{p.province}</Badge>}
                 </div>
-                {p.brings && <p className="text-xs text-muted-foreground">Brings: {p.brings}</p>}
-                {p.needs && <p className="text-xs text-muted-foreground">Needs: {p.needs}</p>}
+                {(p.brings_tags?.length ?? 0) > 0 && (
+                  <div className="flex flex-wrap items-center gap-1">
+                    <span className="text-[11px] text-muted-foreground">Brings:</span>
+                    {p.brings_tags!.map((s) => (
+                      <Badge key={`b-${s}`} variant="secondary" className="text-[10px]">{tagLabel(s)}</Badge>
+                    ))}
+                  </div>
+                )}
+                {(p.needs_tags?.length ?? 0) > 0 && (
+                  <div className="flex flex-wrap items-center gap-1">
+                    <span className="text-[11px] text-muted-foreground">Needs:</span>
+                    {p.needs_tags!.map((s) => (
+                      <Badge key={`n-${s}`} variant="outline" className="text-[10px]">{tagLabel(s)}</Badge>
+                    ))}
+                  </div>
+                )}
+                {p.brings && <p className="text-xs text-muted-foreground">Brings note: {p.brings}</p>}
+                {p.needs && <p className="text-xs text-muted-foreground">Needs note: {p.needs}</p>}
               </li>
+
             ))}
           </ul>
         )}
