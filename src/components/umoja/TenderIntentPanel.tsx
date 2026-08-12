@@ -8,6 +8,7 @@ import { Label } from "@/components/ui/label";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
+import TagPicker, { type CapabilityTag } from "@/components/umoja/IntentTagPicker";
 
 type MyIntent = {
   intent: "solo" | "open_to_partner";
@@ -30,12 +31,6 @@ type Partner = {
   created_at: string;
 };
 
-type CapabilityTag = { slug: string; label: string; tag_group: string; sort_order: number };
-
-const GROUP_LABELS: Record<string, string> = {
-  sector: "Sector / capability",
-  consortium: "Consortium contribution",
-};
 
 export default function TenderIntentPanel({ tenderId }: { tenderId: string }) {
   const { user } = useAuth();
