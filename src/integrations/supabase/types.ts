@@ -8273,6 +8273,10 @@ export type Database = {
         Args: { p_limit?: number }
         Returns: Json
       }
+      admin_tender_intent_parties: {
+        Args: { p_tender_id: string }
+        Returns: Json
+      }
       admin_top_referrers_month: {
         Args: { _limit?: number }
         Returns: {
@@ -8501,6 +8505,26 @@ export type Database = {
         }[]
       }
       my_tender_intent: { Args: { p_tender_id: string }; Returns: Json }
+      my_tenders: {
+        Args: never
+        Returns: {
+          buyer_name: string
+          category: string
+          closing_at: string
+          description: string
+          fit_checked: boolean
+          id: string
+          intent: string
+          intent_visibility: string
+          last_activity_at: string
+          ocid: string
+          province: string
+          title: string
+          unlocked: boolean
+          value_amount: number
+          value_currency: string
+        }[]
+      }
       predictor_leaderboard: {
         Args: { _limit?: number }
         Returns: {
