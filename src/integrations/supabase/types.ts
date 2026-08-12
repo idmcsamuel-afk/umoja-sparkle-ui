@@ -8503,6 +8503,10 @@ export type Database = {
           total_refs: number
         }[]
       }
+      refund_tender_unlock: {
+        Args: { p_member: string; p_tender_id: string; p_unlock_type: string }
+        Returns: Json
+      }
       releasable_referral_sparks: { Args: { _member: string }; Returns: number }
       run_drive_allocation: { Args: { p_tier_id: string }; Returns: Json }
       set_tender_intent: {
