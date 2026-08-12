@@ -6868,6 +6868,60 @@ export type Database = {
         }
         Relationships: []
       }
+      tender_intents: {
+        Row: {
+          active: boolean
+          brings: string | null
+          created_at: string
+          id: string
+          intent: string
+          member_id: string
+          needs: string | null
+          tender_id: string
+          updated_at: string
+          visibility: string
+        }
+        Insert: {
+          active?: boolean
+          brings?: string | null
+          created_at?: string
+          id?: string
+          intent?: string
+          member_id: string
+          needs?: string | null
+          tender_id: string
+          updated_at?: string
+          visibility?: string
+        }
+        Update: {
+          active?: boolean
+          brings?: string | null
+          created_at?: string
+          id?: string
+          intent?: string
+          member_id?: string
+          needs?: string | null
+          tender_id?: string
+          updated_at?: string
+          visibility?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "tender_intents_member_id_fkey"
+            columns: ["member_id"]
+            isOneToOne: false
+            referencedRelation: "members"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "tender_intents_tender_id_fkey"
+            columns: ["tender_id"]
+            isOneToOne: false
+            referencedRelation: "tenders"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       tender_subscriptions: {
         Row: {
           amount_zar: number | null
@@ -8176,6 +8230,10 @@ export type Database = {
         }
         Returns: Json
       }
+      admin_tender_intent_analytics: {
+        Args: { p_limit?: number }
+        Returns: Json
+      }
       admin_top_referrers_month: {
         Args: { _limit?: number }
         Returns: {
@@ -8403,6 +8461,7 @@ export type Database = {
           kyc_level: number
         }[]
       }
+      my_tender_intent: { Args: { p_tender_id: string }; Returns: Json }
       predictor_leaderboard: {
         Args: { _limit?: number }
         Returns: {
@@ -8446,6 +8505,16 @@ export type Database = {
       }
       releasable_referral_sparks: { Args: { _member: string }; Returns: number }
       run_drive_allocation: { Args: { p_tier_id: string }; Returns: Json }
+      set_tender_intent: {
+        Args: {
+          p_brings?: string
+          p_intent: string
+          p_needs?: string
+          p_tender_id: string
+          p_visibility?: string
+        }
+        Returns: Json
+      }
       spark_balance_breakdown: { Args: { _member?: string }; Returns: Json }
       spin_sparkwheel: {
         Args: { p_bucket: string; p_member_id: string; p_stake_amount: number }
@@ -8478,6 +8547,24 @@ export type Database = {
       sync_takealot_row_to_products: {
         Args: { _row: Database["public"]["Tables"]["takealot_products"]["Row"] }
         Returns: undefined
+      }
+      tender_intent_counts: {
+        Args: { p_tender_ids: string[] }
+        Returns: {
+          open_to_partner_count: number
+          pursuing_count: number
+          tender_id: string
+        }[]
+      }
+      tender_open_partners: {
+        Args: { p_tender_id: string }
+        Returns: {
+          brings: string
+          created_at: string
+          full_name: string
+          member_id: string
+          needs: string
+        }[]
       }
       touch_last_seen: { Args: never; Returns: undefined }
       unlock_tender: {
@@ -8527,6 +8614,7 @@ export type Database = {
             }
             Returns: undefined
           }
+      withdraw_tender_intent: { Args: { p_tender_id: string }; Returns: Json }
     }
     Enums: {
       zcreator_job_status: "queued" | "processing" | "completed" | "failed"
