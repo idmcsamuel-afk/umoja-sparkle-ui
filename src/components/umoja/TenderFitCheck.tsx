@@ -185,9 +185,10 @@ export default function TenderFitCheck({ tenderId }: { tenderId: string }) {
             {running && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
             AI Fit-Check — {FIT_CHECK_COST} Sparks
           </Button>
-          <p className="text-[11px] text-muted-foreground text-center">
-            {balance !== null ? `Your balance: ${balance.toLocaleString()} Sparks.` : ""}
-          </p>
+          <div className="flex justify-center">
+            <SparkBalanceChip />
+          </div>
+
         </>
       ) : (
         <Button asChild className="w-full"><Link to="/login">Sign in for the AI Fit-Check</Link></Button>
