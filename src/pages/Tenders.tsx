@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { Link } from "react-router-dom";
-import { Search, MapPin, Building2, Clock, ExternalLink, Loader2, Flame, Lock, Users } from "lucide-react";
+import { Search, MapPin, Building2, Clock, CalendarClock, ExternalLink, Loader2, Flame, Lock, Users } from "lucide-react";
 import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
@@ -12,7 +12,7 @@ import { supabase } from "@/integrations/supabase/client";
 import SparkBalanceChip from "@/components/umoja/SparkBalanceChip";
 
 import {
-  type TenderRow, displayTitle, closingLabel, isUrgent, isClosed,
+  type TenderRow, displayTitle, closingLabel, urgencyBand,
   formatDate, formatTenderValue, PROVINCES, ETENDERS_HOME,
 } from "@/lib/tenders";
 
@@ -92,7 +92,10 @@ export default function Tenders() {
   }, [rows]);
 
   const pages = Math.max(1, Math.ceil(total / PAGE_SIZE));
-  const urgentCount = useMemo(() => rows.filter((r) => isUrgent(r.closing_at)).length, [rows]);
+  const urgentCount = useMemo(
+    () => rows.filter((r) => urgencyBand(r.closing_at) === "red").length,
+    [rows],
+  );
 
   return (
     <div className="space-y-6">
@@ -156,23 +159,38 @@ export default function Tenders() {
       ) : (
         <ul className="space-y-3">
           {rows.map((t) => {
-            const urgent = isUrgent(t.closing_at);
-            const closed = isClosed(t.closing_at);
+            const band = urgencyBand(t.closing_at);
             const value = formatTenderValue(t.value_amount, t.value_currency);
+            const bandBorder =
+              band === "red" ? "border-destructive/60 bg-destructive/5"
+              : band === "amber" ? "border-accent/50 bg-accent/5"
+              : band === "green" ? "border-primary/40 bg-primary/5"
+              : "";
+            const bandBadge =
+              band === "red"
+                ? { variant: "destructive" as const, icon: <Flame className="h-3 w-3" /> }
+                : band === "amber"
+                ? { variant: "outline" as const, icon: <CalendarClock className="h-3 w-3" />, cls: "border-accent/50 text-accent bg-accent/10" }
+                : band === "green"
+                ? { variant: "outline" as const, icon: <Clock className="h-3 w-3" />, cls: "border-primary/40 text-primary bg-primary/10" }
+                : band === "closed"
+                ? { variant: "secondary" as const, icon: <Clock className="h-3 w-3" /> }
+                : { variant: "outline" as const, icon: <Clock className="h-3 w-3" /> };
             return (
               <li key={t.id}>
                 <Card
-                  className={`p-4 transition-smooth hover:shadow-soft ${
-                    urgent ? "border-destructive/60 bg-destructive/5" : ""
-                  }`}
+                  className={`p-4 transition-smooth hover:shadow-soft ${bandBorder}`}
                 >
                   <Link to={`/tenders/${t.id}`} className="block space-y-3">
                     <div className="flex items-start justify-between gap-3">
                       <h2 className="font-medium leading-snug">
                         {displayTitle(t.description ?? t.title)}
                       </h2>
-                      <Badge variant={urgent ? "destructive" : closed ? "secondary" : "outline"} className="shrink-0 gap-1">
-                        {urgent && <Flame className="h-3 w-3" />}
+                      <Badge
+                        variant={bandBadge.variant}
+                        className={`shrink-0 gap-1 ${bandBadge.cls ?? ""}`}
+                      >
+                        {bandBadge.icon}
                         {closingLabel(t.closing_at)}
                       </Badge>
                     </div>
