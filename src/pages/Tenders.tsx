@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { Link } from "react-router-dom";
-import { Search, MapPin, Building2, Clock, ExternalLink, Loader2, Flame, Lock } from "lucide-react";
+import { Search, MapPin, Building2, Clock, ExternalLink, Loader2, Flame, Lock, Users } from "lucide-react";
 import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
@@ -25,6 +25,9 @@ export default function Tenders() {
   const [openOnly, setOpenOnly] = useState(true);
   const [page, setPage] = useState(0);
   const [total, setTotal] = useState(0);
+  const [intentCounts, setIntentCounts] = useState<
+    Record<string, { pursuing: number; open: number }>
+  >({});
 
   // debounce the free-text search
   useEffect(() => {
@@ -67,6 +70,24 @@ export default function Tenders() {
     })();
     return () => { cancelled = true; };
   }, [query, province, openOnly, page]);
+
+  // community "pursuing" signal for the visible page (counts only, no identities)
+  useEffect(() => {
+    if (rows.length === 0) { setIntentCounts({}); return; }
+    let cancelled = false;
+    (async () => {
+      const { data } = await supabase.rpc("tender_intent_counts", {
+        p_tender_ids: rows.map((r) => r.id),
+      });
+      if (cancelled) return;
+      const map: Record<string, { pursuing: number; open: number }> = {};
+      for (const c of (data as { tender_id: string; pursuing_count: number; open_to_partner_count: number }[] | null) ?? []) {
+        map[c.tender_id] = { pursuing: c.pursuing_count, open: c.open_to_partner_count };
+      }
+      setIntentCounts(map);
+    })();
+    return () => { cancelled = true; };
+  }, [rows]);
 
   const pages = Math.max(1, Math.ceil(total / PAGE_SIZE));
   const urgentCount = useMemo(() => rows.filter((r) => isUrgent(r.closing_at)).length, [rows]);
@@ -173,6 +194,12 @@ export default function Tenders() {
                       <span className="inline-flex items-center gap-1 text-muted-foreground">
                         <Lock className="h-3 w-3" />Bid number & bid pack inside
                       </span>
+                      {(intentCounts[t.id]?.pursuing ?? 0) > 0 && (
+                        <span className="inline-flex items-center gap-1 text-muted-foreground">
+                          <Users className="h-3 w-3" />
+                          {intentCounts[t.id].pursuing} pursuing · {intentCounts[t.id].open} open to partner
+                        </span>
+                      )}
                     </div>
                   </Link>
                 </Card>
