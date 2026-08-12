@@ -142,7 +142,7 @@ export default function TenderIntentPanel({ tenderId }: { tenderId: string }) {
           </div>
         </div>
         {activeMine && (
-          <Badge variant="secondary" className="gap-1">
+          <Badge variant="outline" className="gap-1 border-primary/40 bg-primary/10 text-primary">
             <UserCheck className="h-3 w-3" />
             {activeMine.intent === "open_to_partner"
               ? "You're open to partner"
