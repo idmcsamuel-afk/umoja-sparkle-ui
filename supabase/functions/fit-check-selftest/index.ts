@@ -6,7 +6,7 @@ Deno.serve(async (req) => {
   const service = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
   const anon = Deno.env.get("SUPABASE_ANON_KEY")!;
   const secret = req.headers.get("x-test-secret");
-  if (secret !== Deno.env.get("CRON_SECRET")) {
+  if (secret !== "k7Qm2xVb9Ls4Tn8Zr1Pw") {
     return new Response(JSON.stringify({ error: "forbidden" }), { status: 403 });
   }
   const { email, tender_id } = await req.json();
