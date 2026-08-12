@@ -202,29 +202,53 @@ export default function TenderIntentPanel({ tenderId }: { tenderId: string }) {
               </span>
             </div>
           ) : (
-            <div className="grid gap-3 sm:grid-cols-2">
-              <div className="space-y-1">
-                <Label htmlFor="ti-brings" className="text-xs">What I bring (optional)</Label>
+            <div className="grid gap-4 sm:grid-cols-2">
+              <div className="space-y-2">
+                <Label className="text-xs">What I bring (optional)</Label>
+                <TagPicker
+                  tags={tags}
+                  selected={bringsTags}
+                  onToggle={(slug) =>
+                    setBringsTags((prev) =>
+                      prev.includes(slug) ? prev.filter((s) => s !== slug) : [...prev, slug],
+                    )
+                  }
+                />
                 <Input
                   id="ti-brings"
                   value={brings}
                   maxLength={280}
                   onChange={(e) => setBrings(e.target.value)}
-                  placeholder="CIDB 3GB, own bakkie, CSD registered…"
+                  placeholder="Optional note — e.g. CIDB 3GB, own bakkie…"
                 />
               </div>
-              <div className="space-y-1">
-                <Label htmlFor="ti-needs" className="text-xs">What I need (optional)</Label>
+              <div className="space-y-2">
+                <Label className="text-xs">What I need (optional)</Label>
+                <TagPicker
+                  tags={tags}
+                  selected={needsTags}
+                  onToggle={(slug) =>
+                    setNeedsTags((prev) =>
+                      prev.includes(slug) ? prev.filter((s) => s !== slug) : [...prev, slug],
+                    )
+                  }
+                />
                 <Input
                   id="ti-needs"
                   value={needs}
                   maxLength={280}
                   onChange={(e) => setNeeds(e.target.value)}
-                  placeholder="Working capital, tax clearance, local partner…"
+                  placeholder="Optional note — e.g. working capital, local partner…"
                 />
               </div>
+              {bringsTags.length === 0 && needsTags.length === 0 && (
+                <p className="sm:col-span-2 text-[11px] text-muted-foreground">
+                  Tip: pick at least one tag so other members can see how you match.
+                </p>
+              )}
             </div>
           )}
+
 
           <div className="flex flex-wrap gap-2">
             <Button onClick={save} disabled={saving}>
