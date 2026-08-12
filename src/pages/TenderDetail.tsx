@@ -281,12 +281,12 @@ export default function TenderDetail() {
           </ul>
 
           {user ? (
-            <Button className="w-full" onClick={() => setConfirmOpen(true)} disabled={unlocking}>
+            <Button variant="spark" className="w-full" onClick={() => setConfirmOpen(true)} disabled={unlocking}>
               {unlocking && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
               Unlock full details — {REVEAL_COST} Sparks (R{REVEAL_COST})
             </Button>
           ) : (
-            <Button asChild className="w-full"><Link to="/login">Sign in to unlock</Link></Button>
+            <Button asChild variant="spark" className="w-full"><Link to="/login">Sign in to unlock</Link></Button>
           )}
 
           <Button variant="outline" className="w-full" disabled>
