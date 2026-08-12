@@ -20,6 +20,7 @@ type MyIntent = {
 type Partner = {
   member_id: string;
   full_name: string | null;
+  province: string | null;
   brings: string | null;
   needs: string | null;
   created_at: string;
@@ -215,14 +216,22 @@ export default function TenderIntentPanel({ tenderId }: { tenderId: string }) {
           <ul className="space-y-2">
             {partners.map((p) => (
               <li key={p.member_id} className="rounded-xl bg-muted/50 px-3 py-2 text-sm space-y-1">
-                <span className="font-medium">{p.full_name ?? "UMOJA member"}</span>
+                <div className="flex flex-wrap items-center gap-2">
+                  <span className="font-medium">{p.full_name ?? "UMOJA member"}</span>
+                  {p.province && <Badge variant="outline" className="text-[10px]">{p.province}</Badge>}
+                </div>
                 {p.brings && <p className="text-xs text-muted-foreground">Brings: {p.brings}</p>}
                 {p.needs && <p className="text-xs text-muted-foreground">Needs: {p.needs}</p>}
               </li>
             ))}
           </ul>
         )}
+        <p className="text-[11px] text-muted-foreground">
+          No contact details are shared at this stage — only name, province and what each member brings
+          or needs. Connecting happens on-platform inside the Bid Circle.
+        </p>
       </div>
+
     </Card>
   );
 }
