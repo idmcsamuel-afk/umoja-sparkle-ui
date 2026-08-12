@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { Link } from "react-router-dom";
-import { Search, MapPin, Building2, Clock, CalendarClock, ExternalLink, Loader2, Flame, Lock, Users } from "lucide-react";
+import { Search, MapPin, Building2, Clock, CalendarClock, ExternalLink, Loader2, Flame, Lock, Users, Handshake, BookmarkCheck } from "lucide-react";
 import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
@@ -10,6 +10,7 @@ import {
 } from "@/components/ui/select";
 import { supabase } from "@/integrations/supabase/client";
 import SparkBalanceChip from "@/components/umoja/SparkBalanceChip";
+import MyTendersList from "@/components/umoja/MyTendersList";
 
 import {
   type TenderRow, displayTitle, closingLabel, urgencyBand,
@@ -19,6 +20,7 @@ import {
 const PAGE_SIZE = 25;
 
 export default function Tenders() {
+  const [view, setView] = useState<"browse" | "mine">("browse");
   const [rows, setRows] = useState<TenderRow[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
