@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { Link } from "react-router-dom";
-import { Search, MapPin, Building2, Clock, CalendarClock, ExternalLink, Loader2, Flame, Lock, Users } from "lucide-react";
+import { Search, MapPin, Building2, Clock, CalendarClock, ExternalLink, Loader2, Flame, Lock, Users, Handshake, BookmarkCheck } from "lucide-react";
 import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
@@ -10,6 +10,7 @@ import {
 } from "@/components/ui/select";
 import { supabase } from "@/integrations/supabase/client";
 import SparkBalanceChip from "@/components/umoja/SparkBalanceChip";
+import MyTendersList from "@/components/umoja/MyTendersList";
 
 import {
   type TenderRow, displayTitle, closingLabel, urgencyBand,
@@ -19,6 +20,7 @@ import {
 const PAGE_SIZE = 25;
 
 export default function Tenders() {
+  const [view, setView] = useState<"browse" | "mine">("browse");
   const [rows, setRows] = useState<TenderRow[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
@@ -108,10 +110,34 @@ export default function Tenders() {
           Live South African government tenders from the National Treasury eTenders feed. Browse for
           free — bid numbers, contacts and bid packs unlock inside each tender.
         </p>
+        <div className="flex flex-wrap gap-2 pt-1">
+          <Button
+            type="button"
+            size="sm"
+            variant={view === "browse" ? "default" : "outline"}
+            onClick={() => setView("browse")}
+            aria-pressed={view === "browse"}
+            className={view === "browse" ? "" : "text-muted-foreground"}
+          >
+            <Search className="mr-2 h-3.5 w-3.5" /> Browse all
+          </Button>
+          <Button
+            type="button"
+            size="sm"
+            variant={view === "mine" ? "default" : "outline"}
+            onClick={() => setView("mine")}
+            aria-pressed={view === "mine"}
+            className={view === "mine" ? "" : "text-muted-foreground"}
+          >
+            <BookmarkCheck className="mr-2 h-3.5 w-3.5" /> My Tenders
+          </Button>
+        </div>
       </header>
 
-
+      {view === "mine" ? <MyTendersList /> : (
+      <>
       <Card className="p-4 space-y-3">
+
         <div className="relative">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
           <Input
@@ -218,10 +244,16 @@ export default function Tenders() {
                       <span className="inline-flex items-center gap-1 text-muted-foreground">
                         <Lock className="h-3 w-3" />Bid number & bid pack inside
                       </span>
+                      {(intentCounts[t.id]?.open ?? 0) > 0 && (
+                        <Badge variant="outline" className="gap-1 border-partner/50 bg-partner/10 text-partner font-medium">
+                          <Handshake className="h-3 w-3" />
+                          {intentCounts[t.id].open} open to partner
+                        </Badge>
+                      )}
                       {(intentCounts[t.id]?.pursuing ?? 0) > 0 && (
                         <span className="inline-flex items-center gap-1 text-muted-foreground">
                           <Users className="h-3 w-3" />
-                          {intentCounts[t.id].pursuing} pursuing · {intentCounts[t.id].open} open to partner
+                          {intentCounts[t.id].pursuing} pursuing solo
                         </span>
                       )}
                     </div>
@@ -244,6 +276,9 @@ export default function Tenders() {
           </Button>
         </div>
       )}
+      </>
+      )}
+
 
       <p className="text-xs text-muted-foreground">
         Data sourced from the National Treasury eTenders OCDS feed.{" "}
