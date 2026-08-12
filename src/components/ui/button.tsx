@@ -15,6 +15,8 @@ const buttonVariants = cva(
         secondary: "bg-secondary text-secondary-foreground hover:bg-secondary/80",
         ghost: "hover:bg-accent hover:text-accent-foreground",
         link: "text-primary underline-offset-4 hover:underline",
+        spark: "bg-accent text-accent-foreground hover:bg-accent/90 shadow-sm",
+        sparkOutline: "border border-accent/50 bg-accent/10 text-accent hover:bg-accent/20",
       },
       size: {
         default: "h-10 px-4 py-2",

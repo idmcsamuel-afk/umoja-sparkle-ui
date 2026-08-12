@@ -126,20 +126,27 @@ export default function TenderFitCheck({ tenderId }: { tenderId: string }) {
   }
 
   return (
-    <Card className={`p-5 space-y-4 ${fit ? "border-primary/40" : "border-dashed"}`}>
+    <Card className={`p-5 space-y-4 ${fit ? "border-primary/40 bg-primary/5" : "border-dashed border-accent/40"}`}>
       <div className="flex items-center gap-2">
-        <span className="grid h-8 w-8 place-items-center rounded-xl bg-gradient-primary text-primary-foreground">
-          <Sparkles className="h-4 w-4" />
+        <span
+          className={`grid h-8 w-8 place-items-center rounded-xl ring-1 ${
+            fit
+              ? "bg-primary/15 text-primary ring-primary/30"
+              : "bg-accent/15 text-accent ring-accent/30"
+          }`}
+        >
+          {fit ? <ShieldCheck className="h-4 w-4" /> : <Sparkles className="h-4 w-4" />}
         </span>
         <div className="min-w-0">
           <h2 className="font-medium">AI Fit-Check</h2>
-          <p className="text-xs text-muted-foreground">
+          <p className={`text-xs ${fit ? "text-primary/80" : "text-muted-foreground"}`}>
             {fit
               ? generatedAt ? `Generated ${formatDateTime(generatedAt)} · free to re-view` : "Free to re-view"
               : "Should you bid on this one? Get a plain-language read in seconds."}
           </p>
         </div>
       </div>
+
 
       {fit ? (
         <div className="space-y-4">
@@ -181,7 +188,7 @@ export default function TenderFitCheck({ tenderId }: { tenderId: string }) {
               <li key={item} className="rounded-xl bg-muted/50 px-3 py-2 text-muted-foreground">{item}</li>
             ))}
           </ul>
-          <Button className="w-full" onClick={() => setConfirmOpen(true)} disabled={running}>
+          <Button variant="spark" className="w-full" onClick={() => setConfirmOpen(true)} disabled={running}>
             {running && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
             AI Fit-Check — {FIT_CHECK_COST} Sparks
           </Button>
@@ -211,7 +218,7 @@ export default function TenderFitCheck({ tenderId }: { tenderId: string }) {
           </AlertDialogHeader>
           <AlertDialogFooter>
             <AlertDialogCancel disabled={running}>Cancel</AlertDialogCancel>
-            <AlertDialogAction onClick={(e) => { e.preventDefault(); run(); }} disabled={running}>
+            <AlertDialogAction className="bg-accent text-accent-foreground hover:bg-accent/90" onClick={(e) => { e.preventDefault(); run(); }} disabled={running}>
               {running && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
               Confirm — {FIT_CHECK_COST} Sparks
             </AlertDialogAction>

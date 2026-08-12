@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState } from "react";
-import { Handshake, Users, Loader2, EyeOff, Eye, UserCheck, X } from "lucide-react";
+import { Handshake, Users, Loader2, EyeOff, Eye, UserCheck, X, Check } from "lucide-react";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -142,7 +142,7 @@ export default function TenderIntentPanel({ tenderId }: { tenderId: string }) {
           </div>
         </div>
         {activeMine && (
-          <Badge variant="secondary" className="gap-1">
+          <Badge variant="outline" className="gap-1 border-primary/40 bg-primary/10 text-primary">
             <UserCheck className="h-3 w-3" />
             {activeMine.intent === "open_to_partner"
               ? "You're open to partner"
@@ -160,17 +160,29 @@ export default function TenderIntentPanel({ tenderId }: { tenderId: string }) {
               type="button"
               variant={intent === "solo" ? "default" : "outline"}
               onClick={() => setIntent("solo")}
-              className="justify-start"
+              aria-pressed={intent === "solo"}
+              className={`justify-start ${
+                intent === "solo"
+                  ? "ring-2 ring-primary/40 ring-offset-2 ring-offset-background"
+                  : "text-muted-foreground"
+              }`}
             >
-              <UserCheck className="mr-2 h-4 w-4" /> Pursuing solo
+              {intent === "solo" ? <Check className="mr-2 h-4 w-4" /> : <UserCheck className="mr-2 h-4 w-4" />}
+              Pursuing solo
             </Button>
             <Button
               type="button"
               variant={intent === "open_to_partner" ? "default" : "outline"}
               onClick={() => setIntent("open_to_partner")}
-              className="justify-start"
+              aria-pressed={intent === "open_to_partner"}
+              className={`justify-start ${
+                intent === "open_to_partner"
+                  ? "ring-2 ring-primary/40 ring-offset-2 ring-offset-background"
+                  : "text-muted-foreground"
+              }`}
             >
-              <Handshake className="mr-2 h-4 w-4" /> Open to partner
+              {intent === "open_to_partner" ? <Check className="mr-2 h-4 w-4" /> : <Handshake className="mr-2 h-4 w-4" />}
+              Open to partner
             </Button>
           </div>
 
@@ -179,16 +191,20 @@ export default function TenderIntentPanel({ tenderId }: { tenderId: string }) {
               <Button
                 type="button"
                 size="sm"
-                variant={visibility === "visible" ? "secondary" : "ghost"}
+                variant={visibility === "visible" ? "default" : "outline"}
                 onClick={() => setVisibility("visible")}
+                aria-pressed={visibility === "visible"}
+                className={visibility === "visible" ? "" : "text-muted-foreground"}
               >
                 <Eye className="mr-2 h-3.5 w-3.5" /> Visible
               </Button>
               <Button
                 type="button"
                 size="sm"
-                variant={visibility === "private" ? "secondary" : "ghost"}
+                variant={visibility === "private" ? "default" : "outline"}
                 onClick={() => setVisibility("private")}
+                aria-pressed={visibility === "private"}
+                className={visibility === "private" ? "" : "text-muted-foreground"}
               >
                 <EyeOff className="mr-2 h-3.5 w-3.5" /> Private
               </Button>
@@ -197,6 +213,7 @@ export default function TenderIntentPanel({ tenderId }: { tenderId: string }) {
               </span>
             </div>
           ) : (
+
             <div className="grid gap-4 sm:grid-cols-2">
               <div className="space-y-2">
                 <Label className="text-xs">What I bring (optional)</Label>
