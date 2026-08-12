@@ -218,7 +218,7 @@ export default function TenderFitCheck({ tenderId }: { tenderId: string }) {
           </AlertDialogHeader>
           <AlertDialogFooter>
             <AlertDialogCancel disabled={running}>Cancel</AlertDialogCancel>
-            <AlertDialogAction onClick={(e) => { e.preventDefault(); run(); }} disabled={running}>
+            <AlertDialogAction className="bg-accent text-accent-foreground hover:bg-accent/90" onClick={(e) => { e.preventDefault(); run(); }} disabled={running}>
               {running && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
               Confirm — {FIT_CHECK_COST} Sparks
             </AlertDialogAction>
