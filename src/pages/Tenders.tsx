@@ -110,10 +110,34 @@ export default function Tenders() {
           Live South African government tenders from the National Treasury eTenders feed. Browse for
           free — bid numbers, contacts and bid packs unlock inside each tender.
         </p>
+        <div className="flex flex-wrap gap-2 pt-1">
+          <Button
+            type="button"
+            size="sm"
+            variant={view === "browse" ? "default" : "outline"}
+            onClick={() => setView("browse")}
+            aria-pressed={view === "browse"}
+            className={view === "browse" ? "" : "text-muted-foreground"}
+          >
+            <Search className="mr-2 h-3.5 w-3.5" /> Browse all
+          </Button>
+          <Button
+            type="button"
+            size="sm"
+            variant={view === "mine" ? "default" : "outline"}
+            onClick={() => setView("mine")}
+            aria-pressed={view === "mine"}
+            className={view === "mine" ? "" : "text-muted-foreground"}
+          >
+            <BookmarkCheck className="mr-2 h-3.5 w-3.5" /> My Tenders
+          </Button>
+        </div>
       </header>
 
-
+      {view === "mine" ? <MyTendersList /> : (
+      <>
       <Card className="p-4 space-y-3">
+
         <div className="relative">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
           <Input
