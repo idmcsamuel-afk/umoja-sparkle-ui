@@ -97,12 +97,15 @@ export default function TenderIntentPanel({ tenderId }: { tenderId: string }) {
 
   const save = async () => {
     setSaving(true);
+    const isPartner = intent === "open_to_partner";
     const { error } = await supabase.rpc("set_tender_intent", {
       p_tender_id: tenderId,
       p_intent: intent,
       p_visibility: visibility,
-      p_brings: intent === "open_to_partner" ? brings : null,
-      p_needs: intent === "open_to_partner" ? needs : null,
+      p_brings: isPartner ? brings || null : null,
+      p_needs: isPartner ? needs || null : null,
+      p_brings_tags: isPartner ? bringsTags : null,
+      p_needs_tags: isPartner ? needsTags : null,
     });
     setSaving(false);
     if (error) { toast.error(error.message || "Could not save your intent"); return; }
