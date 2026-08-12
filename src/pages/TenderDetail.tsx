@@ -116,9 +116,25 @@ export default function TenderDetail() {
     );
   }
 
-  const urgent = isUrgent(tender.closing_at);
+  const band = urgencyBand(tender.closing_at);
   const value = formatTenderValue(tender.value_amount, tender.value_currency);
   const docs = Array.isArray(tender.documents) ? tender.documents : [];
+
+  const bandBorder =
+    band === "red" ? "border-destructive/60 bg-destructive/5"
+    : band === "amber" ? "border-accent/50 bg-accent/5"
+    : band === "green" ? "border-primary/40 bg-primary/5"
+    : "";
+  const bandBadge =
+    band === "red"
+      ? { variant: "destructive" as const, icon: <Flame className="h-3 w-3" />, cls: "" }
+      : band === "amber"
+      ? { variant: "outline" as const, icon: <CalendarClock className="h-3 w-3" />, cls: "border-accent/50 text-accent bg-accent/10" }
+      : band === "green"
+      ? { variant: "outline" as const, icon: <Clock className="h-3 w-3" />, cls: "border-primary/40 text-primary bg-primary/10" }
+      : band === "closed"
+      ? { variant: "secondary" as const, icon: <Clock className="h-3 w-3" />, cls: "" }
+      : { variant: "outline" as const, icon: <Clock className="h-3 w-3" />, cls: "" };
 
   return (
     <div className="space-y-6 max-w-3xl">
@@ -129,10 +145,10 @@ export default function TenderDetail() {
         <SparkBalanceChip />
       </div>
 
-      <Card className={`p-5 space-y-4 ${urgent ? "border-destructive/60 bg-destructive/5" : ""}`}>
+      <Card className={`p-5 space-y-4 ${bandBorder}`}>
         <div className="flex flex-wrap items-center gap-2">
-          <Badge variant={urgent ? "destructive" : "outline"} className="gap-1">
-            {urgent && <Flame className="h-3 w-3" />}
+          <Badge variant={bandBadge.variant} className={`gap-1 ${bandBadge.cls}`}>
+            {bandBadge.icon}
             {closingLabel(tender.closing_at)}
           </Badge>
           {tender.status && <Badge variant="secondary">{tender.status}</Badge>}
