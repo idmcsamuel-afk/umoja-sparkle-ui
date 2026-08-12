@@ -188,7 +188,7 @@ export default function TenderFitCheck({ tenderId }: { tenderId: string }) {
               <li key={item} className="rounded-xl bg-muted/50 px-3 py-2 text-muted-foreground">{item}</li>
             ))}
           </ul>
-          <Button className="w-full" onClick={() => setConfirmOpen(true)} disabled={running}>
+          <Button variant="spark" className="w-full" onClick={() => setConfirmOpen(true)} disabled={running}>
             {running && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
             AI Fit-Check — {FIT_CHECK_COST} Sparks
           </Button>
