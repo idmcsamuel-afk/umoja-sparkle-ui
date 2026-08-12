@@ -46,6 +46,18 @@ export function isUrgent(closing: string | null | undefined): boolean {
   return d !== null && d >= 0 && d <= 3;
 }
 
+/** Three-band urgency scale: red (≤3d), amber (4–10d), green (>10d), or closed/unknown. */
+export type UrgencyBand = "red" | "amber" | "green" | "closed" | "unknown";
+
+export function urgencyBand(closing: string | null | undefined): UrgencyBand {
+  const d = daysUntil(closing);
+  if (d === null) return "unknown";
+  if (d < 0) return "closed";
+  if (d <= 3) return "red";
+  if (d <= 10) return "amber";
+  return "green";
+}
+
 export function isClosed(closing: string | null | undefined): boolean {
   const d = daysUntil(closing);
   return d !== null && d < 0;
