@@ -55,6 +55,7 @@ import Community from "./pages/Community.tsx";
 import Trending from "./pages/Trending.tsx";
 import AdminCommunity from "./pages/admin/AdminCommunity.tsx";
 import AdminTrending from "./pages/admin/AdminTrending.tsx";
+import AdminTenderIntents from "./pages/admin/AdminTenderIntents.tsx";
 import AdminPurchaseEnforcement from "./pages/admin/AdminPurchaseEnforcement.tsx";
 import AdminAutomations from "./pages/admin/AdminAutomations.tsx";
 import AdminPodcasts from "./pages/admin/AdminPodcasts.tsx";
@@ -236,6 +237,7 @@ const App = () => (
                 <Route path="blog" element={<AdminBlog />} />
                 <Route path="community" element={<AdminCommunity />} />
                 <Route path="trending" element={<AdminTrending />} />
+                <Route path="tender-intents" element={<AdminTenderIntents />} />
                 <Route path="purchase-enforcement" element={<AdminPurchaseEnforcement />} />
                 <Route path="content-director" element={<AdminContentDirector />} />
                 <Route path="ugc-submissions" element={<AdminUgcSubmissions />} />

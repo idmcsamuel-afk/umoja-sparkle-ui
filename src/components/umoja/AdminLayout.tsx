@@ -23,6 +23,7 @@ const items = [
   { to: "/admin/product-validation", label: "✅ Product Validation", icon: ShieldCheck },
   { to: "/admin/supplier-dashboard", label: "📋 Supplier Dashboard", icon: FileText },
   { to: "/admin/trending", label: "Trending 🔥", icon: Flame },
+  { to: "/admin/tender-intents", label: "Tender Appetite 🤝", icon: FileText },
   { to: "/admin/purchase-enforcement", label: "Enforcement", icon: ShieldAlert },
   { to: "/admin/buyers-club", label: "Buyers Club", icon: Crown },
   { to: "/admin/fulfillment", label: "Fulfillment", icon: Rocket },

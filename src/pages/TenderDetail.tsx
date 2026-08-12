@@ -14,6 +14,7 @@ import {
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
+import TenderIntentPanel from "@/components/umoja/TenderIntentPanel";
 import { closingLabel, isUrgent, formatDateTime, formatDate, formatTenderValue } from "@/lib/tenders";
 
 const REVEAL_COST = 20;
@@ -182,6 +183,8 @@ export default function TenderDetail() {
           )}
         </dl>
       </Card>
+
+      <TenderIntentPanel tenderId={tender.id} />
 
       {tender.unlocked ? (
         <Card className="p-5 space-y-4 border-primary/40">
