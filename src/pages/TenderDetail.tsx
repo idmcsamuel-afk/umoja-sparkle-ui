@@ -184,16 +184,17 @@ export default function TenderDetail() {
       <TenderIntentPanel tenderId={tender.id} />
 
       {tender.unlocked ? (
-        <Card className="p-5 space-y-4 border-primary/40">
+        <Card className="p-5 space-y-4 border-primary/40 bg-primary/5">
           <div className="flex items-center gap-2">
-            <span className="grid h-8 w-8 place-items-center rounded-xl bg-gradient-primary text-primary-foreground">
+            <span className="grid h-8 w-8 place-items-center rounded-xl bg-primary/15 text-primary ring-1 ring-primary/30">
               <CheckCircle2 className="h-4 w-4" />
             </span>
             <div>
               <h2 className="font-medium">Full bid details</h2>
-              <p className="text-xs text-muted-foreground">Unlocked — yours permanently.</p>
+              <p className="text-xs text-primary/80">Unlocked — yours permanently.</p>
             </div>
           </div>
+
 
           <dl className="grid gap-3 sm:grid-cols-2 text-sm">
             <div className="sm:col-span-2">
