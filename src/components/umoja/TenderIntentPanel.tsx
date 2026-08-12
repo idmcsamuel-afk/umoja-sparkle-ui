@@ -8,12 +8,15 @@ import { Label } from "@/components/ui/label";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
+import TagPicker, { type CapabilityTag } from "@/components/umoja/IntentTagPicker";
 
 type MyIntent = {
   intent: "solo" | "open_to_partner";
   visibility: "visible" | "private";
   brings: string | null;
   needs: string | null;
+  brings_tags: string[] | null;
+  needs_tags: string[] | null;
   active: boolean;
 } | null;
 
@@ -23,8 +26,11 @@ type Partner = {
   province: string | null;
   brings: string | null;
   needs: string | null;
+  brings_tags: string[] | null;
+  needs_tags: string[] | null;
   created_at: string;
 };
+
 
 export default function TenderIntentPanel({ tenderId }: { tenderId: string }) {
   const { user } = useAuth();
@@ -33,11 +39,31 @@ export default function TenderIntentPanel({ tenderId }: { tenderId: string }) {
   const [counts, setCounts] = useState({ pursuing: 0, open: 0 });
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
+  const [tags, setTags] = useState<CapabilityTag[]>([]);
 
   const [intent, setIntent] = useState<"solo" | "open_to_partner">("solo");
   const [visibility, setVisibility] = useState<"visible" | "private">("visible");
   const [brings, setBrings] = useState("");
   const [needs, setNeeds] = useState("");
+  const [bringsTags, setBringsTags] = useState<string[]>([]);
+  const [needsTags, setNeedsTags] = useState<string[]>([]);
+
+  const tagLabel = useCallback(
+    (slug: string) => tags.find((t) => t.slug === slug)?.label ?? slug,
+    [tags],
+  );
+
+  useEffect(() => {
+    (async () => {
+      const { data } = await supabase
+        .from("intent_capability_tags")
+        .select("slug,label,tag_group,sort_order")
+        .eq("active", true)
+        .order("tag_group", { ascending: true })
+        .order("sort_order", { ascending: true });
+      setTags((data as CapabilityTag[] | null) ?? []);
+    })();
+  }, []);
 
   const load = useCallback(async () => {
     const [countRes, partnerRes, mineRes] = await Promise.all([
@@ -55,20 +81,26 @@ export default function TenderIntentPanel({ tenderId }: { tenderId: string }) {
       setVisibility(m.visibility);
       setBrings(m.brings ?? "");
       setNeeds(m.needs ?? "");
+      setBringsTags(m.brings_tags ?? []);
+      setNeedsTags(m.needs_tags ?? []);
     }
     setLoading(false);
   }, [tenderId, user]);
+
 
   useEffect(() => { setLoading(true); load(); }, [load]);
 
   const save = async () => {
     setSaving(true);
+    const isPartner = intent === "open_to_partner";
     const { error } = await supabase.rpc("set_tender_intent", {
       p_tender_id: tenderId,
       p_intent: intent,
       p_visibility: visibility,
-      p_brings: intent === "open_to_partner" ? brings : null,
-      p_needs: intent === "open_to_partner" ? needs : null,
+      p_brings: isPartner ? brings || null : null,
+      p_needs: isPartner ? needs || null : null,
+      p_brings_tags: isPartner ? bringsTags : null,
+      p_needs_tags: isPartner ? needsTags : null,
     });
     setSaving(false);
     if (error) { toast.error(error.message || "Could not save your intent"); return; }
@@ -165,29 +197,53 @@ export default function TenderIntentPanel({ tenderId }: { tenderId: string }) {
               </span>
             </div>
           ) : (
-            <div className="grid gap-3 sm:grid-cols-2">
-              <div className="space-y-1">
-                <Label htmlFor="ti-brings" className="text-xs">What I bring (optional)</Label>
+            <div className="grid gap-4 sm:grid-cols-2">
+              <div className="space-y-2">
+                <Label className="text-xs">What I bring (optional)</Label>
+                <TagPicker
+                  tags={tags}
+                  selected={bringsTags}
+                  onToggle={(slug) =>
+                    setBringsTags((prev) =>
+                      prev.includes(slug) ? prev.filter((s) => s !== slug) : [...prev, slug],
+                    )
+                  }
+                />
                 <Input
                   id="ti-brings"
                   value={brings}
                   maxLength={280}
                   onChange={(e) => setBrings(e.target.value)}
-                  placeholder="CIDB 3GB, own bakkie, CSD registered…"
+                  placeholder="Optional note — e.g. CIDB 3GB, own bakkie…"
                 />
               </div>
-              <div className="space-y-1">
-                <Label htmlFor="ti-needs" className="text-xs">What I need (optional)</Label>
+              <div className="space-y-2">
+                <Label className="text-xs">What I need (optional)</Label>
+                <TagPicker
+                  tags={tags}
+                  selected={needsTags}
+                  onToggle={(slug) =>
+                    setNeedsTags((prev) =>
+                      prev.includes(slug) ? prev.filter((s) => s !== slug) : [...prev, slug],
+                    )
+                  }
+                />
                 <Input
                   id="ti-needs"
                   value={needs}
                   maxLength={280}
                   onChange={(e) => setNeeds(e.target.value)}
-                  placeholder="Working capital, tax clearance, local partner…"
+                  placeholder="Optional note — e.g. working capital, local partner…"
                 />
               </div>
+              {bringsTags.length === 0 && needsTags.length === 0 && (
+                <p className="sm:col-span-2 text-[11px] text-muted-foreground">
+                  Tip: pick at least one tag so other members can see how you match.
+                </p>
+              )}
             </div>
           )}
+
 
           <div className="flex flex-wrap gap-2">
             <Button onClick={save} disabled={saving}>
@@ -215,14 +271,31 @@ export default function TenderIntentPanel({ tenderId }: { tenderId: string }) {
         ) : (
           <ul className="space-y-2">
             {partners.map((p) => (
-              <li key={p.member_id} className="rounded-xl bg-muted/50 px-3 py-2 text-sm space-y-1">
+              <li key={p.member_id} className="rounded-xl bg-muted/50 px-3 py-2 text-sm space-y-1.5">
                 <div className="flex flex-wrap items-center gap-2">
                   <span className="font-medium">{p.full_name ?? "UMOJA member"}</span>
                   {p.province && <Badge variant="outline" className="text-[10px]">{p.province}</Badge>}
                 </div>
-                {p.brings && <p className="text-xs text-muted-foreground">Brings: {p.brings}</p>}
-                {p.needs && <p className="text-xs text-muted-foreground">Needs: {p.needs}</p>}
+                {(p.brings_tags?.length ?? 0) > 0 && (
+                  <div className="flex flex-wrap items-center gap-1">
+                    <span className="text-[11px] text-muted-foreground">Brings:</span>
+                    {p.brings_tags!.map((s) => (
+                      <Badge key={`b-${s}`} variant="secondary" className="text-[10px]">{tagLabel(s)}</Badge>
+                    ))}
+                  </div>
+                )}
+                {(p.needs_tags?.length ?? 0) > 0 && (
+                  <div className="flex flex-wrap items-center gap-1">
+                    <span className="text-[11px] text-muted-foreground">Needs:</span>
+                    {p.needs_tags!.map((s) => (
+                      <Badge key={`n-${s}`} variant="outline" className="text-[10px]">{tagLabel(s)}</Badge>
+                    ))}
+                  </div>
+                )}
+                {p.brings && <p className="text-xs text-muted-foreground">Brings note: {p.brings}</p>}
+                {p.needs && <p className="text-xs text-muted-foreground">Needs note: {p.needs}</p>}
               </li>
+
             ))}
           </ul>
         )}

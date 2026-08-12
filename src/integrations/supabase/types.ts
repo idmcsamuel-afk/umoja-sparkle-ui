@@ -3211,6 +3211,39 @@ export type Database = {
           },
         ]
       }
+      intent_capability_tags: {
+        Row: {
+          active: boolean
+          created_at: string
+          id: string
+          label: string
+          slug: string
+          sort_order: number
+          tag_group: string
+          updated_at: string
+        }
+        Insert: {
+          active?: boolean
+          created_at?: string
+          id?: string
+          label: string
+          slug: string
+          sort_order?: number
+          tag_group: string
+          updated_at?: string
+        }
+        Update: {
+          active?: boolean
+          created_at?: string
+          id?: string
+          label?: string
+          slug?: string
+          sort_order?: number
+          tag_group?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       investigation_cases: {
         Row: {
           assigned_to: string | null
@@ -6872,11 +6905,13 @@ export type Database = {
         Row: {
           active: boolean
           brings: string | null
+          brings_tags: string[] | null
           created_at: string
           id: string
           intent: string
           member_id: string
           needs: string | null
+          needs_tags: string[] | null
           tender_id: string
           updated_at: string
           visibility: string
@@ -6884,11 +6919,13 @@ export type Database = {
         Insert: {
           active?: boolean
           brings?: string | null
+          brings_tags?: string[] | null
           created_at?: string
           id?: string
           intent?: string
           member_id: string
           needs?: string | null
+          needs_tags?: string[] | null
           tender_id: string
           updated_at?: string
           visibility?: string
@@ -6896,11 +6933,13 @@ export type Database = {
         Update: {
           active?: boolean
           brings?: string | null
+          brings_tags?: string[] | null
           created_at?: string
           id?: string
           intent?: string
           member_id?: string
           needs?: string | null
+          needs_tags?: string[] | null
           tender_id?: string
           updated_at?: string
           visibility?: string
@@ -8509,16 +8548,29 @@ export type Database = {
       }
       releasable_referral_sparks: { Args: { _member: string }; Returns: number }
       run_drive_allocation: { Args: { p_tier_id: string }; Returns: Json }
-      set_tender_intent: {
-        Args: {
-          p_brings?: string
-          p_intent: string
-          p_needs?: string
-          p_tender_id: string
-          p_visibility?: string
-        }
-        Returns: Json
-      }
+      set_tender_intent:
+        | {
+            Args: {
+              p_brings?: string
+              p_intent: string
+              p_needs?: string
+              p_tender_id: string
+              p_visibility?: string
+            }
+            Returns: Json
+          }
+        | {
+            Args: {
+              p_brings?: string
+              p_brings_tags?: string[]
+              p_intent: string
+              p_needs?: string
+              p_needs_tags?: string[]
+              p_tender_id: string
+              p_visibility?: string
+            }
+            Returns: Json
+          }
       spark_balance_breakdown: { Args: { _member?: string }; Returns: Json }
       spin_sparkwheel: {
         Args: { p_bucket: string; p_member_id: string; p_stake_amount: number }
@@ -8564,10 +8616,12 @@ export type Database = {
         Args: { p_tender_id: string }
         Returns: {
           brings: string
+          brings_tags: string[]
           created_at: string
           full_name: string
           member_id: string
           needs: string
+          needs_tags: string[]
           province: string
         }[]
       }
