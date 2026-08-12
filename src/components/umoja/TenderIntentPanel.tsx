@@ -14,6 +14,8 @@ type MyIntent = {
   visibility: "visible" | "private";
   brings: string | null;
   needs: string | null;
+  brings_tags: string[] | null;
+  needs_tags: string[] | null;
   active: boolean;
 } | null;
 
@@ -23,7 +25,16 @@ type Partner = {
   province: string | null;
   brings: string | null;
   needs: string | null;
+  brings_tags: string[] | null;
+  needs_tags: string[] | null;
   created_at: string;
+};
+
+type CapabilityTag = { slug: string; label: string; tag_group: string; sort_order: number };
+
+const GROUP_LABELS: Record<string, string> = {
+  sector: "Sector / capability",
+  consortium: "Consortium contribution",
 };
 
 export default function TenderIntentPanel({ tenderId }: { tenderId: string }) {
@@ -33,11 +44,31 @@ export default function TenderIntentPanel({ tenderId }: { tenderId: string }) {
   const [counts, setCounts] = useState({ pursuing: 0, open: 0 });
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
+  const [tags, setTags] = useState<CapabilityTag[]>([]);
 
   const [intent, setIntent] = useState<"solo" | "open_to_partner">("solo");
   const [visibility, setVisibility] = useState<"visible" | "private">("visible");
   const [brings, setBrings] = useState("");
   const [needs, setNeeds] = useState("");
+  const [bringsTags, setBringsTags] = useState<string[]>([]);
+  const [needsTags, setNeedsTags] = useState<string[]>([]);
+
+  const tagLabel = useCallback(
+    (slug: string) => tags.find((t) => t.slug === slug)?.label ?? slug,
+    [tags],
+  );
+
+  useEffect(() => {
+    (async () => {
+      const { data } = await supabase
+        .from("intent_capability_tags")
+        .select("slug,label,tag_group,sort_order")
+        .eq("active", true)
+        .order("tag_group", { ascending: true })
+        .order("sort_order", { ascending: true });
+      setTags((data as CapabilityTag[] | null) ?? []);
+    })();
+  }, []);
 
   const load = useCallback(async () => {
     const [countRes, partnerRes, mineRes] = await Promise.all([
@@ -55,9 +86,12 @@ export default function TenderIntentPanel({ tenderId }: { tenderId: string }) {
       setVisibility(m.visibility);
       setBrings(m.brings ?? "");
       setNeeds(m.needs ?? "");
+      setBringsTags(m.brings_tags ?? []);
+      setNeedsTags(m.needs_tags ?? []);
     }
     setLoading(false);
   }, [tenderId, user]);
+
 
   useEffect(() => { setLoading(true); load(); }, [load]);
 
