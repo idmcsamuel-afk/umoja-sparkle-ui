@@ -15,6 +15,7 @@ import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import TenderIntentPanel from "@/components/umoja/TenderIntentPanel";
+import TenderFitCheck from "@/components/umoja/TenderFitCheck";
 import { closingLabel, isUrgent, formatDateTime, formatDate, formatTenderValue } from "@/lib/tenders";
 
 const REVEAL_COST = 20;
@@ -183,6 +184,8 @@ export default function TenderDetail() {
           )}
         </dl>
       </Card>
+
+      <TenderFitCheck tenderId={tender.id} />
 
       <TenderIntentPanel tenderId={tender.id} />
 
