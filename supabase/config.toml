@@ -80,6 +80,3 @@ verify_jwt = false
 
 [functions.sync-tenders]
 verify_jwt = false
-
-[functions.fit-check-selftest]
-verify_jwt = false
