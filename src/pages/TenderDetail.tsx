@@ -331,7 +331,7 @@ export default function TenderDetail() {
           </AlertDialogHeader>
           <AlertDialogFooter>
             <AlertDialogCancel disabled={unlocking}>Cancel</AlertDialogCancel>
-            <AlertDialogAction onClick={(e) => { e.preventDefault(); handleUnlock(); }} disabled={unlocking}>
+            <AlertDialogAction className="bg-accent text-accent-foreground hover:bg-accent/90" onClick={(e) => { e.preventDefault(); handleUnlock(); }} disabled={unlocking}>
               {unlocking && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
               Confirm — {REVEAL_COST} Sparks
             </AlertDialogAction>
