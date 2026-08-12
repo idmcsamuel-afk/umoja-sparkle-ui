@@ -244,10 +244,16 @@ export default function Tenders() {
                       <span className="inline-flex items-center gap-1 text-muted-foreground">
                         <Lock className="h-3 w-3" />Bid number & bid pack inside
                       </span>
+                      {(intentCounts[t.id]?.open ?? 0) > 0 && (
+                        <Badge variant="outline" className="gap-1 border-partner/50 bg-partner/10 text-partner font-medium">
+                          <Handshake className="h-3 w-3" />
+                          {intentCounts[t.id].open} open to partner
+                        </Badge>
+                      )}
                       {(intentCounts[t.id]?.pursuing ?? 0) > 0 && (
                         <span className="inline-flex items-center gap-1 text-muted-foreground">
                           <Users className="h-3 w-3" />
-                          {intentCounts[t.id].pursuing} pursuing · {intentCounts[t.id].open} open to partner
+                          {intentCounts[t.id].pursuing} pursuing solo
                         </span>
                       )}
                     </div>
