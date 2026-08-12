@@ -92,7 +92,10 @@ export default function Tenders() {
   }, [rows]);
 
   const pages = Math.max(1, Math.ceil(total / PAGE_SIZE));
-  const urgentCount = useMemo(() => rows.filter((r) => isUrgent(r.closing_at)).length, [rows]);
+  const urgentCount = useMemo(
+    () => rows.filter((r) => urgencyBand(r.closing_at) === "red").length,
+    [rows],
+  );
 
   return (
     <div className="space-y-6">
