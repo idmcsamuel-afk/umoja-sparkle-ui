@@ -276,6 +276,9 @@ export default function Tenders() {
           </Button>
         </div>
       )}
+      </>
+      )}
+
 
       <p className="text-xs text-muted-foreground">
         Data sourced from the National Treasury eTenders OCDS feed.{" "}
