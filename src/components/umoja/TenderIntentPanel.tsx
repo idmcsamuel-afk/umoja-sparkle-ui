@@ -20,6 +20,7 @@ type MyIntent = {
 type Partner = {
   member_id: string;
   full_name: string | null;
+  province: string | null;
   brings: string | null;
   needs: string | null;
   created_at: string;
