@@ -28,6 +28,19 @@ type MyTenderRow = {
   last_activity_at: string | null;
 };
 
+type MySyndicate = {
+  id: string;
+  name: string | null;
+  status: string;
+  tender_id: string;
+  tender_title: string | null;
+  closing_at: string | null;
+  role: "originator" | "member";
+  my_status: string;
+  accepted_count: number;
+  updated_at: string;
+};
+
 type TabKey = "all" | "unlocked" | "fit_checked" | "intent";
 
 const TABS: { key: TabKey; label: string }[] = [
@@ -42,13 +55,18 @@ export default function MyTendersList() {
   const [rows, setRows] = useState<MyTenderRow[]>([]);
   const [loading, setLoading] = useState(true);
   const [tab, setTab] = useState<TabKey>("all");
+  const [syndicates, setSyndicates] = useState<MySyndicate[]>([]);
 
   const load = useCallback(async () => {
     if (!user) { setRows([]); setLoading(false); return; }
     setLoading(true);
-    const { data, error } = await supabase.rpc("my_tenders");
+    const [{ data, error }, synRes] = await Promise.all([
+      supabase.rpc("my_tenders"),
+      supabase.rpc("my_tender_syndicates"),
+    ]);
     if (error) console.error("my_tenders failed:", error.message);
     setRows((data as MyTenderRow[] | null) ?? []);
+    setSyndicates((synRes.data as MySyndicate[] | null) ?? []);
     setLoading(false);
   }, [user]);
 
@@ -104,6 +122,46 @@ export default function MyTendersList() {
           Everything you've spent Sparks on stays here — unlocks are permanent.
         </p>
       </Card>
+
+      {syndicates.length > 0 && (
+        <Card className="p-4 space-y-3">
+          <div className="flex items-center gap-2">
+            <span className="grid h-8 w-8 place-items-center rounded-xl bg-partner/20 text-partner ring-1 ring-partner/40">
+              <Handshake className="h-4 w-4" />
+            </span>
+            <div>
+              <h2 className="font-medium">My syndicates</h2>
+              <p className="text-xs text-muted-foreground">Consortiums you lead or belong to.</p>
+            </div>
+          </div>
+          <ul className="space-y-2">
+            {syndicates.map((s) => (
+              <li key={s.id}>
+                <Link
+                  to={`/tenders/syndicate/${s.id}`}
+                  className="block rounded-xl border p-3 transition-smooth hover:bg-muted/50"
+                >
+                  <div className="flex flex-wrap items-start justify-between gap-2">
+                    <div className="min-w-0">
+                      <p className="text-sm font-medium break-words">{s.name ?? s.tender_title ?? "Syndicate"}</p>
+                      <p className="text-xs text-muted-foreground">
+                        {s.role === "originator" ? "You lead this" : "Member"} · {s.accepted_count} in the room
+                        {s.closing_at ? ` · ${closingLabel(s.closing_at)}` : ""}
+                      </p>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <Badge variant="outline" className="text-[10px] capitalize">{s.status}</Badge>
+                      {s.my_status !== "accepted" && (
+                        <Badge variant="secondary" className="text-[10px] capitalize">{s.my_status}</Badge>
+                      )}
+                    </div>
+                  </div>
+                </Link>
+              </li>
+            ))}
+          </ul>
+        </Card>
+      )}
 
       {loading ? (
         <div className="grid place-items-center py-16 text-muted-foreground">
