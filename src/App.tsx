@@ -103,6 +103,7 @@ import CreatorSubscription from "./pages/CreatorSubscription.tsx";
 import Learn from "./pages/Learn.tsx";
 import Tenders from "./pages/Tenders.tsx";
 import TenderDetail from "./pages/TenderDetail.tsx";
+import TenderSyndicate from "./pages/TenderSyndicate";
 import SparkTradeMembership from "./pages/SparkTradeMembership.tsx";
 import SparkTradeOnboarding from "./pages/SparkTradeOnboarding.tsx";
 import SparkTradeIncomeGoal from "./pages/SparkTradeIncomeGoal.tsx";
@@ -196,6 +197,7 @@ const App = () => (
                 <Route path="/learn" element={<ProtectedRoute><Learn /></ProtectedRoute>} />
                 <Route path="/podcast" element={<Navigate to="/learn" replace />} />
                 <Route path="/tenders" element={<ProtectedRoute><Tenders /></ProtectedRoute>} />
+                <Route path="/tenders/syndicate/:id" element={<ProtectedRoute><TenderSyndicate /></ProtectedRoute>} />
                 <Route path="/tenders/:id" element={<ProtectedRoute><TenderDetail /></ProtectedRoute>} />
                 <Route path="/referrals" element={<ProtectedRoute><Referrals /></ProtectedRoute>} />
                 <Route path="/priority" element={<ProtectedRoute><Priority /></ProtectedRoute>} />

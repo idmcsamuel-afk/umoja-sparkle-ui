@@ -37,10 +37,10 @@ const friendly = (msg: string) => {
 
 export default function TenderSyndicatePanel({
   tenderId,
-  canOpen,
+  unlocked,
 }: {
   tenderId: string;
-  canOpen: boolean;
+  unlocked: boolean;
 }) {
   const { user } = useAuth();
   const [rows, setRows] = useState<SyndicateRow[]>([]);
@@ -51,13 +51,18 @@ export default function TenderSyndicatePanel({
   const [summary, setSummary] = useState("");
   const [busyId, setBusyId] = useState<string | null>(null);
   const [applyNote, setApplyNote] = useState<Record<string, string>>({});
+  const [hasIntent, setHasIntent] = useState(false);
 
   const load = useCallback(async () => {
+    if (user) {
+      const { data: mi } = await supabase.rpc("my_tender_intent", { p_tender_id: tenderId });
+      setHasIntent(Boolean((mi as { active?: boolean } | null)?.active));
+    }
     const { data, error } = await supabase.rpc("tender_syndicates_for_tender", { p_tender_id: tenderId });
     if (error) console.error("tender_syndicates_for_tender failed:", error.message);
     setRows((data as SyndicateRow[] | null) ?? []);
     setLoading(false);
-  }, [tenderId]);
+  }, [tenderId, user]);
 
   useEffect(() => { setLoading(true); load(); }, [load]);
 
@@ -88,6 +93,8 @@ export default function TenderSyndicatePanel({
     toast.success("Application sent — the originator will accept or decline");
     await load();
   };
+
+  const canOpen = unlocked && hasIntent;
 
   const mine = rows.find((r) => r.is_originator);
 

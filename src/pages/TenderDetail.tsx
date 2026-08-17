@@ -15,6 +15,7 @@ import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import TenderIntentPanel from "@/components/umoja/TenderIntentPanel";
+import TenderSyndicatePanel from "@/components/umoja/TenderSyndicatePanel";
 import TenderFitCheck from "@/components/umoja/TenderFitCheck";
 import SparkBalanceChip from "@/components/umoja/SparkBalanceChip";
 import { useSparkBalance } from "@/hooks/useSparkBalance";
@@ -198,6 +199,8 @@ export default function TenderDetail() {
       <TenderFitCheck tenderId={tender.id} />
 
       <TenderIntentPanel tenderId={tender.id} />
+
+      <TenderSyndicatePanel tenderId={tender.id} unlocked={tender.unlocked} />
 
       {tender.unlocked ? (
         <Card className="p-5 space-y-4 border-primary/40 bg-primary/5">
