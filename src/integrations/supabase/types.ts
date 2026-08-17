@@ -7011,6 +7011,189 @@ export type Database = {
           },
         ]
       }
+      tender_syndicate_documents: {
+        Row: {
+          created_at: string
+          file_name: string
+          file_ref: string
+          id: string
+          member_id: string
+          syndicate_id: string
+        }
+        Insert: {
+          created_at?: string
+          file_name: string
+          file_ref: string
+          id?: string
+          member_id: string
+          syndicate_id: string
+        }
+        Update: {
+          created_at?: string
+          file_name?: string
+          file_ref?: string
+          id?: string
+          member_id?: string
+          syndicate_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "tender_syndicate_documents_member_id_fkey"
+            columns: ["member_id"]
+            isOneToOne: false
+            referencedRelation: "members"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "tender_syndicate_documents_syndicate_id_fkey"
+            columns: ["syndicate_id"]
+            isOneToOne: false
+            referencedRelation: "tender_syndicates"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      tender_syndicate_members: {
+        Row: {
+          brings_note: string | null
+          brings_tags: string[]
+          created_at: string
+          id: string
+          joined_at: string | null
+          member_id: string
+          role: string
+          status: string
+          syndicate_id: string
+          updated_at: string
+        }
+        Insert: {
+          brings_note?: string | null
+          brings_tags?: string[]
+          created_at?: string
+          id?: string
+          joined_at?: string | null
+          member_id: string
+          role?: string
+          status?: string
+          syndicate_id: string
+          updated_at?: string
+        }
+        Update: {
+          brings_note?: string | null
+          brings_tags?: string[]
+          created_at?: string
+          id?: string
+          joined_at?: string | null
+          member_id?: string
+          role?: string
+          status?: string
+          syndicate_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "tender_syndicate_members_member_id_fkey"
+            columns: ["member_id"]
+            isOneToOne: false
+            referencedRelation: "members"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "tender_syndicate_members_syndicate_id_fkey"
+            columns: ["syndicate_id"]
+            isOneToOne: false
+            referencedRelation: "tender_syndicates"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      tender_syndicate_messages: {
+        Row: {
+          body: string
+          created_at: string
+          id: string
+          member_id: string
+          syndicate_id: string
+        }
+        Insert: {
+          body: string
+          created_at?: string
+          id?: string
+          member_id: string
+          syndicate_id: string
+        }
+        Update: {
+          body?: string
+          created_at?: string
+          id?: string
+          member_id?: string
+          syndicate_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "tender_syndicate_messages_member_id_fkey"
+            columns: ["member_id"]
+            isOneToOne: false
+            referencedRelation: "members"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "tender_syndicate_messages_syndicate_id_fkey"
+            columns: ["syndicate_id"]
+            isOneToOne: false
+            referencedRelation: "tender_syndicates"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      tender_syndicates: {
+        Row: {
+          created_at: string
+          id: string
+          name: string | null
+          originator_id: string
+          status: string
+          summary: string | null
+          tender_id: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          name?: string | null
+          originator_id: string
+          status?: string
+          summary?: string | null
+          tender_id: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          name?: string | null
+          originator_id?: string
+          status?: string
+          summary?: string | null
+          tender_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "tender_syndicates_originator_id_fkey"
+            columns: ["originator_id"]
+            isOneToOne: false
+            referencedRelation: "members"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "tender_syndicates_tender_id_fkey"
+            columns: ["tender_id"]
+            isOneToOne: false
+            referencedRelation: "tenders"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       tender_unlocks: {
         Row: {
           created_at: string
@@ -8167,6 +8350,14 @@ export type Database = {
       _gen_withdrawal_ref: { Args: never; Returns: string }
       _promo_unlock_bonus: { Args: { _fiat: number }; Returns: number }
       active_members_count: { Args: never; Returns: number }
+      add_tender_syndicate_document: {
+        Args: {
+          p_file_name: string
+          p_file_ref: string
+          p_syndicate_id: string
+        }
+        Returns: string
+      }
       adjust_spark_balance: {
         Args: { _delta: number; _member: string; _note?: string }
         Returns: number
@@ -8320,6 +8511,14 @@ export type Database = {
         }
         Returns: Json
       }
+      apply_to_tender_syndicate: {
+        Args: {
+          p_brings_note?: string
+          p_brings_tags?: string[]
+          p_syndicate_id: string
+        }
+        Returns: undefined
+      }
       assign_referrer: {
         Args: { _member: string; _referrer: string }
         Returns: Json
@@ -8444,6 +8643,7 @@ export type Database = {
       }
       get_predictor_answer: { Args: { _question: string }; Returns: string }
       get_tender_detail: { Args: { p_tender_id: string }; Returns: Json }
+      get_tender_syndicate: { Args: { p_syndicate_id: string }; Returns: Json }
       get_vault_queue: {
         Args: { _limit?: number; _tier: string }
         Returns: {
@@ -8470,8 +8670,20 @@ export type Database = {
         Args: { contribution: number }
         Returns: undefined
       }
+      invite_to_tender_syndicate: {
+        Args: { p_member_id: string; p_syndicate_id: string }
+        Returns: undefined
+      }
       is_admin: { Args: { _uid: string }; Returns: boolean }
       is_admin_user: { Args: never; Returns: boolean }
+      is_syndicate_member: {
+        Args: { _syndicate_id: string; _uid: string }
+        Returns: boolean
+      }
+      is_syndicate_originator: {
+        Args: { _syndicate_id: string; _uid: string }
+        Returns: boolean
+      }
       join_spark_trade: { Args: { _id: string }; Returns: undefined }
       kyc_verified_referral_sparks: {
         Args: { _member: string }
@@ -8505,6 +8717,21 @@ export type Database = {
         }[]
       }
       my_tender_intent: { Args: { p_tender_id: string }; Returns: Json }
+      my_tender_syndicates: {
+        Args: never
+        Returns: {
+          accepted_count: number
+          closing_at: string
+          id: string
+          my_status: string
+          name: string
+          role: string
+          status: string
+          tender_id: string
+          tender_title: string
+          updated_at: string
+        }[]
+      }
       my_tenders: {
         Args: never
         Returns: {
@@ -8524,6 +8751,14 @@ export type Database = {
           value_amount: number
           value_currency: string
         }[]
+      }
+      open_tender_syndicate: {
+        Args: { p_name?: string; p_summary?: string; p_tender_id: string }
+        Returns: string
+      }
+      post_tender_syndicate_message: {
+        Args: { p_body: string; p_syndicate_id: string }
+        Returns: string
       }
       predictor_leaderboard: {
         Args: { _limit?: number }
@@ -8571,6 +8806,10 @@ export type Database = {
         Returns: Json
       }
       releasable_referral_sparks: { Args: { _member: string }; Returns: number }
+      respond_tender_syndicate_member: {
+        Args: { p_action: string; p_member_id: string; p_syndicate_id: string }
+        Returns: undefined
+      }
       run_drive_allocation: { Args: { p_tier_id: string }; Returns: Json }
       set_tender_intent:
         | {
@@ -8595,6 +8834,10 @@ export type Database = {
             }
             Returns: Json
           }
+      set_tender_syndicate_status: {
+        Args: { p_status: string; p_syndicate_id: string }
+        Returns: undefined
+      }
       spark_balance_breakdown: { Args: { _member?: string }; Returns: Json }
       spin_sparkwheel: {
         Args: { p_bucket: string; p_member_id: string; p_stake_amount: number }
@@ -8628,6 +8871,7 @@ export type Database = {
         Args: { _row: Database["public"]["Tables"]["takealot_products"]["Row"] }
         Returns: undefined
       }
+      syndicates_enabled: { Args: never; Returns: boolean }
       tender_intent_counts: {
         Args: { p_tender_ids: string[] }
         Returns: {
@@ -8647,6 +8891,41 @@ export type Database = {
           needs: string
           needs_tags: string[]
           province: string
+        }[]
+      }
+      tender_syndicate_docs: {
+        Args: { p_syndicate_id: string }
+        Returns: {
+          created_at: string
+          file_name: string
+          file_ref: string
+          full_name: string
+          id: string
+          member_id: string
+        }[]
+      }
+      tender_syndicate_thread: {
+        Args: { p_syndicate_id: string }
+        Returns: {
+          body: string
+          created_at: string
+          full_name: string
+          id: string
+          member_id: string
+        }[]
+      }
+      tender_syndicates_for_tender: {
+        Args: { p_tender_id: string }
+        Returns: {
+          accepted_count: number
+          created_at: string
+          id: string
+          is_originator: boolean
+          my_status: string
+          name: string
+          originator_id: string
+          originator_name: string
+          status: string
         }[]
       }
       touch_last_seen: { Args: never; Returns: undefined }
