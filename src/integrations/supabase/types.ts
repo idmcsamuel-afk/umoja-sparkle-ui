@@ -8838,6 +8838,10 @@ export type Database = {
         Args: { _amount: number; _proof_url: string; _tier: string }
         Returns: undefined
       }
+      submit_circle_bid_proof: {
+        Args: { p_bid_id: string; p_proof_path: string }
+        Returns: Json
+      }
       submit_drive_eft_contribution: {
         Args: {
           _amount: number
