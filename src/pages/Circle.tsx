@@ -156,15 +156,10 @@ const Circle = () => {
         .from("payment-proofs")
         .upload(path, file, { upsert: true, contentType: file.type || undefined });
       if (up.error) { toast.error(up.error.message); return; }
-      const { error: updErr } = await supabase
-        .from("circle_bids")
-        .update({
-          status: "payment_pending",
-          payment_proof_url: path,
-          payment_method: "eft",
-          payment_submitted_at: new Date().toISOString(),
-        })
-        .eq("id", bid.id);
+      const { error: updErr } = await supabase.rpc("submit_circle_bid_proof", {
+        p_bid_id: bid.id,
+        p_proof_path: path,
+      });
       if (updErr) { toast.error(updErr.message); return; }
       const { data: admins } = await supabase.from("admin_users").select("user_id");
       if (admins?.length) {
@@ -513,15 +508,10 @@ const Circle = () => {
       toast.error(up.error.message);
       return;
     }
-    const { error: updErr } = await supabase
-      .from("circle_bids")
-      .update({
-        status: "payment_pending",
-        payment_proof_url: path,
-        payment_method: "eft",
-        payment_submitted_at: new Date().toISOString(),
-      })
-      .eq("id", pendingBid.id);
+    const { error: updErr } = await supabase.rpc("submit_circle_bid_proof", {
+      p_bid_id: pendingBid.id,
+      p_proof_path: path,
+    });
     if (updErr) {
       setBusy(false);
       toast.error(updErr.message);
