@@ -220,9 +220,6 @@ export default function SparkTradeBeta() {
       const end = form.billing === "annual" ? addMonths(now, 12) : addMonths(now, 2);
       const { error } = await supabase.from("spark_trade_subscriptions").insert({
         user_id: user?.id ?? null,
-        name: form.name.trim(),
-        email: form.email.trim().toLowerCase(),
-        whatsapp: form.whatsapp.trim(),
         tier: form.tier,
         billing_period: form.billing,
         amount_paid: amount,

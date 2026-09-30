@@ -6161,16 +6161,13 @@ export type Database = {
           amount_paid: number
           billing_period: string
           created_at: string
-          email: string
           id: string
           member_id: string | null
-          name: string
           payment_date: string | null
           payment_reference: string | null
           status: string
           tier: string
           user_id: string | null
-          whatsapp: string
         }
         Insert: {
           access_end_date: string
@@ -6178,16 +6175,13 @@ export type Database = {
           amount_paid: number
           billing_period: string
           created_at?: string
-          email: string
           id?: string
           member_id?: string | null
-          name: string
           payment_date?: string | null
           payment_reference?: string | null
           status?: string
           tier: string
           user_id?: string | null
-          whatsapp: string
         }
         Update: {
           access_end_date?: string
@@ -6195,16 +6189,13 @@ export type Database = {
           amount_paid?: number
           billing_period?: string
           created_at?: string
-          email?: string
           id?: string
           member_id?: string | null
-          name?: string
           payment_date?: string | null
           payment_reference?: string | null
           status?: string
           tier?: string
           user_id?: string | null
-          whatsapp?: string
         }
         Relationships: []
       }
