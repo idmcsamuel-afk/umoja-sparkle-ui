@@ -460,16 +460,10 @@ const Circle = () => {
         toast.error("Your account has no email — add one in Profile to use card payments");
         return;
       }
-      const { error: refErr } = await supabase
-        .from("circle_bids")
-        .update({
-          payment_method: "paystack",
-          paystack_reference: ref,
-          payment_reference: ref,
-          status: "payment_pending",
-          payment_submitted_at: new Date().toISOString(),
-        })
-        .eq("id", pendingBid.id);
+      const { error: refErr } = await supabase.rpc("start_circle_bid_paystack", {
+        p_bid_id: pendingBid.id,
+        p_reference: ref,
+      });
       if (refErr) { setBusy(false); return toast.error(refErr.message); }
       // Close this dialog first so Radix focus trap doesn't block Paystack iframe inputs
       closeModal();
