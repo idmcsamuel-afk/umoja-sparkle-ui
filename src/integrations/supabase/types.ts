@@ -8834,6 +8834,10 @@ export type Database = {
         Args: { p_bucket: string; p_member_id: string; p_stake_amount: number }
         Returns: Json
       }
+      start_circle_bid_paystack: {
+        Args: { p_bid_id: string; p_reference: string }
+        Returns: Json
+      }
       submit_buyers_club_payment: {
         Args: { _amount: number; _proof_url: string; _tier: string }
         Returns: undefined
