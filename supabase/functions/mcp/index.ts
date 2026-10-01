@@ -104,8 +104,8 @@ var get_platform_info_default = defineTool3({
 // src/lib/mcp/index.ts
 var projectRef = "lamohcoijkpigygiqyih";
 var mcp_default = defineMcp({
-  name: "umoja-mcp",
-  title: "UMOJA",
+  name: "umoja-rise",
+  title: "Umoja Rise",
   version: "0.1.0",
   instructions: "Tools for UMOJA \u2014 a South African community wealth platform (circles, Spark Trade, sparks). Use whoami to identify the signed-in member, list_my_spark_purchases to see the member's Spark Trade orders, and get_platform_info for public banking/payout info.",
   auth: auth.oauth.issuer({
