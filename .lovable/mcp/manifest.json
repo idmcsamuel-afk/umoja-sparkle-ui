@@ -11,9 +11,9 @@
   },
   "mcp": {
     "server": {
-      "name": "umoja-mcp",
+      "name": "umoja-rise",
       "version": "0.1.0",
-      "title": "UMOJA"
+      "title": "Umoja Rise"
     },
     "tools": [
       {
