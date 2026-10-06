@@ -75,6 +75,7 @@ const Dashboard = () => {
   const [activity, setActivity] = useState<ActivityRow[]>([]);
   const [memberSince, setMemberSince] = useState<string | null>(null);
   const [teaser, setTeaser] = useState<PredictorTeaser | null>(null);
+  const [showCircleNotice, setShowCircleNotice] = useState(false);
   const [isAdmin, setIsAdmin] = useState(false);
   const [kycLevel, setKycLevel] = useState<number | null>(null);
   const [hasContributed, setHasContributed] = useState<boolean | null>(null);
@@ -124,6 +125,25 @@ const Dashboard = () => {
       setPropertyCount(count ?? 0);
     })();
   }, []);
+
+  useEffect(() => {
+    if (!user) {
+      setShowCircleNotice(false);
+      return;
+    }
+    let cancelled = false;
+    (async () => {
+      const { data, error } = await supabase.rpc("get_member_platform_settings");
+      if (cancelled) return;
+      if (error) {
+        console.error("[Dashboard] Circle notice setting failed:", error);
+        setShowCircleNotice(false);
+        return;
+      }
+      setShowCircleNotice(data?.[0]?.home_circle_24_7_notice_enabled === true);
+    })();
+    return () => { cancelled = true; };
+  }, [user]);
 
   useEffect(() => {
     if (!user) { setKycLevel(null); setBc(null); return; }
@@ -514,6 +534,25 @@ const Dashboard = () => {
           )}
         </div>
       </section>
+
+      {showCircleNotice && (
+        <section className="px-5 pt-6">
+          <div className="mx-auto max-w-md rounded-2xl border border-primary/35 bg-primary/10 p-4 animate-fade-in">
+            <p className="text-sm font-semibold text-foreground">
+              🌱 Circles are now open 24/7 — contribute any time of day
+            </p>
+            <p className="mt-1 text-xs text-muted-foreground">
+              Your pay-by countdown starts when you place a bid.
+            </p>
+            <Link
+              to="/circle#active-circles"
+              className="mt-3 inline-flex min-h-10 items-center gap-1.5 rounded-xl bg-primary px-4 py-2 text-sm font-semibold text-primary-foreground transition-smooth hover:opacity-90"
+            >
+              Go to Circles <ArrowUpRight className="h-4 w-4" />
+            </Link>
+          </div>
+        </section>
+      )}
 
       {/* Balance card */}
       <section className="px-5 pt-6">

@@ -5,6 +5,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
+import { Switch } from "@/components/ui/switch";
 import { toast } from "sonner";
 import { CircleSessionTimer, getSessionState, refreshOverrides } from "@/components/umoja/CircleSessionTimer";
 
@@ -15,6 +16,7 @@ interface Settings {
   account_number: string;
   branch_code: string;
   payment_instructions: string;
+  home_circle_24_7_notice_enabled: boolean;
 }
 
 const empty: Settings = {
@@ -23,6 +25,7 @@ const empty: Settings = {
   account_number: "",
   branch_code: "",
   payment_instructions: "",
+  home_circle_24_7_notice_enabled: true,
 };
 
 export default function AdminSettings() {
@@ -59,6 +62,7 @@ export default function AdminSettings() {
           account_number: data.account_number ?? "",
           branch_code: data.branch_code ?? "",
           payment_instructions: data.payment_instructions ?? "",
+          home_circle_24_7_notice_enabled: data.home_circle_24_7_notice_enabled ?? true,
         });
       }
       setLoading(false);
@@ -73,6 +77,7 @@ export default function AdminSettings() {
       account_number: s.account_number || null,
       branch_code: s.branch_code || null,
       payment_instructions: s.payment_instructions || null,
+      home_circle_24_7_notice_enabled: s.home_circle_24_7_notice_enabled,
     };
     let error;
     if (s.id) {
@@ -127,6 +132,22 @@ export default function AdminSettings() {
             onChange={(e) => setS({ ...s, payment_instructions: e.target.value })}
             placeholder="Use the reference exactly as shown. Allow up to 24h for clearance."
             className="rounded-2xl bg-secondary/40 border-border min-h-[100px]"
+          />
+        </div>
+        <div className="flex items-center justify-between gap-4 rounded-2xl border border-border bg-secondary/30 p-4">
+          <div>
+            <Label htmlFor="circle-home-notice" className="text-sm font-medium text-foreground">
+              24/7 Circles home notice
+            </Label>
+            <p className="mt-1 text-xs text-muted-foreground">
+              Show the temporary 24/7 announcement on the member home page.
+            </p>
+          </div>
+          <Switch
+            id="circle-home-notice"
+            checked={s.home_circle_24_7_notice_enabled}
+            onCheckedChange={(checked) => setS({ ...s, home_circle_24_7_notice_enabled: checked })}
+            aria-label="Show 24/7 Circles notice on member home"
           />
         </div>
         <div className="pt-2 flex justify-end">

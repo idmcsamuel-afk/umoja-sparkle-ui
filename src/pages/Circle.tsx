@@ -578,7 +578,7 @@ const Circle = () => {
       </section>
 
       {/* My bids */}
-      <section className="px-5 pt-8">
+      <section id="active-circles" className="px-5 pt-8 scroll-mt-20">
         <div className="mx-auto max-w-md">
           <h2 className="font-display text-xl">My bids</h2>
           {(() => {

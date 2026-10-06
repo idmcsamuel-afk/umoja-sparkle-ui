@@ -3,6 +3,7 @@ import { Info, Lock, Plus, ChevronDown, Sparkles, Users } from "lucide-react";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { BoostPositionCard } from "@/components/umoja/BoostPositionCard";
+import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 
 interface Tier {
@@ -398,11 +399,14 @@ export function CircleTierCard({
       </div>
 
       {!locked && (
-        <p
-          className="mt-4 rounded-2xl border border-primary/30 bg-primary/10 px-4 py-3 text-[11px] text-center font-medium text-primary"
+        <Button
+          type="button"
+          variant="outline"
+          onClick={onBidMin}
+          className="mt-4 h-auto min-h-11 w-full rounded-2xl border-primary/30 bg-primary/10 px-4 py-3 text-[11px] font-medium text-primary hover:bg-primary/15 hover:text-primary"
         >
-          Open 24/7
-        </p>
+          Open 24/7 — tap to bid
+        </Button>
       )}
 
       {/* CTA */}
