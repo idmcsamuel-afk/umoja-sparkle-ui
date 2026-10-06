@@ -1,0 +1,1 @@
+REVOKE EXECUTE ON FUNCTION public.notify_admin_bid_needs_approval() FROM PUBLIC, anon, authenticated;
