@@ -787,8 +787,6 @@ const Circle = () => {
                     members={s.members}
                     target={s.target}
                     myTotal={myTotal}
-                    sessionOpen
-                    sessionLabel="Open 24/7"
                     delayMs={i * 60}
                     onBidMin={() => startBid(t, t.min_entry)}
                     onBidMax={() => startBid(t, t.max_entry)}
