@@ -2,7 +2,6 @@ import { useState } from "react";
 import { Info, Lock, Plus, ChevronDown, Sparkles, Users } from "lucide-react";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
-import { CircleSessionTimer } from "@/components/umoja/CircleSessionTimer";
 import { BoostPositionCard } from "@/components/umoja/BoostPositionCard";
 import { cn } from "@/lib/utils";
 
@@ -34,8 +33,6 @@ interface Props {
   members: number;
   target: number;
   myTotal: number;
-  sessionOpen: boolean;
-  sessionLabel: string | null;
   delayMs?: number;
   onBidMin: () => void;
   onBidMax: () => void;
@@ -176,8 +173,6 @@ export function CircleTierCard({
   members,
   target,
   myTotal,
-  sessionOpen,
-  sessionLabel,
   delayMs = 0,
   onBidMin,
   onBidMax,
@@ -187,7 +182,7 @@ export function CircleTierCard({
   myStatus = null,
 }: Props) {
   const locked = !tier.is_active;
-  const disabled = locked || !sessionOpen;
+  const disabled = locked;
   const grossRate = Number(tier.growth_rate) || 0;
   const grossPct = Math.round(grossRate * 100);
   const netPct = netRatePct(grossRate);
@@ -205,7 +200,7 @@ export function CircleTierCard({
       className={cn(
         "group relative overflow-hidden rounded-3xl glass p-5 animate-slide-up transition-all",
         locked && "opacity-80",
-        !locked && sessionOpen &&
+        !locked &&
           "border-2 border-emerald-500/70 shadow-[0_0_40px_rgba(16,185,129,0.35)] bg-emerald-500/[0.04] animate-pulse-glow",
       )}
     >
@@ -229,17 +224,13 @@ export function CircleTierCard({
               "inline-flex items-center gap-1 text-[10px] uppercase tracking-wider rounded-full px-2 py-1",
               locked
                 ? "bg-muted text-muted-foreground"
-                : sessionOpen
-                  ? "bg-emerald-500/20 text-emerald-400"
-                  : "bg-primary/15 text-primary",
+                : "bg-emerald-500/20 text-emerald-400",
             )}
           >
             {locked ? (
               <><Lock className="h-3 w-3" /> Locked</>
-            ) : sessionOpen ? (
-              <><span className="h-1.5 w-1.5 rounded-full bg-emerald-400 animate-pulse" /> Active</>
             ) : (
-              "Resting"
+              <><span className="h-1.5 w-1.5 rounded-full bg-emerald-400 animate-pulse" /> Active</>
             )}
           </span>
         </div>
@@ -398,7 +389,7 @@ export function CircleTierCard({
           <span className="font-medium">{payoutsThisWeek}</span>
           <span className="text-muted-foreground">payout{payoutsThisWeek === 1 ? "" : "s"} this week</span>
         </p>
-        {liveBidders > 0 && sessionOpen && (
+        {liveBidders > 0 && (
           <p className="mt-1 text-[11px] inline-flex items-center gap-1.5 text-emerald-400">
             <span className="h-1.5 w-1.5 rounded-full bg-emerald-400 animate-pulse" />
             🔥 LIVE: {liveBidders} member{liveBidders === 1 ? "" : "s"} bidding right now
@@ -406,19 +397,11 @@ export function CircleTierCard({
         )}
       </div>
 
-      {/* Session timer */}
-      <div className="mt-4">
-        <CircleSessionTimer tier={tier.tier} />
-      </div>
-
-      {sessionLabel && !locked && (
+      {!locked && (
         <p
-          className={cn(
-            "mt-3 text-[11px] text-center font-medium",
-            sessionOpen ? "text-primary" : "text-destructive",
-          )}
+          className="mt-4 rounded-2xl border border-primary/30 bg-primary/10 px-4 py-3 text-[11px] text-center font-medium text-primary"
         >
-          {sessionLabel}
+          Open 24/7
         </p>
       )}
 
@@ -431,15 +414,11 @@ export function CircleTierCard({
             "flex-1 rounded-2xl text-sm font-semibold inline-flex items-center justify-center gap-1.5 disabled:opacity-50 disabled:cursor-not-allowed transition-all min-h-12",
             disabled
               ? "bg-secondary text-muted-foreground border border-border"
-              : sessionOpen
-                ? "bg-gradient-to-r from-emerald-500 to-emerald-600 text-white shadow-[0_8px_32px_rgba(16,185,129,0.45)] tracking-wide"
-                : "bg-gradient-primary text-primary-foreground shadow-glow",
+              : "bg-gradient-to-r from-emerald-500 to-emerald-600 text-white shadow-[0_8px_32px_rgba(16,185,129,0.45)] tracking-wide",
           )}
         >
           {locked ? (
             <><Lock className="h-4 w-4" /> Locked</>
-          ) : !sessionOpen ? (
-            <><Lock className="h-4 w-4" /> Session closed</>
           ) : (
             <><Plus className="h-4 w-4" /> Bid to Get Paid Today</>
           )}
