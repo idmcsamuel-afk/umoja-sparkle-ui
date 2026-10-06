@@ -1051,6 +1051,30 @@ export type Database = {
         }
         Relationships: []
       }
+      circle_bid_admin_alerts: {
+        Row: {
+          bid_id: string
+          error: string | null
+          queued_at: string
+          recipients: string[] | null
+          sent_at: string | null
+        }
+        Insert: {
+          bid_id: string
+          error?: string | null
+          queued_at?: string
+          recipients?: string[] | null
+          sent_at?: string | null
+        }
+        Update: {
+          bid_id?: string
+          error?: string | null
+          queued_at?: string
+          recipients?: string[] | null
+          sent_at?: string | null
+        }
+        Relationships: []
+      }
       circle_bid_status_events: {
         Row: {
           actor_id: string | null
@@ -4304,6 +4328,7 @@ export type Database = {
         Row: {
           account_name: string | null
           account_number: string | null
+          admin_notification_emails: string[]
           bank_name: string | null
           branch_code: string | null
           created_at: string
@@ -4326,6 +4351,7 @@ export type Database = {
         Insert: {
           account_name?: string | null
           account_number?: string | null
+          admin_notification_emails?: string[]
           bank_name?: string | null
           branch_code?: string | null
           created_at?: string
@@ -4348,6 +4374,7 @@ export type Database = {
         Update: {
           account_name?: string | null
           account_number?: string | null
+          admin_notification_emails?: string[]
           bank_name?: string | null
           branch_code?: string | null
           created_at?: string
