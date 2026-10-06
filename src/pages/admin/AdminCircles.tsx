@@ -28,7 +28,11 @@ interface PendingBid {
 }
 
 export default function AdminCircles() {
-  const [tab, setTab] = useState<"tiers" | "pending" | "awaiting">("tiers");
+  const initialTab = new URLSearchParams(window.location.search).get("tab");
+  const [tab, setTab] = useState<"tiers" | "pending" | "awaiting">(
+    initialTab === "pending" || initialTab === "awaiting" ? initialTab : "tiers",
+  );
+  const focusBid = new URLSearchParams(window.location.search).get("bid");
   const [loading, setLoading] = useState(true);
   const [rows, setRows] = useState<TierRow[]>([]);
   const [pending, setPending] = useState<PendingBid[]>([]);
@@ -271,7 +275,7 @@ export default function AdminCircles() {
           ) : (
             <ul className="space-y-3">
               {pending.map((bid) => (
-                <li key={bid.id} className="rounded-3xl border border-border bg-gradient-card p-5">
+                <li key={bid.id} className={`rounded-3xl border bg-gradient-card p-5 ${focusBid === bid.id ? "border-primary ring-2 ring-primary/40" : "border-border"}`}>
                   <div className="flex flex-wrap items-start justify-between gap-3">
                     <div className="min-w-0">
                       <p className="font-display text-lg">{bid.member_name}</p>
