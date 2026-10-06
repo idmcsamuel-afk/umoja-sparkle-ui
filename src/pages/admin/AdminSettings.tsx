@@ -89,7 +89,7 @@ export default function AdminSettings() {
     }
     setSaving(false);
     if (error) toast.error(error.message);
-    else toast.success("Bank details saved");
+    else toast.success("Platform settings saved");
   };
 
   if (loading) {

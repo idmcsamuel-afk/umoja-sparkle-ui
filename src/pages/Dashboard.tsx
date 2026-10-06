@@ -15,6 +15,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { SparkBalanceWidget } from "@/components/umoja/SparkBalanceWidget";
 import { useMyCountry } from "@/hooks/useCountryConfig";
 import { formatCurrency, currencySymbol } from "@/lib/currency";
+import { Button } from "@/components/ui/button";
 
 interface ActivityRow {
   id: string;
@@ -544,12 +545,11 @@ const Dashboard = () => {
             <p className="mt-1 text-xs text-muted-foreground">
               Your pay-by countdown starts when you place a bid.
             </p>
-            <Link
-              to="/circle#active-circles"
-              className="mt-3 inline-flex min-h-10 items-center gap-1.5 rounded-xl bg-primary px-4 py-2 text-sm font-semibold text-primary-foreground transition-smooth hover:opacity-90"
-            >
-              Go to Circles <ArrowUpRight className="h-4 w-4" />
-            </Link>
+            <Button asChild className="mt-3 rounded-xl">
+              <Link to="/circle#active-circles">
+                Go to Circles <ArrowUpRight className="h-4 w-4" />
+              </Link>
+            </Button>
           </div>
         </section>
       )}

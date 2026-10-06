@@ -578,7 +578,7 @@ const Circle = () => {
       </section>
 
       {/* My bids */}
-      <section id="active-circles" className="px-5 pt-8 scroll-mt-20">
+      <section className="px-5 pt-8">
         <div className="mx-auto max-w-md">
           <h2 className="font-display text-xl">My bids</h2>
           {(() => {
@@ -758,7 +758,7 @@ const Circle = () => {
       </section>
 
       {/* Active circles */}
-      <section className="px-5 pt-8">
+      <section id="active-circles" className="px-5 pt-8 scroll-mt-20">
         <div className="mx-auto max-w-md">
           <div className="flex items-baseline justify-between">
             <h2 className="font-display text-xl">Active circles</h2>
