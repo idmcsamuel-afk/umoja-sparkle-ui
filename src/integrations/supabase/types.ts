@@ -4335,6 +4335,7 @@ export type Database = {
           crypto_enabled: boolean
           growth_override_open: boolean
           harvest_override_open: boolean
+          home_circle_24_7_notice_enabled: boolean
           id: string
           override_expires_at: string | null
           payment_instructions: string | null
@@ -4358,6 +4359,7 @@ export type Database = {
           crypto_enabled?: boolean
           growth_override_open?: boolean
           harvest_override_open?: boolean
+          home_circle_24_7_notice_enabled?: boolean
           id?: string
           override_expires_at?: string | null
           payment_instructions?: string | null
@@ -4381,6 +4383,7 @@ export type Database = {
           crypto_enabled?: boolean
           growth_override_open?: boolean
           harvest_override_open?: boolean
+          home_circle_24_7_notice_enabled?: boolean
           id?: string
           override_expires_at?: string | null
           payment_instructions?: string | null
@@ -8619,6 +8622,12 @@ export type Database = {
           email: string
           full_name: string
           id: string
+        }[]
+      }
+      get_member_home_notice_settings: {
+        Args: never
+        Returns: {
+          home_circle_24_7_notice_enabled: boolean
         }[]
       }
       get_member_platform_settings: {
