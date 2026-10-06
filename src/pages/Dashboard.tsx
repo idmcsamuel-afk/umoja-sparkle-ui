@@ -376,6 +376,25 @@ const Dashboard = () => {
         </div>
       </header>
 
+      {/* 24/7 Circles notice — top of home for the re-engagement push */}
+      {showCircleNotice && (
+        <section className="px-5 pt-4">
+          <div className="mx-auto max-w-md rounded-2xl border border-primary/40 bg-gradient-to-r from-primary/15 to-accent/10 p-4 animate-fade-in shadow-glow">
+            <p className="text-sm font-semibold text-foreground">
+              🌱 Circles are now open 24/7 — contribute any time of day
+            </p>
+            <p className="mt-1 text-xs text-muted-foreground">
+              Your pay-by countdown starts when you place a bid.
+            </p>
+            <Button asChild className="mt-3 rounded-xl">
+              <Link to="/circle#active-circles">
+                Go to Circles <ArrowUpRight className="h-4 w-4" />
+              </Link>
+            </Button>
+          </div>
+        </section>
+      )}
+
       {/* Spark balance breakdown */}
       <SparkBalanceWidget />
 
@@ -535,24 +554,6 @@ const Dashboard = () => {
           )}
         </div>
       </section>
-
-      {showCircleNotice && (
-        <section className="px-5 pt-6">
-          <div className="mx-auto max-w-md rounded-2xl border border-primary/35 bg-primary/10 p-4 animate-fade-in">
-            <p className="text-sm font-semibold text-foreground">
-              🌱 Circles are now open 24/7 — contribute any time of day
-            </p>
-            <p className="mt-1 text-xs text-muted-foreground">
-              Your pay-by countdown starts when you place a bid.
-            </p>
-            <Button asChild className="mt-3 rounded-xl">
-              <Link to="/circle#active-circles">
-                Go to Circles <ArrowUpRight className="h-4 w-4" />
-              </Link>
-            </Button>
-          </div>
-        </section>
-      )}
 
       {/* Balance card */}
       <section className="px-5 pt-6">
