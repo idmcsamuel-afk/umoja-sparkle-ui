@@ -2,7 +2,6 @@ import { useState } from "react";
 import { Info, Lock, Plus, ChevronDown, Sparkles, Users } from "lucide-react";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
-import { CircleSessionTimer } from "@/components/umoja/CircleSessionTimer";
 import { BoostPositionCard } from "@/components/umoja/BoostPositionCard";
 import { cn } from "@/lib/utils";
 
@@ -406,15 +405,10 @@ export function CircleTierCard({
         )}
       </div>
 
-      {/* Session timer */}
-      <div className="mt-4">
-        <CircleSessionTimer tier={tier.tier} />
-      </div>
-
       {sessionLabel && !locked && (
         <p
           className={cn(
-            "mt-3 text-[11px] text-center font-medium",
+            "mt-4 rounded-2xl border border-primary/30 bg-primary/10 px-4 py-3 text-[11px] text-center font-medium",
             sessionOpen ? "text-primary" : "text-destructive",
           )}
         >

@@ -14,7 +14,6 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { toast } from "sonner";
 import { CircleAcceptanceModal, hasAcceptedCircle } from "@/components/umoja/CircleAcceptanceModal";
-import { CircleSessionTimer, getSessionState } from "@/components/umoja/CircleSessionTimer";
 import { SparksDisclaimer } from "@/components/umoja/SparksDisclaimer";
 import { CircleStatusBanner } from "@/components/umoja/CircleStatusBanner";
 import { TimezoneSelector } from "@/components/umoja/TimezoneSelector";
@@ -83,8 +82,6 @@ function fmtCountdown(ms: number) {
   const pad = (n: number) => String(n).padStart(2, "0");
   return h > 0 ? `${pad(h)}:${pad(m)}:${pad(s)}` : `${pad(m)}:${pad(s)}`;
 }
-
-const KNOWN_TIERS = new Set(["seed", "growth", "harvest"]);
 
 const Circle = () => {
   const { user } = useAuth();
@@ -202,7 +199,7 @@ const Circle = () => {
     setLeadersLoading(false);
   };
 
-  // Tick for closed-session countdowns on buttons
+  // Tick for per-bid payment deadline countdowns.
   const [now, setNow] = useState(() => Date.now());
   useEffect(() => {
     const t = setInterval(() => setNow(Date.now()), 1000);
@@ -336,12 +333,6 @@ const Circle = () => {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [user?.id]);
 
-  const sessionFor = (tierKey: string) => {
-    const k = tierKey?.toLowerCase();
-    if (!KNOWN_TIERS.has(k)) return null;
-    return getSessionState(k as "seed" | "growth" | "harvest", now);
-  };
-
   const startBid = async (t: Tier, defaultAmt: number) => {
     if (!t.is_active) return;
     if (!hasAcceptedCircle()) { toast.info("Please accept the Circle terms first."); return; }
@@ -359,11 +350,6 @@ const Circle = () => {
         toast.error("Circles aren't available in your country yet. Coming soon!");
         return;
       }
-    }
-    const sess = sessionFor(t.tier);
-    if (sess && sess.status !== "open") {
-      toast.error("Session closed. Please wait for the next session to bid.");
-      return;
     }
     setOpen(t);
     setStep("amount");
@@ -793,14 +779,6 @@ const Circle = () => {
                 const s = stats[t.tier] ?? { pool: 0, members: 0, target: 1 };
                 const myBids = bids.filter((b) => b.tier === t.tier);
                 const myTotal = myBids.reduce((sum, b) => sum + Number(b.fiat_amount ?? 0), 0);
-                const sess = sessionFor(t.tier);
-                const sessionOpen = !sess || sess.status === "open";
-                const sessionLabel = sess
-                  ? sess.status === "open"
-                    ? `🟢 Session open — closes in ${fmtCountdown(sess.target - now)}`
-                    : `🔴 Session closed — opens in ${fmtCountdown(sess.target - now)}`
-                  : null;
-
                 return (
                   <CircleTierCard
                     key={t.tier}
@@ -809,8 +787,8 @@ const Circle = () => {
                     members={s.members}
                     target={s.target}
                     myTotal={myTotal}
-                    sessionOpen={sessionOpen}
-                    sessionLabel={sessionLabel}
+                    sessionOpen
+                    sessionLabel="Open 24/7"
                     delayMs={i * 60}
                     onBidMin={() => startBid(t, t.min_entry)}
                     onBidMax={() => startBid(t, t.max_entry)}
