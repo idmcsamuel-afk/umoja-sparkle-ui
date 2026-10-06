@@ -80,3 +80,6 @@ verify_jwt = false
 
 [functions.sync-tenders]
 verify_jwt = false
+
+[functions.notify-admin-bid]
+verify_jwt = false
