@@ -8624,12 +8624,6 @@ export type Database = {
           id: string
         }[]
       }
-      get_member_home_notice_settings: {
-        Args: never
-        Returns: {
-          home_circle_24_7_notice_enabled: boolean
-        }[]
-      }
       get_member_platform_settings: {
         Args: never
         Returns: {
@@ -8639,6 +8633,7 @@ export type Database = {
           branch_code: string
           growth_override_open: boolean
           harvest_override_open: boolean
+          home_circle_24_7_notice_enabled: boolean
           override_expires_at: string
           payment_instructions: string
           payouts_growth: number
