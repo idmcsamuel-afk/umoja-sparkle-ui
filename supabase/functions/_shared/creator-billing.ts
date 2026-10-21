@@ -56,7 +56,7 @@ function mapError(msg: string): ChargeResult {
 }
 
 /** Charge Creator Credits (idempotent by key) and atomically move the job to 'generating'. */
-export async function chargeAndStart(admin: SupabaseClient, s: ChargeSpec): Promise<ChargeResult> {
+export async function chargeAndStart(admin: any, s: ChargeSpec): Promise<ChargeResult> {
   const { data, error } = await admin.rpc("charge_generation_for_member", {
     p_member: s.memberId,
     p_model_key: s.modelKey,
@@ -84,7 +84,7 @@ export async function chargeAndStart(admin: SupabaseClient, s: ChargeSpec): Prom
 }
 
 /** Charge only (no claim) — used to pre-pay a job that a queue worker will claim later. */
-export async function precharge(admin: SupabaseClient, s: ChargeSpec): Promise<ChargeResult> {
+export async function precharge(admin: any, s: ChargeSpec): Promise<ChargeResult> {
   const { data, error } = await admin.rpc("charge_generation_for_member", {
     p_member: s.memberId, p_model_key: s.modelKey, p_route: s.route, p_job_type: s.jobType,
     p_params: s.params ?? {}, p_idem: s.idempotencyKey, p_units: Math.max(1, Math.ceil(s.units ?? 1)), p_source: s.source ?? "server",
@@ -97,12 +97,12 @@ export async function precharge(admin: SupabaseClient, s: ChargeSpec): Promise<C
   return { ok: true, jobId: r.job_id, credits: r.credits_charged };
 }
 
-export async function completeJob(admin: SupabaseClient, jobId: string, url?: string | null) {
+export async function completeJob(admin: any, jobId: string, url?: string | null) {
   try { await admin.rpc("complete_generation_job", { p_job_id: jobId, p_result_url: url ?? null }); }
   catch (e) { console.error("[billing] complete failed", jobId, e); }
 }
 
-export async function refundJob(admin: SupabaseClient, jobId: string) {
+export async function refundJob(admin: any, jobId: string) {
   try {
     const { error } = await admin.rpc("refund_generation", { p_job_id: jobId });
     if (error && !/already_refunded|job_complete/.test(error.message)) console.error("[billing] refund failed", jobId, error.message);
@@ -110,13 +110,13 @@ export async function refundJob(admin: SupabaseClient, jobId: string) {
 }
 
 /** Refund any still-open jobs for these idempotency keys (used by orchestrators on crash/timeout). */
-export async function refundOpenByKeys(admin: SupabaseClient, memberId: string, keys: string[]) {
+export async function refundOpenByKeys(admin: any, memberId: string, keys: string[]) {
   const { data } = await admin.from("creator_generation_jobs").select("id")
     .eq("member_id", memberId).in("idempotency_key", keys).in("status", ["charged", "generating"]);
   for (const j of data ?? []) await refundJob(admin, (j as any).id);
 }
 
-export async function marketingMemberId(admin: SupabaseClient): Promise<string | null> {
+export async function marketingMemberId(admin: any): Promise<string | null> {
   const { data } = await admin.from("creator_settings").select("value").eq("key", "marketing_member_id").maybeSingle();
   return (data as any)?.value ?? null;
 }
@@ -129,7 +129,7 @@ export function facelessNarrationChars(scriptContent: any): number {
   return scenes.reduce((n: number, s: any) => n + String(s?.narration ?? s?.text ?? "").length, 0);
 }
 
-export async function facelessVoiceTier(admin: SupabaseClient, agentId: string | null): Promise<"standard" | "premium"> {
+export async function facelessVoiceTier(admin: any, agentId: string | null): Promise<"standard" | "premium"> {
   if (!agentId) return "standard";
   const { data } = await admin.from("zcreator_story_agents").select("brand_voice").eq("id", agentId).maybeSingle();
   return (data as any)?.brand_voice?.voice_tier === "premium" ? "premium" : "standard";
