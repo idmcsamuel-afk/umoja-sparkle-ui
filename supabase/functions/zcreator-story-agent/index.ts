@@ -291,20 +291,8 @@ CRITICAL: "scenes" MUST be a non-empty JSON array of 3-5 objects (NEVER more tha
       })
       .eq("id", agentId);
 
-    // NOTE: usage counter (videos_used_this_month) is incremented in
-    // zcreator-generate-video ONLY when video generation succeeds.
-    // Script generation alone must not count against the user's monthly limit.
-    if (!sub) {
-      await supabase.from("zcreator_subscriptions").insert({
-        user_id: agent.user_id,
-        tier: "free",
-        videos_per_month: limit,
-        platforms_enabled: lim.platforms,
-        videos_used_this_month: 0,
-        billing_cycle_starts_at: new Date().toISOString(),
-      });
-    }
-
+    for (const id of billed) await completeJob(supabase, id);
+    success = true;
 
     return json({
       success: true,
@@ -314,5 +302,8 @@ CRITICAL: "scenes" MUST be a non-empty JSON array of 3-5 objects (NEVER more tha
   } catch (error: any) {
     console.error("Story agent error:", error);
     return json({ error: error?.message ?? "Unknown error" }, 500);
+  } finally {
+    // Any failure after charging (provider error, bad JSON after retries, insert failure) → refund.
+    if (!success) for (const id of billed) await refundJob(supabase, id);
   }
 });
