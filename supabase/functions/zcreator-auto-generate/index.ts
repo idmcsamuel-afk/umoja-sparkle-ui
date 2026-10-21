@@ -1,4 +1,5 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { generationEnabled, GENERATION_DISABLED_BODY } from "../_shared/generation-gate.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -30,6 +31,9 @@ function shouldGenerate(frequency: string | null, lastAt: Date): boolean {
 
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response("ok", { headers: corsHeaders });
+  // Kill-switch: refuse before invoking story-agent / generate-video (defense in depth —
+  // those functions are gated too, but refuse here so cron runs stay quiet).
+  if (!(await generationEnabled())) return json(GENERATION_DISABLED_BODY, 403);
   const _cron = Deno.env.get("CRON_SECRET");
   if (!_cron || req.headers.get("x-cron-secret") !== _cron) {
     return json({ error: "Unauthorized" }, 401);

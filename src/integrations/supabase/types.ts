@@ -1842,6 +1842,27 @@ export type Database = {
         }
         Relationships: []
       }
+      creator_pause_backup_20261021: {
+        Row: {
+          auto_generate: boolean | null
+          auto_publish: boolean | null
+          id: string | null
+          paused_at: string | null
+        }
+        Insert: {
+          auto_generate?: boolean | null
+          auto_publish?: boolean | null
+          id?: string | null
+          paused_at?: string | null
+        }
+        Update: {
+          auto_generate?: boolean | null
+          auto_publish?: boolean | null
+          id?: string | null
+          paused_at?: string | null
+        }
+        Relationships: []
+      }
       currency_rates: {
         Row: {
           created_at: string

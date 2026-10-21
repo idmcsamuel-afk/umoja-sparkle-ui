@@ -5,6 +5,7 @@
 // FFmpeg worker is stubbed if FFMPEG_WORKER_URL is a placeholder.
 
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { generationEnabled, GENERATION_DISABLED_BODY } from "../_shared/generation-gate.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -153,6 +154,8 @@ async function verifyUrl(url: string, label: string): Promise<boolean> {
 
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response("ok", { headers: corsHeaders });
+  // Kill-switch: refuse before ANY paid provider call (Pexels, ElevenLabs voice, Whisper, FFmpeg worker).
+  if (!(await generationEnabled())) return json(GENERATION_DISABLED_BODY, 403);
   const _cron = Deno.env.get("CRON_SECRET");
   const _authHeader = req.headers.get("Authorization");
   if ((!_cron || req.headers.get("x-cron-secret") !== _cron) && !_authHeader?.startsWith("Bearer ")) {

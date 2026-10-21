@@ -11,6 +11,7 @@ const corsHeaders = {
   "Access-Control-Allow-Methods": "POST, GET, OPTIONS, PUT, DELETE",
 };
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.45.4";
+import { generationEnabled, GENERATION_DISABLED_BODY } from "../_shared/generation-gate.ts";
 
 const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
 const SERVICE_ROLE = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
@@ -268,6 +269,12 @@ async function recomputeAvatarPerformance() {
 
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response("ok", { headers: corsHeaders });
+  // Kill-switch: refuse before ANY paid provider call (Anthropic scripts/captions, HeyGen videos).
+  if (!(await generationEnabled())) {
+    return new Response(JSON.stringify(GENERATION_DISABLED_BODY), {
+      status: 403, headers: { ...corsHeaders, "Content-Type": "application/json" },
+    });
+  }
   const _cron = Deno.env.get("CRON_SECRET");
   if (!_cron || req.headers.get("x-cron-secret") !== _cron) {
     return new Response(JSON.stringify({ error: "Unauthorized" }), { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } });

@@ -1,4 +1,5 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { generationEnabled, GENERATION_DISABLED_BODY } from "../_shared/generation-gate.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -14,6 +15,8 @@ const json = (body: unknown, status = 200) =>
 
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response("ok", { headers: corsHeaders });
+  // Kill-switch: refuse before ANY paid provider call (Anthropic trend + script gen).
+  if (!(await generationEnabled())) return json(GENERATION_DISABLED_BODY, 403);
   const _authHeader = req.headers.get("Authorization");
   if (!_authHeader?.startsWith("Bearer ")) return json({ error: "Unauthorized" }, 401);
   const _u = createClient(Deno.env.get("SUPABASE_URL") ?? "", Deno.env.get("SUPABASE_ANON_KEY") ?? "", { global: { headers: { Authorization: _authHeader } } });
