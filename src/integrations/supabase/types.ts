@@ -234,6 +234,7 @@ export type Database = {
       ai_generated_videos: {
         Row: {
           avatar_id: string | null
+          billing_job_id: string | null
           campaign_id: string | null
           caption_facebook: string | null
           caption_instagram: string | null
@@ -254,6 +255,7 @@ export type Database = {
         }
         Insert: {
           avatar_id?: string | null
+          billing_job_id?: string | null
           campaign_id?: string | null
           caption_facebook?: string | null
           caption_instagram?: string | null
@@ -274,6 +276,7 @@ export type Database = {
         }
         Update: {
           avatar_id?: string | null
+          billing_job_id?: string | null
           campaign_id?: string | null
           caption_facebook?: string | null
           caption_instagram?: string | null
@@ -1762,13 +1765,16 @@ export type Database = {
           credits_charged: number
           error: string | null
           id: string
+          idempotency_key: string | null
           job_type: string
           member_id: string
           model_key: string
           params: Json
           result_url: string | null
           route: string
+          source: string | null
           status: string
+          units: number
           updated_at: string
         }
         Insert: {
@@ -1777,13 +1783,16 @@ export type Database = {
           credits_charged?: number
           error?: string | null
           id?: string
+          idempotency_key?: string | null
           job_type: string
           member_id: string
           model_key: string
           params?: Json
           result_url?: string | null
           route: string
+          source?: string | null
           status?: string
+          units?: number
           updated_at?: string
         }
         Update: {
@@ -1792,13 +1801,16 @@ export type Database = {
           credits_charged?: number
           error?: string | null
           id?: string
+          idempotency_key?: string | null
           job_type?: string
           member_id?: string
           model_key?: string
           params?: Json
           result_url?: string | null
           route?: string
+          source?: string | null
           status?: string
+          units?: number
           updated_at?: string
         }
         Relationships: []
@@ -1860,6 +1872,24 @@ export type Database = {
           auto_publish?: boolean | null
           id?: string | null
           paused_at?: string | null
+        }
+        Relationships: []
+      }
+      creator_settings: {
+        Row: {
+          key: string
+          updated_at: string
+          value: string
+        }
+        Insert: {
+          key: string
+          updated_at?: string
+          value: string
+        }
+        Update: {
+          key?: string
+          updated_at?: string
+          value?: string
         }
         Relationships: []
       }
@@ -3716,6 +3746,7 @@ export type Database = {
       member_generated_videos: {
         Row: {
           avatar_id: string | null
+          billing_job_id: string | null
           caption: string | null
           created_at: string
           download_count: number
@@ -3737,6 +3768,7 @@ export type Database = {
         }
         Insert: {
           avatar_id?: string | null
+          billing_job_id?: string | null
           caption?: string | null
           created_at?: string
           download_count?: number
@@ -3758,6 +3790,7 @@ export type Database = {
         }
         Update: {
           avatar_id?: string | null
+          billing_job_id?: string | null
           caption?: string | null
           created_at?: string
           download_count?: number
@@ -8594,6 +8627,19 @@ export type Database = {
       }
     }
     Functions: {
+      _creator_charge: {
+        Args: {
+          p_idem: string
+          p_job_type: string
+          p_member: string
+          p_model_key: string
+          p_params: Json
+          p_route: string
+          p_source: string
+          p_units: number
+        }
+        Returns: Json
+      }
       _flip_contributed: { Args: { _member: string }; Returns: undefined }
       _gen_withdrawal_ref: { Args: never; Returns: string }
       _promo_unlock_bonus: { Args: { _fiat: number }; Returns: number }
@@ -8791,6 +8837,19 @@ export type Database = {
         }
         Returns: Json
       }
+      charge_generation_for_member: {
+        Args: {
+          p_idem?: string
+          p_job_type: string
+          p_member: string
+          p_model_key: string
+          p_params?: Json
+          p_route: string
+          p_source?: string
+          p_units?: number
+        }
+        Returns: Json
+      }
       circle_tier_stats: {
         Args: never
         Returns: {
@@ -8801,6 +8860,10 @@ export type Database = {
       }
       claim_free_sparks: { Args: { _claim_type: string }; Returns: Json }
       claim_signup_bonus: { Args: never; Returns: number }
+      complete_generation_job: {
+        Args: { p_job_id: string; p_result_url?: string }
+        Returns: Json
+      }
       compute_session_scores: {
         Args: { _tier: string }
         Returns: {
@@ -9115,6 +9178,7 @@ export type Database = {
         Args: { p_bid_id: string; p_reference: string }
         Returns: Json
       }
+      start_generation_job: { Args: { p_job_id: string }; Returns: Json }
       submit_buyers_club_payment: {
         Args: { _amount: number; _proof_url: string; _tier: string }
         Returns: undefined

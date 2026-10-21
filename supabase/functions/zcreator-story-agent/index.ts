@@ -1,5 +1,6 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { generationEnabled, GENERATION_DISABLED_BODY } from "../_shared/generation-gate.ts";
+import { resolveCaller, chargeAndStart, completeJob, refundJob } from "../_shared/creator-billing.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -17,21 +18,20 @@ Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response("ok", { headers: corsHeaders });
   // Kill-switch: refuse before ANY paid provider call (Anthropic trend + script gen).
   if (!(await generationEnabled())) return json(GENERATION_DISABLED_BODY, 403);
-  const _authHeader = req.headers.get("Authorization");
-  if (!_authHeader?.startsWith("Bearer ")) return json({ error: "Unauthorized" }, 401);
-  const _u = createClient(Deno.env.get("SUPABASE_URL") ?? "", Deno.env.get("SUPABASE_ANON_KEY") ?? "", { global: { headers: { Authorization: _authHeader } } });
-  const { data: _c, error: _e } = await _u.auth.getClaims(_authHeader.replace("Bearer ", ""));
-  if (_e || !_c?.claims) return json({ error: "Unauthorized" }, 401);
+  const caller = await resolveCaller(req);
+  if (!caller) return json({ error: "Unauthorized" }, 401);
+
+  const billed: string[] = [];
+  let success = false;
+  const supabase = createClient(
+    Deno.env.get("SUPABASE_URL") ?? "",
+    Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? "",
+  );
 
   try {
-    const { agentId, manualTrigger = false } = await req.json();
+    const { agentId, manualTrigger = false, requestId } = await req.json();
     console.error('[SCRIPT-GEN] Starting for agent:', agentId, 'manualTrigger:', manualTrigger);
     if (!agentId) return json({ error: "agentId required" }, 400);
-
-    const supabase = createClient(
-      Deno.env.get("SUPABASE_URL") ?? "",
-      Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? "",
-    );
 
     const anthropicKey = Deno.env.get("ANTHROPIC_API_KEY");
     if (!anthropicKey) return json({ error: "ANTHROPIC_API_KEY not configured" }, 500);
@@ -44,35 +44,19 @@ Deno.serve(async (req) => {
       .single();
 
     if (agentErr || !agent) return json({ error: "Agent not found" }, 404);
+    if (caller.kind === "user" && caller.userId !== agent.user_id) return json({ error: "Forbidden" }, 403);
     if (!agent.active && !manualTrigger) return json({ error: "Agent not active" }, 400);
 
-    // Enforce Creator Studio subscription limits
-    const { data: sub } = await supabase
-      .from("zcreator_subscriptions").select("*").eq("user_id", agent.user_id).maybeSingle();
-    const TIER_LIMITS: Record<string, { videos: number; platforms: string[] }> = {
-      free:    { videos: 2,    platforms: ["youtube"] },
-      creator: { videos: 150,  platforms: ["youtube","tiktok","instagram"] },
-      pro:     { videos: 400,  platforms: ["youtube","tiktok","instagram"] },
-      agency:  { videos: 1000, platforms: ["youtube","tiktok","instagram"] },
-    };
-    const tier = (sub?.tier ?? "free");
-    const lim = TIER_LIMITS[tier] ?? TIER_LIMITS.free;
-    const used = sub?.videos_used_this_month ?? 0;
-    const limit = sub?.videos_per_month ?? lim.videos;
-    if (used >= limit) {
-      return json({
-        error: "monthly_limit_reached",
-        message: `Creator Studio limit reached (${used}/${limit}). Upgrade to continue.`,
-        upgradeUrl: "/creator-studio/subscription",
-      }, 402);
-    }
-    const blockedPlatforms = (agent.platforms ?? []).filter((p: string) => !lim.platforms.includes(p));
-    if (blockedPlatforms.length) {
-      return json({
-        error: "platform_not_in_tier",
-        message: `Your Creator Studio plan doesn't include: ${blockedPlatforms.join(", ")}. Upgrade to unlock.`,
-        upgradeUrl: "/creator-studio/subscription",
-      }, 402);
+    // Creator Credits gate (replaces the retired video subscription quota).
+    // Charge trend research + script (incl. up to 3 retries) BEFORE any Anthropic call.
+    const idem = `story:${agentId}:${requestId ?? Math.floor(Date.now() / 600_000)}`;
+    for (const route of ["anthropic-trend", "anthropic-script"]) {
+      const c = await chargeAndStart(supabase, {
+        memberId: agent.user_id, modelKey: "claude-sonnet-4", route, jobType: "script",
+        idempotencyKey: `${idem}:${route}`, params: { agentId }, source: "story-agent", claimPrecharged: false,
+      });
+      if (!c.ok) return json(c.body, c.status);
+      billed.push(c.jobId);
     }
 
     // 2. Research trends
@@ -307,20 +291,8 @@ CRITICAL: "scenes" MUST be a non-empty JSON array of 3-5 objects (NEVER more tha
       })
       .eq("id", agentId);
 
-    // NOTE: usage counter (videos_used_this_month) is incremented in
-    // zcreator-generate-video ONLY when video generation succeeds.
-    // Script generation alone must not count against the user's monthly limit.
-    if (!sub) {
-      await supabase.from("zcreator_subscriptions").insert({
-        user_id: agent.user_id,
-        tier: "free",
-        videos_per_month: limit,
-        platforms_enabled: lim.platforms,
-        videos_used_this_month: 0,
-        billing_cycle_starts_at: new Date().toISOString(),
-      });
-    }
-
+    for (const id of billed) await completeJob(supabase, id);
+    success = true;
 
     return json({
       success: true,
@@ -330,5 +302,8 @@ CRITICAL: "scenes" MUST be a non-empty JSON array of 3-5 objects (NEVER more tha
   } catch (error: any) {
     console.error("Story agent error:", error);
     return json({ error: error?.message ?? "Unknown error" }, 500);
+  } finally {
+    // Any failure after charging (provider error, bad JSON after retries, insert failure) → refund.
+    if (!success) for (const id of billed) await refundJob(supabase, id);
   }
 });

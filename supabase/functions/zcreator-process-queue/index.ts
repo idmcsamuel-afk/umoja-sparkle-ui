@@ -1,5 +1,6 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { generationEnabled, GENERATION_DISABLED_BODY } from "../_shared/generation-gate.ts";
+import { refundOpenByKeys, facelessKeys } from "../_shared/creator-billing.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -86,7 +87,7 @@ Deno.serve(async (req) => {
     try {
       const r = await fetch(`${SUPABASE_URL}/functions/v1/zcreator-assemble-faceless`, {
         method: "POST",
-        headers: { "Content-Type": "application/json", Authorization: `Bearer ${SERVICE_KEY}` },
+        headers: { "Content-Type": "application/json", Authorization: `Bearer ${SERVICE_KEY}`, "x-cron-secret": _cron },
         body: JSON.stringify({ contentId: next.content_id }),
       });
       const out = await r.json().catch(() => ({}));
@@ -105,23 +106,15 @@ Deno.serve(async (req) => {
         .from("zcreator_job_queue")
         .update({ status: "completed", completed_at: new Date().toISOString() })
         .eq("id", next.id);
-      // Increment usage counter on success.
-      const { data: sub } = await supabase
-        .from("zcreator_subscriptions")
-        .select("videos_used_this_month")
-        .eq("user_id", next.user_id)
-        .maybeSingle();
-      if (sub) {
-        await supabase
-          .from("zcreator_subscriptions")
-          .update({ videos_used_this_month: (sub.videos_used_this_month ?? 0) + 1 })
-          .eq("user_id", next.user_id);
-      }
+      // Billing completed inside assemble-faceless (Creator Credits). Old video quota retired.
     } else {
       await supabase
         .from("zcreator_job_queue")
         .update({ status: "failed", error_message: errorMsg, completed_at: new Date().toISOString() })
         .eq("id", next.id);
+      // Safety net: if assembly crashed/timed out before its own refund ran, refund open jobs.
+      const k = facelessKeys(next.content_id);
+      await refundOpenByKeys(supabase, next.user_id, [k.assembly, k.voice]);
       // assemble-faceless already updates content row; ensure status reflects failure if not cancelled.
       if (errorMsg !== "cancelled") {
         await supabase

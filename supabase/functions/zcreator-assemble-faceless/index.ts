@@ -6,6 +6,9 @@
 
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { generationEnabled, GENERATION_DISABLED_BODY } from "../_shared/generation-gate.ts";
+import {
+  resolveCaller, chargeAndStart, completeJob, refundJob, facelessNarrationChars, facelessSpecs,
+} from "../_shared/creator-billing.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -38,10 +41,10 @@ async function pexelsSearchVideo(query: string): Promise<string | null> {
   return pick?.link ?? null;
 }
 
-async function callVoice(text: string, tier: "standard" | "premium", uploadPath: string) {
+async function callVoice(text: string, tier: "standard" | "premium", uploadPath: string, billingJobId: string) {
   const r = await fetch(`${SUPABASE_URL}/functions/v1/zcreator-generate-voice`, {
     method: "POST",
-    headers: { "Content-Type": "application/json", Authorization: `Bearer ${SERVICE_KEY}` },
+    headers: { "Content-Type": "application/json", Authorization: `Bearer ${SERVICE_KEY}`, "x-creator-billing-job": billingJobId },
     body: JSON.stringify({ text, tier, uploadPath }),
   });
   if (!r.ok) throw new Error(`voice gen failed: ${await r.text()}`);
@@ -156,21 +159,14 @@ Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response("ok", { headers: corsHeaders });
   // Kill-switch: refuse before ANY paid provider call (Pexels, ElevenLabs voice, Whisper, FFmpeg worker).
   if (!(await generationEnabled())) return json(GENERATION_DISABLED_BODY, 403);
-  const _cron = Deno.env.get("CRON_SECRET");
-  const _authHeader = req.headers.get("Authorization");
-  if ((!_cron || req.headers.get("x-cron-secret") !== _cron) && !_authHeader?.startsWith("Bearer ")) {
-    return json({ error: "Unauthorized" }, 401);
-  }
-  if (_authHeader?.startsWith("Bearer ")) {
-    const _u = createClient(SUPABASE_URL, Deno.env.get("SUPABASE_ANON_KEY") ?? "", { global: { headers: { Authorization: _authHeader } } });
-    const { data: _c, error: _e } = await _u.auth.getClaims(_authHeader.replace("Bearer ", ""));
-    if (_e || !_c?.claims) return json({ error: "Unauthorized" }, 401);
-  }
+  const caller = await resolveCaller(req);
+  if (!caller) return json({ error: "Unauthorized" }, 401);
+  const billed: string[] = [];
+  let success = false;
+  const supabase = createClient(SUPABASE_URL, SERVICE_KEY);
   try {
     const { contentId } = await req.json();
     if (!contentId) return json({ error: "contentId is required" }, 400);
-
-    const supabase = createClient(SUPABASE_URL, SERVICE_KEY);
 
     // 1) Load script
     const { data: content, error: cErr } = await supabase
@@ -191,6 +187,17 @@ Deno.serve(async (req) => {
       const tier = (agent?.brand_voice as any)?.voice_tier;
       if (tier === "premium") voiceTier = "premium";
     }
+    if (caller.kind === "user" && caller.userId !== content.user_id) return json({ error: "Forbidden" }, 403);
+
+    // Creator Credits gate: claim the jobs pre-charged at enqueue (or charge now) BEFORE
+    // any Pexels / ElevenLabs / Whisper / render call. A running or finished job = duplicate → refuse.
+    const specs = facelessSpecs(content.user_id, contentId, facelessNarrationChars(content.script_content), voiceTier);
+    for (const spec of specs) {
+      const c = await chargeAndStart(supabase, spec);
+      if (!c.ok) return json(c.body, c.status);
+      billed.push(c.jobId);
+    }
+    const voiceJobId = billed[1];
 
     const setProgress = async (progress: Record<string, unknown>) => {
       await supabase
@@ -290,7 +297,7 @@ Deno.serve(async (req) => {
       const query = String(s.visual ?? s.keywords ?? content.script_title ?? "background").slice(0, 80);
       const [videoUrl, voice] = await Promise.all([
         pexelsSearchVideo(query),
-        callVoice(narration, voiceTier, `audio/${contentId}/scene-${i}.mp3`),
+        callVoice(narration, voiceTier, `audio/${contentId}/scene-${i}.mp3`, voiceJobId),
       ]);
       console.log(`[scene ${i}] voice result`, {
         audioUrl: voice.audioUrl,
@@ -389,6 +396,8 @@ Deno.serve(async (req) => {
       })
       .eq("id", contentId);
 
+    for (const id of billed) await completeJob(supabase, id, assembly.videoUrl);
+    success = true;
     return json({
       contentId,
       voiceTier,
@@ -401,5 +410,8 @@ Deno.serve(async (req) => {
   } catch (e: any) {
     console.error("assemble-faceless error", e);
     return json({ error: e?.message ?? "unknown error" }, 500);
+  } finally {
+    // Validation failure, cancel, provider/worker error → refund the member's credits.
+    if (!success) for (const id of billed) await refundJob(supabase, id);
   }
 });

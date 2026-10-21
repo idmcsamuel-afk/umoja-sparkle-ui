@@ -22,7 +22,7 @@ async function poll(videoId: string) {
 }
 
 async function processTable(table: string) {
-  const { data: rows } = await supabase.from(table).select("id, heygen_video_id")
+  const { data: rows } = await supabase.from(table).select("id, heygen_video_id, billing_job_id")
     .eq("generation_status", "generating").not("heygen_video_id", "is", null).limit(25);
   if (!rows) return 0;
   let updated = 0;
@@ -36,12 +36,15 @@ async function processTable(table: string) {
         thumbnail_url: s.thumbnail_url ?? null,
         duration_seconds: s.duration ? Math.round(s.duration) : null,
       }).eq("id", r.id);
+      if ((r as any).billing_job_id) await supabase.rpc("complete_generation_job", { p_job_id: (r as any).billing_job_id, p_result_url: s.video_url });
       updated++;
     } else if (s.status === "failed") {
       await supabase.from(table).update({
         generation_status: "failed",
         error_message: (s.error?.message ?? "HeyGen failed").slice(0, 500),
       }).eq("id", r.id);
+      // Late HeyGen failure → refund the Creator Credits charged for it.
+      if ((r as any).billing_job_id) await supabase.rpc("refund_generation", { p_job_id: (r as any).billing_job_id });
     }
   }
   return updated;

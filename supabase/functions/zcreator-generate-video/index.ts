@@ -1,5 +1,9 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { generationEnabled, GENERATION_DISABLED_BODY } from "../_shared/generation-gate.ts";
+import {
+  resolveCaller, chargeAndStart, precharge, completeJob, refundJob,
+  facelessNarrationChars, facelessVoiceTier, facelessSpecs,
+} from "../_shared/creator-billing.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -92,12 +96,10 @@ Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response("ok", { headers: corsHeaders });
   // Kill-switch: refuse before ANY paid provider call (HeyGen talking-head, stock assembly enqueue).
   if (!(await generationEnabled())) return json(GENERATION_DISABLED_BODY, 403);
-  const _authHeader = req.headers.get("Authorization");
-  if (!_authHeader?.startsWith("Bearer ")) return json({ error: "Unauthorized" }, 401);
-  const _u = createClient(SUPABASE_URL, Deno.env.get("SUPABASE_ANON_KEY") ?? "", { global: { headers: { Authorization: _authHeader } } });
-  const { data: _c, error: _e } = await _u.auth.getClaims(_authHeader.replace("Bearer ", ""));
-  if (_e || !_c?.claims) return json({ error: "Unauthorized" }, 401);
+  const caller = await resolveCaller(req);
+  if (!caller) return json({ error: "Unauthorized" }, 401);
 
+  let billingJobId: string | null = null;
   try {
     const { contentId, videoStyle } = await req.json();
     if (!contentId) return json({ error: "contentId required" }, 400);
@@ -108,129 +110,82 @@ Deno.serve(async (req) => {
       .eq("id", contentId)
       .single();
     if (cErr || !content) return json({ error: "Content not found" }, 404);
+    if (caller.kind === "user" && caller.userId !== content.user_id) return json({ error: "Forbidden" }, 403);
 
     const style = videoStyle || content.video_style || "talking_head";
+
+    if (style === "cinematic" || style === "animation") {
+      return json({ success: true, status: "script_ready", note: style === "cinematic" ? "Kling integration coming" : "Animation workflow coming" });
+    }
+    if (style !== "talking_head" && style !== "stock") return json({ error: "Unknown video style: " + style }, 400);
+
+    if (style === "stock") {
+      // Pre-charge Creator Credits at enqueue (assembly + voice). The queue worker claims these jobs.
+      const chars = facelessNarrationChars(content.script_content);
+      const tier = await facelessVoiceTier(supabase, content.agent_id);
+      const charged: string[] = [];
+      for (const spec of facelessSpecs(content.user_id, contentId, chars, tier)) {
+        const c = await precharge(supabase, spec);
+        if (!c.ok) { for (const id of charged) await refundJob(supabase, id); return json(c.body, c.status); }
+        charged.push(c.jobId);
+      }
+      const { error: qErr } = await supabase
+        .from("zcreator_job_queue")
+        .insert({ content_id: contentId, user_id: content.user_id, priority: 0, status: "queued" });
+      if (qErr) {
+        for (const id of charged) await refundJob(supabase, id);
+        return json({ error: "Queue insert failed: " + qErr.message }, 500);
+      }
+      const { count: aheadCount } = await supabase
+        .from("zcreator_job_queue")
+        .select("id", { count: "exact", head: true })
+        .in("status", ["queued", "processing"]);
+      await supabase
+        .from("zcreator_content_queue")
+        .update({ status: "queued", video_style: style, updated_at: new Date().toISOString(), error_message: null })
+        .eq("id", contentId);
+      fetch(`${SUPABASE_URL}/functions/v1/zcreator-process-queue`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json", Authorization: `Bearer ${SERVICE_KEY}`, "x-cron-secret": Deno.env.get("CRON_SECRET") ?? "" },
+        body: "{}",
+      }).catch(() => {});
+      return json({ success: true, queued: true, position: aheadCount ?? 1, message: `Video queued for generation (position ${aheadCount ?? 1})` });
+    }
+
+    // talking_head → HeyGen. Charge BEFORE calling the provider.
+    const c = await chargeAndStart(supabase, {
+      memberId: content.user_id, modelKey: "heygen-avatar-v2", route: "heygen-talking-head", jobType: "video",
+      idempotencyKey: `video:${contentId}:talking_head`, params: { contentId }, source: "generate-video",
+    });
+    if (!c.ok) return json(c.body, c.status);
+    billingJobId = c.jobId;
 
     await supabase
       .from("zcreator_content_queue")
       .update({ status: "generating", video_style: style, updated_at: new Date().toISOString() })
       .eq("id", contentId);
 
-    let videoUrl: string | null = null;
-    let thumbnailUrl: string | null = null;
-    let duration: number | null = null;
-    let finalStatus = "ready";
-    let errorMsg: string | null = null;
-
     try {
-      if (style === "talking_head") {
-        const r = await generateTalkingHead(content);
-        videoUrl = r.videoUrl;
-        thumbnailUrl = r.thumbnailUrl;
-        duration = r.duration;
-      } else if (style === "cinematic") {
-        finalStatus = "script_ready";
-        errorMsg = "Kling integration coming";
-      } else if (style === "stock") {
-        // Enqueue instead of running synchronously to prevent FFmpeg worker OOM
-        // when multiple users generate videos at the same time.
-        const { data: subRow } = await supabase
-          .from("zcreator_subscriptions")
-          .select("tier")
-          .eq("user_id", content.user_id)
-          .maybeSingle();
-        const tier = subRow?.tier ?? "free";
-        const priority = tier === "pro" || tier === "agency" ? 2 : tier === "creator" ? 1 : 0;
-
-        const { error: qErr } = await supabase
-          .from("zcreator_job_queue")
-          .insert({ content_id: contentId, user_id: content.user_id, priority, status: "queued" });
-        if (qErr) throw new Error("Queue insert failed: " + qErr.message);
-
-        // Count ahead-of-me queued jobs (higher priority OR same priority and earlier).
-        const { count: aheadCount } = await supabase
-          .from("zcreator_job_queue")
-          .select("id", { count: "exact", head: true })
-          .in("status", ["queued", "processing"]);
-
-        await supabase
-          .from("zcreator_content_queue")
-          .update({ status: "queued", updated_at: new Date().toISOString(), error_message: null })
-          .eq("id", contentId);
-
-        // Kick the worker (non-blocking).
-        fetch(`${SUPABASE_URL}/functions/v1/zcreator-process-queue`, {
-          method: "POST",
-          headers: { "Content-Type": "application/json", Authorization: `Bearer ${SERVICE_KEY}` },
-          body: "{}",
-        }).catch(() => {});
-
-        return json({
-          success: true,
-          queued: true,
-          position: aheadCount ?? 1,
-          message: `Video queued for generation (position ${aheadCount ?? 1})`,
-        });
-
-
-      } else if (style === "animation") {
-        finalStatus = "script_ready";
-        errorMsg = "Animation workflow coming";
-      } else {
-        throw new Error("Unknown video style: " + style);
-      }
+      const r = await generateTalkingHead(content);
+      await supabase.from("zcreator_content_queue").update({
+        status: "ready", video_url: r.videoUrl, thumbnail_url: r.thumbnailUrl,
+        duration_seconds: r.duration, error_message: null, updated_at: new Date().toISOString(),
+      }).eq("id", contentId);
+      await completeJob(supabase, billingJobId, r.videoUrl);
+      billingJobId = null;
+      return json({ success: true, videoUrl: r.videoUrl, status: "ready", credits_charged: c.credits });
     } catch (e: any) {
-      finalStatus = "failed";
       const raw = e?.message ?? "Video generation failed";
-      // Classify so the UI can show a clear reason. System errors do NOT count against quota.
-      let kind = "system";
-      let friendly = raw;
-      const lower = raw.toLowerCase();
-      if (lower.includes("heygen")) friendly = `HeyGen API: ${raw}`;
-      else if (lower.includes("ffmpeg") || lower.includes("worker")) friendly = `FFmpeg worker: ${raw}`;
-      else if (lower.includes("pexels")) friendly = `Pexels API: ${raw}`;
-      else if (lower.includes("timeout")) friendly = `Timeout: ${raw}`;
-      else if (lower.includes("credit") || lower.includes("quota") || lower.includes("rate limit"))
-        friendly = `Provider limit: ${raw}`;
-      else if (lower.includes("no scenes") || lower.includes("invalid")) kind = "user";
-      errorMsg = `[${kind}] ${friendly}`;
+      const errorMsg = `[system] ${raw.toLowerCase().includes("heygen") ? "HeyGen API: " : ""}${raw} — credits refunded`;
+      await supabase.from("zcreator_content_queue").update({
+        status: "failed", error_message: errorMsg, updated_at: new Date().toISOString(),
+      }).eq("id", contentId);
+      return json({ success: false, error: errorMsg }, 200);
     }
-
-    const updates: Record<string, unknown> = {
-      status: finalStatus,
-      updated_at: new Date().toISOString(),
-    };
-    if (videoUrl) updates.video_url = videoUrl;
-    if (thumbnailUrl) updates.thumbnail_url = thumbnailUrl;
-    if (duration != null) updates.duration_seconds = duration;
-    if (errorMsg) updates.error_message = errorMsg;
-    else updates.error_message = null;
-
-    await supabase.from("zcreator_content_queue").update(updates).eq("id", contentId);
-
-    // Increment Creator Studio usage counter ONLY on successful generation.
-    // Failed attempts (system OR user errors) do not count against the monthly limit
-    // when retrying an existing script. New scripts already passed the limit check.
-    if (finalStatus === "ready") {
-      const { data: sub } = await supabase
-        .from("zcreator_subscriptions")
-        .select("videos_used_this_month")
-        .eq("user_id", content.user_id)
-        .maybeSingle();
-      if (sub) {
-        await supabase
-          .from("zcreator_subscriptions")
-          .update({ videos_used_this_month: (sub.videos_used_this_month ?? 0) + 1 })
-          .eq("user_id", content.user_id);
-      }
-    }
-
-
-    if (finalStatus === "failed") return json({ success: false, error: errorMsg }, 200);
-
-    return json({ success: true, videoUrl, status: finalStatus, note: errorMsg });
   } catch (e: any) {
     console.error("generate-video error", e);
     return json({ error: e?.message ?? "Unknown error" }, 500);
+  } finally {
+    if (billingJobId) await refundJob(supabase, billingJobId);
   }
 });

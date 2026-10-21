@@ -178,7 +178,7 @@ export default function CreatorVideos() {
       .update({ status: "script_ready", error_message: null })
       .eq("id", row.id);
     setRows((p) => p.map((r) => (r.id === row.id ? { ...r, status: "script_ready", error_message: null } : r)));
-    toast.info("Retrying — system failures don't count against your monthly limit");
+    toast.info("Retrying — failed generations are refunded to your Creator Credits");
     await generate({ ...row, status: "script_ready", error_message: null });
   };
 
@@ -231,7 +231,7 @@ export default function CreatorVideos() {
     if (!scriptModal?.agent_id) return toast.error("No agent linked to this script");
     setRegenerating(true);
     const { data, error } = await supabase.functions.invoke("zcreator-story-agent", {
-      body: { agentId: scriptModal.agent_id, manualTrigger: true },
+      body: { agentId: scriptModal.agent_id, manualTrigger: true, requestId: crypto.randomUUID() },
     });
     setRegenerating(false);
     if (error || (data as any)?.error) {
