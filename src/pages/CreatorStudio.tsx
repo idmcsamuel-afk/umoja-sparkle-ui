@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from "react";
 import { Link } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
+import { CreatorCreditChip } from "@/pages/CreatorCredits";
 import { BottomNav } from "@/components/umoja/BottomNav";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -258,6 +259,7 @@ export default function CreatorStudio() {
   return (
     <div className="min-h-screen pb-28 md:pb-10">
       <div className="mx-auto max-w-5xl px-4 sm:px-6 py-6 space-y-6">
+        <div className="flex justify-end"><CreatorCreditChip /></div>
         <header className="flex items-start justify-between gap-3 flex-wrap">
           <div>
             <p className="text-[11px] uppercase tracking-[0.22em] text-accent">Autonomous Content Factory</p>
