@@ -103,16 +103,8 @@ Deno.serve(async (req) => {
 
     const userId = content.user_id;
 
-    // Subscription quota check
-    const { data: sub } = await admin
-      .from("zcreator_subscriptions")
-      .select("*")
-      .eq("user_id", userId)
-      .maybeSingle();
-    if (sub && sub.videos_used_this_month >= sub.videos_per_month) {
-      throw new Error("Monthly video quota reached");
-    }
-    const enabled: string[] = sub?.platforms_enabled ?? ["youtube", "tiktok", "instagram"];
+    // Old video subscription quota retired — billing is Creator Credits at generation time.
+    const enabled: string[] = ["youtube", "tiktok", "instagram"];
 
     const meta = (content.platform_metadata ?? {}) as Record<string, any>;
     const published: Array<{ platform: string; url?: string; videoId?: string; note?: string }> = [];
@@ -188,13 +180,6 @@ Deno.serve(async (req) => {
       .from("zcreator_content_queue")
       .update({ status: "published", actual_published_at: new Date().toISOString() })
       .eq("id", contentId);
-
-    if (sub) {
-      await admin
-        .from("zcreator_subscriptions")
-        .update({ videos_used_this_month: sub.videos_used_this_month + 1 })
-        .eq("user_id", userId);
-    }
 
     return new Response(JSON.stringify({ success: true, published, publishNow: !!publishNow }), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },

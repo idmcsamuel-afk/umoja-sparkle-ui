@@ -1,5 +1,6 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { generationEnabled, GENERATION_DISABLED_BODY } from "../_shared/generation-gate.ts";
+import { refundOpenByKeys, facelessKeys } from "../_shared/creator-billing.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -46,7 +47,7 @@ Deno.serve(async (req) => {
     const cutoff = new Date(Date.now() - 15 * 60_000).toISOString();
     const { data: stuck } = await supabase
       .from("zcreator_content_queue")
-      .select("id")
+      .select("id, user_id")
       .eq("status", "generating")
       .lt("updated_at", cutoff);
     if (stuck && stuck.length) {
@@ -59,6 +60,11 @@ Deno.serve(async (req) => {
         })
         .in("id", stuck.map((s) => s.id));
       console.log(`[auto-generate] timed out ${stuck.length} stuck jobs`);
+      // Refund Creator Credits held by the timed-out generations.
+      for (const s of stuck as any[]) {
+        const k = facelessKeys(s.id);
+        await refundOpenByKeys(supabase, s.user_id, [k.assembly, k.voice, `video:${s.id}:talking_head`]);
+      }
     }
 
 
