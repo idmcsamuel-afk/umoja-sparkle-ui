@@ -6,6 +6,7 @@ const corsHeaders = {
 };
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.45.4";
 import { generationEnabled, GENERATION_DISABLED_BODY } from "../_shared/generation-gate.ts";
+import { chargeAndStart, refundJob } from "../_shared/creator-billing.ts";
 
 const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
 const ANON = Deno.env.get("SUPABASE_ANON_KEY")!;
@@ -50,11 +51,19 @@ Deno.serve(async (req) => {
     const { data: avatar } = await admin.from("ai_avatars").select("*").eq("id", avatar_id).maybeSingle();
     if (!avatar || !avatar.is_active) return json({ error: "avatar not available" }, 400);
 
-    // Call HeyGen
+    // Call HeyGen — only after a funded Creator Credits job exists.
     let heygenVideoId: string | null = null;
     let status = "pending";
     let errorMessage: string | null = null;
+    let billingJobId: string | null = null;
     if (HEYGEN_API_KEY && avatar.heygen_avatar_id && avatar.voice_id) {
+      const c = await chargeAndStart(admin, {
+        memberId: user.id, modelKey: "heygen-avatar-v2", route: "heygen-talking-head", jobType: "video",
+        idempotencyKey: `member-video:${body.requestId ?? `${avatar_id}:${script_id ?? scriptText.length}:${Math.floor(Date.now() / 600_000)}`}`,
+        params: { avatar_id, script_id: script_id ?? null }, source: "member-avatar", claimPrecharged: false,
+      });
+      if (!c.ok) return json(c.body, c.status);
+      billingJobId = c.jobId;
       try {
         const r = await fetch("https://api.heygen.com/v2/video/generate", {
           method: "POST",
@@ -78,6 +87,7 @@ Deno.serve(async (req) => {
           errorMessage = JSON.stringify(data).slice(0, 500);
         }
       } catch (e) { status = "failed"; errorMessage = String(e).slice(0, 500); }
+      if (status === "failed") { await refundJob(admin, billingJobId); billingJobId = null; }
     } else if (!HEYGEN_API_KEY) {
       errorMessage = "Video generation not yet configured. Your video will be ready soon.";
     }
@@ -95,6 +105,7 @@ Deno.serve(async (req) => {
       referral_code: refCode,
       referral_link: refLink,
       error_message: errorMessage,
+      billing_job_id: billingJobId,
     }).select().single();
     if (error) return json({ error: error.message }, 500);
 

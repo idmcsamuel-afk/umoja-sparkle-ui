@@ -7,6 +7,7 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { encodeBase64 } from "https://deno.land/std@0.224.0/encoding/base64.ts";
 import { generationEnabled, GENERATION_DISABLED_BODY } from "../_shared/generation-gate.ts";
+import { resolveCaller, chargeAndStart, completeJob, refundJob } from "../_shared/creator-billing.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -83,16 +84,11 @@ Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response("ok", { headers: corsHeaders });
   // Kill-switch: refuse before ANY ElevenLabs call — covers generation AND voice previews.
   if (!(await generationEnabled())) return json(GENERATION_DISABLED_BODY, 403);
-  const _cron = Deno.env.get("CRON_SECRET");
-  const _authHeader = req.headers.get("Authorization");
-  if ((!_cron || req.headers.get("x-cron-secret") !== _cron) && !_authHeader?.startsWith("Bearer ")) {
-    return json({ error: "Unauthorized" }, 401);
-  }
-  if (_authHeader?.startsWith("Bearer ")) {
-    const _u = createClient(SUPABASE_URL, Deno.env.get("SUPABASE_ANON_KEY") ?? "", { global: { headers: { Authorization: _authHeader } } });
-    const { data: _c, error: _e } = await _u.auth.getClaims(_authHeader.replace("Bearer ", ""));
-    if (_e || !_c?.claims) return json({ error: "Unauthorized" }, 401);
-  }
+  const caller = await resolveCaller(req);
+  if (!caller) return json({ error: "Unauthorized" }, 401);
+  const admin = createClient(SUPABASE_URL, SERVICE_KEY);
+  let ownJobId: string | null = null;
+  let success = false;
   try {
     const body = await req.json().catch(() => ({}));
     const text = String(body.text ?? "").trim();
@@ -106,6 +102,26 @@ Deno.serve(async (req) => {
     const returnBase64 = !!body.returnBase64;
     const uploadPath: string | null = body.uploadPath ?? null;
 
+    // Credit gate. Server callers (stock assembly) must present a billing job already
+    // charged + claimed for voice; members are charged per 1,000 characters here.
+    if (caller.kind === "service") {
+      const billingJob = req.headers.get("x-creator-billing-job");
+      if (!billingJob) return json({ error: "unbilled_call", message: "Voice generation requires a Creator Credits job." }, 403);
+      const { data: j } = await admin.from("creator_generation_jobs").select("status, job_type").eq("id", billingJob).maybeSingle();
+      if (!j || j.status !== "generating" || j.job_type !== "voice") {
+        return json({ error: "unbilled_call", message: "Billing job is not active." }, 403);
+      }
+    } else {
+      const c = await chargeAndStart(admin, {
+        memberId: caller.userId, modelKey: "eleven-multilingual-v2", route: `elevenlabs-${tier}`, jobType: "voice",
+        idempotencyKey: `voice:${body.requestId ?? `${voice}:${text.length}:${Math.floor(Date.now() / 60_000)}`}`,
+        units: Math.ceil(text.length / 1000), params: { chars: text.length, tier, preview: !uploadPath },
+        source: "generate-voice", claimPrecharged: false,
+      });
+      if (!c.ok) return json(c.body, c.status);
+      ownJobId = c.jobId;
+    }
+
     const audio = await elevenLabsSynthesize(preprocessForTts(text), voice);
 
     // ElevenLabs MP3 at 128kbps
@@ -113,16 +129,17 @@ Deno.serve(async (req) => {
 
     let audioUrl: string | undefined;
     if (uploadPath) {
-      const supabase = createClient(SUPABASE_URL, SERVICE_KEY);
-      const { error } = await supabase.storage.from("zcreator-videos").upload(uploadPath, audio, {
+      const { error } = await admin.storage.from("zcreator-videos").upload(uploadPath, audio, {
         contentType: "audio/mpeg",
         upsert: true,
       });
       if (error) return json({ error: "upload failed: " + error.message }, 500);
-      const { data } = supabase.storage.from("zcreator-videos").getPublicUrl(uploadPath);
+      const { data } = admin.storage.from("zcreator-videos").getPublicUrl(uploadPath);
       audioUrl = data.publicUrl;
     }
 
+    if (ownJobId) await completeJob(admin, ownJobId, audioUrl ?? null);
+    success = true;
     return json({
       tier,
       voice,
@@ -134,5 +151,7 @@ Deno.serve(async (req) => {
   } catch (e: any) {
     console.error("voice error", e);
     return json({ error: e?.message ?? "unknown error" }, 500);
+  } finally {
+    if (!success && ownJobId) await refundJob(admin, ownJobId);
   }
 });
