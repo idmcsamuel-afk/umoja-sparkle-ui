@@ -12,6 +12,22 @@ const corsHeaders = {
 };
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.45.4";
 import { generationEnabled, GENERATION_DISABLED_BODY } from "../_shared/generation-gate.ts";
+import { chargeAndStart, completeJob, refundJob, marketingMemberId } from "../_shared/creator-billing.ts";
+
+// Director spends from the platform marketing wallet (creator_settings.marketing_member_id).
+let BILL_MEMBER: string | null = null;
+let RUN_ID = "";
+async function billed<T>(route: string, jobType: "script" | "video", key: string, fn: () => Promise<{ ok: boolean; value: T }>): Promise<T | null> {
+  if (!BILL_MEMBER) return null;
+  const c = await chargeAndStart(supabase, {
+    memberId: BILL_MEMBER, modelKey: route.startsWith("heygen") ? "heygen-avatar-v2" : "claude-sonnet-4",
+    route, jobType, idempotencyKey: `director:${RUN_ID}:${key}`, source: "content-director", claimPrecharged: false,
+  });
+  if (!c.ok) { console.warn("[director] not charged, skipping", route, c.body); return null; }
+  let ok = false;
+  try { const r = await fn(); ok = r.ok; return r.value; }
+  finally { if (ok) await completeJob(supabase, c.jobId); else await refundJob(supabase, c.jobId); }
+}
 
 const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
 const SERVICE_ROLE = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
@@ -40,7 +56,8 @@ async function generateScripts(count: number, campaignId: string | null) {
   }
   const userPrompt = `Generate ${count} unique scripts. Each: 30-60s spoken text, a 5-second hook, a persona (1-5), and a type (problem_solution|results|community|objection). Return ONLY a JSON array of objects with keys: script, persona, type, hook. No prose, no code fences.`;
 
-  const res = await fetch("https://api.anthropic.com/v1/messages", {
+  const res = await billed("anthropic-director-batch", "script", "scripts", async () => {
+    const r = await fetch("https://api.anthropic.com/v1/messages", {
     method: "POST",
     headers: {
       "x-api-key": ANTHROPIC_API_KEY,
@@ -53,7 +70,10 @@ async function generateScripts(count: number, campaignId: string | null) {
       system: SYSTEM_PROMPT,
       messages: [{ role: "user", content: userPrompt }],
     }),
+    });
+    return { ok: r.ok, value: r };
   });
+  if (!res) return [];
   if (!res.ok) {
     console.error("[director] anthropic error", res.status, await res.text());
     return [];
@@ -99,7 +119,8 @@ Return ONLY JSON, no prose, no code fences:
 {"instagram":"...","tiktok":"...","facebook":"...","hashtags":"#UMOJAcircles #FinancialFreedom #SouthAfrica #PassiveIncome #StokvelModern"}`;
 
   try {
-    const res = await fetch("https://api.anthropic.com/v1/messages", {
+    const res = await billed("anthropic-caption", "script", `caption:${crypto.randomUUID()}`, async () => {
+      const r = await fetch("https://api.anthropic.com/v1/messages", {
       method: "POST",
       headers: {
         "x-api-key": ANTHROPIC_API_KEY,
@@ -111,7 +132,10 @@ Return ONLY JSON, no prose, no code fences:
         max_tokens: 1000,
         messages: [{ role: "user", content: userPrompt }],
       }),
+      });
+      return { ok: r.ok, value: r };
     });
+    if (!res) return null;
     if (!res.ok) {
       console.error("[director] caption gen error", res.status);
       return null;
@@ -139,7 +163,8 @@ async function createHeygenVideo(avatar: any, script: any, campaignId: string | 
 
   if (HEYGEN_API_KEY && avatar.heygen_avatar_id && avatar.voice_id) {
     try {
-      const res = await fetch("https://api.heygen.com/v2/video/generate", {
+      const res = await billed("heygen-talking-head", "video", `video:${script.id}:${avatar.id}`, async () => {
+      const r = await fetch("https://api.heygen.com/v2/video/generate", {
         method: "POST",
         headers: {
           "X-Api-Key": HEYGEN_API_KEY,
@@ -155,7 +180,11 @@ async function createHeygenVideo(avatar: any, script: any, campaignId: string | 
           aspect_ratio: "9:16",
         }),
       });
-      const data = await res.json();
+      const d = await r.json();
+      return { ok: r.ok && !!d?.data?.video_id, value: { ok: r.ok, data: d } };
+      });
+      if (!res) throw new Error("Not charged (insufficient marketing credits or generation disabled)");
+      const data = res.data;
       if (res.ok && data?.data?.video_id) {
         heygenVideoId = data.data.video_id;
         status = "generating";
@@ -289,6 +318,10 @@ Deno.serve(async (req) => {
       } catch { /* no body */ }
     }
     console.log("[director] test_mode:", testMode);
+    BILL_MEMBER = await marketingMemberId(supabase);
+    // One run per hour max (duplicate protection on the script batch key).
+    RUN_ID = String(Math.floor(Date.now() / 3_600_000));
+    if (!BILL_MEMBER) console.warn("[director] no marketing wallet configured — nothing will be generated");
 
     // Find active campaign (most recent)
     const { data: campaigns } = await supabase
