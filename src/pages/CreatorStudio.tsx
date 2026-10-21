@@ -24,7 +24,6 @@ import {
   Video, TrendingUp, Eye, Clock, Plus, X, Volume2, Lightbulb, Check, AlertCircle, Crown, ArrowRight,
 } from "lucide-react";
 import { useNavigate } from "react-router-dom";
-import { getTierConfig, usagePct, usageColor, type ZCreatorTier } from "@/lib/zcreatorTiers";
 
 const NICHES = ["Finance", "Health", "Tech", "Business", "Entertainment", "Lifestyle", "Education"];
 const TONES = ["Professional", "Casual", "Humorous", "Inspirational", "Educational"];
@@ -60,7 +59,6 @@ export default function CreatorStudio() {
   const [creating, setCreating] = useState(false);
   const [generatingId, setGeneratingId] = useState<string | null>(null);
   const [voiceOpen, setVoiceOpen] = useState(false);
-  const [sub, setSub] = useState<any>(null);
 
   // form state
   const [agentName, setAgentName] = useState("");
@@ -82,7 +80,7 @@ export default function CreatorStudio() {
 
   const loadAll = async () => {
     if (!user) return;
-    const [a, q, s] = await Promise.all([
+    const [a, q] = await Promise.all([
       supabase
         .from("zcreator_story_agents")
         .select("*")
@@ -94,11 +92,9 @@ export default function CreatorStudio() {
         .eq("user_id", user.id)
         .order("created_at", { ascending: false })
         .limit(20),
-      supabase.from("zcreator_subscriptions").select("*").eq("user_id", user.id).maybeSingle(),
     ]);
     setAgents(a.data ?? []);
     setQueue(q.data ?? []);
-    setSub(s.data ?? null);
 
     // stats
     const startOfMonth = new Date();
@@ -193,9 +189,9 @@ export default function CreatorStudio() {
     try {
       const sampleText = tier === "premium"
         ? "Hey, this is your premium studio-quality voice. Notice the rich tone and natural pacing."
-        : "Hi there — this is your free Edge TTS voice, with natural pauses and emotion built in.";
+        : "Hi there — this is your standard studio voice, with natural pauses and emotion built in.";
       const { data, error } = await supabase.functions.invoke("zcreator-generate-voice", {
-        body: { text: sampleText, tier, returnBase64: true },
+        body: { text: sampleText, tier, returnBase64: true, requestId: crypto.randomUUID() },
       });
       if (error) throw new Error(error.message);
       if ((data as any)?.error) throw new Error((data as any).error);
@@ -223,38 +219,25 @@ export default function CreatorStudio() {
   };
 
   const generateNow = async (a: Agent) => {
-    if (limitReached) {
-      toast.error("Creator Studio monthly limit reached. Upgrade to continue.");
-      navigate("/creator-studio/subscription");
-      return;
-    }
     setGeneratingId(a.id);
     const { data, error } = await supabase.functions.invoke("zcreator-story-agent", {
-      body: { agentId: a.id, manualTrigger: true },
+      body: { agentId: a.id, manualTrigger: true, requestId: crypto.randomUUID() },
     });
     setGeneratingId(null);
     if (error) return toast.error(`Generation failed: ${error.message}`);
     if ((data as any)?.error) {
       const err = (data as any).error;
-      if (err === "monthly_limit_reached" || /limit reached/i.test(err)) {
-        toast.error("Creator Studio limit reached. Upgrade your plan.");
-        navigate("/creator-studio/subscription");
+      if (err === "insufficient_credits") {
+        toast.error("Not enough Creator Credits for this generation.");
+        navigate("/creator-studio/credits");
         return;
       }
+      if (err === "generation_disabled") return toast.error("AI generation is temporarily paused by the platform.");
       return toast.error(`Generation failed: ${err}`);
     }
     toast.success("Script generated! View in Videos tab");
     loadAll();
   };
-
-  const currentTier = (sub?.tier ?? "free") as ZCreatorTier;
-  const currentCfg = getTierConfig(currentTier);
-  const videosUsed = Number(sub?.videos_used_this_month ?? 0);
-  const videoLimit = Number(sub?.videos_per_month ?? currentCfg.videosPerMonth);
-  const usagePctVal = usagePct(videosUsed, videoLimit);
-  const usageCls = usageColor(usagePctVal);
-  const limitReached = videosUsed >= videoLimit;
-  const limitWarning = usagePctVal >= 80 && !limitReached;
 
   return (
     <div className="min-h-screen pb-28 md:pb-10">
@@ -270,44 +253,7 @@ export default function CreatorStudio() {
               Spin up an AI story agent that researches trends and ships short-form videos on autopilot.
             </p>
           </div>
-          <button
-            type="button"
-            onClick={() => navigate("/creator-studio/subscription")}
-            className={`rounded-full border px-3 py-1.5 text-xs font-medium ${usageCls} hover:opacity-80 transition-opacity flex items-center gap-1.5`}
-            title="Manage Creator Studio plan"
-          >
-            <Crown className="h-3 w-3" /> {videosUsed}/{videoLimit} videos · {currentCfg.name}
-          </button>
         </header>
-
-        {limitReached && (
-          <div className="rounded-xl border border-red-500/40 bg-red-500/10 p-4 flex items-start gap-3">
-            <AlertCircle className="h-5 w-5 text-red-500 shrink-0 mt-0.5" />
-            <div className="flex-1">
-              <p className="text-sm font-medium">Creator Studio monthly limit reached</p>
-              <p className="text-xs text-muted-foreground mt-0.5">
-                You've used all {videoLimit} videos on your <b>{currentCfg.name}</b> plan. Upgrade to keep generating.
-              </p>
-            </div>
-            <Button size="sm" onClick={() => navigate("/creator-studio/subscription")}>
-              Upgrade Creator Studio
-            </Button>
-          </div>
-        )}
-        {limitWarning && (
-          <div className="rounded-xl border border-amber-500/40 bg-amber-500/10 p-4 flex items-start gap-3">
-            <AlertCircle className="h-5 w-5 text-amber-500 shrink-0 mt-0.5" />
-            <div className="flex-1">
-              <p className="text-sm font-medium">Heads up — running low on Creator Studio videos</p>
-              <p className="text-xs text-muted-foreground mt-0.5">
-                You've used {videosUsed} of {videoLimit} videos this month on your <b>{currentCfg.name}</b> plan.
-              </p>
-            </div>
-            <Button size="sm" variant="outline" onClick={() => navigate("/creator-studio/subscription")}>
-              View Plans
-            </Button>
-          </div>
-        )}
 
         {/* Quick stats */}
         <section className="grid grid-cols-2 md:grid-cols-4 gap-3">
