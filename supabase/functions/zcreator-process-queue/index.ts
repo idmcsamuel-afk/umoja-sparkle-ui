@@ -1,4 +1,5 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { generationEnabled, GENERATION_DISABLED_BODY } from "../_shared/generation-gate.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -17,6 +18,11 @@ const SERVICE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? "";
 
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response("ok", { headers: corsHeaders });
+  // Kill-switch: refuse before dispatching to assemble-faceless. Jobs stay QUEUED
+  // (not failed) so they can run when generation is re-enabled.
+  if (!(await generationEnabled())) {
+    return json({ ...GENERATION_DISABLED_BODY, queued_jobs_left_untouched: true }, 403);
+  }
   const _cron = Deno.env.get("CRON_SECRET");
   if (!_cron || req.headers.get("x-cron-secret") !== _cron) {
     return json({ error: "Unauthorized" }, 401);

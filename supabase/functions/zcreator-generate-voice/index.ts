@@ -6,6 +6,7 @@
 
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { encodeBase64 } from "https://deno.land/std@0.224.0/encoding/base64.ts";
+import { generationEnabled, GENERATION_DISABLED_BODY } from "../_shared/generation-gate.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -80,6 +81,8 @@ async function elevenLabsSynthesize(text: string, voice: string): Promise<Uint8A
 
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response("ok", { headers: corsHeaders });
+  // Kill-switch: refuse before ANY ElevenLabs call — covers generation AND voice previews.
+  if (!(await generationEnabled())) return json(GENERATION_DISABLED_BODY, 403);
   const _cron = Deno.env.get("CRON_SECRET");
   const _authHeader = req.headers.get("Authorization");
   if ((!_cron || req.headers.get("x-cron-secret") !== _cron) && !_authHeader?.startsWith("Bearer ")) {
