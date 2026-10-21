@@ -1636,6 +1636,212 @@ export type Database = {
         }
         Relationships: []
       }
+      creator_credit_packs: {
+        Row: {
+          active: boolean
+          created_at: string
+          credits: number
+          id: string
+          name: string
+          price_zar: number
+          sort_order: number
+          updated_at: string
+        }
+        Insert: {
+          active?: boolean
+          created_at?: string
+          credits: number
+          id?: string
+          name: string
+          price_zar: number
+          sort_order?: number
+          updated_at?: string
+        }
+        Update: {
+          active?: boolean
+          created_at?: string
+          credits?: number
+          id?: string
+          name?: string
+          price_zar?: number
+          sort_order?: number
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      creator_credit_transactions: {
+        Row: {
+          amount: number
+          created_at: string
+          description: string | null
+          id: string
+          member_id: string
+          reference: string | null
+          type: string
+        }
+        Insert: {
+          amount: number
+          created_at?: string
+          description?: string | null
+          id?: string
+          member_id: string
+          reference?: string | null
+          type: string
+        }
+        Update: {
+          amount?: number
+          created_at?: string
+          description?: string | null
+          id?: string
+          member_id?: string
+          reference?: string | null
+          type?: string
+        }
+        Relationships: []
+      }
+      creator_credit_wallets: {
+        Row: {
+          balance: number
+          created_at: string
+          id: string
+          lifetime_purchased: number
+          lifetime_spent: number
+          member_id: string
+          updated_at: string
+        }
+        Insert: {
+          balance?: number
+          created_at?: string
+          id?: string
+          lifetime_purchased?: number
+          lifetime_spent?: number
+          member_id: string
+          updated_at?: string
+        }
+        Update: {
+          balance?: number
+          created_at?: string
+          id?: string
+          lifetime_purchased?: number
+          lifetime_spent?: number
+          member_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "creator_credit_wallets_member_id_fkey"
+            columns: ["member_id"]
+            isOneToOne: true
+            referencedRelation: "members"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      creator_feature_flags: {
+        Row: {
+          enabled: boolean
+          key: string
+          updated_at: string
+        }
+        Insert: {
+          enabled?: boolean
+          key: string
+          updated_at?: string
+        }
+        Update: {
+          enabled?: boolean
+          key?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      creator_generation_jobs: {
+        Row: {
+          cost_basis_usd: number
+          created_at: string
+          credits_charged: number
+          error: string | null
+          id: string
+          job_type: string
+          member_id: string
+          model_key: string
+          params: Json
+          result_url: string | null
+          route: string
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          cost_basis_usd?: number
+          created_at?: string
+          credits_charged?: number
+          error?: string | null
+          id?: string
+          job_type: string
+          member_id: string
+          model_key: string
+          params?: Json
+          result_url?: string | null
+          route: string
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          cost_basis_usd?: number
+          created_at?: string
+          credits_charged?: number
+          error?: string | null
+          id?: string
+          job_type?: string
+          member_id?: string
+          model_key?: string
+          params?: Json
+          result_url?: string | null
+          route?: string
+          status?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      creator_model_pricing: {
+        Row: {
+          active: boolean
+          cost_basis_usd: number
+          created_at: string
+          credits_cost: number | null
+          id: string
+          job_type: string
+          margin_multiplier: number
+          model_key: string
+          route: string
+          updated_at: string
+        }
+        Insert: {
+          active?: boolean
+          cost_basis_usd: number
+          created_at?: string
+          credits_cost?: number | null
+          id?: string
+          job_type: string
+          margin_multiplier?: number
+          model_key: string
+          route: string
+          updated_at?: string
+        }
+        Update: {
+          active?: boolean
+          cost_basis_usd?: number
+          created_at?: string
+          credits_cost?: number | null
+          id?: string
+          job_type?: string
+          margin_multiplier?: number
+          model_key?: string
+          route?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       currency_rates: {
         Row: {
           created_at: string
@@ -8555,6 +8761,15 @@ export type Database = {
         Returns: number
       }
       calculate_fraud_score: { Args: { _member: string }; Returns: Json }
+      charge_and_start_generation: {
+        Args: {
+          p_job_type: string
+          p_model_key: string
+          p_params?: Json
+          p_route: string
+        }
+        Returns: Json
+      }
       circle_tier_stats: {
         Args: never
         Returns: {
@@ -8585,6 +8800,15 @@ export type Database = {
           time_waiting_score: number
           volume_score: number
         }[]
+      }
+      credit_creator_purchase: {
+        Args: {
+          p_amount_paid_zar: number
+          p_member: string
+          p_pack_id: string
+          p_reference: string
+        }
+        Returns: Json
       }
       credit_spark_purchase_srv: {
         Args: {
@@ -8823,6 +9047,7 @@ export type Database = {
           total_refs: number
         }[]
       }
+      refund_generation: { Args: { p_job_id: string }; Returns: Json }
       refund_tender_unlock: {
         Args: { p_member: string; p_tender_id: string; p_unlock_type: string }
         Returns: Json
