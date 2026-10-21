@@ -738,7 +738,8 @@ Deno.serve(async (req) => {
     const metaPurpose: string | undefined = (clientMeta.purpose ?? "").toString().toLowerCase() || undefined;
     const typeHint = metaPaymentType || metaPurpose;
     const kind = typeHint
-      ? (typeHint.includes("group_brand") ? "GBI"
+      ? (typeHint.includes("creator_credits") ? "CREATORCC"
+        : typeHint.includes("group_brand") ? "GBI"
         : typeHint.includes("spark_purchase") ? "SPARKBUY"
         : typeHint.includes("spark_trade_subscription") || typeHint === "spark_trade_membership" ? "STSUB"
         : typeHint.includes("marketplace") ? "MKT"
@@ -753,7 +754,17 @@ Deno.serve(async (req) => {
 
     let result: any = { kind: "unknown", applied: false };
     try {
-      if (kind === "CIRCLE") result = await applyToCircle(u.user.id, metaTier || parts[1], reference);
+      if (kind === "CREATORCC" || prefix === "CCREDIT") {
+        const packId = String(clientMeta.pack_id ?? "");
+        if (!packId) result = { kind: "creator_credits", applied: false, reason: "missing_pack_id" };
+        else {
+          const { data, error } = await sb.rpc("credit_creator_purchase", {
+            p_member: u.user.id, p_pack_id: packId, p_reference: reference, p_amount_paid_zar: amountZar,
+          });
+          result = { kind: "creator_credits", applied: !error, data, error: error?.message };
+        }
+      }
+      else if (kind === "CIRCLE") result = await applyToCircle(u.user.id, metaTier || parts[1], reference);
       else if (kind === "PROP") result = await applyToProperty(u.user.id, metaPropertyId || parts[1], reference);
       else if (kind === "BC" || kind === "CLUB") result = await applyToBuyersClub(u.user.id, (metaTier || parts[1] || "bronze").toLowerCase(), reference);
       else if (kind === "DRIVE") result = await applyToDrive(u.user.id, reference, amountZar, clientMeta.enrollment_id);
