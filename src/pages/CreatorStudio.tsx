@@ -461,8 +461,8 @@ export default function CreatorStudio() {
                       <Button
                         size="sm"
                         onClick={() => generateNow(a)}
-                        disabled={generatingId === a.id || limitReached}
-                        title={limitReached ? "Upgrade Creator Studio plan to continue" : undefined}
+                        disabled={generatingId === a.id}
+                       
                       >
                         {generatingId === a.id ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Sparkles className="h-3.5 w-3.5" />}
                         Generate Script Now
