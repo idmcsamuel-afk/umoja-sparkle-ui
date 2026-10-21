@@ -95,6 +95,7 @@ import MemberVideos from "./pages/MemberVideos.tsx";
 import UploadVideo from "./pages/UploadVideo.tsx";
 
 import BrowseVideos from "./pages/BrowseVideos.tsx";
+import CreatorCredits from "./pages/CreatorCredits";
 import CreatorStudio from "./pages/CreatorStudio.tsx";
 import CreatorVideos from "./pages/CreatorVideos.tsx";
 import CreatorSchedule from "./pages/CreatorSchedule.tsx";
@@ -207,6 +208,7 @@ const App = () => (
                 <Route path="/upload-video" element={<ProtectedRoute><UploadVideo /></ProtectedRoute>} />
                 <Route path="/my-videos" element={<ProtectedRoute><MemberVideos /></ProtectedRoute>} />
                 <Route path="/browse-videos" element={<ProtectedRoute><BrowseVideos /></ProtectedRoute>} />
+                <Route path="/creator-studio/credits" element={<ProtectedRoute><CreatorCredits /></ProtectedRoute>} />
                 <Route path="/creator-studio" element={<ProtectedRoute><CreatorStudio /></ProtectedRoute>} />
                 <Route path="/creator-studio/videos" element={<ProtectedRoute><CreatorVideos /></ProtectedRoute>} />
                 <Route path="/creator-studio/schedule" element={<ProtectedRoute><CreatorSchedule /></ProtectedRoute>} />
